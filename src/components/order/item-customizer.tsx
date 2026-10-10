@@ -21,6 +21,23 @@ const CHOICE_ITEM_CLASS = cn(
   "data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary",
 );
 
+// What picking a choice adds, on the chip itself: the footer only ever shows
+// the running total of the extras, so without this a customer has to tap a
+// choice to learn its price.
+function ChoicePrice({ cents }: { cents?: number | null }) {
+  if (!cents) return null;
+  // The leading space is a real character, so the choice is read out as
+  // "Oat Milk +$1.00" and not as one run-together word.
+  return (
+    <>
+      {" "}
+      <span className="ml-1 font-mono text-xs opacity-80">
+        +{formatPrice(cents)}
+      </span>
+    </>
+  );
+}
+
 interface Props {
   item: MenuItem | null;
   onClose: () => void;
@@ -193,6 +210,7 @@ function CustomizerBody({
                     className={CHOICE_ITEM_CLASS}
                   >
                     {c.label}
+                    <ChoicePrice cents={c.price_delta_cents} />
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -214,6 +232,7 @@ function CustomizerBody({
                     className={CHOICE_ITEM_CLASS}
                   >
                     {c.label}
+                    <ChoicePrice cents={c.price_delta_cents} />
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>

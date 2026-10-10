@@ -46,6 +46,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Eighteen messages no longer contain a long dash, for example "Order
   changed. Please refresh." The lint rule that enforces this now covers
   messages returned from server code, not only text in components.
+- A choice that costs extra shows its price on the choice ("Oat milk
+  +$1.00"), not only after it is picked.
+- With "reduce motion" switched on in the device settings, dialogs, sheets
+  and menus appear at once instead of sliding and zooming.
+- Messages that pop up in the corner follow dark mode.
+- For screen readers: each order on the board and each item on a menu is a
+  heading, and the fields of the menu editor have names.
+- Rows in menus and dropdown lists are finger-sized on touch screens. The
+  walk-up dialog fits above a phone's browser bar.
 - Bulk pickup checks each order is still ready and reports partial failures without changing payment state.
 - Anonymous basket holds no longer disable purchases or trim another customer's cart; actual stock and vendor order limits still apply.
 - Shared image handling releases failed render resources and safely decodes storage paths; money fields reject amounts outside safe integer precision.

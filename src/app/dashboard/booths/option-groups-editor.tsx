@@ -200,6 +200,7 @@ export function OptionGroupsEditor({
                 </Button>
                 <Input
                   placeholder="Group name (e.g. Size, Spice, Add-ons)"
+                  aria-label="Option group name"
                   value={group.label}
                   onChange={(e) => updateGroup(gi, { label: e.target.value })}
                   className="min-w-[8rem] flex-1 rounded-lg font-medium"
@@ -337,6 +338,7 @@ function ChoiceRow({
     <div className="flex flex-col gap-2 sm:flex-row">
       <Input
         placeholder="Choice (e.g. Small)"
+        aria-label="Choice name"
         value={choice.label}
         onChange={(e) => onLabelChange(e.target.value)}
         className="rounded-lg bg-background"
@@ -353,6 +355,7 @@ function ChoiceRow({
           </span>
           <MoneyInput
             placeholder="Price (opt.)"
+            aria-label={`Extra price for ${choice.label || "this choice"}`}
             cents={choice.price_delta_cents}
             onCommit={onPriceChange}
             className="rounded-lg bg-background pl-6"
@@ -409,6 +412,7 @@ function ChoiceRow({
                 </span>
                 <MoneyInput
                   placeholder="Cost (opt.)"
+                  aria-label={`Extra cost of ${choice.label || "this choice"}`}
                   cents={choice.cost_delta_cents}
                   onCommit={onCostChange}
                   className="rounded-lg pl-6"

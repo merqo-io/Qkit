@@ -479,12 +479,14 @@ export function MenuEditor({
               <div className="flex flex-1 flex-col gap-2">
                 <Input
                   placeholder="Item name"
+                  aria-label="Item name"
                   value={item.name}
                   onChange={(e) => update(index, { name: e.target.value })}
                   className="rounded-lg"
                 />
                 <Input
                   placeholder="Description (optional)"
+                  aria-label={`Description of ${item.name || "this item"}`}
                   value={item.description}
                   onChange={(e) =>
                     update(index, { description: e.target.value })
@@ -886,6 +888,7 @@ export function MenuEditor({
                                     renameCategory(group.id, e.target.value)
                                   }
                                   placeholder="Section name"
+                                  aria-label="Section name"
                                   className="h-8 flex-1 rounded-md border-transparent bg-transparent px-1.5 font-medium shadow-none hover:border-border focus-visible:border-border"
                                 />
                                 <span className="shrink-0 text-xs text-muted-foreground">

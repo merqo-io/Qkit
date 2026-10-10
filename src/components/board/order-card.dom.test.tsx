@@ -125,7 +125,7 @@ function byOrderNumber(number: string) {
   return (_content: string, element: Element | null) =>
     element?.textContent === number;
 }
-const ORDER_NUMBER_OPTS = { selector: "p" };
+const ORDER_NUMBER_OPTS = { selector: "h3" };
 
 // Bump and cancel live behind the ticket's "more" menu, so the ticket itself
 // carries one button. Opens it and hands back the query for one of its items.
