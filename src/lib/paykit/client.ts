@@ -415,3 +415,22 @@ export async function getCheckoutStatus(
     ? { ok: true, data: toTransactionStatus(result.data) }
     : result;
 }
+
+/** Find the transaction paykit already holds for one of qkit's orders,
+ *  without creating one. qkit stores no transaction id, so this is how an
+ *  action reaches it. Unlike `createCheckout`, it does not depend on the
+ *  vendor's current payment config, so it still answers after the vendor
+ *  edits their payment details. A 404 means paykit has no transaction for
+ *  the order; a 405 means that paykit deployment has no lookup route. */
+export async function getCheckoutByOrderRef(
+  orderRef: string,
+): Promise<PaykitResult<TransactionStatus>> {
+  const result = await paykitRequest(
+    `/api/v1/checkout?order_ref=${encodeURIComponent(orderRef)}`,
+    transactionStatusResponseSchema,
+    { method: "GET" },
+  );
+  return result.ok
+    ? { ok: true, data: toTransactionStatus(result.data) }
+    : result;
+}
