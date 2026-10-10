@@ -14,7 +14,8 @@ import {
   buildAdvancePatch,
   isTerminal,
 } from "@/lib/orders";
-import { createCheckout, confirmCheckout } from "@/lib/paykit/client";
+import { confirmCheckout } from "@/lib/paykit/client";
+import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
 import type { ActionResult } from "@/lib/action-result";
@@ -258,19 +259,19 @@ export async function confirmPaymentAndStart(
 
   const prevPaymentStatus = order.payment_status;
 
-  const checkout = await createCheckout({
+  const transaction = await transactionIdForOrder({
     vendorId: userId,
     amountCents: order.total_cents,
     orderRef: order.id,
   });
-  if (!checkout.ok) {
+  if (!transaction.ok) {
     console.error(
-      "confirmPaymentAndStart: paykit checkout failed",
-      checkout.error,
+      "confirmPaymentAndStart: paykit transaction lookup failed",
+      transaction.error,
     );
     return { success: false, error: "Failed to confirm payment" };
   }
-  const confirm = await confirmCheckout(checkout.data.transactionId);
+  const confirm = await confirmCheckout(transaction.data);
   if (!confirm.ok) {
     console.error(
       "confirmPaymentAndStart: paykit confirm failed",
@@ -445,8 +446,9 @@ export async function restoreAutoCompleted(
  * action only ever runs for the authenticated vendor's own orders, enforced
  * by RLS via loadOwnOrder), so no extra booth lookup is needed. `orderId` is
  * reused as paykit's `order_ref`, matching the checkout paykit already
- * created for this order on the customer's status page (idempotent — this
- * re-fetches the same transaction rather than creating a second one).
+ * created for this order on the customer's pay page. The transaction is
+ * looked up by that reference (see transactionIdForOrder) rather than
+ * re-created, so this still works after the vendor edits payment details.
  * `orders.payment_status` is then updated as a local mirror, same rationale
  * as claimPayment (payment-actions.ts): the rest of qkit's order-lifecycle
  * logic (cancel-blocking, payment displays, board realtime) still
@@ -468,19 +470,19 @@ export async function confirmOrderPayment(
   if (order.status === "cancelled")
     return { success: false, error: "This order was cancelled" };
 
-  const checkout = await createCheckout({
+  const transaction = await transactionIdForOrder({
     vendorId: userId,
     amountCents: order.total_cents,
     orderRef: order.id,
   });
-  if (!checkout.ok) {
+  if (!transaction.ok) {
     console.error(
-      "confirmOrderPayment: paykit checkout failed",
-      checkout.error,
+      "confirmOrderPayment: paykit transaction lookup failed",
+      transaction.error,
     );
     return { success: false, error: "Failed to confirm payment" };
   }
-  const confirm = await confirmCheckout(checkout.data.transactionId);
+  const confirm = await confirmCheckout(transaction.data);
   if (!confirm.ok) {
     console.error("confirmOrderPayment: paykit confirm failed", confirm.error);
     return { success: false, error: "Failed to confirm payment" };

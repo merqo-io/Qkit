@@ -91,13 +91,16 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/supabase/get-user", () => ({ getUser: getUserMock }));
 
-const { createCheckoutMock, confirmCheckoutMock } = vi.hoisted(() => ({
-  createCheckoutMock: vi.fn(),
-  confirmCheckoutMock: vi.fn(),
-}));
+const { createCheckoutMock, confirmCheckoutMock, getCheckoutByOrderRefMock } =
+  vi.hoisted(() => ({
+    createCheckoutMock: vi.fn(),
+    confirmCheckoutMock: vi.fn(),
+    getCheckoutByOrderRefMock: vi.fn(),
+  }));
 vi.mock("@/lib/paykit/client", () => ({
   createCheckout: createCheckoutMock,
   confirmCheckout: confirmCheckoutMock,
+  getCheckoutByOrderRef: getCheckoutByOrderRefMock,
 }));
 
 const { notifyCustomerMock } = vi.hoisted(() => ({
@@ -152,6 +155,17 @@ beforeEach(() => {
   createCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
     data: { type: "qr", transactionId: "tx1", payload: "0002" },
+  });
+  getCheckoutByOrderRefMock.mockReset().mockResolvedValue({
+    ok: true,
+    data: {
+      transactionId: "tx1",
+      status: "claimed",
+      amountCents: 800,
+      orderRef: ID,
+      claimedAt: "2026-08-11T00:00:00Z",
+      confirmedAt: null,
+    },
   });
   confirmCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
@@ -427,16 +441,36 @@ describe("confirmPaymentAndStart", () => {
       status: "preparing",
       prevPaymentStatus: "claimed",
     });
-    expect(createCheckoutMock).toHaveBeenCalledWith({
-      vendorId: "v1",
-      amountCents: 800,
-      orderRef: ID,
-    });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith(ID);
+    expect(createCheckoutMock).not.toHaveBeenCalled();
     expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
     expect(update).toHaveBeenCalledWith({
       status: "preparing",
       payment_status: "confirmed",
     });
+  });
+
+  it("confirms and starts an order whose vendor changed payment details after checkout", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "pending",
+        payment_status: "claimed",
+        total_cents: 800,
+      },
+    });
+    createCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "Payment configuration changed since checkout creation",
+    });
+    expect(await confirmPaymentAndStart(ID)).toEqual({
+      success: true,
+      status: "preparing",
+      prevPaymentStatus: "claimed",
+    });
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
   });
 
   it("refuses when payment is already confirmed", async () => {
@@ -449,6 +483,7 @@ describe("confirmPaymentAndStart", () => {
       error: "Order can't be advanced",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -462,6 +497,7 @@ describe("confirmPaymentAndStart", () => {
       error: "Order can't be advanced",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -525,7 +561,7 @@ describe("confirmPaymentAndStart", () => {
     });
   });
 
-  it("reports a failure when paykit's checkout call fails", async () => {
+  it("reports a failure when paykit's lookup fails", async () => {
     maybeSingle.mockResolvedValue({
       data: {
         id: ID,
@@ -534,7 +570,7 @@ describe("confirmPaymentAndStart", () => {
         total_cents: 800,
       },
     });
-    createCheckoutMock.mockResolvedValue({
+    getCheckoutByOrderRefMock.mockResolvedValue({
       ok: false,
       status: 503,
       error: "Upstream unavailable",
@@ -631,16 +667,73 @@ describe("confirmOrderPayment", () => {
     });
     const res = await confirmOrderPayment(ID);
     expect(res).toEqual({ success: true });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith(ID);
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "confirmed",
+      paid_at: expect.any(String),
+    });
+  });
+
+  it("confirms an order whose vendor changed payment details after checkout", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "ready",
+        payment_status: "claimed",
+        total_cents: 800,
+      },
+    });
+    createCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "Payment configuration changed since checkout creation",
+    });
+    expect(await confirmOrderPayment(ID)).toEqual({ success: true });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith(ID);
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
+  });
+
+  it("creates the checkout when paykit has none for this order", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "ready",
+        payment_status: "pending",
+        total_cents: 800,
+      },
+    });
+    getCheckoutByOrderRefMock.mockResolvedValue({
+      ok: false,
+      status: 404,
+      error: "Not found",
+    });
+    expect(await confirmOrderPayment(ID)).toEqual({ success: true });
     expect(createCheckoutMock).toHaveBeenCalledWith({
       vendorId: "v1",
       amountCents: 800,
       orderRef: ID,
     });
     expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
-    expect(update).toHaveBeenCalledWith({
-      payment_status: "confirmed",
-      paid_at: expect.any(String),
+  });
+
+  it("refuses to confirm when paykit's amount differs from the order's", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "ready",
+        payment_status: "claimed",
+        total_cents: 900,
+      },
     });
+    expect(await confirmOrderPayment(ID)).toEqual({
+      success: false,
+      error: "Failed to confirm payment",
+    });
+    expect(confirmCheckoutMock).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("is idempotent when already confirmed (no paykit call, no write)", async () => {
@@ -655,6 +748,7 @@ describe("confirmOrderPayment", () => {
     const res = await confirmOrderPayment(ID);
     expect(res).toEqual({ success: true });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -670,10 +764,11 @@ describe("confirmOrderPayment", () => {
     const res = await confirmOrderPayment(ID);
     expect(res.success).toBe(false);
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("reports a failure when paykit's checkout call fails", async () => {
+  it("reports a failure when paykit's lookup fails", async () => {
     maybeSingle.mockResolvedValue({
       data: {
         id: ID,
@@ -682,7 +777,7 @@ describe("confirmOrderPayment", () => {
         total_cents: 800,
       },
     });
-    createCheckoutMock.mockResolvedValue({
+    getCheckoutByOrderRefMock.mockResolvedValue({
       ok: false,
       status: 503,
       error: "Upstream unavailable",
