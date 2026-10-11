@@ -146,6 +146,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Board settings: every switch saves the moment it is flipped. Four of them
+  (Telegram ready alerts, self-checkout pickup, daily order number, wait-time
+  estimate) used to wait for a Save button further down the card while the
+  sound and notification choices saved at once, so a flipped switch could look
+  saved when it was not. The Save buttons now cover only the number fields;
+  "Save customer screen" is "Save backup time".
 - The brand palette follows combination 146 of Sanzo Wada's "A Dictionary of
   Color Combinations": Khaki for the primary colour (a two-point shift from
   the previous ochre), Deep Grayish Olive in place of moss green, and Diamine

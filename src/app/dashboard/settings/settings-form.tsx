@@ -328,6 +328,41 @@ export function SettingsForm({
     "Could not save the customer screen settings. Please try again.",
   );
 
+  const { pending: savingSwitch, run: runSwitch } = useAsyncAction(
+    "Could not save that setting. Please try again.",
+  );
+
+  // A switch saves the moment it is flipped, as the sound and the desktop
+  // notification choices already do: it has no half-typed state to protect,
+  // and a switch that silently waits for a button further down the card reads
+  // as saved when it is not. The number fields keep their Save button.
+  function saveSwitch(
+    key:
+      | "customer_telegram_notify_enabled"
+      | "pickup_scan_enabled"
+      | "daily_order_number_reset"
+      | "show_wait_estimate",
+    value: boolean,
+    set: (value: boolean) => void,
+  ) {
+    set(value);
+    return runSwitch(async () => {
+      try {
+        const res = await updateBoardSettings({ [key]: value });
+        if (!res.success) {
+          set(!value);
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Saved");
+        router.refresh();
+      } catch (error) {
+        set(!value);
+        throw error;
+      }
+    });
+  }
+
   // Validate local values together; each save sends only its section's fields.
   function currentSettings() {
     return {
@@ -353,16 +388,9 @@ export function SettingsForm({
       setThresholdError,
       "Check the thresholds",
       runThresholds,
-      "Thresholds saved",
+      "Timing saved",
       router,
-      [
-        "aging_min",
-        "overdue_min",
-        "undo_seconds",
-        "ready_auto_clear_min",
-        "customer_telegram_notify_enabled",
-        "pickup_scan_enabled",
-      ],
+      ["aging_min", "overdue_min", "undo_seconds", "ready_auto_clear_min"],
     );
   }
 
@@ -397,13 +425,9 @@ export function SettingsForm({
       setDisplayError,
       "Check the wait estimate",
       runDisplay,
-      "Order display saved",
+      "Backup time saved",
       router,
-      [
-        "daily_order_number_reset",
-        "show_wait_estimate",
-        "default_prep_minutes",
-      ],
+      ["default_prep_minutes"],
     );
   }
 
@@ -414,17 +438,13 @@ export function SettingsForm({
     readyAutoClearMin ===
       (initial.ready_auto_clear_min != null
         ? String(initial.ready_auto_clear_min)
-        : "") &&
-    customerNotify === (initial.customer_telegram_notify_enabled ?? true) &&
-    pickupScanEnabled === (initial.pickup_scan_enabled ?? false);
+        : "");
 
   const displayUnchanged =
-    dailyReset === initial.daily_order_number_reset &&
-    showWaitEstimate === initial.show_wait_estimate &&
     defaultPrepMin ===
-      (initial.default_prep_minutes != null
-        ? String(initial.default_prep_minutes)
-        : "");
+    (initial.default_prep_minutes != null
+      ? String(initial.default_prep_minutes)
+      : "");
 
   // Two independent stacks, not a CSS grid: a grid's row tracks size to
   // the tallest cell in that row, so once "Board timing" (col 1, three
@@ -586,7 +606,14 @@ export function SettingsForm({
               <div className="flex items-center gap-3 border-t border-border pt-4">
                 <Switch
                   checked={customerNotify}
-                  onCheckedChange={setCustomerNotify}
+                  onCheckedChange={(checked) =>
+                    saveSwitch(
+                      "customer_telegram_notify_enabled",
+                      checked,
+                      setCustomerNotify,
+                    )
+                  }
+                  disabled={savingSwitch}
                   aria-label="Notify customers on Telegram when their order is ready"
                 />
                 <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -602,7 +629,14 @@ export function SettingsForm({
               <div className="flex items-center gap-3 border-t border-border pt-4">
                 <Switch
                   checked={pickupScanEnabled}
-                  onCheckedChange={setPickupScanEnabled}
+                  onCheckedChange={(checked) =>
+                    saveSwitch(
+                      "pickup_scan_enabled",
+                      checked,
+                      setPickupScanEnabled,
+                    )
+                  }
+                  disabled={savingSwitch}
                   aria-label="Self-checkout pickup"
                 />
                 <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -681,7 +715,10 @@ export function SettingsForm({
             <div className="flex items-center gap-3">
               <Switch
                 checked={dailyReset}
-                onCheckedChange={setDailyReset}
+                onCheckedChange={(checked) =>
+                  saveSwitch("daily_order_number_reset", checked, setDailyReset)
+                }
+                disabled={savingSwitch}
                 aria-label="Show a simple daily order number instead of the permanent one"
               />
               <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -697,7 +734,10 @@ export function SettingsForm({
             <div className="flex items-center gap-3">
               <Switch
                 checked={showWaitEstimate}
-                onCheckedChange={setShowWaitEstimate}
+                onCheckedChange={(checked) =>
+                  saveSwitch("show_wait_estimate", checked, setShowWaitEstimate)
+                }
+                disabled={savingSwitch}
                 aria-label="Show a wait-time estimate to customers"
               />
               <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -763,7 +803,7 @@ export function SettingsForm({
                 disabled={savingDisplay || displayUnchanged}
                 className="h-10 rounded-xl font-semibold"
               >
-                {savingDisplay ? "Saving…" : "Save customer screen"}
+                {savingDisplay ? "Saving…" : "Save backup time"}
               </Button>
             </div>
           </Section>
