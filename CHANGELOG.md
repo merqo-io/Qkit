@@ -344,6 +344,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   them by design. Three existing cases were reordered to comply:
   `NOTE_SPACING`/`PEAK_GAIN` in `src/lib/order-alerts.ts` and `empty` in
   `src/app/dashboard/stats/reviews-card.tsx`.
+- Performance: the site-wide maintenance banner is read from the database at
+  most once every 30 seconds per server instance, not on every page request.
+  A banner switched on in `/admin` can take up to 30 seconds to reach every
+  visitor.
 
 ### Security
 
