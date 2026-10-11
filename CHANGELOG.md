@@ -146,6 +146,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Removed the `globals.css` rule that gave tap-to-open hint icons their 44px touch area. `@merqo/ui` v0.32.2 provides that area on every info icon, so the rule did nothing. No visible change.
 - The brand palette follows combination 146 of Sanzo Wada's "A Dictionary of
   Color Combinations": Khaki for the primary colour (a two-point shift from
   the previous ochre), Deep Grayish Olive in place of moss green, and Diamine
