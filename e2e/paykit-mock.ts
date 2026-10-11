@@ -53,6 +53,10 @@ class MockStore {
     return this.byId.get(id);
   }
 
+  getByOrderRef(orderRef: string): MockTransaction | undefined {
+    return this.byOrderRef.get(orderRef);
+  }
+
   getOrCreate(orderRef: string, amountCents: number): MockTransaction {
     let tx = this.byOrderRef.get(orderRef);
     if (!tx) {
@@ -129,6 +133,19 @@ function handleStatus(store: MockStore, id: string, send: Send) {
   send(200, statusBody(tx));
 }
 
+function handleLookup(store: MockStore, orderRef: string | null, send: Send) {
+  if (!orderRef) {
+    send(400, { error: "order_ref is required" });
+    return;
+  }
+  const tx = store.getByOrderRef(orderRef);
+  if (!tx) {
+    send(404, { error: "Not found" });
+    return;
+  }
+  send(200, statusBody(tx));
+}
+
 export function startPaykitMock(): {
   server: Server;
   close: () => Promise<void>;
@@ -147,6 +164,11 @@ export function startPaykitMock(): {
 
       if (req.method === "POST" && url.pathname === "/api/v1/checkout") {
         handleCreateCheckout(store, chunks, send);
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/checkout") {
+        handleLookup(store, url.searchParams.get("order_ref"), send);
         return;
       }
 
