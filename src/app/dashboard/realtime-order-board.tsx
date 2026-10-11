@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
-  Pause,
-  Play,
   Plus,
   Settings as SettingsIcon,
   Store,
@@ -45,7 +36,6 @@ import { sgtStartOfDayIso } from "@/lib/tz";
 import type { OptionCodes } from "@/lib/ticket";
 import { OrderCard } from "@/components/board/order-card";
 import { Ticket } from "@/components/widgets/ticket";
-import { Hint } from "@/components/widgets/hint";
 import {
   displayOrderNumber,
   needsPaymentReview,
@@ -57,37 +47,32 @@ import {
 import { boothColor } from "@/lib/booth/color";
 import { fireNewOrderNotification, playSound } from "@/lib/order-alerts";
 import { toggleBoothActive } from "./booths/actions";
-import {
-  advanceOrder,
-  revertOrderAdvance,
-  sweepReadyOrders,
-  sweepAbandonedPayments,
-} from "./order-actions";
+import { sweepReadyOrders, sweepAbandonedPayments } from "./order-actions";
 import { WalkupOrderDialog } from "./walkup-order-dialog";
 import { SegmentedControl } from "@/components/widgets/segmented-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
+import {
+  BATCH_BUTTON,
+  BatchControls,
+  isBatchable,
+  useBatchSelection,
+} from "./board-batch";
+import {
+  BoothRow,
+  BoothToggle,
+  boothFilterLabel,
+  resolveBoothFilter,
+  type BoothFilter,
+  type BoothView,
+} from "./board-booths";
+import {
+  LoadErrorBanner,
+  OrderSection,
+  SectionSwitcher,
+  type PhoneSection,
+} from "./board-sections";
 import { cn } from "@/lib/utils";
-import type { BoardOrder, BoardSettings, PaymentStatus } from "@/lib/types";
-
-type BoothView = {
-  id: string;
-  name: string;
-  is_active: boolean;
-  open: boolean;
-  // Event-mode setup (migration 0080) — optional so existing test fixtures
-  // and call sites need no changes; a booth without it behaves exactly as
-  // before (never auto-opens the walk-up dialog).
-  walkup_default?: boolean;
-  // The booth waits for the customer's "I'm here" before an order is made.
-  // Optional for the same reason; without it the booth is treated as not
-  // waiting.
-  requires_arrival_confirm?: boolean;
-  // Daily cup cap (booths.daily_cup_cap, migration 0094) and the cups already
-  // committed today, both optional: a booth with no cap, and every existing
-  // test fixture and call site, simply shows no cup counter.
-  daily_cup_cap?: number | null;
-  cups_today?: number;
-};
+import type { BoardOrder, BoardSettings } from "@/lib/types";
 
 interface Props {
   booths: BoothView[];
@@ -109,523 +94,11 @@ interface Props {
   optionCodes?: Record<string, OptionCodes>;
 }
 
-type BoothFilter = "all" | string;
-
-// Which of the two board sections a phone-width screen is showing.
-type PhoneSection = "incoming" | "accepted";
-
-// One board column (Incoming or Accepted). `solo` means the other column is
-// empty — spans both grid tracks and gets the fuller card-grid breakpoints,
-// since it then has the whole board's width to itself.
-function OrderSection({
-  label,
-  orders,
-  solo,
-  showHeader,
-  hiddenOnPhone = false,
-  action,
-  renderCard,
-}: {
-  label: string;
-  orders: BoardOrder[];
-  solo: boolean;
-  showHeader: boolean;
-  // A control for the whole column, shown at the end of its header row.
-  action?: ReactNode;
-  // Below `sm` the two sections share one narrow column, so only the one the
-  // SectionSwitcher has selected is shown. Hidden with a class rather than by
-  // not rendering, so the same markup serves both layouts and nothing depends
-  // on measuring the viewport.
-  hiddenOnPhone?: boolean;
-  renderCard: (order: BoardOrder) => ReactNode;
-}) {
-  return (
-    <section
-      className={cn(
-        solo && "sm:col-span-2",
-        hiddenOnPhone && "hidden sm:block",
-      )}
-    >
-      {showHeader && (
-        <div className="mb-3 flex min-h-8 items-center justify-between gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {label} ({orders.length})
-          </h2>
-          {action}
-        </div>
-      )}
-      <div
-        className={cn(
-          "grid grid-cols-1 gap-4",
-          solo
-            ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            : "lg:grid-cols-2",
-        )}
-      >
-        {orders.map(renderCard)}
-      </div>
-    </section>
-  );
-}
-
-/**
- * Phone-only switch between Incoming and Accepted.
- *
- * Stacked on a narrow screen, Accepted sits under however many Incoming cards
- * there are, which during a rush is well past the fold: staff accepted an order
- * on the board, could not find it on their phone, and read that as the two
- * devices being out of sync (Kessie's AAR, issue #3). Each side carries its
- * count, so neither can look empty, and the tablet/desktop two-column layout is
- * untouched.
- */
-function SectionSwitcher({
-  value,
-  onChange,
-  incomingCount,
-  acceptedCount,
-}: {
-  value: PhoneSection;
-  onChange: (next: PhoneSection) => void;
-  incomingCount: number;
-  acceptedCount: number;
-}) {
-  const tabs: { key: PhoneSection; label: string; count: number }[] = [
-    { key: "incoming", label: "Incoming", count: incomingCount },
-    { key: "accepted", label: "Accepted", count: acceptedCount },
-  ];
-  return (
-    <div
-      role="group"
-      aria-label="Which orders to show"
-      className="mb-5 flex gap-1 rounded-full border border-border bg-card p-1 sm:hidden"
-    >
-      {tabs.map((tab) => (
-        <button
-          key={tab.key}
-          type="button"
-          aria-pressed={value === tab.key}
-          onClick={() => onChange(tab.key)}
-          className={cn(
-            "min-h-11 flex-1 rounded-full px-3 text-sm font-semibold transition-colors",
-            value === tab.key
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground",
-          )}
-        >
-          {tab.label} ({tab.count})
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function LoadErrorBanner() {
-  return (
-    <div
-      role="alert"
-      className="mb-5 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
-    >
-      Couldn&apos;t load your current orders. Some in-flight orders may be
-      missing. Refresh to try again.
-    </div>
-  );
-}
-
-// One booth's open/paused toggle — a single button, not a two-segment
-// control: this is fundamentally one binary action (pause it / resume it),
-// and a segmented Open|Paused control cost 2-3x the width to say so. Icon
-// alone (a first pass) turned out to be a step too far — without hover on a
-// phone, an icon-only Pause/Play read as ambiguous. Icon + the current
-// state's own word fixes that at a fraction of the segmented control's
-// width. Same play/pause convention as a media player: showing Pause means
-// "this is running, tap to stop it"; Play means the reverse. Color still
-// carries the state too (emerald = open), so nothing rests on any one cue.
-function BoothToggle({
-  active,
-  onChange,
-  boothName,
-}: {
-  active: boolean;
-  onChange: (next: boolean) => void;
-  boothName: string;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onChange(!active)}
-          aria-label={
-            active
-              ? `${boothName} is open. Tap to pause.`
-              : `${boothName} is paused. Tap to resume.`
-          }
-          className={cn(
-            "h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-xs font-semibold",
-            active
-              ? "border-success/40 bg-success/10 text-success hover:bg-success/15 hover:text-success"
-              : "text-muted-foreground",
-          )}
-        >
-          {active ? (
-            <Pause className="size-3.5" />
-          ) : (
-            <Play className="size-3.5" />
-          )}
-          {active ? "Open" : "Paused"}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {active ? "Pause taking orders" : "Resume taking orders"}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-// Items committed today against the booth's own cap, for a stall working to
-// a fixed stock ("200, then we stop"). Counts items, not orders, matching the
-// orders_daily_cup_cap trigger, since one order can carry four or five.
-// Amber inside the last CUP_WARN_FRACTION of the cap, so staff see the line
-// coming while there is still time to tell the queue. Renders nothing for a
-// booth with no cap, which is every booth by default.
-const CUP_WARN_FRACTION = 0.1;
-
-function CupCount({ cap, used }: { cap?: number | null; used?: number }) {
-  if (cap == null) return null;
-  const served = used ?? 0;
-  const low = cap - served <= Math.ceil(cap * CUP_WARN_FRACTION);
-  return (
-    <span
-      className={cn(
-        "shrink-0 font-mono text-xs",
-        low ? "font-semibold text-status-aging" : "text-muted-foreground",
-      )}
-    >
-      {served}/{cap} items
-    </span>
-  );
-}
-
-// One booth's row — shared between the solo inline case (a single-booth
-// vendor, no need for a modal over one toggle) and the multi-booth status
-// dialog below. The header's own compact case (a booth already selected via
-// the board's filter dropdown) skips this row entirely and renders
-// BoothToggle directly — the dropdown right below already says which booth
-// this is, so a bordered pill wrapping just the (already-bordered) toggle
-// button would be a border around a border for no reason.
-function BoothRow({
-  b,
-  showDot,
-  active,
-  onToggle,
-}: {
-  b: BoothView;
-  showDot: boolean;
-  active: boolean;
-  onToggle: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
-      {showDot && (
-        <span
-          className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: boothColor(b.id) }}
-        />
-      )}
-      <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
-      <CupCount cap={b.daily_cup_cap} used={b.cups_today} />
-      {/* Manually active but outside scheduled hours: customers still see
-          it closed. A distinct state from the toggle itself, worth
-          surfacing so the vendor isn't confused about why orders still
-          aren't landing. */}
-      {active && !b.open && (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          (outside hours)
-        </span>
-      )}
-      <BoothToggle active={active} onChange={onToggle} boothName={b.name} />
-    </div>
-  );
-}
-
-/**
- * Which booth tab is showing right now, and which single booth (if any) the
- * header's own toggle should control directly instead of opening a dialog.
- * A booth's tab shows only if it's active, still has orders in flight, or is
- * the one the vendor has the board filtered to right now — a turned-off
- * booth with a queue stays until it clears, then self-removes. That last
- * clause matters: without it, pausing the booth you're currently filtered to
- * (with nothing in flight) dropped it from this list on the very same
- * render, which collapsed multiBooth to false and yanked both the filter
- * Select and the header's own toggle out from under the tap that just
- * paused it.
- */
-function resolveBoothFilter(
-  booths: BoothView[],
-  filter: BoothFilter,
-  activeCountFor: (id: string) => number,
-): {
-  visibleBooths: BoothView[];
-  multiBooth: boolean;
-  effectiveFilter: BoothFilter;
-  selectedBooth: BoothView | undefined;
-} {
-  const visibleBooths = booths.filter(
-    (b) => b.is_active || activeCountFor(b.id) > 0 || b.id === filter,
-  );
-  const multiBooth = visibleBooths.length > 1;
-
-  // If the selected booth's tab vanished, fall back to All.
-  const effectiveFilter: BoothFilter =
-    filter !== "all" && !visibleBooths.some((b) => b.id === filter)
-      ? "all"
-      : filter;
-  // A vendor who's already filtered the board down to one booth doesn't need
-  // to open a dialog and find that same booth again just to pause it — the
-  // header control becomes that booth's own switch directly.
-  const selectedBooth =
-    multiBooth && effectiveFilter !== "all"
-      ? booths.find((b) => b.id === effectiveFilter)
-      : undefined;
-
-  return { visibleBooths, multiBooth, effectiveFilter, selectedBooth };
-}
-
-/**
- * Batch fulfillment advances preparing→ready or ready→completed, with an
- * expected-status guard on each order. Payment confirmation stays separate.
- */
-// Heights here are the compact ones a mouse gets. On a touch device the
-// `pointer: coarse` rule in globals.css raises every one of these to 44px.
-const BATCH_BUTTON = "rounded-full";
-
 const SORT_ORDERS: { value: AgeSortOrder; label: string }[] = [
   { value: "earliest", label: "Earliest" },
   { value: "latest", label: "Latest" },
 ];
 const HEADER_BUTTON = "rounded-full";
-
-/** What the booth filter's trigger reads: the same text as the chosen item. */
-function boothFilterLabel(
-  filter: BoothFilter,
-  booths: BoothView[],
-  total: number,
-  countFor: (id: string) => number,
-): string {
-  const booth = booths.find((b) => b.id === filter);
-  if (!booth) return `All booths (${total})`;
-  return `${booth.name} (${countFor(booth.id)})${booth.open ? "" : " · closed"}`;
-}
-
-// The board's one batch control. Idle, it is a single "Select" button with a
-// tap-to-open hint. In select mode it becomes Cancel, Select all (which flips
-// to Clear all once everything is ticked) and the action itself, whose count
-// is the confirmation: "Mark N Ready" for the ticked orders still being made,
-// "Mark N Picked Up" for the ticked ones already ready. Both show only when
-// both kinds are ticked, which is the end-of-event case: a vendor who had no
-// time to mark anything clears the whole board in two taps.
-function BatchControls({
-  selectMode,
-  readyCount,
-  pickupCount,
-  pickupByDefault,
-  allSelected,
-  busy,
-  onStart,
-  onCancel,
-  onToggleAll,
-  onMarkReady,
-  onMarkPickedUp,
-}: {
-  selectMode: boolean;
-  // Ticked orders that are still preparing, and ticked orders that are ready.
-  readyCount: number;
-  pickupCount: number;
-  // Which button stands in, disabled, while nothing is ticked: pick-up when
-  // no order on the board is still being made.
-  pickupByDefault: boolean;
-  allSelected: boolean;
-  busy: boolean;
-  onStart: () => void;
-  onCancel: () => void;
-  onToggleAll: () => void;
-  onMarkReady: () => void;
-  onMarkPickedUp: () => void;
-}) {
-  if (!selectMode)
-    return (
-      <div className="ml-auto flex items-center">
-        <Button
-          variant="outline"
-          size="sm"
-          className={BATCH_BUTTON}
-          onClick={onStart}
-        >
-          Select
-        </Button>
-        <Hint label="About Select">
-          Tick several orders, or all of them, and mark them ready or picked up
-          in one tap.
-        </Hint>
-      </div>
-    );
-  const nothingTicked = readyCount === 0 && pickupCount === 0;
-  const showReady = readyCount > 0 || (nothingTicked && !pickupByDefault);
-  const showPickup = pickupCount > 0 || (nothingTicked && pickupByDefault);
-  return (
-    <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        className={BATCH_BUTTON}
-        onClick={onCancel}
-      >
-        Cancel
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className={BATCH_BUTTON}
-        onClick={onToggleAll}
-      >
-        {allSelected ? "Clear all" : "Select all"}
-      </Button>
-      {showReady && (
-        <Button
-          size="sm"
-          className={BATCH_BUTTON}
-          disabled={readyCount === 0 || busy}
-          onClick={onMarkReady}
-        >
-          Mark {readyCount} Ready
-        </Button>
-      )}
-      {showPickup && (
-        <Button
-          size="sm"
-          className={BATCH_BUTTON}
-          disabled={pickupCount === 0 || busy}
-          onClick={onMarkPickedUp}
-        >
-          Mark {pickupCount} Picked Up
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// How long the Undo on a batch toast stays up. Longer than a single ticket's
-// undo window: there are more orders to notice a mistake across.
-const BATCH_UNDO_MS = 8000;
-
-// The statuses a batch can move on from, each with where it goes and how the
-// toast says so.
-type BatchStep = "pending" | "preparing" | "ready";
-const BATCH_NEXT = {
-  pending: "preparing",
-  preparing: "ready",
-  ready: "completed",
-} as const;
-
-function batchDoneMessage(step: BatchStep, count: number): string {
-  const orders = `${count} order${count === 1 ? "" : "s"}`;
-  if (step === "pending") return `Started ${orders}`;
-  return `Marked ${orders} ${step === "preparing" ? "ready" : "picked up"}`;
-}
-
-/** Walk a batch back the one step it was just moved. */
-async function undoAdvanced(
-  ids: string[],
-  from: BatchStep,
-  paymentById: ReadonlyMap<string, PaymentStatus>,
-) {
-  const to = BATCH_NEXT[from];
-  const results = await Promise.allSettled(
-    ids.map((id) =>
-      revertOrderAdvance(id, from, to, paymentById.get(id) ?? "not_required"),
-    ),
-  );
-  const ok = results.filter(
-    (r) => r.status === "fulfilled" && r.value.success,
-  ).length;
-  const failed = results.length - ok;
-  if (ok > 0) toast.success(`Put ${ok} order${ok === 1 ? "" : "s"} back`);
-  if (failed > 0)
-    toast.error(
-      `${failed} order${failed === 1 ? "" : "s"} couldn't be put back. Check the board.`,
-    );
-}
-
-// An order the batch control can act on: one step from done either way.
-function isBatchable(order: BoardOrder): boolean {
-  return order.status === "preparing" || order.status === "ready";
-}
-
-function useBatchSelection() {
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-  const [advancing, setAdvancing] = useState(false);
-  // Moves each of `ids` one step on (advanceOrder: incoming to started,
-  // preparing to ready, ready to picked up) and unticks them. Anything else still ticked stays ticked,
-  // so a mixed selection is finished with the other button; unticking the
-  // ones just moved is what stops a second tap from moving them again.
-  async function advanceSelected(
-    ids: string[],
-    expectedStatus: BatchStep,
-    paymentById: ReadonlyMap<string, PaymentStatus>,
-  ) {
-    setAdvancing(true);
-    try {
-      const results = await Promise.allSettled(
-        ids.map((id) => advanceOrder(id, expectedStatus)),
-      );
-      const moved = ids.filter((_, i) => {
-        const r = results[i];
-        return r.status === "fulfilled" && r.value.success;
-      });
-      const ok = moved.length;
-      const failed = results.length - ok;
-      // One tap moved many orders, and a customer watching theirs sees it
-      // change, so the same tap has to be reversible in one tap.
-      if (ok > 0)
-        toast.success(batchDoneMessage(expectedStatus, ok), {
-          duration: BATCH_UNDO_MS,
-          action: {
-            label: "Undo",
-            onClick: () => undoAdvanced(moved, expectedStatus, paymentById),
-          },
-        });
-      if (failed > 0)
-        toast.error(
-          `${failed} order${failed === 1 ? "" : "s"} couldn't be updated`,
-        );
-      const left = new Set(selectedIds);
-      for (const id of ids) left.delete(id);
-      setSelectedIds(left);
-      if (left.size === 0) setSelectMode(false);
-    } finally {
-      setAdvancing(false);
-    }
-  }
-  return {
-    selectMode,
-    setSelectMode,
-    selectedIds,
-    setSelectedIds,
-    toggleSelect,
-    advancing,
-    advanceSelected,
-  };
-}
 
 /**
  * "New orders while away" tab-title badge: bumps a counter when the vendor's
