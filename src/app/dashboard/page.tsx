@@ -86,7 +86,7 @@ export default async function DashboardPage() {
   const boothQuery = supabase
     .from("booths")
     .select(
-      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items",
+      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm",
     )
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: true })
@@ -125,6 +125,7 @@ export default async function DashboardPage() {
       nowIso,
     ),
     walkup_default: b.walkup_default,
+    requires_arrival_confirm: b.requires_arrival_confirm,
     daily_cup_cap: b.daily_cup_cap,
     cups_today: cupsToday[b.id] ?? 0,
   }));

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  memo,
+  useMemo,
+} from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -273,7 +280,7 @@ function showsWalkupTag(order: BoardOrder): boolean {
   );
 }
 
-export function OrderCard({
+function OrderCardInner({
   order,
   displayNumber,
   overtaken = false,
@@ -386,7 +393,7 @@ export function OrderCard({
     agingMin,
     overdueMin,
   );
-  const items = parseOrderItems(order.items);
+  const items = useMemo(() => parseOrderItems(order.items), [order.items]);
   const priced = orderHasPricing(items);
   // What's actually printed on this ticket — the daily-reset display number
   // when supplied, else the real one. Used everywhere the card refers to
@@ -1018,3 +1025,12 @@ function TicketActions({
     </div>
   );
 }
+
+/**
+ * A ticket re-renders when its own order or settings change, not each time the
+ * board does. The board re-renders on every realtime event, every tick of a
+ * selection and every toast, and on a busy day it holds dozens of tickets;
+ * each of the board's props to a ticket is a primitive, a stable callback or
+ * the order object the realtime hook replaces only when that order changes.
+ */
+export const OrderCard = memo(OrderCardInner);
