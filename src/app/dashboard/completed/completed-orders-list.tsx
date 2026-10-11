@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { OrderCard } from "@/components/board/order-card";
+import { displayOrderNumber } from "@/lib/orders";
 import { Ticket } from "@/components/widgets/ticket";
 import { Paginated } from "@/components/widgets/paginated";
 import { SegmentedControl } from "@/components/widgets/segmented-control";
@@ -53,18 +54,33 @@ export function CompletedOrdersList({
   loadError,
   historyLimit,
   todayStartIso,
+  dailyOrderNumberBaselines = {},
 }: {
   booths: Booth[];
   orders: BoardOrder[];
   loadError: boolean;
   historyLimit: number;
   todayStartIso: string;
+  // Each booth's first order number of the SGT day, when the vendor numbers
+  // from 1 each day. Empty otherwise.
+  dailyOrderNumberBaselines?: Record<string, string>;
 }) {
   const boothName = new Map(booths.map((b) => [b.id, b.name]));
   const multiBooth = booths.length > 1;
   const [boothFilter, setBoothFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange>("today");
+
+  // Today's tickets carry the number the board showed for them. An earlier
+  // day's baseline is not loaded, and a daily number repeats across days, so
+  // older tickets keep their permanent number.
+  const todayStartMs = Date.parse(todayStartIso);
+  function shownNumber(o: BoardOrder): string | undefined {
+    const baseline = dailyOrderNumberBaselines[o.booth_id];
+    if (o.order_number == null || baseline === undefined) return undefined;
+    if (Date.parse(o.created_at) < todayStartMs) return undefined;
+    return displayOrderNumber(o.order_number, baseline);
+  }
 
   const cutoffMs = rangeCutoffMs(dateRange, todayStartIso);
   const filtered = orders.filter((o) => {
@@ -77,6 +93,7 @@ export function CompletedOrdersList({
     const q = query.trim().toLowerCase();
     return (
       (o.order_number?.toLowerCase().includes(q) ?? false) ||
+      (shownNumber(o)?.includes(q) ?? false) ||
       o.customer_name.toLowerCase().includes(q)
     );
   });
@@ -172,6 +189,7 @@ export function CompletedOrdersList({
               order={order}
               boothName={multiBooth ? boothName.get(order.booth_id) : undefined}
               showDate
+              displayNumber={shownNumber(order)}
             />
           ))}
         </Paginated>

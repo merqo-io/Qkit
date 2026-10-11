@@ -86,7 +86,7 @@ describe("OrderStatusPoller", () => {
     await waitFor(() =>
       expect(alerts.fireReadyNotification).toHaveBeenCalledWith(
         "Kopi Cart",
-        "0007",
+        "7",
         expect.any(String),
       ),
     );

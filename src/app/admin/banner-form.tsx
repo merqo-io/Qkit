@@ -35,8 +35,12 @@ export function BannerForm({ initial }: { initial: PlatformSettingsConfig }) {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-3">
-        <Switch checked={enabled} onCheckedChange={setEnabled} />
-        <Label className="text-sm font-medium">
+        <Switch
+          id="banner-enabled"
+          checked={enabled}
+          onCheckedChange={setEnabled}
+        />
+        <Label htmlFor="banner-enabled" className="text-sm font-medium">
           Show maintenance banner site-wide
         </Label>
       </div>
