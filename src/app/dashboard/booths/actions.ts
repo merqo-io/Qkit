@@ -191,7 +191,7 @@ async function checkActiveBoothCap(
   const { count, error } = await q;
   if (error) console.error(`${context} active-cap count failed`, error.message);
   if ((count ?? 0) >= maxBooths)
-    return `Your plan serves ${maxBooths} active booth at a time. Deactivate another booth first, or upgrade.`;
+    return `Your plan serves ${maxBooths} open booth at a time. Pause another booth first, or upgrade.`;
   return null;
 }
 

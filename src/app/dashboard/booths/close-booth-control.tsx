@@ -96,7 +96,7 @@ function HoldToCloseButton({
       onKeyUp={(e) => {
         if (e.key === "Enter" || e.key === " ") cancel();
       }}
-      aria-label="Hold for 3 seconds to close this booth"
+      aria-label="Hold for 3 seconds to pause this booth"
       className={cn(
         "relative h-12 w-full overflow-hidden rounded-xl border font-semibold select-none",
         "border-destructive/40 bg-destructive/[0.04] text-destructive",
@@ -110,7 +110,7 @@ function HoldToCloseButton({
         />
       )}
       <span className="relative">
-        {holding ? "Keep holding…" : "Hold to close (3s)"}
+        {holding ? "Keep holding…" : "Hold to pause (3s)"}
       </span>
     </button>
   );
@@ -147,7 +147,7 @@ export function CloseBoothControl({
         return;
       }
       onChanged(false);
-      toast(`${boothName} is closed`, {
+      toast(`${boothName} is paused`, {
         duration: CLOSE_UNDO_MS,
         action: { label: "Undo", onClick: reopen },
       });
@@ -158,9 +158,9 @@ export function CloseBoothControl({
     return (
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <span className="text-sm">
-          <span className="font-medium">Closed</span>
+          <span className="font-medium">Paused</span>
           <span className="block text-muted-foreground">
-            Not taking orders. Reopen anytime.
+            Not taking orders. Resume anytime.
           </span>
         </span>
         <Button
@@ -171,7 +171,7 @@ export function CloseBoothControl({
           onClick={reopen}
         >
           <Power className="size-4" />
-          {reopening ? "Reopening…" : "Reopen booth"}
+          {reopening ? "Resuming…" : "Resume booth"}
         </Button>
       </div>
     );
@@ -182,8 +182,7 @@ export function CloseBoothControl({
       <span className="text-sm">
         <span className="font-medium">Open</span>
         <span className="block text-muted-foreground">
-          Taking orders. For a quick breather instead, use the pause switch on
-          the live board.
+          Taking orders. The switch on the live board pauses it too.
         </span>
       </span>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -195,16 +194,16 @@ export function CloseBoothControl({
             disabled={closing}
           >
             <PowerOff className="size-4" />
-            {closing ? "Closing…" : "Close booth"}
+            {closing ? "Pausing…" : "Pause booth"}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Close “{boothName}”?</AlertDialogTitle>
+            <AlertDialogTitle>Pause “{boothName}”?</AlertDialogTitle>
             <AlertDialogDescription>
               Stops new orders from landing. Existing orders on the board stay
-              exactly as they are. You can reopen anytime, and you have 60
-              seconds to undo right after closing. Hold the button below for 3
+              exactly as they are. You can resume anytime, and you have 60
+              seconds to undo right after pausing. Hold the button below for 3
               seconds to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
