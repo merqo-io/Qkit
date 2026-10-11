@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The menu manager's info icon has a finger-sized (44px) touch area on a phone or tablet, like every other hint. It was a 16px target. `@merqo/ui` is pinned to commit `a8063218e5954bef35242550070606628d79375a` (tag `v0.32.2`) with matching build permission, and now provides that touch area itself.
 - Customers can attach a saved payment screenshot. The upload field used to
   open the camera only, so someone who paid on the same phone had no way to
   pick the screenshot from their photos.
