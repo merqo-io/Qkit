@@ -135,9 +135,7 @@ describe("SettingsForm thresholds", () => {
     );
     expect(Object.keys(updateBoardSettings.mock.calls[0][0]).sort()).toEqual([
       "aging_min",
-      "customer_telegram_notify_enabled",
       "overdue_min",
-      "pickup_scan_enabled",
       "ready_auto_clear_min",
       "undo_seconds",
     ]);
@@ -185,7 +183,7 @@ describe("SettingsForm thresholds", () => {
 });
 
 describe("SettingsForm customer notify toggle", () => {
-  it("renders next to Auto-clear after, defaults checked, and saves it via Save timing", async () => {
+  it("renders next to Auto-clear after, defaults checked, and saves the moment it is flipped", async () => {
     updateBoardSettings.mockResolvedValue({ success: true });
     const user = userEvent.setup();
     render(<SettingsForm initial={DEFAULTS} prepEstimate={PREP_ESTIMATE} />);
@@ -196,11 +194,29 @@ describe("SettingsForm customer notify toggle", () => {
     expect(toggle).toBeChecked();
 
     await user.click(toggle);
-    await user.click(screen.getByRole("button", { name: /save timing/i }));
 
-    expect(updateBoardSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ customer_telegram_notify_enabled: false }),
+    await waitFor(() =>
+      expect(updateBoardSettings).toHaveBeenCalledWith({
+        customer_telegram_notify_enabled: false,
+      }),
     );
+  });
+
+  it("flips back and says so when the save is refused", async () => {
+    updateBoardSettings.mockResolvedValue({
+      success: false,
+      error: "Could not save settings",
+    });
+    const user = userEvent.setup();
+    render(<SettingsForm initial={DEFAULTS} prepEstimate={PREP_ESTIMATE} />);
+
+    const toggle = screen.getByRole("switch", {
+      name: /notify customers on telegram when their order is ready/i,
+    });
+    await user.click(toggle);
+
+    await waitFor(() => expect(toggle).toBeChecked());
+    expect(toast.error).toHaveBeenCalledWith("Could not save settings");
   });
 
   it("defaults to checked for a legacy vendor row that predates this key", () => {
@@ -227,10 +243,11 @@ describe("SettingsForm pickup-scan toggle", () => {
     await user.click(
       screen.getByRole("switch", { name: /self-checkout pickup/i }),
     );
-    await user.click(screen.getByRole("button", { name: /save timing/i }));
 
-    expect(updateBoardSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ pickup_scan_enabled: true }),
+    await waitFor(() =>
+      expect(updateBoardSettings).toHaveBeenCalledWith({
+        pickup_scan_enabled: true,
+      }),
     );
   });
 });
@@ -386,18 +403,12 @@ describe("SettingsForm customer order screen", () => {
         name: /show a simple daily order number instead of the permanent one/i,
       }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /save customer screen/i }),
-    );
 
-    expect(updateBoardSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ daily_order_number_reset: true }),
+    await waitFor(() =>
+      expect(updateBoardSettings).toHaveBeenCalledWith({
+        daily_order_number_reset: true,
+      }),
     );
-    expect(Object.keys(updateBoardSettings.mock.calls[0][0]).sort()).toEqual([
-      "daily_order_number_reset",
-      "default_prep_minutes",
-      "show_wait_estimate",
-    ]);
   });
 
   it("saves the show-wait-estimate toggle and disables the backup-prep input while it's off", async () => {
@@ -412,12 +423,10 @@ describe("SettingsForm customer order screen", () => {
     await user.click(toggle);
     expect(screen.getByLabelText(/backup prep time/i)).toBeDisabled();
 
-    await user.click(
-      screen.getByRole("button", { name: /save customer screen/i }),
-    );
-
-    expect(updateBoardSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ show_wait_estimate: false }),
+    await waitFor(() =>
+      expect(updateBoardSettings).toHaveBeenCalledWith({
+        show_wait_estimate: false,
+      }),
     );
   });
 
@@ -428,9 +437,7 @@ describe("SettingsForm customer order screen", () => {
 
     const prepMin = screen.getByLabelText(/backup prep time/i);
     await user.type(prepMin, "8");
-    await user.click(
-      screen.getByRole("button", { name: /save customer screen/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save backup time/i }));
 
     expect(updateBoardSettings).toHaveBeenCalledWith(
       expect.objectContaining({ default_prep_minutes: 8 }),
@@ -449,9 +456,7 @@ describe("SettingsForm customer order screen", () => {
 
     const prepMin = screen.getByLabelText(/backup prep time/i);
     await user.clear(prepMin);
-    await user.click(
-      screen.getByRole("button", { name: /save customer screen/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save backup time/i }));
 
     expect(updateBoardSettings).toHaveBeenCalledWith(
       expect.objectContaining({ default_prep_minutes: null }),
@@ -464,9 +469,7 @@ describe("SettingsForm customer order screen", () => {
 
     const prepMin = screen.getByLabelText(/backup prep time/i);
     await user.type(prepMin, "90");
-    await user.click(
-      screen.getByRole("button", { name: /save customer screen/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save backup time/i }));
 
     expect(updateBoardSettings).not.toHaveBeenCalled();
   });
