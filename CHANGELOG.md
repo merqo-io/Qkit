@@ -257,6 +257,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The board's Incoming column has "Start all" when two or more orders can be
+  started together. One tap starts them and offers Undo for 8 seconds. It
+  leaves out an order whose payment still needs checking, and every order at
+  a booth that holds prep until the customer arrives.
 - Mark several orders picked up in one tap. Select now ticks ready orders as
   well as ones being made: "Mark N Ready" moves the ticked orders that are
   still being made, "Mark N Picked Up" clears the ticked ones that are ready.
