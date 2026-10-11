@@ -1820,3 +1820,15 @@ Only on the owner's go-ahead, and only on the booth "TEST · PayNow":
 2. On the board, tap "Confirm payment received". Expected: the ticket shows paid, and the customer page shows "Payment confirmed".
 
 Do not type or change any payment identifier to reproduce the 409 live; the mocked tests cover that path. Do not place a QR order on "TEST · Printing". Complete or collect the test order afterwards.
+
+---
+
+## Amendment after the whole-branch review (2026-10-11)
+
+The code in Tasks 1, 2, 5 and 6 above is the plan as first written. The whole-branch review of the qkit branch found that the lookup path dropped a guard create-checkout's replay check gave: it compared the transaction's vendor with the calling vendor. qkit's `orders_admin_select` policy lets an admin account read another vendor's order through the session client, so without that guard such an account could confirm another vendor's transaction in paykit.
+
+What changed as a result, and what the shipped code does beyond the task text above:
+
+- paykit: the lookup response carries `vendor_id` (schema, column list, mapping, tests, contract sample).
+- qkit: `getCheckoutByOrderRef` validates the lookup body with its own schema, which requires `vendor_id`, and returns it as `vendorId`. `transactionIdForOrder` refuses a found transaction whose `vendorId` differs from `args.vendorId`, beside the amount check. The e2e mock returns `vendor_id`.
+- The spec's P1 section and contract are updated to match.

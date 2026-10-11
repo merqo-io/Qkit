@@ -214,15 +214,19 @@ qkit PR:
   walk-up order whose pay step never loaded) or 405 (a paykit deployment that
   does not have the route), so qkit behaves as it does today in both cases.
 - The helper refuses a transaction whose amount differs from the order's
-  total. Create-checkout enforced that through its replay check; the lookup
-  must not lose it.
+  total, or whose vendor differs from the vendor the action is acting for.
+  Create-checkout enforced both through its replay check; the lookup must
+  not lose either. The vendor check was added after the whole-branch review:
+  qkit's admin read policy lets an admin account load another vendor's order
+  through the session client, and without the check such an account could
+  confirm that vendor's transaction in paykit.
 
 Contract:
 
 ```
 GET /api/v1/checkout?order_ref=<string, 1..200>
 200 { transaction_id, status: "pending"|"claimed"|"confirmed", amount_cents,
-      order_ref, kit_slug, claimed_at, confirmed_at, created_at,
+      order_ref, kit_slug, vendor_id, claimed_at, confirmed_at, created_at,
       view: { type: "qr", payload } | { type: "link", url, label }
           | { type: "image", url } | null }
 404 { error }   no transaction for this kit and order_ref
