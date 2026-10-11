@@ -17,15 +17,15 @@ tracks payment state locally end-to-end; this is the seam that replaced
   prefill source for `dashboard/booths/[boothId]/page.tsx` re-opening an
   existing booth's Payment section), `createCheckout({vendorId,
 amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
-  the same order and get back the same transaction — also the only way to
-  look up an order's paykit transaction id, since qkit stores none of its
-  own), `claimCheckout(id)` (customer "I've paid"), `unclaimCheckout(id)`
-  (customer "Tapped by mistake? Undo" — reverts `claimed` back to `pending`;
+  the same order and get back the same transaction), `claimCheckout(id)` (customer "I've paid"),
+  `unclaimCheckout(id)` (customer "Tapped by mistake? Undo" — reverts `claimed` back to `pending`;
   idempotent on `pending`, and paykit itself refuses to revert a `confirmed`
   transaction, echoing that status back unchanged), `confirmCheckout(id)`
   (vendor "Confirm payment"), `getCheckoutStatus(id)` (read-only poll,
-  not currently used by qkit's own polling — see its doc comment), and
-  `getBookingStatus(bookingId)` (read-only booking status — deposit/balance
+  not currently used by qkit's own polling — see its doc comment),
+  `getCheckoutByOrderRef(orderRef)` (finds the transaction paykit already
+  holds for an order, without creating one, and the vendor that owns it; a 404 means paykit has none),
+  and `getBookingStatus(bookingId)` (read-only booking status — deposit/balance
   amounts, event date, and whether each is confirmed — for the "booking
   status" section on an event-mode booth's dashboard; the vendor pastes
   their own `paykit_booking_id` into the booth, this never looks a booking
@@ -47,6 +47,18 @@ amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
   so that picking a method already set up starts from these details.
 - `saved-vendor-payment.test.ts` — each mapping above, plus the three `null`
   cases (nothing saved, a config of no known kind, paykit unreachable).
+- `transaction-for-order.ts` — `transactionIdForOrder({vendorId, amountCents,
+orderRef})`: the paykit transaction id for an order. qkit stores none, so
+  every action that claims, undoes or confirms a payment gets it here. It
+  looks the transaction up and creates a checkout only when paykit has none
+  (404) or has no lookup route (405). Creating re-renders from the vendor's
+  current payment config and is refused once that config changed, so calling
+  create first left an order already awaiting payment impossible to settle.
+  A found transaction is refused when its vendor or its amount differs from
+  the order's.
+- `transaction-for-order.test.ts` — found, vendor mismatch, amount mismatch, the two fallback
+  statuses, a failed fallback, and that any other lookup failure creates
+  nothing.
 - `client.test.ts` — tests the missing-secret degrade path (no network call),
   the bearer header/URL shape, response mapping for each endpoint, non-2xx
   error-body surfacing, network-failure handling (never throws), and that
@@ -59,8 +71,8 @@ Called from: `src/app/dashboard/booths/actions.ts` (`saveBooth`, via
 `getVendorConfig`, prefilling the edit form, and `getBookingStatus`,
 prefilling `BookingStatusSection`), `src/app/order/[boothId]/
 [orderNumber]/page.tsx` and `payment-actions.ts`
-(`createCheckout`/`claimCheckout`/`unclaimCheckout`, customer side), and
-`src/app/dashboard/order-actions.ts` (`confirmOrderPayment`, vendor side).
+(`createCheckout` on the pay page; `transactionIdForOrder` then `claimCheckout`/`unclaimCheckout` in the actions, customer side), and
+`src/app/dashboard/order-actions.ts` (`confirmOrderPayment` and `confirmPaymentAndStart`, through `transactionIdForOrder`, vendor side).
 `PAYKIT_KIT_SECRET` / `NEXT_PUBLIC_PAYKIT_URL` are the two env vars this
 module reads — see `.env.example` for what they must equal on paykit's side.
 

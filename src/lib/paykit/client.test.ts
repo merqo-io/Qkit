@@ -7,6 +7,7 @@ import {
   unclaimCheckout,
   confirmCheckout,
   getCheckoutStatus,
+  getCheckoutByOrderRef,
   getBookingStatus,
 } from "./client";
 
@@ -406,6 +407,106 @@ describe("claimCheckout / unclaimCheckout / confirmCheckout / getCheckoutStatus"
     fetchMock.mockResolvedValue(jsonResponse(404, { error: "Not found" }));
     const res = await claimCheckout(TX);
     expect(res).toEqual({ ok: false, status: 404, error: "Not found" });
+  });
+});
+
+describe("getCheckoutByOrderRef", () => {
+  const ORDER = "00000000-0000-4000-8000-000000000009";
+  const VENDOR = "00000000-0000-4000-8000-0000000000aa";
+
+  it("GETs the lookup route and maps the status, ignoring the view", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        transaction_id: TX,
+        status: "claimed",
+        amount_cents: 800,
+        order_ref: ORDER,
+        vendor_id: VENDOR,
+        kit_slug: "qkit",
+        claimed_at: "2026-08-11T00:00:00Z",
+        confirmed_at: null,
+        created_at: "2026-08-10T23:59:00Z",
+        view: { type: "qr", payload: "0002" },
+      }),
+    );
+    const res = await getCheckoutByOrderRef(ORDER);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      `https://paykit.example/api/v1/checkout?order_ref=${ORDER}`,
+    );
+    expect(init.method).toBe("GET");
+    expect(res).toEqual({
+      ok: true,
+      data: {
+        transactionId: TX,
+        status: "claimed",
+        amountCents: 800,
+        orderRef: ORDER,
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: null,
+        vendorId: VENDOR,
+      },
+    });
+  });
+
+  it("rejects a success body without the owning vendor", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        transaction_id: TX,
+        status: "claimed",
+        amount_cents: 800,
+        order_ref: ORDER,
+        claimed_at: "2026-08-11T00:00:00Z",
+        confirmed_at: null,
+      }),
+    );
+    expect(await getCheckoutByOrderRef(ORDER)).toEqual({
+      ok: false,
+      status: 200,
+      error: "paykit returned an unexpected response",
+    });
+  });
+
+  it("percent-encodes the order reference", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(404, { error: "Not found" }));
+    await getCheckoutByOrderRef("a/b?c=d&e#f");
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "https://paykit.example/api/v1/checkout?order_ref=a%2Fb%3Fc%3Dd%26e%23f",
+    );
+  });
+
+  it("surfaces a 404 with its status", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(404, { error: "Not found" }));
+    expect(await getCheckoutByOrderRef(ORDER)).toEqual({
+      ok: false,
+      status: 404,
+      error: "Not found",
+    });
+  });
+
+  it("surfaces a 405 from a paykit without the route, keeping its status", async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 405,
+      json: () => Promise.reject(new SyntaxError("Unexpected end of JSON")),
+    } as Response);
+    const res = await getCheckoutByOrderRef(ORDER);
+    expect(res.ok).toBe(false);
+    expect(res).toMatchObject({ status: 405 });
+  });
+
+  it("rejects a malformed success body", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { transaction_id: TX }));
+    expect((await getCheckoutByOrderRef(ORDER)).ok).toBe(false);
+  });
+
+  it("reports a network failure without throwing", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNRESET"));
+    expect(await getCheckoutByOrderRef(ORDER)).toEqual({
+      ok: false,
+      status: null,
+      error: "ECONNRESET",
+    });
   });
 });
 

@@ -27,6 +27,15 @@ order-status page.
   thrown/rejected handler, stays `true` while the handler is in flight, `error`
   stays `null` on success and is set (with `run` still re-throwing) on a
   rejection, and `reset()` clears a stale `error`.
+- `use-unsaved-changes.ts` — `useUnsavedChanges(dirty)`: while a form is
+  dirty, raises the browser's leave prompt on unload and asks before a click
+  on a link to another page of the app goes through (caught on the document,
+  since the App Router has no navigation blocker). Returns `confirmLeave()`
+  for a button that navigates in code. Does not cover the Back button. Used
+  by the booth form and the menu manager.
+- `use-unsaved-changes.dom.test.tsx` — clean and dirty clicks, stay and leave,
+  in-page and off-site links left alone, the code-navigation check, and the
+  unload prompt only while dirty.
 - `use-cart.ts` — `useCart()`: the basket both order forms build (the
   customer's page and the staff walk-up dialog). Returns `{ cart, setCart,
 entries, items, add, increment, decrement }`: lines keyed by item plus

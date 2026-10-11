@@ -21,6 +21,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to pay again while the stall checks it. A cancelled order that was paid for
   now says how to get a refund.
 - Info icons that only opened on hover now open on a tap as well as on hover and keyboard focus: the one in the menu manager, and any hint beside a section title. A phone or tablet could not open them. `@merqo/ui` is pinned to commit `cb9dd39ab56d6bc2030d30edb7474ee8ebf60820` (tag `v0.32.1`) with matching build permission.
+- Confirming a payment, recording one, and undoing "I've paid" no longer
+  fail for an order that was already awaiting payment when the vendor edited
+  their payment details. qkit now looks the order's paykit transaction up
+  instead of creating the checkout again.
 - Board settings no longer logs a hydration error when desktop
   notifications are on but this browser has not allowed them. The note about
   the browser's permission now appears once the page has loaded, since the
@@ -310,6 +314,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   releases the hold. Migration `0096`.
 
 - `e2e/smoke.spec.ts`: a public smoke spec (the landing page and `/login` render). The CI job that ran only the auth-guard spec runs both and is named `e2e (public smoke)`, the same name and baseline as every other kit.
+- The booth form and the menu manager ask before unsaved changes are thrown
+  away: on Cancel, on a link to another page of the dashboard, and on closing
+  or reloading the tab. The browser's Back button is not covered.
 
 ### Changed
 

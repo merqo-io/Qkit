@@ -44,6 +44,7 @@ import {
 } from "@/lib/image-upload-adapter";
 import { resizeToWebp } from "@merqo/ui";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { WorkingHoursEditor } from "./working-hours-editor";
 import { PaymentSection } from "./payment-section";
 import { PrintingSection } from "./printing-section";
@@ -251,6 +252,25 @@ export function BoothForm({
   const { pending: saving, run: runSave } = useAsyncAction(
     "Could not save the booth. Refresh to check its status before retrying.",
   );
+  // Everything "Save booth" would write, as text, against what the form
+  // opened with. Open/paused is left out for a saved booth: its control saves
+  // by itself the moment it is used.
+  const snapshot = JSON.stringify([
+    name,
+    imageUrl,
+    initial?.boothId ? null : isActive,
+    hours,
+    payment,
+    socialLinks,
+    requiresArrivalConfirm,
+    walkupDefault,
+    printEnabled,
+    paykitBookingId,
+    dailyCupCap,
+    maxItemsPerOrder,
+  ]);
+  const [openedWith] = useState(snapshot);
+  const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
   const { pending: deleting, run: runDelete } = useAsyncAction(
     "Could not delete the booth. Refresh to check its status before retrying.",
   );
@@ -335,7 +355,9 @@ export function BoothForm({
         variant="outline"
         size="lg"
         className="h-12 rounded-xl"
-        onClick={() => router.push("/dashboard/booths")}
+        onClick={() => {
+          if (confirmLeave()) router.push("/dashboard/booths");
+        }}
       >
         Cancel
       </Button>

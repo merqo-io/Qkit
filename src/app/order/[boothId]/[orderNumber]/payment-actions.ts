@@ -17,6 +17,7 @@ import {
   unclaimCheckout,
   type CheckoutView,
 } from "@/lib/paykit/client";
+import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { hashBuffer } from "@/lib/hash";
 import { isAbandonedPayment } from "@/lib/orders";
 import { notifyVendorTelegram, notifyPrintkit } from "@/app/o/[code]/notify";
@@ -291,16 +292,19 @@ export async function claimPayment(
     return { success: false, error: "Could not upload photo. Try again." };
   }
 
-  const checkout = await createCheckout({
+  const transaction = await transactionIdForOrder({
     vendorId: booth.vendor_id,
     amountCents: order.total_cents,
     orderRef: order.id,
   });
-  if (!checkout.ok) {
-    console.error("claimPayment: paykit checkout failed", checkout.error);
+  if (!transaction.ok) {
+    console.error(
+      "claimPayment: paykit transaction lookup failed",
+      transaction.error,
+    );
     return { success: false, error: "Could not record payment. Try again." };
   }
-  const claim = await claimCheckout(checkout.data.transactionId);
+  const claim = await claimCheckout(transaction.data);
   if (!claim.ok) {
     console.error("claimPayment: paykit claim failed", claim.error);
     return { success: false, error: "Could not record payment. Try again." };
@@ -346,15 +350,13 @@ export async function claimPayment(
 // Undo an accidental "I've paid" tap: revert a still-unverified 'claimed'
 // order back to 'pending'. Mirror of claimPayment, same idempotency shape.
 //
-// There's no stored paykit transaction id for an order — `createCheckout` is
-// idempotent on (kit_slug, order_ref=order.id), so re-calling it here just
-// re-fetches the transaction claimPayment already created earlier, the same
-// lookup mechanism confirmOrderPayment (dashboard/order-actions.ts) uses to
-// reach the same transaction from the vendor side. `unclaimCheckout` is
-// paykit's own authority on whether a revert is still allowed — it refuses
-// to revert a 'confirmed' transaction and just echoes that status back, so
-// the pre-check below (against the local mirror) is a fast path, not the
-// only guard against un-confirming real money.
+// There's no stored paykit transaction id for an order, so it is looked up
+// by the order's id (transactionIdForOrder), the same way claimPayment above
+// and confirmOrderPayment (dashboard/order-actions.ts) reach it.
+// `unclaimCheckout` is paykit's own authority on whether a revert is still
+// allowed — it refuses to revert a 'confirmed' transaction and just echoes
+// that status back, so the pre-check below (against the local mirror) is a
+// fast path, not the only guard against un-confirming real money.
 export async function unclaimPayment(
   boothId: string,
   orderNumber: string,
@@ -385,20 +387,20 @@ export async function unclaimPayment(
   if (ctx.paymentStatus === "not_required")
     return { success: false, error: "This order doesn't take payment." };
 
-  const checkout = await createCheckout({
+  const transaction = await transactionIdForOrder({
     vendorId: ctx.vendorId,
     amountCents: ctx.totalCents,
     orderRef: ctx.orderId,
   });
-  if (!checkout.ok) {
+  if (!transaction.ok) {
     console.error(
-      "unclaimPayment: paykit checkout lookup failed",
-      checkout.error,
+      "unclaimPayment: paykit transaction lookup failed",
+      transaction.error,
     );
     return { success: false, error: "Could not undo. Try again." };
   }
 
-  const unclaim = await unclaimCheckout(checkout.data.transactionId);
+  const unclaim = await unclaimCheckout(transaction.data);
   if (!unclaim.ok) {
     console.error("unclaimPayment: paykit unclaim failed", unclaim.error);
     return { success: false, error: "Could not undo. Try again." };
