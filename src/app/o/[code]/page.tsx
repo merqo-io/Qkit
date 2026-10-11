@@ -131,6 +131,7 @@ export default async function OrderEntryPage({ params }: Props) {
               src={booth.image_url}
               alt=""
               fill
+              preload
               sizes="(max-width: 640px) 100vw, 32rem"
               className="object-cover"
             />

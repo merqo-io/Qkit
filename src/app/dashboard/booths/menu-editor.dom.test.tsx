@@ -301,6 +301,16 @@ describe("MenuEditor availability toggle", () => {
   });
 });
 
+describe("MenuEditor field labels", () => {
+  it("names each money and stock field by its visible label", () => {
+    render(<Host />);
+    for (const label of ["Price", "Cost", "Sold-out limit"])
+      expect(screen.getAllByLabelText(label)[0]).toBeInstanceOf(
+        HTMLInputElement,
+      );
+  });
+});
+
 describe("MenuEditor price input", () => {
   // Regression: a fully-reformatted-every-keystroke controlled input resets
   // the caret to the end after each key, so typing "6.50" left-to-right used

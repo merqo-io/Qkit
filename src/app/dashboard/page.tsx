@@ -6,7 +6,7 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import { sgtStartOfDayIso } from "@/lib/tz";
+import { firstOrderNumbersToday } from "@/lib/daily-order-number";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import type { BoardOrder } from "@/lib/types";
 
@@ -39,41 +39,6 @@ async function loadCupsToday(
     }
   }
   return counts;
-}
-
-/** First numbered order per booth today; skipped when daily numbering is off. */
-async function loadDailyOrderNumberBaselines(
-  supabase: Awaited<ReturnType<typeof createServerClient>>,
-  boothIds: string[],
-): Promise<Record<string, string>> {
-  const baselines: Record<string, string> = {};
-  if (boothIds.length === 0) return baselines;
-  try {
-    for (let offset = 0; offset < boothIds.length; offset += 100) {
-      const query = supabase
-        .from("orders")
-        .select("booth_id, order_number")
-        .in("booth_id", boothIds.slice(offset, offset + 100))
-        .gte("created_at", sgtStartOfDayIso())
-        .order("order_number", { ascending: true })
-        .order("id");
-      const todaysOrders = await readAllRows((from, to) =>
-        query.range(from, to),
-      );
-      for (const o of todaysOrders) {
-        if (!(o.booth_id in baselines) && o.order_number != null) {
-          baselines[o.booth_id] = o.order_number;
-        }
-      }
-    }
-  } catch {
-    // Non-critical/decorative — degrade to showing the real order_number
-    // (displayOrderNumber's own null-baseline fallback) rather than fail the
-    // whole board over it.
-    console.error("dashboard daily-baseline read failed");
-    return {};
-  }
-  return baselines;
 }
 
 export default async function DashboardPage() {
@@ -164,7 +129,7 @@ export default async function DashboardPage() {
 
   const dailyOrderNumberBaselines = vendor.board_settings
     .daily_order_number_reset
-    ? await loadDailyOrderNumberBaselines(supabase, boothIds)
+    ? await firstOrderNumbersToday(supabase, boothIds)
     : {};
 
   return (

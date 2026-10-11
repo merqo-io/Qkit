@@ -9,6 +9,10 @@ import type { ReorderLine } from "@/lib/reorder";
 export interface RecentOrder {
   boothId: string;
   orderNumber: string;
+  // The number the status page shows the customer: the day's rank when the
+  // stall numbers from 1 each day, else the same as orderNumber. Learned on
+  // the status page, so an entry that page never opened has none.
+  displayNumber?: string;
   customerName: string;
   // Per-order access token (gates the status page). Optional: entries stored
   // before this existed simply can't deep-link (they'll 404 on the token check).
@@ -65,6 +69,29 @@ export function addRecentOrder(order: Omit<RecentOrder, "placedAt">): void {
     // component, where Date.now() trips react-hooks/purity.
     const next = [{ ...order, placedAt: Date.now() }, ...deduped].slice(0, MAX);
     window.localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // Storage unavailable (private mode / quota) — silently skip.
+  }
+}
+
+/**
+ * Records the number the status page is showing for an order already in the
+ * list, so the list names the order the way the customer last saw it.
+ */
+export function noteDisplayNumber(
+  boothId: string,
+  orderNumber: string,
+  displayNumber: string,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const all = read();
+    const entry = all.find(
+      (o) => o.boothId === boothId && o.orderNumber === orderNumber,
+    );
+    if (!entry || entry.displayNumber === displayNumber) return;
+    entry.displayNumber = displayNumber;
+    window.localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
     // Storage unavailable (private mode / quota) — silently skip.
   }

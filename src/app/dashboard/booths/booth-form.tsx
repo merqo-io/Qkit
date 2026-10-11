@@ -369,10 +369,17 @@ export function BoothForm({
               />
             </div>
 
-            <div className="space-y-2.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div
+              role="group"
+              aria-labelledby="booth-banner-label"
+              className="space-y-2.5"
+            >
+              <p
+                id="booth-banner-label"
+                className="text-xs leading-none font-semibold tracking-wider text-muted-foreground uppercase"
+              >
                 Banner
-              </Label>
+              </p>
               <ImageUploader
                 bucket="booth-images"
                 pathPrefix={vendorId}
@@ -391,7 +398,7 @@ export function BoothForm({
             icon={<Clock className="size-5" />}
             eyebrow="When you're open"
             title="Hours & availability"
-            description="Turn ordering on/off and set your hours."
+            description="Open or pause ordering and set your hours."
           >
             {initial?.boothId ? (
               <CloseBoothControl
@@ -407,9 +414,9 @@ export function BoothForm({
                   onCheckedChange={(checked) => setIsActive(checked === true)}
                 />
                 <span className="text-sm">
-                  <span className="font-medium">Active</span>
+                  <span className="font-medium">Open for orders</span>
                   <span className="block text-muted-foreground">
-                    Customers can only order from active booths.
+                    Customers can only order while the booth is open.
                   </span>
                 </span>
               </label>

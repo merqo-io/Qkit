@@ -216,6 +216,33 @@ describe("OrderForm cart", () => {
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
+  it("puts focus in the name field when the sheet opens with a mouse", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText("Your name")).toHaveFocus(),
+    );
+  });
+
+  it("leaves the keyboard down when the sheet opens on a touch screen", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(pointer: coarse)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(dialog).toHaveFocus());
+    expect(within(dialog).getByLabelText("Your name")).not.toHaveFocus();
+  });
+
   it("lists what's being ordered inside the checkout sheet", async () => {
     const user = userEvent.setup();
     renderForm();

@@ -143,6 +143,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Touch targets on a phone are a full 44px for the landing page's "Sign in"
   and "Get started", the social icons on order pages, "Order something else",
   and the queue display's "Enable sound".
+- With "number from 1 each day" on, the customer's "Your orders here" list
+  and the "order is ready" notification name the order by the day's number,
+  the one the status page and the board show. They used the permanent number.
+- The Completed page shows today's tickets under the day's number and finds
+  them by either number. Tickets from earlier days keep their permanent
+  number, since a daily number repeats from one day to the next.
+- The landing page FAQ says PayNow checkout exists and that qkit does not
+  hold the money; it said qkit took no payment. Its pricing answers follow
+  the prices that are set, and say "free in beta" only while none is.
+- A booth's state has one name each: Open, Paused (your own switch), Closed
+  (outside the hours you set) and Over plan limit. The same switch was called
+  Paused on the board, Closed in the booth editor, Off in the booth list and
+  Active on a new booth, and the booth list used Paused for a booth the plan
+  would not serve. The editor's button is now "Pause booth" / "Resume booth".
+- The walk-up dialog's name field starts empty, with "Walk-up" shown as the
+  placeholder. It was prefilled, so a named order began by clearing it.
+- Opening the checkout sheet on a touch screen no longer raises the keyboard
+  over the order before it has been read. Tap the name field to type.
+- Customer pages have a main landmark for screen readers. The price, cost,
+  sold-out limit and section fields of a menu item, the walk-up booth picker
+  and the maintenance banner switch are linked to their labels.
+- The dashboard shows the outline of a page while it loads, not a spinner.
 
 ### Changed
 

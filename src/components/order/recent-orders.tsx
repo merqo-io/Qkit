@@ -48,7 +48,7 @@ export function RecentOrders({ boothId }: Props) {
               >
                 <span className="truncate">
                   <span className="font-mono font-semibold text-primary">
-                    #{o.orderNumber}
+                    #{o.displayNumber ?? o.orderNumber}
                   </span>{" "}
                   <span className="text-muted-foreground">
                     for {o.customerName}

@@ -318,7 +318,7 @@ describe("saveBooth entitlement enforcement", () => {
     expect(res).toEqual({
       success: false,
       error:
-        "Your plan serves 1 active booth at a time. Deactivate another booth first, or upgrade.",
+        "Your plan serves 1 open booth at a time. Pause another booth first, or upgrade.",
     });
     expect(h.insertSpy).not.toHaveBeenCalled();
     expect(h.updateSpy).not.toHaveBeenCalled();
@@ -785,7 +785,7 @@ describe("toggleBoothActive", () => {
     expect(res).toEqual({
       success: false,
       error:
-        "Your plan serves 1 active booth at a time. Deactivate another booth first, or upgrade.",
+        "Your plan serves 1 open booth at a time. Pause another booth first, or upgrade.",
     });
     expect(h.updateSpy).not.toHaveBeenCalled();
   });
