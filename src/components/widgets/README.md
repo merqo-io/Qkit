@@ -17,8 +17,8 @@ prompt, metric })`: compact rating widget posting to
   `trigger="tap"`). The rule it encodes: anything a vendor has to understand
   gets a `Hint` or visible text, because a hover tooltip never shows on a
   phone or an iPad; a hover `Tooltip` is only for naming an icon-only button
-  on a desktop. Its 44px touch area on touch devices comes from the
-  `pointer: coarse` block in `globals.css`.
+  on a desktop. Its 44px touch area on touch devices comes from
+  `InfoTooltip` itself (`@merqo/ui` v0.32.2).
 - `media-image.tsx` — `MediaImage(props)`: `next/image` wrapper that marks
   `.svg` sources `unoptimized` (avoids needing the global
   `dangerouslyAllowSVG` flag) while raster uploads still get full
