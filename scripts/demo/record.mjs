@@ -23,7 +23,7 @@ const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "out");
 
 // Fixed demo identity — must match scripts/demo/reset.sql.
 const EMAIL = "demo-cart@qkit.local";
-// eslint-disable-next-line sonarjs/no-hardcoded-passwords -- Fixed local-only demo identity.
+
 const PASSWORD = "demo-password-123";
 const STALL = "Sunrise Coffee Cart";
 // Event vendors care about customization, not price — so the menu shows options

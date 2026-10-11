@@ -147,7 +147,7 @@ export function WalkupOrderDialog({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingMenu(true);
     setCart(new Map());
-    // eslint-disable-next-line sonarjs/void-use -- deliberate fire-and-forget: void marks this promise as intentionally unhandled, the standard TS idiom
+
     void getWalkupMenu(boothId)
       .then((res) => {
         if (!active || menuRequest.current !== request) return;
@@ -219,7 +219,7 @@ export function WalkupOrderDialog({
     setPayStep(null);
     menuRequest.current += 1;
     const request = menuRequest.current;
-    // eslint-disable-next-line sonarjs/void-use -- deliberate fire-and-forget: void marks this promise as intentionally unhandled, the standard TS idiom
+
     void getWalkupMenu(boothId)
       .then((res) => {
         if (!res || menuRequest.current !== request) return;
