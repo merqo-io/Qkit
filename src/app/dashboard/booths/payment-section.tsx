@@ -352,8 +352,17 @@ export function PaymentSection({
               </div>
             </>
           ) : (
-            <div className="space-y-2">
-              <Label className={FORM_LABEL_CLASS}>QR image</Label>
+            <div
+              role="group"
+              aria-labelledby="payment-qr-image-label"
+              className="space-y-2"
+            >
+              <p
+                id="payment-qr-image-label"
+                className={`${FORM_LABEL_CLASS} leading-none`}
+              >
+                QR image
+              </p>
               <ImageUploader
                 bucket="booth-images"
                 pathPrefix={vendorId}

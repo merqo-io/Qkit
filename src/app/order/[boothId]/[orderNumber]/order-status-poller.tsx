@@ -24,6 +24,7 @@ import {
   requestNotifyPermission,
   unlockAudio,
 } from "@/lib/order-alerts";
+import { noteDisplayNumber } from "@/lib/recent-orders";
 import {
   getOrderStatus,
   getWaitEstimate,
@@ -336,7 +337,7 @@ export function OrderStatusPoller({
     // (where supported + granted); a no-op otherwise.
     void fireReadyNotification(
       boothName,
-      orderNumber,
+      displayNumber,
       // Keep the ?t=<token> query — the status page now requires it, so a
       // notification-tap that opens the page fresh must carry the token.
       window.location.pathname + window.location.search,
@@ -368,7 +369,13 @@ export function OrderStatusPoller({
       document.title = original;
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [status, boothName, orderNumber]);
+  }, [status, boothName, displayNumber]);
+
+  // The recent-orders list on the menu page is written before this page knows
+  // the number it will show, so tell it once the number is on screen.
+  useEffect(() => {
+    noteDisplayNumber(boothId, orderNumber, displayNumber);
+  }, [boothId, orderNumber, displayNumber]);
 
   const cancelled = status === "cancelled";
   const ready = status === "ready";

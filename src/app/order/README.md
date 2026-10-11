@@ -11,6 +11,7 @@ code. Also hosts the (route-independent) live order-status page.
 - `[boothId]/` — resolves a booth id to its short code and redirects into
   `/o/[code]`; also contains `[orderNumber]/`, the live order-status/tracking
   page reached after any order is placed (see its own README).
+- `layout.tsx` — wraps the segment in `<main>`, the page's main landmark.
 
 ## Connectivity
 

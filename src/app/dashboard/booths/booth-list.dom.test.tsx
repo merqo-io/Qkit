@@ -35,6 +35,15 @@ const BOOTH = {
 };
 
 describe("BoothList", () => {
+  it.each([
+    ["Open", { is_active: true, paused: false }],
+    ["Paused", { is_active: false, paused: false }],
+    ["Over plan limit", { is_active: true, paused: true }],
+  ])("labels a booth %s", (label, state) => {
+    render(<BoothList booths={[{ ...BOOTH, ...state }]} />);
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
   it("explains clipboard failure without an unhandled rejection", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,

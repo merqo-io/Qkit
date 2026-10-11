@@ -11,6 +11,8 @@ UUID). See `order/` for the legacy booth-id route, which now redirects here.
 - `[code]/` — dynamic segment holding the menu/cart page, `placeOrder`
   server action, and loading skeleton for a given booth short code. See its
   own README for the file-level breakdown.
+- `layout.tsx` — wraps the segment in `<main>`, the page's main landmark.
+  These pages have no shared chrome, so that is all it does.
 
 ## Connectivity
 

@@ -131,7 +131,7 @@ export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
 
         {!isActive && (
           <p className="mt-5 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground print:hidden">
-            This booth is off, customers can&apos;t order yet. Turn it on from
+            This booth is paused, customers can&apos;t order yet. Resume it from
             the booth editor before printing.
           </p>
         )}

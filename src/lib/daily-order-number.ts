@@ -1,6 +1,7 @@
 import type { createServiceClient } from "@/lib/supabase/server";
 import { displayOrderNumber } from "@/lib/orders";
 import { boardSettingsSchema } from "@/lib/schemas";
+import { readAllRows } from "@/lib/supabase/read-all";
 import { sgtStartOfDayIso } from "@/lib/tz";
 
 type Client = Awaited<ReturnType<typeof createServiceClient>>;
@@ -28,6 +29,43 @@ export async function firstOrderNumberToday(
     .limit(1)
     .maybeSingle();
   return data?.order_number ?? null;
+}
+
+/**
+ * firstOrderNumberToday for many booths at once, keyed by booth id: the
+ * vendor's order board and their Completed page. A booth with no numbered
+ * order yet today has no key. A failed read returns nothing, so tickets fall
+ * back to their permanent numbers instead of the page failing over a number.
+ */
+export async function firstOrderNumbersToday(
+  client: Client,
+  boothIds: string[],
+): Promise<Record<string, string>> {
+  const baselines: Record<string, string> = {};
+  if (boothIds.length === 0) return baselines;
+  try {
+    for (let offset = 0; offset < boothIds.length; offset += 100) {
+      const query = client
+        .from("orders")
+        .select("booth_id, order_number")
+        .in("booth_id", boothIds.slice(offset, offset + 100))
+        .gte("created_at", sgtStartOfDayIso())
+        .order("order_number", { ascending: true })
+        .order("id");
+      const todaysOrders = await readAllRows((from, to) =>
+        query.range(from, to),
+      );
+      for (const o of todaysOrders) {
+        if (!(o.booth_id in baselines) && o.order_number != null) {
+          baselines[o.booth_id] = o.order_number;
+        }
+      }
+    }
+  } catch {
+    console.error("daily-baseline read failed");
+    return {};
+  }
+  return baselines;
 }
 
 /**

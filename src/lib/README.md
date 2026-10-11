@@ -55,7 +55,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   numbering on, the permanent number otherwise. One query for every server
   path that shows a single booth's ticket number (status page, TV display,
   printed label, Telegram alert), which each used to carry their own copy.
-  The order board reads many booths at once and keeps its own query.
+  `firstOrderNumbersToday(client, boothIds)` is the same baseline for many
+  booths at once, keyed by booth id: the order board and the Completed page.
 - `daily-order-number.test.ts` — the first order found, none today, the SGT
   day window, and `vendorFacingOrderNumber` with daily numbering on, off,
   unreadable settings, and no order yet today.
@@ -282,7 +283,9 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `recent-orders.ts` — `getRecentOrders`/`getRecentOrdersForBooth`/
   `addRecentOrder`: customer order history in `localStorage`
   (`qkit:recent-orders`, capped at 10), since unauthenticated customers have no
-  server-side link between a device and its orders.
+  server-side link between a device and its orders. `noteDisplayNumber`
+  records the number the status page showed for an order (the day's rank under
+  daily numbering), so the list names it the way the customer last saw it.
 - `recent-orders.test.ts` — tests read/write validation, dedup-by-order, and
   the MAX-10 cap.
 - `reorder-handoff.ts` — `stashReorder`/`takeReorder`/`isValidLine`: one-shot

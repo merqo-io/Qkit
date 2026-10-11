@@ -119,7 +119,7 @@ export function WalkupOrderDialog({
     decrement,
   } = useCart();
   const [customizing, setCustomizing] = useState<MenuItem | null>(null);
-  const [customerName, setCustomerName] = useState("Walk-up");
+  const [customerName, setCustomerName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Numbers each menu request, so a slow answer for an earlier booth, opening
   // or customer is dropped instead of overwriting the current one.
@@ -132,7 +132,7 @@ export function WalkupOrderDialog({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBoothId(initialBoothId ?? booths[0]?.id ?? "");
     setCart(new Map());
-    setCustomerName("Walk-up");
+    setCustomerName("");
     setPayStep(null);
     // Only the dialog's own open transition should reset — booths/
     // initialBoothId are stable-ish props, not per-keystroke deps.
@@ -215,7 +215,7 @@ export function WalkupOrderDialog({
   // checks stock again whatever the screen says.
   function nextCustomer() {
     setCart(new Map());
-    setCustomerName("Walk-up");
+    setCustomerName("");
     setPayStep(null);
     menuRequest.current += 1;
     const request = menuRequest.current;
@@ -433,11 +433,15 @@ export function WalkupOrderDialog({
             <div className="flex-1 space-y-4 p-6 md:overflow-y-auto">
               {multiBooth && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  <Label
+                    htmlFor="walkup-booth"
+                    className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                  >
                     Booth
                   </Label>
                   <Select value={boothId} onValueChange={setBoothId}>
                     <SelectTrigger
+                      id="walkup-booth"
                       aria-label="Booth"
                       className="h-10 w-full rounded-xl sm:w-64"
                     >
@@ -541,6 +545,7 @@ export function WalkupOrderDialog({
                     id="walkup-customer-name"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Walk-up"
                     className="h-10 rounded-xl"
                     maxLength={100}
                   />
