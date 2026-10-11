@@ -54,6 +54,61 @@ type FaqAnswer = string | { lead?: string; bullets?: string[]; note?: string };
 
 type FaqEntry = { q: string; a: FaqAnswer };
 
+// Sentinels for the two answers that depend on whether prices are set in
+// /admin. Home swaps them for the entry that matches, so the FAQ cannot say
+// "free" beside a pricing section that shows a price.
+const FAQ_COST: FaqEntry = { q: "How much does it cost?", a: "" };
+const FAQ_PLANS: FaqEntry = {
+  q: "Event pass or monthly: what's the difference?",
+  a: "",
+};
+
+const PLAN_DIFFERENCES = [
+  "Event pass: unlocks the full kit for a single event, great for the occasional market.",
+  "Monthly: keeps it on plus full sales history and trends across events, better if you trade most weeks.",
+];
+
+/** The pricing answers, worded for the prices the pricing section shows. */
+function pricingAnswers(
+  passPrice: string | null,
+  monthlyPrice: string | null,
+): Map<FaqEntry, FaqAnswer> {
+  const paid = passPrice !== null || monthlyPrice !== null;
+  const prices = [
+    passPrice && `Event pass: ${passPrice} a day.`,
+    monthlyPrice && `Monthly: ${monthlyPrice} a month.`,
+  ].filter((line): line is string => Boolean(line));
+  return new Map<FaqEntry, FaqAnswer>([
+    [
+      FAQ_COST,
+      {
+        lead: "Start free with one booth (up to 6 items) and today's stats.",
+        bullets: [
+          "The full kit adds extra booths, customization, auto-close hours, and sold-out caps.",
+          ...(paid
+            ? prices
+            : [
+                "It's free while we're in beta: just ask and we'll unlock it for your next event.",
+              ]),
+        ],
+        note: paid
+          ? "Pay by PayNow or cash. Card payment is not available yet."
+          : "Per-event and monthly prices come later.",
+      },
+    ],
+    [
+      FAQ_PLANS,
+      {
+        lead: "Same full features either way.",
+        bullets: PLAN_DIFFERENCES,
+        note: paid
+          ? "See the pricing section above for today's prices."
+          : "Both are free during beta.",
+      },
+    ],
+  ]);
+}
+
 const FAQ: FaqEntry[] = [
   {
     q: "Do customers need to download anything?",
@@ -70,40 +125,24 @@ const FAQ: FaqEntry[] = [
   {
     q: "Can I take payment through qkit?",
     a: {
-      lead: "Not yet. Orders land on your live board and you settle however you like:",
-      bullets: ["Cash", "PayNow", "Your own card terminal"],
-      note: "Online card payment is on the roadmap.",
-    },
-  },
-  {
-    q: "How much does it cost?",
-    a: {
-      lead: "Start free with one booth (up to 6 items) and today's stats.",
+      lead: "Yes, by PayNow. The money goes straight to your own account:",
       bullets: [
-        "The full kit adds extra booths, customization, auto-close hours, and sold-out caps.",
-        "It's free while we're in beta: just ask and we'll unlock it for your next event.",
+        "Add your PayNow details to a booth and customers get your QR at checkout.",
+        "They pay in their banking app and send a screenshot. You confirm it on the board.",
+        "Cash or your own card terminal at the counter works too.",
       ],
-      note: "Per-event and monthly pricing arrive with card payments.",
+      note: "qkit never holds your money. Online card payment is not available yet.",
     },
   },
-  {
-    q: "Event pass or monthly: what's the difference?",
-    a: {
-      lead: "Same full features either way.",
-      bullets: [
-        "Event pass: unlocks the full kit for a single event, great for the occasional market.",
-        "Monthly: keeps it on plus full sales history and trends across events, better if you trade most weeks.",
-      ],
-      note: "Both are free during beta. Paid plans land with card payments.",
-    },
-  },
+  FAQ_COST,
+  FAQ_PLANS,
   {
     q: "Can orders stop when I sell out?",
     a: "Yes. Set a stock limit per item and qkit counts it down as orders come in, then marks it sold out so customers can't order what you've run out of. Included with the event pass and monthly.",
   },
   {
     q: "Can I schedule when my booth takes orders?",
-    a: "Yes. Set open/close hours and orders stop automatically outside them, no need to flip the booth off by hand. Included with the event pass and monthly.",
+    a: "Yes. Set open/close hours and orders stop automatically outside them, no need to pause the booth by hand. Included with the event pass and monthly.",
   },
   {
     q: "Does it work for non-food booths?",
@@ -147,23 +186,23 @@ const VENDOR_FAQ: FaqEntry[] = [
     },
   },
   {
-    q: "My booth is Active but customers see 'not taking orders'.",
+    q: "My booth is Open but customers see 'not taking orders'.",
     a: {
-      lead: "A booth serves only when all three are true: it's Active, within its open hours, and within your plan's serve limit.",
+      lead: "A booth serves only when all three are true: it's Open (not paused), within its set hours, and within your plan's serve limit.",
       bullets: [
         "The free plan serves one live booth at a time.",
-        "If you have more (say, after an event pass ended), only your oldest active booth serves and the rest show as Paused.",
-        "Renew a pass or go Pro to serve them all, or deactivate the extras.",
+        "If you have more (say, after an event pass ended), only your oldest open booth serves and the rest show as Over plan limit.",
+        "Renew a pass or go Pro to serve them all, or pause the extras.",
       ],
     },
   },
   {
-    q: "My booth is Active but shows closed during the hours I set.",
+    q: "My booth is Open but shows closed during the hours I set.",
     a: {
       lead: "Two things to check.",
       bullets: [
         "Scheduled hours are always read in Singapore time (SGT), so check them against SGT.",
-        "Hours are a pass or Pro feature. On the free plan any saved hours are cleared, and a free booth is simply open when Active and closed when not.",
+        "Hours are a pass or Pro feature. On the free plan any saved hours are cleared, and a free booth takes orders whenever it is Open and stops when you pause it.",
       ],
     },
   },
@@ -173,7 +212,7 @@ const VENDOR_FAQ: FaqEntry[] = [
       lead: "Usual causes:",
       bullets: [
         "The QR or short code was regenerated, so they need to rescan.",
-        "The booth stopped serving (paused, inactive, or outside SGT hours).",
+        "The booth stopped serving (paused, over the plan limit, or outside SGT hours).",
         "An item sold out or went unavailable mid-order.",
         "A line exceeded 20 of one item.",
         "More than 8 orders came from the same network within a minute (clears after 60s).",
@@ -298,6 +337,11 @@ export default async function LandingPage() {
   const monthlyPrice =
     pricing.monthly_cents > 0 ? formatPrice(pricing.monthly_cents) : null;
   const paidMode = passPrice !== null || monthlyPrice !== null;
+  const pricingAnswer = pricingAnswers(passPrice, monthlyPrice);
+  const faq = FAQ.map((entry) => ({
+    q: entry.q,
+    a: pricingAnswer.get(entry) ?? entry.a,
+  }));
 
   const primaryHref = user ? "/dashboard" : "/login?mode=signup";
   const primaryLabel = user ? "Go to dashboard" : "Get started";
@@ -564,7 +608,7 @@ export default async function LandingPage() {
               What most vendors ask before their first event.
             </p>
             <div className="mt-6 space-y-3">
-              {FAQ.map((item) => (
+              {faq.map((item) => (
                 <FaqItem key={item.q} q={item.q} a={item.a} />
               ))}
             </div>

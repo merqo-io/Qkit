@@ -19,12 +19,16 @@ interface BoothRow {
   shortCode: string;
 }
 
-/** Status pill text + color for a booth: paused > active > off. */
+/**
+ * Status pill text + color for a booth. "Paused" is the vendor's own switch,
+ * the word the board uses for it; a booth the plan will not serve is named
+ * for that instead, so the two cannot be mistaken for each other.
+ */
 function boothStatus(booth: Pick<BoothRow, "paused" | "is_active">) {
-  if (booth.paused) return { label: "Paused", className: "text-status-aging" };
-  if (booth.is_active)
-    return { label: "Active", className: "text-status-ready" };
-  return { label: "Off", className: "text-muted-foreground" };
+  if (booth.paused)
+    return { label: "Over plan limit", className: "text-status-aging" };
+  if (booth.is_active) return { label: "Open", className: "text-status-ready" };
+  return { label: "Paused", className: "text-muted-foreground" };
 }
 
 export function BoothList({ booths }: { booths: BoothRow[] }) {
@@ -70,7 +74,7 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
                   className={`mt-1 inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold ${status.className}`}
                   title={
                     booth.paused
-                      ? "Active but paused: your plan serves one live booth at a time"
+                      ? "Open, but not taking orders: your plan serves one live booth at a time"
                       : undefined
                   }
                 >

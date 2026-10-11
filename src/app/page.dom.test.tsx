@@ -72,6 +72,33 @@ describe("public landing page", () => {
       ),
     ).toBeInTheDocument();
   });
+  it("says PayNow checkout exists and that qkit does not hold the money", async () => {
+    render(await LandingPage());
+    expect(
+      screen.getByText(/Yes, by PayNow\. The money goes straight to your own/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
+  });
+  it("keeps the beta wording out of the FAQ once a price is set", async () => {
+    pricing.mockResolvedValue({
+      data: { event_pass_cents: 1200, monthly_cents: 2500, currency: "SGD" },
+    });
+    render(await LandingPage());
+    expect(screen.getByText("Event pass: $12.00 a day.")).toBeInTheDocument();
+    expect(screen.getByText("Monthly: $25.00 a month.")).toBeInTheDocument();
+    expect(screen.queryByText(/free while we're in beta/i)).toBeNull();
+    expect(screen.queryByText(/free during beta/i)).toBeNull();
+  });
+  it("says the full kit is free in the FAQ while no price is set", async () => {
+    pricing.mockResolvedValue({
+      data: { event_pass_cents: 0, monthly_cents: 0, currency: "SGD" },
+    });
+    render(await LandingPage());
+    expect(
+      screen.getByText(/It's free while we're in beta: just ask/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Both are free during beta.")).toBeInTheDocument();
+  });
   it.each([
     [1200, 2500],
     [0, 2500],

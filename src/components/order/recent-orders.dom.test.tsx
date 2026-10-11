@@ -39,6 +39,13 @@ describe("recent customer orders", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show less" }));
     expect(screen.getAllByRole("link")).toHaveLength(3);
   });
+  it("names an order by the number its status page showed", () => {
+    read.mockReturnValue([{ ...orders[0], displayNumber: "3" }]);
+    render(<RecentOrders boothId="booth-a" />);
+    expect(
+      screen.getByRole("link", { name: /#3 for Customer 0/ }),
+    ).toHaveAttribute("href", "/order/booth-a/0001?t=access-token");
+  });
   it("reloads history for a new booth and omits the toggle for short histories", () => {
     const { rerender } = render(<RecentOrders boothId="booth-a" />);
     read.mockReturnValue([orders[0]]);

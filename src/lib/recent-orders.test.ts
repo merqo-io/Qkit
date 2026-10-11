@@ -4,6 +4,7 @@ import {
   addRecentOrder,
   getRecentOrders,
   getRecentOrdersForBooth,
+  noteDisplayNumber,
 } from "./recent-orders";
 
 beforeEach(() => {
@@ -181,6 +182,23 @@ describe("recent-orders", () => {
       JSON.stringify([{ boothId: "b1" }, 42, null]),
     );
     // Malformed entries dropped.
+    expect(getRecentOrders()).toEqual([]);
+  });
+
+  it("records the number the status page showed, for that order only", () => {
+    addRecentOrder({ boothId: "b1", orderNumber: "0041", customerName: "Ada" });
+    addRecentOrder({ boothId: "b2", orderNumber: "0041", customerName: "Bo" });
+
+    noteDisplayNumber("b1", "0041", "3");
+
+    const byBooth = Object.fromEntries(
+      getRecentOrders().map((o) => [o.boothId, o.displayNumber]),
+    );
+    expect(byBooth).toEqual({ b1: "3", b2: undefined });
+  });
+
+  it("ignores a display number for an order this device never placed", () => {
+    noteDisplayNumber("b1", "0041", "3");
     expect(getRecentOrders()).toEqual([]);
   });
 });
