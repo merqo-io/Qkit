@@ -69,6 +69,8 @@ PRODUCT.md
 .claude/worktrees/
 # Per-machine dev-server preview config, not project config.
 .claude/launch.json
+# Written by the skill-usage hook on every skill call; local only.
+.claude/skill-usage.log
 
 # Supabase CLI local state, written by `supabase start`/`db reset`/`test db`
 # (the running stack's branch pointer, cached CLI version, generated local
