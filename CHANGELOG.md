@@ -276,6 +276,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   releases the hold. Migration `0096`.
 
 - `e2e/smoke.spec.ts`: a public smoke spec (the landing page and `/login` render). The CI job that ran only the auth-guard spec runs both and is named `e2e (public smoke)`, the same name and baseline as every other kit.
+- The booth form and the menu manager ask before unsaved changes are thrown
+  away: on Cancel, on a link to another page of the dashboard, and on closing
+  or reloading the tab. The browser's Back button is not covered.
 
 ### Changed
 
