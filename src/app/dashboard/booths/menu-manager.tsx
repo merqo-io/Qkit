@@ -12,6 +12,7 @@ import {
 } from "@merqo/ui";
 import { Button } from "@/components/ui/button";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";
 import { saveMenuCategories, saveMenuItems } from "./actions";
 import { removeUnsavedImages } from "@/lib/image-upload-adapter";
@@ -86,6 +87,9 @@ export function MenuManager({
   const [importPreview, setImportPreview] = useState<CsvMenuRow[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pending: saving, run: runSave } = useAsyncAction();
+  const snapshot = JSON.stringify([items, categories]);
+  const [openedWith] = useState(snapshot);
+  const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
 
   function onExport() {
     const csv = items.length === 0 ? menuCsvTemplate() : menuItemsToCsv(items);
@@ -337,7 +341,9 @@ export function MenuManager({
           variant="outline"
           size="lg"
           className="h-12 rounded-xl"
-          onClick={() => router.push(`/dashboard/booths/${boothId}`)}
+          onClick={() => {
+            if (confirmLeave()) router.push(`/dashboard/booths/${boothId}`);
+          }}
         >
           Cancel
         </Button>

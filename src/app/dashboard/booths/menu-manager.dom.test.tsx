@@ -518,3 +518,53 @@ describe("MenuManager CSV customization import", () => {
     expect(await screen.findByText("Kopi")).toBeInTheDocument();
   });
 });
+
+describe("MenuManager unsaved changes", () => {
+  function renderManager() {
+    render(
+      <MenuManager
+        vendorId="v1"
+        boothId={BOOTH_ID}
+        boothName="Kopitiam Cart"
+        entitlement={ENTITLEMENT}
+        initialItems={[makeItem()]}
+      />,
+    );
+  }
+
+  it("leaves on Cancel without asking when nothing was changed", async () => {
+    const confirm = vi.spyOn(window, "confirm");
+    const user = userEvent.setup();
+    renderManager();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(routerPush).toHaveBeenCalledWith(`/dashboard/booths/${BOOTH_ID}`);
+    confirm.mockRestore();
+  });
+
+  it("asks before Cancel throws away an edit, and stays when told to", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const user = userEvent.setup();
+    renderManager();
+
+    await user.upload(
+      screen.getByLabelText("Import CSV"),
+      new File(
+        ["name,description,price,cost,available\nTeh O,,1.20,,true"],
+        "menu.csv",
+        { type: "text/csv" },
+      ),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Add to menu" }),
+    );
+    expect(await screen.findByText("Teh O")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(routerPush).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+});
