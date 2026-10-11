@@ -1257,6 +1257,107 @@ describe("RealtimeOrderBoard incoming/accepted split", () => {
   });
 });
 
+describe("RealtimeOrderBoard start all incoming", () => {
+  function renderIncoming(
+    orders: BoardOrder[],
+    booths: Parameters<typeof RealtimeOrderBoard>[0]["booths"] = BOOTHS,
+  ) {
+    render(
+      <RealtimeOrderBoard
+        booths={booths}
+        initialOrders={orders}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+  }
+
+  it("starts every incoming order in one tap and can undo it", async () => {
+    vi.mocked(advanceOrder).mockResolvedValue({
+      success: true,
+      status: "preparing",
+    });
+    vi.mocked(revertOrderAdvance).mockResolvedValue({
+      success: true,
+      status: "pending",
+    });
+    const user = userEvent.setup();
+    renderIncoming([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+      order({ id: "o2", order_number: "0002", status: "pending" }),
+      order({ id: "o3", order_number: "0003", status: "preparing" }),
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Start all 2" }));
+
+    await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
+    expect(advanceOrder).toHaveBeenCalledWith("o1", "pending");
+    expect(advanceOrder).toHaveBeenCalledWith("o2", "pending");
+
+    const startedToast = vi
+      .mocked(toast.success)
+      .mock.calls.find(([message]) => message === "Started 2 orders");
+    const options = startedToast?.[1] as {
+      action: { label: string; onClick: () => Promise<void> };
+    };
+    expect(options.action.label).toBe("Undo");
+    await options.action.onClick();
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o1",
+      "pending",
+      "preparing",
+      "not_required",
+    );
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o2",
+      "pending",
+      "preparing",
+      "not_required",
+    );
+  });
+
+  it("leaves out an order whose payment still needs checking", async () => {
+    const user = userEvent.setup();
+    renderIncoming([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+      order({ id: "o2", order_number: "0002", status: "pending" }),
+      order({
+        id: "o3",
+        order_number: "0003",
+        status: "pending",
+        payment_status: "claimed",
+      }),
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Start all 2" }));
+
+    await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
+    expect(advanceOrder).not.toHaveBeenCalledWith("o3", "pending");
+  });
+
+  it("is not offered for a single incoming order", () => {
+    renderIncoming([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: /^start all/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("is not offered at a booth that waits for the customer to arrive", () => {
+    renderIncoming(
+      [
+        order({ id: "o1", order_number: "0001", status: "pending" }),
+        order({ id: "o2", order_number: "0002", status: "pending" }),
+      ],
+      [{ ...BOOTHS[0]!, requires_arrival_confirm: true }],
+    );
+    expect(
+      screen.queryByRole("button", { name: /^start all/i }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("RealtimeOrderBoard payment filter", () => {
   it("hides a pending-payment QR order from the board", () => {
     const orders = [

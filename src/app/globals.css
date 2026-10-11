@@ -310,10 +310,10 @@ html::-webkit-scrollbar {
    so they stay round. Link-style buttons sit inside sentences and are left
    alone.
 
-   A switch, the 16px (i) that opens a hint (InfoTooltip's tap trigger, from
-   @merqo/ui), and anything marked `.tap-area` keep their drawn size and grow
-   only their touch area: a transparent 44px box centred on each. That suits a
-   small control standing alone. Do not put `.tap-area` on something packed
+   A switch and anything marked `.tap-area` keep their drawn size and grow only
+   their touch area: a transparent 44px box centred on each. That suits a small
+   control standing alone. The 16px (i) that opens a hint gets the same box
+   from @merqo/ui's InfoTooltip itself, so it has no rule here. Do not put `.tap-area` on something packed
    against another control, since the box would cover its neighbour's edge
    (give that a real min-height instead), or on a positioned element, since
    it sets `position: relative`. */
@@ -334,13 +334,11 @@ html::-webkit-scrollbar {
     min-height: 2.75rem;
   }
   .tap-area,
-  [data-slot="switch"],
-  [data-slot="popover-trigger"].size-4 {
+  [data-slot="switch"] {
     position: relative;
   }
   .tap-area::after,
-  [data-slot="switch"]::after,
-  [data-slot="popover-trigger"].size-4::after {
+  [data-slot="switch"]::after {
     content: "";
     position: absolute;
     top: 50%;

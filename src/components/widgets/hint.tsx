@@ -11,7 +11,7 @@ import { InfoTooltip } from "@merqo/ui";
  * hover Tooltip is only for naming an icon-only button on a desktop.
  *
  * The icon stays 16px so it reads as a quiet aside. On a touch device
- * globals.css gives it a 44px touch area that extends 14px past each edge; the
+ * InfoTooltip gives it a 44px touch area that extends 14px past each edge; the
  * `ml-3.5` here is that same 14px, so the area stops at the edge of the
  * control it explains instead of covering part of it.
  */

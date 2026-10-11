@@ -48,6 +48,7 @@ import { Ticket } from "@/components/widgets/ticket";
 import { Hint } from "@/components/widgets/hint";
 import {
   displayOrderNumber,
+  needsPaymentReview,
   overtakenOrderIds,
   isTerminal,
   sortActiveOrders,
@@ -77,6 +78,10 @@ type BoothView = {
   // and call sites need no changes; a booth without it behaves exactly as
   // before (never auto-opens the walk-up dialog).
   walkup_default?: boolean;
+  // The booth waits for the customer's "I'm here" before an order is made.
+  // Optional for the same reason; without it the booth is treated as not
+  // waiting.
+  requires_arrival_confirm?: boolean;
   // Daily cup cap (booths.daily_cup_cap, migration 0094) and the cups already
   // committed today, both optional: a booth with no cap, and every existing
   // test fixture and call site, simply shows no cup counter.
@@ -118,12 +123,15 @@ function OrderSection({
   solo,
   showHeader,
   hiddenOnPhone = false,
+  action,
   renderCard,
 }: {
   label: string;
   orders: BoardOrder[];
   solo: boolean;
   showHeader: boolean;
+  // A control for the whole column, shown at the end of its header row.
+  action?: ReactNode;
   // Below `sm` the two sections share one narrow column, so only the one the
   // SectionSwitcher has selected is shown. Hidden with a class rather than by
   // not rendering, so the same markup serves both layouts and nothing depends
@@ -139,9 +147,12 @@ function OrderSection({
       )}
     >
       {showHeader && (
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {label} ({orders.length})
-        </h2>
+        <div className="mb-3 flex min-h-8 items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {label} ({orders.length})
+          </h2>
+          {action}
+        </div>
       )}
       <div
         className={cn(
@@ -508,13 +519,28 @@ function BatchControls({
 // undo window: there are more orders to notice a mistake across.
 const BATCH_UNDO_MS = 8000;
 
+// The statuses a batch can move on from, each with where it goes and how the
+// toast says so.
+type BatchStep = "pending" | "preparing" | "ready";
+const BATCH_NEXT = {
+  pending: "preparing",
+  preparing: "ready",
+  ready: "completed",
+} as const;
+
+function batchDoneMessage(step: BatchStep, count: number): string {
+  const orders = `${count} order${count === 1 ? "" : "s"}`;
+  if (step === "pending") return `Started ${orders}`;
+  return `Marked ${orders} ${step === "preparing" ? "ready" : "picked up"}`;
+}
+
 /** Walk a batch back the one step it was just moved. */
 async function undoAdvanced(
   ids: string[],
-  from: "preparing" | "ready",
+  from: BatchStep,
   paymentById: ReadonlyMap<string, PaymentStatus>,
 ) {
-  const to = from === "preparing" ? "ready" : "completed";
+  const to = BATCH_NEXT[from];
   const results = await Promise.allSettled(
     ids.map((id) =>
       revertOrderAdvance(id, from, to, paymentById.get(id) ?? "not_required"),
@@ -548,16 +574,15 @@ function useBatchSelection() {
     });
   }, []);
   const [advancing, setAdvancing] = useState(false);
-  // Moves each of `ids` one step on (advanceOrder: preparing to ready, ready
-  // to picked up) and unticks them. Anything else still ticked stays ticked,
+  // Moves each of `ids` one step on (advanceOrder: incoming to started,
+  // preparing to ready, ready to picked up) and unticks them. Anything else still ticked stays ticked,
   // so a mixed selection is finished with the other button; unticking the
   // ones just moved is what stops a second tap from moving them again.
   async function advanceSelected(
     ids: string[],
-    expectedStatus: "preparing" | "ready",
+    expectedStatus: BatchStep,
     paymentById: ReadonlyMap<string, PaymentStatus>,
   ) {
-    const outcome = expectedStatus === "preparing" ? "ready" : "picked up";
     setAdvancing(true);
     try {
       const results = await Promise.allSettled(
@@ -572,7 +597,7 @@ function useBatchSelection() {
       // One tap moved many orders, and a customer watching theirs sees it
       // change, so the same tap has to be reversible in one tap.
       if (ok > 0)
-        toast.success(`Marked ${ok} order${ok === 1 ? "" : "s"} ${outcome}`, {
+        toast.success(batchDoneMessage(expectedStatus, ok), {
           duration: BATCH_UNDO_MS,
           action: {
             label: "Undo",
@@ -919,6 +944,19 @@ export function RealtimeOrderBoard({
   // get buried under everything already being worked on.
   const incoming = visible.filter((o) => o.status === "pending");
   const accepted = visible.filter((o) => o.status !== "pending");
+  // Incoming orders one tap can start together: nothing to check on them
+  // first. An order whose payment is unconfirmed needs a look at its proof,
+  // and a booth that waits for the customer's arrival is waiting on purpose.
+  const waitsForArrival = new Set(
+    booths.filter((b) => b.requires_arrival_confirm).map((b) => b.id),
+  );
+  const startableIds = incoming
+    .filter(
+      (o) =>
+        !needsPaymentReview(o.status, o.payment_status) &&
+        !waitsForArrival.has(o.booth_id),
+    )
+    .map((o) => o.id);
 
   function renderCard(order: BoardOrder) {
     if (order.order_number == null) return null;
@@ -1225,6 +1263,20 @@ export function RealtimeOrderBoard({
                 showHeader
                 hiddenOnPhone={
                   accepted.length > 0 && phoneSection !== "incoming"
+                }
+                action={
+                  startableIds.length > 1 && (
+                    <Button
+                      size="sm"
+                      className={BATCH_BUTTON}
+                      disabled={advancing}
+                      onClick={() =>
+                        advanceSelected(startableIds, "pending", paymentById)
+                      }
+                    >
+                      Start all {startableIds.length}
+                    </Button>
+                  )
                 }
                 renderCard={renderCard}
               />
