@@ -193,6 +193,7 @@ beforeEach(() => {
       orderRef: "o1",
       claimedAt: null,
       confirmedAt: null,
+      vendorId: "v1",
     },
   });
   claimCheckoutMock.mockReset().mockResolvedValue({

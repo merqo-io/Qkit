@@ -96,6 +96,12 @@ const transactionStatusResponseSchema = z.object({
   confirmed_at: z.string().nullable(),
 });
 
+const checkoutLookupResponseSchema = transactionStatusResponseSchema.extend({
+  vendor_id: z.string().min(1),
+});
+
+export type CheckoutLookup = TransactionStatus & { vendorId: string };
+
 export type BookingStatus = {
   bookingId: string;
   status: "pending_deposit" | "deposit_paid" | "fully_paid" | "cancelled";
@@ -420,17 +426,24 @@ export async function getCheckoutStatus(
  *  without creating one. qkit stores no transaction id, so this is how an
  *  action reaches it. Unlike `createCheckout`, it does not depend on the
  *  vendor's current payment config, so it still answers after the vendor
- *  edits their payment details. A 404 means paykit has no transaction for
- *  the order; a 405 means that paykit deployment has no lookup route. */
+ *  edits their payment details. The result carries the vendor that owns the
+ *  transaction. A 404 means paykit has no transaction for the order; a 405
+ *  means that paykit deployment has no lookup route. */
 export async function getCheckoutByOrderRef(
   orderRef: string,
-): Promise<PaykitResult<TransactionStatus>> {
+): Promise<PaykitResult<CheckoutLookup>> {
   const result = await paykitRequest(
     `/api/v1/checkout?order_ref=${encodeURIComponent(orderRef)}`,
-    transactionStatusResponseSchema,
+    checkoutLookupResponseSchema,
     { method: "GET" },
   );
   return result.ok
-    ? { ok: true, data: toTransactionStatus(result.data) }
+    ? {
+        ok: true,
+        data: {
+          ...toTransactionStatus(result.data),
+          vendorId: result.data.vendor_id,
+        },
+      }
     : result;
 }

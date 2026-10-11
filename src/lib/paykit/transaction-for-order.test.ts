@@ -22,6 +22,7 @@ function found(amountCents = 800) {
       orderRef: "o1",
       claimedAt: "2026-08-11T00:00:00Z",
       confirmedAt: null,
+      vendorId: "v1",
     },
   };
 }
@@ -41,6 +42,19 @@ describe("transactionIdForOrder", () => {
       data: "tx1",
     });
     expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a transaction that belongs to a different vendor", async () => {
+    getCheckoutByOrderRefMock.mockResolvedValue({
+      ok: true,
+      data: { ...found().data, vendorId: "v2" },
+    });
+    expect(await transactionIdForOrder(ARGS)).toEqual({
+      ok: false,
+      status: 409,
+      error: "Checkout belongs to a different vendor",
+    });
     expect(createCheckoutMock).not.toHaveBeenCalled();
   });
 

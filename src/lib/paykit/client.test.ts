@@ -412,6 +412,7 @@ describe("claimCheckout / unclaimCheckout / confirmCheckout / getCheckoutStatus"
 
 describe("getCheckoutByOrderRef", () => {
   const ORDER = "00000000-0000-4000-8000-000000000009";
+  const VENDOR = "00000000-0000-4000-8000-0000000000aa";
 
   it("GETs the lookup route and maps the status, ignoring the view", async () => {
     fetchMock.mockResolvedValue(
@@ -420,6 +421,7 @@ describe("getCheckoutByOrderRef", () => {
         status: "claimed",
         amount_cents: 800,
         order_ref: ORDER,
+        vendor_id: VENDOR,
         kit_slug: "qkit",
         claimed_at: "2026-08-11T00:00:00Z",
         confirmed_at: null,
@@ -442,7 +444,26 @@ describe("getCheckoutByOrderRef", () => {
         orderRef: ORDER,
         claimedAt: "2026-08-11T00:00:00Z",
         confirmedAt: null,
+        vendorId: VENDOR,
       },
+    });
+  });
+
+  it("rejects a success body without the owning vendor", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        transaction_id: TX,
+        status: "claimed",
+        amount_cents: 800,
+        order_ref: ORDER,
+        claimed_at: "2026-08-11T00:00:00Z",
+        confirmed_at: null,
+      }),
+    );
+    expect(await getCheckoutByOrderRef(ORDER)).toEqual({
+      ok: false,
+      status: 200,
+      error: "paykit returned an unexpected response",
     });
   });
 

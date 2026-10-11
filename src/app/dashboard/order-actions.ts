@@ -442,11 +442,13 @@ export async function restoreAutoCompleted(
  * rejects orders that never needed payment.
  *
  * paykit is now the source of truth for the confirm transition itself — the
- * vendor IS the `vendor_id` paykit's config/checkout are keyed on (this
- * action only ever runs for the authenticated vendor's own orders, enforced
- * by RLS via loadOwnOrder), so no extra booth lookup is needed. `orderId` is
- * reused as paykit's `order_ref`, matching the checkout paykit already
- * created for this order on the customer's pay page. The transaction is
+ * vendor IS the `vendor_id` paykit's config/checkout are keyed on, so no extra
+ * booth lookup is needed. RLS does not by itself confine this action to the
+ * vendor's own orders: an admin account can read every order
+ * (`orders_admin_select`), so transactionIdForOrder refuses a transaction that
+ * belongs to a different vendor. `orderId` is reused as paykit's `order_ref`,
+ * matching the checkout paykit already created for this order on the
+ * customer's pay page. The transaction is
  * looked up by that reference (see transactionIdForOrder) rather than
  * re-created, so this still works after the vendor edits payment details.
  * `orders.payment_status` is then updated as a local mirror, same rationale

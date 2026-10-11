@@ -24,7 +24,7 @@ amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
   (vendor "Confirm payment"), `getCheckoutStatus(id)` (read-only poll,
   not currently used by qkit's own polling — see its doc comment),
   `getCheckoutByOrderRef(orderRef)` (finds the transaction paykit already
-  holds for an order, without creating one; a 404 means paykit has none),
+  holds for an order, without creating one, and the vendor that owns it; a 404 means paykit has none),
   and `getBookingStatus(bookingId)` (read-only booking status — deposit/balance
   amounts, event date, and whether each is confirmed — for the "booking
   status" section on an event-mode booth's dashboard; the vendor pastes
@@ -54,8 +54,9 @@ orderRef})`: the paykit transaction id for an order. qkit stores none, so
   (404) or has no lookup route (405). Creating re-renders from the vendor's
   current payment config and is refused once that config changed, so calling
   create first left an order already awaiting payment impossible to settle.
-  A found transaction whose amount differs from the order's is refused.
-- `transaction-for-order.test.ts` — found, amount mismatch, the two fallback
+  A found transaction is refused when its vendor or its amount differs from
+  the order's.
+- `transaction-for-order.test.ts` — found, vendor mismatch, amount mismatch, the two fallback
   statuses, a failed fallback, and that any other lookup failure creates
   nothing.
 - `client.test.ts` — tests the missing-secret degrade path (no network call),

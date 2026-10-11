@@ -165,6 +165,7 @@ beforeEach(() => {
       orderRef: ID,
       claimedAt: "2026-08-11T00:00:00Z",
       confirmedAt: null,
+      vendorId: "v1",
     },
   });
   confirmCheckoutMock.mockReset().mockResolvedValue({
@@ -473,6 +474,35 @@ describe("confirmPaymentAndStart", () => {
     expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
   });
 
+  it("refuses to confirm a transaction that belongs to another vendor", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "pending",
+        payment_status: "claimed",
+        total_cents: 800,
+      },
+    });
+    getCheckoutByOrderRefMock.mockResolvedValue({
+      ok: true,
+      data: {
+        transactionId: "tx1",
+        status: "claimed",
+        amountCents: 800,
+        orderRef: ID,
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: null,
+        vendorId: "v2",
+      },
+    });
+    expect(await confirmPaymentAndStart(ID)).toEqual({
+      success: false,
+      error: "Failed to confirm payment",
+    });
+    expect(confirmCheckoutMock).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("refuses when payment is already confirmed", async () => {
     maybeSingle.mockResolvedValue({
       data: { id: ID, status: "pending", payment_status: "confirmed" },
@@ -694,6 +724,36 @@ describe("confirmOrderPayment", () => {
     expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith(ID);
     expect(createCheckoutMock).not.toHaveBeenCalled();
     expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
+  });
+
+  it("refuses to confirm a transaction that belongs to another vendor", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        status: "ready",
+        payment_status: "claimed",
+        total_cents: 800,
+      },
+    });
+    getCheckoutByOrderRefMock.mockResolvedValue({
+      ok: true,
+      data: {
+        transactionId: "tx1",
+        status: "claimed",
+        amountCents: 800,
+        orderRef: ID,
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: null,
+        vendorId: "v2",
+      },
+    });
+    expect(await confirmOrderPayment(ID)).toEqual({
+      success: false,
+      error: "Failed to confirm payment",
+    });
+    expect(confirmCheckoutMock).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(recordAuditMock).not.toHaveBeenCalled();
   });
 
   it("creates the checkout when paykit has none for this order", async () => {
