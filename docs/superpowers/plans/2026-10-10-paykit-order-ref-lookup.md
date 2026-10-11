@@ -1832,3 +1832,5 @@ What changed as a result, and what the shipped code does beyond the task text ab
 - paykit: the lookup response carries `vendor_id` (schema, column list, mapping, tests, contract sample).
 - qkit: `getCheckoutByOrderRef` validates the lookup body with its own schema, which requires `vendor_id`, and returns it as `vendorId`. `transactionIdForOrder` refuses a found transaction whose `vendorId` differs from `args.vendorId`, beside the amount check. The e2e mock returns `vendor_id`.
 - The spec's P1 section and contract are updated to match.
+
+A second change came out of the paykit whole-branch review. Task 3's rule (`/^[0-9A-Za-z]{8,9}[A-Za-z]$/`) rejects a PayNow Corporate proxy that carries a 3-character suffix after the UEN, which paykit's old rule accepted for a 9-character UEN. paykit ships `/^[0-9A-Za-z]{8,9}[A-Za-z](?:[0-9A-Za-z]{3})?$/` instead. It still rejects an 8-digit mobile number and any all-digit value. qkit's own rule is unchanged.
