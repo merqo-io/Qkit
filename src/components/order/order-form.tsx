@@ -543,7 +543,9 @@ export function OrderForm({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 font-medium break-words">{item.name}</p>
+            <h3 className="line-clamp-2 font-medium break-words">
+              {item.name}
+            </h3>
             {item.description && (
               <p className="line-clamp-2 text-sm break-words text-muted-foreground">
                 {item.description}

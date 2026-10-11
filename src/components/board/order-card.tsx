@@ -624,13 +624,13 @@ export function OrderCard({
               one-handed and often with wet hands, so it is the largest thing
               on the ticket and nothing else competes with it. */}
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="font-mono text-3xl leading-none font-bold tracking-tight">
+            <h3 className="font-mono text-3xl leading-none font-bold tracking-tight">
               #{numberSplit.lead}
               {/* Emphasized: staff slotting a pickup by a physical shelf's
                   last-digit position (bubble-tea-chain style) read this digit
                   first. */}
               <span className="text-primary">{numberSplit.last}</span>
-            </p>
+            </h3>
             {!closed && bumped && (
               <Zap
                 className="size-4 shrink-0 text-primary"

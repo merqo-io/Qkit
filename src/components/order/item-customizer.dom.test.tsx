@@ -34,6 +34,10 @@ const LATTE: MenuItem = {
   ],
 };
 
+// The running total is the footer's paragraph; a priced chip carries its own
+// price in a span.
+const FOOTER_TOTAL = { selector: "p" };
+
 function renderCustomizer(onAdd = vi.fn()) {
   return {
     onAdd,
@@ -44,32 +48,52 @@ function renderCustomizer(onAdd = vi.fn()) {
 describe("ItemCustomizer running total", () => {
   it("shows no extra charge with only the free default selected", () => {
     renderCustomizer();
-    expect(screen.queryByText(/^\+\$\d/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\+\$\d/, FOOTER_TOTAL)).not.toBeInTheDocument();
   });
 
   it("shows the delta when a priced single-select choice is picked", async () => {
     const user = userEvent.setup();
     renderCustomizer();
-    await user.click(screen.getByRole("radio", { name: "Oat Milk" }));
-    expect(screen.getByText("+$1.00")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
+    expect(screen.getByText("+$1.00", FOOTER_TOTAL)).toBeInTheDocument();
   });
 
   it("replaces rather than adds when switching within a single-select group", async () => {
     const user = userEvent.setup();
     renderCustomizer();
-    await user.click(screen.getByRole("radio", { name: "Oat Milk" }));
-    expect(screen.getByText("+$1.00")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
+    expect(screen.getByText("+$1.00", FOOTER_TOTAL)).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Regular" }));
-    expect(screen.queryByText(/^\+\$\d/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\+\$\d/, FOOTER_TOTAL)).not.toBeInTheDocument();
   });
 
   it("sums multiple selected choices across groups", async () => {
     const user = userEvent.setup();
     renderCustomizer();
-    await user.click(screen.getByRole("radio", { name: "Oat Milk" }));
-    await user.click(screen.getByRole("button", { name: "Extra Shot" }));
+    await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
+    await user.click(screen.getByRole("button", { name: /Extra Shot/ }));
     // Oat Milk (+$1.00) + Extra Shot (+$0.80) = +$1.80.
-    expect(screen.getByText("+$1.80")).toBeInTheDocument();
+    expect(screen.getByText("+$1.80", FOOTER_TOTAL)).toBeInTheDocument();
+  });
+});
+
+describe("ItemCustomizer choice prices", () => {
+  it("shows what a priced choice adds on the choice itself, before it is picked", () => {
+    renderCustomizer();
+    expect(
+      screen.getByRole("radio", { name: "Oat Milk +$1.00" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Extra Shot +$0.80" }),
+    ).toBeInTheDocument();
+  });
+
+  it("adds nothing to a free choice's label", () => {
+    renderCustomizer();
+    expect(screen.getByRole("radio", { name: "Regular" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Almond Syrup" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -88,7 +112,7 @@ describe("ItemCustomizer allergen badges", () => {
     const user = userEvent.setup();
     renderCustomizer();
     expect(screen.getByText(/dairy/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "Oat Milk" }));
+    await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
     expect(screen.queryByText(/dairy/i)).not.toBeInTheDocument();
   });
 

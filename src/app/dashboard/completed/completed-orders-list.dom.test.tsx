@@ -52,13 +52,13 @@ const EPOCH_ISO = new Date(0).toISOString();
 // OrderCard emphasizes the order number's trailing digit in its own <span>
 // (see splitTrailingDigit), so its text is split across elements — a plain
 // string getByText can't match that (TRL's own hint: use a function
-// matcher). Scoped to `p` so the (identical-text) wrapping <div> around it
+// matcher). Scoped to `h3` so the (identical-text) wrapping <div> around it
 // isn't also a match.
 function byOrderNumber(number: string) {
   return (_content: string, element: Element | null) =>
     element?.textContent === number;
 }
-const ORDER_NUMBER_OPTS = { selector: "p" };
+const ORDER_NUMBER_OPTS = { selector: "h3" };
 
 describe("CompletedOrdersList", () => {
   it("shows an empty state when there are no completed orders", () => {
