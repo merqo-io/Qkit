@@ -557,7 +557,10 @@ export function MenuEditor({
                 no sections yet. */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-[8rem] flex-1 space-y-1">
-                <Label className="text-xs font-medium text-muted-foreground">
+                <Label
+                  htmlFor={`menu-item-${index}-price`}
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Price
                 </Label>
                 <div className="relative">
@@ -565,6 +568,7 @@ export function MenuEditor({
                     $
                   </span>
                   <MoneyInput
+                    id={`menu-item-${index}-price`}
                     placeholder="Optional"
                     cents={item.price_cents}
                     onCommit={(cents) => setPrice(index, cents)}
@@ -574,7 +578,10 @@ export function MenuEditor({
               </div>
               <div className="min-w-[8rem] flex-1 space-y-1">
                 <div className="flex items-center gap-1">
-                  <Label className="text-xs font-medium text-muted-foreground">
+                  <Label
+                    htmlFor={`menu-item-${index}-cost`}
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Cost
                   </Label>
                   <InfoTooltip
@@ -588,6 +595,7 @@ export function MenuEditor({
                     $
                   </span>
                   <MoneyInput
+                    id={`menu-item-${index}-cost`}
                     placeholder="Optional"
                     cents={item.cost_cents}
                     onCommit={(cents) => setCost(index, cents)}
@@ -598,7 +606,10 @@ export function MenuEditor({
               {entitlement.stockCaps ? (
                 <div className="min-w-[8rem] flex-1 space-y-1">
                   <div className="flex items-center gap-1">
-                    <Label className="text-xs font-medium text-muted-foreground">
+                    <Label
+                      htmlFor={`menu-item-${index}-stock`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
                       Sold-out limit
                     </Label>
                     <InfoTooltip
@@ -608,6 +619,7 @@ export function MenuEditor({
                     />
                   </div>
                   <Input
+                    id={`menu-item-${index}-stock`}
                     inputMode="numeric"
                     placeholder="Unlimited"
                     value={item.stock == null ? "" : String(item.stock)}
@@ -625,7 +637,10 @@ export function MenuEditor({
               )}
               {categories.length > 0 && (
                 <div className="min-w-[8rem] flex-1 space-y-1">
-                  <Label className="text-xs font-medium text-muted-foreground">
+                  <Label
+                    htmlFor={`menu-item-${index}-section`}
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Section
                   </Label>
                   <Select
@@ -636,7 +651,10 @@ export function MenuEditor({
                       })
                     }
                   >
-                    <SelectTrigger className="h-9 w-full rounded-lg">
+                    <SelectTrigger
+                      id={`menu-item-${index}-section`}
+                      className="h-9 w-full rounded-lg"
+                    >
                       <SelectValue placeholder="No section" />
                     </SelectTrigger>
                     <SelectContent>

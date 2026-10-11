@@ -336,4 +336,67 @@ describe("CompletedOrdersList", () => {
 
     expect(screen.getByText("No matching orders")).toBeInTheDocument();
   });
+
+  describe("daily numbering", () => {
+    const TODAY_ISO = "2026-10-11T00:00:00.000Z";
+    const today = makeOrder({
+      id: "o-today",
+      order_number: "0043",
+      customer_name: "Ada",
+      created_at: "2026-10-11T03:00:00.000Z",
+      completed_at: "2026-10-11T03:10:00.000Z",
+    });
+    const yesterday = makeOrder({
+      id: "o-yesterday",
+      order_number: "0030",
+      customer_name: "Bo",
+      created_at: "2026-10-10T03:00:00.000Z",
+      completed_at: "2026-10-10T03:10:00.000Z",
+    });
+
+    function renderList() {
+      render(
+        <CompletedOrdersList
+          booths={BOOTHS}
+          orders={[today, yesterday]}
+          loadError={false}
+          historyLimit={500}
+          todayStartIso={TODAY_ISO}
+          dailyOrderNumberBaselines={{ b1: "0041" }}
+        />,
+      );
+    }
+
+    it("shows today's ticket under the number the board gave it", () => {
+      renderList();
+      expect(
+        screen.getByText(byOrderNumber("#003"), ORDER_NUMBER_OPTS),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(byOrderNumber("#0043"), ORDER_NUMBER_OPTS),
+      ).not.toBeInTheDocument();
+    });
+
+    it("keeps an earlier day's ticket on its permanent number", async () => {
+      const user = userEvent.setup();
+      renderList();
+      await user.click(screen.getByRole("button", { name: "All time" }));
+      expect(
+        screen.getByText(byOrderNumber("#0030"), ORDER_NUMBER_OPTS),
+      ).toBeInTheDocument();
+    });
+
+    it("finds today's ticket by either number", async () => {
+      const user = userEvent.setup();
+      renderList();
+      const search = screen.getByRole("searchbox");
+
+      await user.type(search, "003");
+      expect(screen.getByText("Ada")).toBeInTheDocument();
+
+      await user.clear(search);
+      await user.type(search, "0043");
+      expect(screen.getByText("Ada")).toBeInTheDocument();
+    });
+  });
 });

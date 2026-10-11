@@ -149,6 +149,22 @@ function BasketLimits({ availability }: { availability: Availability }) {
   );
 }
 
+/**
+ * Where focus lands when the checkout sheet opens. With a mouse or keyboard
+ * it goes to the name field, the one thing the sheet asks for. On a touch
+ * screen that would raise the keyboard over the order and the button before
+ * the customer has read either, so focus goes to the sheet itself and the
+ * keyboard waits for a tap.
+ */
+function focusCheckoutSheet(event: Event) {
+  event.preventDefault();
+  const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  const target = touch
+    ? event.currentTarget
+    : document.getElementById("customerName");
+  if (target instanceof HTMLElement) target.focus();
+}
+
 export function OrderForm({
   code,
   boothId,
@@ -816,6 +832,7 @@ export function OrderForm({
         <SheetContent
           side="bottom"
           className="mx-auto flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-t-2xl p-0"
+          onOpenAutoFocus={focusCheckoutSheet}
         >
           <SheetHeader className="shrink-0 gap-1 pt-5 pb-3">
             <SheetTitle className="font-display text-xl font-semibold">
@@ -890,7 +907,6 @@ export function OrderForm({
               <Input
                 id="customerName"
                 placeholder="So we can call you when it's ready"
-                autoFocus
                 className="h-12 rounded-xl text-base"
                 aria-invalid={!!errors.customerName}
                 aria-describedby={

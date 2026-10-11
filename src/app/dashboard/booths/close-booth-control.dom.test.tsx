@@ -40,7 +40,7 @@ describe("CloseBoothControl (active)", () => {
     );
     expect(screen.getByText("Open")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /close booth/i }));
+    await user.click(screen.getByRole("button", { name: /pause booth/i }));
     expect(
       screen.getByRole("button", { name: /hold for 3 seconds/i }),
     ).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("CloseBoothControl (active)", () => {
     );
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: /close booth/i }));
+      .click(screen.getByRole("button", { name: /pause booth/i }));
     const hold = screen.getByRole("button", {
       name: /hold for 3 seconds/i,
     });
@@ -82,7 +82,7 @@ describe("CloseBoothControl (active)", () => {
     );
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: /close booth/i }));
+      .click(screen.getByRole("button", { name: /pause booth/i }));
     const hold = screen.getByRole("button", {
       name: /hold for 3 seconds/i,
     });
@@ -96,7 +96,7 @@ describe("CloseBoothControl (active)", () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith(false));
 
     expect(toastFn).toHaveBeenCalledWith(
-      "Kopi Corner is closed",
+      "Kopi Corner is paused",
       expect.objectContaining({
         duration: 60_000,
         action: expect.objectContaining({ label: "Undo" }),
@@ -132,7 +132,7 @@ describe("CloseBoothControl (active)", () => {
     );
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: /close booth/i }));
+      .click(screen.getByRole("button", { name: /pause booth/i }));
     fireEvent.pointerDown(
       screen.getByRole("button", { name: /hold for 3 seconds/i }),
     );
@@ -146,7 +146,7 @@ describe("CloseBoothControl (active)", () => {
 });
 
 describe("CloseBoothControl (paused)", () => {
-  it("shows Closed status and reopens instantly, no hold required", async () => {
+  it("shows Paused status and resumes instantly, no hold required", async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
     render(
@@ -157,9 +157,9 @@ describe("CloseBoothControl (paused)", () => {
         onChanged={onChanged}
       />,
     );
-    expect(screen.getByText("Closed")).toBeInTheDocument();
+    expect(screen.getByText("Paused")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /reopen booth/i }));
+    await user.click(screen.getByRole("button", { name: /resume booth/i }));
 
     expect(toggleBoothActive).toHaveBeenCalledWith(BOOTH_ID, true);
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith(true));
@@ -180,7 +180,7 @@ describe("CloseBoothControl (paused)", () => {
         onChanged={onChanged}
       />,
     );
-    await user.click(screen.getByRole("button", { name: /reopen booth/i }));
+    await user.click(screen.getByRole("button", { name: /resume booth/i }));
 
     await waitFor(() => expect(toggleBoothActive).toHaveBeenCalled());
     expect(onChanged).not.toHaveBeenCalled();
