@@ -21,6 +21,7 @@ type MockStatus = "pending" | "claimed" | "confirmed";
 interface MockTransaction {
   id: string;
   orderRef: string;
+  vendorId: string;
   amountCents: number;
   status: MockStatus;
   claimedAt: string | null;
@@ -33,6 +34,7 @@ function statusBody(tx: MockTransaction) {
     status: tx.status,
     amount_cents: tx.amountCents,
     order_ref: tx.orderRef,
+    vendor_id: tx.vendorId,
     claimed_at: tx.claimedAt,
     confirmed_at: tx.confirmedAt,
   };
@@ -53,12 +55,21 @@ class MockStore {
     return this.byId.get(id);
   }
 
-  getOrCreate(orderRef: string, amountCents: number): MockTransaction {
+  getByOrderRef(orderRef: string): MockTransaction | undefined {
+    return this.byOrderRef.get(orderRef);
+  }
+
+  getOrCreate(
+    orderRef: string,
+    vendorId: string,
+    amountCents: number,
+  ): MockTransaction {
     let tx = this.byOrderRef.get(orderRef);
     if (!tx) {
       tx = {
         id: `mock-tx-${this.nextId++}`,
         orderRef,
+        vendorId,
         amountCents,
         status: "pending",
         claimedAt: null,
@@ -72,7 +83,7 @@ class MockStore {
 }
 
 function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
-  let parsed: { order_ref?: string; amount_cents?: number };
+  let parsed: { order_ref?: string; vendor_id?: string; amount_cents?: number };
   try {
     parsed = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
   } catch {
@@ -84,7 +95,15 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     send(400, { error: "order_ref is required" });
     return;
   }
-  const tx = store.getOrCreate(orderRef, parsed.amount_cents ?? 0);
+  if (!parsed.vendor_id) {
+    send(400, { error: "vendor_id is required" });
+    return;
+  }
+  const tx = store.getOrCreate(
+    orderRef,
+    parsed.vendor_id,
+    parsed.amount_cents ?? 0,
+  );
   // PayNow QR payload — any non-empty string satisfies the client's schema;
   // content isn't asserted on by the e2e specs.
   send(200, {
@@ -129,6 +148,19 @@ function handleStatus(store: MockStore, id: string, send: Send) {
   send(200, statusBody(tx));
 }
 
+function handleLookup(store: MockStore, orderRef: string | null, send: Send) {
+  if (!orderRef) {
+    send(400, { error: "order_ref is required" });
+    return;
+  }
+  const tx = store.getByOrderRef(orderRef);
+  if (!tx) {
+    send(404, { error: "Not found" });
+    return;
+  }
+  send(200, statusBody(tx));
+}
+
 export function startPaykitMock(): {
   server: Server;
   close: () => Promise<void>;
@@ -147,6 +179,11 @@ export function startPaykitMock(): {
 
       if (req.method === "POST" && url.pathname === "/api/v1/checkout") {
         handleCreateCheckout(store, chunks, send);
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/v1/checkout") {
+        handleLookup(store, url.searchParams.get("order_ref"), send);
         return;
       }
 

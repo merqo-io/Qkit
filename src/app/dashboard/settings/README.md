@@ -34,7 +34,10 @@ merqo's own `/profile` page instead; see
   `currentPrepEstimate` (`@/lib/stats`), and passes the result as
   `prepEstimate`. `revalidate = 0` (always fresh).
 - `settings-form.tsx` — `SettingsForm({ initial, prepEstimate })` client
-  component, the actual UI. Every (i) hint is an `InfoTooltip` with
+  component, the actual UI. Every switch saves the moment it is flipped
+  (`saveSwitch`, one key per call, flipped back if the save is refused), as
+  the sound and notification choices do; the two Save buttons cover only the
+  number fields, which have half-typed states worth holding back. Every (i) hint is an `InfoTooltip` with
   `trigger="tap"`: this form is filled in on iPads and phones, where a
   hover-only tooltip never opens. Each has its own accessible name ("About
   the amber threshold", not nine copies of "More about this setting"), worded

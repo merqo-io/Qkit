@@ -105,16 +105,22 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve({}) }));
 
-const { createCheckoutMock, claimCheckoutMock, unclaimCheckoutMock } =
-  vi.hoisted(() => ({
-    createCheckoutMock: vi.fn(),
-    claimCheckoutMock: vi.fn(),
-    unclaimCheckoutMock: vi.fn(),
-  }));
+const {
+  createCheckoutMock,
+  claimCheckoutMock,
+  unclaimCheckoutMock,
+  getCheckoutByOrderRefMock,
+} = vi.hoisted(() => ({
+  createCheckoutMock: vi.fn(),
+  claimCheckoutMock: vi.fn(),
+  unclaimCheckoutMock: vi.fn(),
+  getCheckoutByOrderRefMock: vi.fn(),
+}));
 vi.mock("@/lib/paykit/client", () => ({
   createCheckout: createCheckoutMock,
   claimCheckout: claimCheckoutMock,
   unclaimCheckout: unclaimCheckoutMock,
+  getCheckoutByOrderRef: getCheckoutByOrderRefMock,
 }));
 
 const { notifyVendorTelegramMock, notifyPrintkitMock } = vi.hoisted(() => ({
@@ -177,6 +183,18 @@ beforeEach(() => {
   createCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
     data: { type: "qr", transactionId: "tx1", payload: "0002" },
+  });
+  getCheckoutByOrderRefMock.mockReset().mockResolvedValue({
+    ok: true,
+    data: {
+      transactionId: "tx1",
+      status: "pending",
+      amountCents: 800,
+      orderRef: "o1",
+      claimedAt: null,
+      confirmedAt: null,
+      vendorId: "v1",
+    },
   });
   claimCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
@@ -515,11 +533,8 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       expect.any(ArrayBuffer),
       { upsert: true, contentType: "image/webp" },
     );
-    expect(createCheckoutMock).toHaveBeenCalledWith({
-      vendorId: "v1",
-      amountCents: 800,
-      orderRef: "o1",
-    });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
+    expect(createCheckoutMock).not.toHaveBeenCalled();
     expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
     expect(rpcMock).toHaveBeenCalledWith("assign_order_number", {
       p_order_id: "o1",
@@ -571,6 +586,7 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       error: "Could not upload photo. Try again.",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
     expect(rpcMock).not.toHaveBeenCalledWith(
       "assign_order_number",
       expect.anything(),
@@ -578,8 +594,8 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("reports a failure and never assigns a number when paykit checkout creation fails", async () => {
-    createCheckoutMock.mockResolvedValue({
+  it("reports a failure and never assigns a number when paykit's lookup fails", async () => {
+    getCheckoutByOrderRefMock.mockResolvedValue({
       ok: false,
       status: 503,
       error: "Upstream unavailable",
@@ -591,6 +607,19 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     });
     expect(claimCheckoutMock).not.toHaveBeenCalled();
     expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("records a payment after the vendor changed payment details", async () => {
+    createCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "Payment configuration changed since checkout creation",
+    });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
   });
 
   it("reports a failure and never assigns a number when paykit's claim call fails", async () => {
@@ -650,11 +679,8 @@ describe("unclaimPayment", () => {
       ["payment_status", "claimed"],
     ]);
     expect(res).toEqual({ success: true });
-    expect(createCheckoutMock).toHaveBeenCalledWith({
-      vendorId: "v1",
-      amountCents: 800,
-      orderRef: "o1",
-    });
+    expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
+    expect(createCheckoutMock).not.toHaveBeenCalled();
     expect(unclaimCheckoutMock).toHaveBeenCalledWith("tx1");
     expect(update).toHaveBeenCalledWith({ payment_status: "pending" });
   });
@@ -679,6 +705,7 @@ describe("unclaimPayment", () => {
       error: "Too many attempts. Wait a moment.",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid booth id before creating the client", async () => {
@@ -692,6 +719,7 @@ describe("unclaimPayment", () => {
     const res = await unclaimPayment(BOOTH, ORDER, TOKEN);
     expect(res).toEqual({ success: false, error: "Invalid order" });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
   });
 
   it("stays idempotent when already back to pending, without calling paykit", async () => {
@@ -706,6 +734,7 @@ describe("unclaimPayment", () => {
     const res = await unclaimPayment(BOOTH, ORDER, TOKEN);
     expect(res).toEqual({ success: true });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
   });
 
   it("refuses to undo a payment the stall already confirmed (local mirror check)", async () => {
@@ -723,6 +752,7 @@ describe("unclaimPayment", () => {
       error: "The stall already confirmed your payment.",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
   });
 
   it("refuses to undo when paykit reports the transaction was confirmed in the meantime", async () => {
@@ -760,10 +790,11 @@ describe("unclaimPayment", () => {
       error: "This order doesn't take payment.",
     });
     expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
   });
 
   it("reports a failure when paykit checkout lookup fails", async () => {
-    createCheckoutMock.mockResolvedValue({
+    getCheckoutByOrderRefMock.mockResolvedValue({
       ok: false,
       status: 503,
       error: "Upstream unavailable",
@@ -774,6 +805,19 @@ describe("unclaimPayment", () => {
       error: "Could not undo. Try again.",
     });
     expect(unclaimCheckoutMock).not.toHaveBeenCalled();
+  });
+
+  it("undoes a claim after the vendor changed payment details", async () => {
+    createCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "Payment configuration changed since checkout creation",
+    });
+    expect(await unclaimPayment(BOOTH, ORDER, TOKEN)).toEqual({
+      success: true,
+    });
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+    expect(unclaimCheckoutMock).toHaveBeenCalledWith("tx1");
   });
 
   it("reports a failure when paykit's unclaim call fails", async () => {
