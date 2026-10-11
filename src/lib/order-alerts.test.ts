@@ -227,34 +227,16 @@ describe("playReadyChime + unlockAudio", () => {
 });
 
 describe("playSound", () => {
-  it("chime schedules the same 6-note sequence as playReadyChime", async () => {
+  it.each([
+    ["chime", 6, "the same 6-note sequence as playReadyChime"],
+    ["bell", 2, "two notes (toot toot)"],
+    ["ding", 1, "a single note"],
+    ["horn", 2, "two notes"],
+    ["triple", 3, "three notes"],
+  ] as const)("%s schedules %i: %s", async (sound, notes, _what) => {
     const { ctx } = mockAudio("running");
-    expect(await playSound("chime")).toBe(true);
-    expect(ctx.createOscillator).toHaveBeenCalledTimes(6);
-  });
-
-  it("bell schedules two notes (toot toot)", async () => {
-    const { ctx } = mockAudio("running");
-    expect(await playSound("bell")).toBe(true);
-    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
-  });
-
-  it("ding schedules a single note", async () => {
-    const { ctx } = mockAudio("running");
-    expect(await playSound("ding")).toBe(true);
-    expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
-  });
-
-  it("horn schedules two notes", async () => {
-    const { ctx } = mockAudio("running");
-    expect(await playSound("horn")).toBe(true);
-    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
-  });
-
-  it("triple schedules three notes", async () => {
-    const { ctx } = mockAudio("running");
-    expect(await playSound("triple")).toBe(true);
-    expect(ctx.createOscillator).toHaveBeenCalledTimes(3);
+    expect(await playSound(sound)).toBe(true);
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(notes);
   });
 
   it("none is a silent no-op (no AudioContext touched)", async () => {

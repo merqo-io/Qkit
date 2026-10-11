@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { toggleBoothActive } from "./booths/actions";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";
-import { advanceOrder } from "./order-actions";
+import { advanceOrder, revertOrderAdvance } from "./order-actions";
 import { toast } from "sonner";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
 import type { BoardOrder } from "@/lib/types";
@@ -75,6 +75,7 @@ vi.mock("./order-actions", () => ({
   sweepReadyOrders: vi.fn(),
   sweepAbandonedPayments: vi.fn(),
   advanceOrder: vi.fn(),
+  revertOrderAdvance: vi.fn(),
 }));
 
 const BOOTHS = [{ id: "b1", name: "Kopi Corner", is_active: true, open: true }];
@@ -303,14 +304,12 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    expect(screen.getByRole("tab", { name: "Incoming (1)" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    expect(screen.getByRole("tab", { name: "Accepted (1)" })).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
+    expect(
+      screen.getByRole("button", { name: "Incoming (1)" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Accepted (1)" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("switches which section a phone shows", async () => {
@@ -323,11 +322,10 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    await user.click(screen.getByRole("tab", { name: "Accepted (1)" }));
-    expect(screen.getByRole("tab", { name: "Accepted (1)" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    await user.click(screen.getByRole("button", { name: "Accepted (1)" }));
+    expect(
+      screen.getByRole("button", { name: "Accepted (1)" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("does not offer a switch when only one section has orders", () => {
@@ -339,7 +337,9 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Which orders to show" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -948,7 +948,10 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
     expect(advanceOrder).not.toHaveBeenCalledWith("o3", "preparing");
-    expect(toast.success).toHaveBeenCalledWith("Marked 2 orders ready");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Marked 2 orders ready",
+      expect.anything(),
+    );
 
     // The two just moved are unticked, so the ready button has nothing left
     // to act on; the order that was already ready is still ticked.
@@ -961,7 +964,10 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
 
     await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(3));
     expect(advanceOrder).toHaveBeenLastCalledWith("o3", "ready");
-    expect(toast.success).toHaveBeenCalledWith("Marked 1 order picked up");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Marked 1 order picked up",
+      expect.anything(),
+    );
     // Nothing left ticked: select mode ends.
     await waitFor(() =>
       expect(
@@ -999,7 +1005,86 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
     expect(advanceOrder).toHaveBeenCalledWith("o1", "ready");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "ready");
-    expect(toast.success).toHaveBeenCalledWith("Marked 2 orders picked up");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Marked 2 orders picked up",
+      expect.anything(),
+    );
+  });
+
+  it("undoes a whole batch from its toast", async () => {
+    vi.mocked(revertOrderAdvance).mockResolvedValue({
+      success: true,
+      status: "ready",
+    });
+    const user = userEvent.setup();
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", status: "ready" }),
+          order({ id: "o2", order_number: "0002", status: "ready" }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+    await user.click(screen.getByRole("button", { name: "Select all" }));
+    await user.click(screen.getByRole("button", { name: "Mark 2 Picked Up" }));
+    await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
+
+    const batchToast = vi
+      .mocked(toast.success)
+      .mock.calls.find(([message]) => message === "Marked 2 orders picked up");
+    const options = batchToast?.[1] as {
+      action: { label: string; onClick: () => Promise<void> };
+    };
+    expect(options.action.label).toBe("Undo");
+    await options.action.onClick();
+
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o1",
+      "ready",
+      "completed",
+      "not_required",
+    );
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o2",
+      "ready",
+      "completed",
+      "not_required",
+    );
+    expect(toast.success).toHaveBeenCalledWith("Put 2 orders back");
+  });
+
+  it("ticks a ticket when it is tapped anywhere, not only on its checkbox", async () => {
+    const user = userEvent.setup();
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({
+            id: "o1",
+            order_number: "0001",
+            status: "ready",
+            customer_name: "Mei Ling",
+          }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+    expect(
+      screen.getByRole("button", { name: "Mark 0 Picked Up" }),
+    ).toBeDisabled();
+
+    await user.click(screen.getByText("Mei Ling"));
+    expect(
+      screen.getByRole("button", { name: "Mark 1 Picked Up" }),
+    ).toBeEnabled();
+    // Ticking a ticket moves nothing by itself.
+    expect(advanceOrder).not.toHaveBeenCalled();
   });
 
   it("turns Select all into Clear all once everything is ticked", async () => {
@@ -1050,7 +1135,10 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("1 order couldn't be updated"),
     );
-    expect(toast.success).toHaveBeenCalledWith("Marked 1 order ready");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Marked 1 order ready",
+      expect.anything(),
+    );
     expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
     expect(advanceOrder).toHaveBeenCalledTimes(2);
@@ -1090,9 +1178,13 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith("1 order couldn't be updated"),
       );
-      expect(toast.success).toHaveBeenCalledWith("Marked 1 order picked up");
+      expect(toast.success).toHaveBeenCalledWith(
+        "Marked 1 order picked up",
+        expect.anything(),
+      );
       expect(toast.success).not.toHaveBeenCalledWith(
         "Marked 2 orders picked up",
+        expect.anything(),
       );
       expect(vi.mocked(advanceOrder).mock.calls).toEqual([
         ["o1", "ready"],

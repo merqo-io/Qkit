@@ -1,15 +1,30 @@
 #!/usr/bin/env bash
 # File-tool guard: secrets deny, governance writes ask, ordinary work allows.
+# Fail closed: a guard that cannot locate the project root blocks rather than guessing.
+cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || { echo "BLOCKED: protect-files.sh cannot cd to the project root — refusing the file access." >&2; exit 2; }
 node -e '
 const fs = require("node:fs");
 const path = require("node:path");
 let input;
 try { input = JSON.parse(fs.readFileSync(0, "utf8") || "{}"); }
 catch { process.stderr.write("BLOCKED: invalid file-tool input\n"); process.exit(2); }
-const raw = input.tool_input?.file_path || input.tool_input?.path;
+const raw = input.tool_input?.file_path || input.tool_input?.notebook_path || input.tool_input?.path;
 if (!raw) process.exit(0);
-const absolute = path.resolve(raw.replace(/\\/g, "/"));
-const relative = path.relative(process.cwd(), absolute).replace(/\\/g, "/");
+// Resolve symlinks in the part of the path that exists, so a linked parent
+// directory cannot disguise where the file really is.
+const physical = (target) => {
+  let existing = target;
+  const rest = [];
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) return target;
+    rest.unshift(path.basename(existing));
+    existing = parent;
+  }
+  try { return path.join(fs.realpathSync.native(existing), ...rest); } catch { return target; }
+};
+const absolute = physical(path.resolve(raw.replace(/\\/g, "/")));
+const relative = path.relative(physical(process.cwd()), absolute).replace(/\\/g, "/");
 const rel = relative.toLowerCase();
 const base = path.basename(absolute).toLowerCase();
 const secret = (base.startsWith(".env") && ![".env.example", ".env.default"].includes(base))

@@ -5,9 +5,12 @@ msg=$(head -1 "$1")
 
 case "$msg" in
   Merge\ *|"chore(release):"*) exit 0 ;;
+  # What git writes itself: `git revert`, and the autosquash markers.
+  Revert\ \"*|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
 esac
 
-pattern='^(feat|fix|chore|docs|style|refactor|test|ci|perf|build|revert)(\([a-z0-9/_-]+\))?: .{1,100}$'
+# `!` before the colon marks a breaking change (Conventional Commits 1.0).
+pattern='^(feat|fix|chore|docs|style|refactor|test|ci|perf|build|revert)(\([a-z0-9/_-]+\))?!?: .{1,100}$'
 if ! printf '%s' "$msg" | grep -qE "$pattern"; then
   {
     echo "❌ Commit message must follow Conventional Commits:"

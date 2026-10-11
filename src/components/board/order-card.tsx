@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -237,6 +237,33 @@ function revertPendingUndo(orderId: string, pending: PendingUndo) {
         pending.revertFrom,
         pending.prevPaymentStatus,
       );
+}
+
+/** A tap that landed on a control inside the ticket, which handles it itself. */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest("button, a, input, label, [role='menuitem']") !== null
+  );
+}
+
+function ticketSelectClass(selectable: boolean, selected: boolean) {
+  if (!selectable) return undefined;
+  return selected ? "cursor-pointer ring-2 ring-primary" : "cursor-pointer";
+}
+
+// While tickets are being ticked, the whole ticket is the target, not the
+// 16px box. Taps on its own buttons and links still do their job.
+function ticketTapHandler(
+  selectable: boolean,
+  onToggleSelect: ((orderId: string) => void) | undefined,
+  orderId: string,
+) {
+  if (!selectable || !onToggleSelect) return undefined;
+  return (event: MouseEvent<HTMLElement>) => {
+    if (isInteractiveTarget(event.target)) return;
+    onToggleSelect(orderId);
+  };
 }
 
 function showsWalkupTag(order: BoardOrder): boolean {
@@ -560,7 +587,9 @@ export function OrderCard({
       className={cn(
         "flex w-full flex-col shadow-[0_1px_0_0_var(--color-border),0_12px_28px_-20px_oklch(0.4_0.06_45/0.4)]",
         wash,
+        ticketSelectClass(selectable, selected),
       )}
+      onClick={ticketTapHandler(selectable, onToggleSelect, order.id)}
     >
       <div className="flex items-start gap-3 px-4 pt-5 pb-3">
         {selectable && (

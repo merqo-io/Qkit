@@ -1,4 +1,4 @@
-<!-- templateCentral: nextjs@5.15.0 (Supabase variant — NOT better-auth/Drizzle) -->
+<!-- templateCentral: nextjs@6.0.1 (Supabase variant — NOT better-auth/Drizzle) -->
 
 # AGENTS.md — qkit
 
@@ -297,6 +297,50 @@ same as the other UI-only lint gates. Found and fixed 5 pre-existing
 violations on first run (`banner-form.tsx` x2, `menu-manager.tsx`,
 `settings-form.tsx`, `telegram-connect.tsx`).
 
+**templateCentral 6.0.1 review (2026-10-11):** version marker and
+`harness.json` moved 5.15.0 → 6.0.1. 6.0's headline claim, that 5.x hooks
+never ran, did not apply here: it concerns an array-valued `command`, and
+qkit's were shell strings that did fire. Adopted, each because it fixed
+something real in this repo:
+
+- Hook commands anchored on `${CLAUDE_PROJECT_DIR}`, with timeouts. The old
+  relative paths resolved against the shell's current directory, so after a
+  `cd` they could miss, or pick up another worktree's copy of the scripts.
+- `stop-checks.sh` skips the test run on a clean tree; `subagent-stop.sh`
+  skips read-only agents; `post-edit-typecheck.sh` reports through
+  `additionalContext` (its plain stdout never reached the agent).
+- The skill-usage matcher (`Skill__.*` never matched; now `Skill`).
+- The per-segment `block-no-verify.sh`, ported to husky: closes a
+  hook-skipping flag on push, `--force-with-lease`, `HEAD:main`, deleting a
+  protected branch and `bash -c` wrappers, and stops blocking a commit piped
+  to `tail -n`. A multi-line `-m "…"` message that quotes a blocked command
+  is still read as a command; pass the message with `-F`.
+- `protect-files.sh`: symlinked parents resolved, `notebook_path` read,
+  relative paths anchored on the project root.
+- `verify-harness.sh` fails on an unreadable or empty manifest.
+- The commit-msg gate accepts `type(scope)!:` and the messages git writes
+  itself (`Revert "…"`, `fixup!`, `squash!`, `amend!`).
+- `post-tool-failure.sh` removed (the agent already sees tool errors).
+
+Deliberately **not** adopted:
+
+- **Exec-form hooks** (`"command": "bash", "args": [...]`). On Windows a
+  bare `bash` resolved without a shell can be `System32\bash.exe`, the WSL
+  launcher, rather than Git Bash, which would silently stop every hook. The
+  shell-string form with a quoted `${CLAUDE_PROJECT_DIR:-.}` gets the same
+  directory independence and was confirmed firing.
+- **Stop timeout 300s.** This suite takes 9 to 16 minutes locally; 1200s.
+- **`gitleaks git --pre-commit` and `[[allowlists]]`.** gitleaks is not
+  installed on the machine this review ran on and the CI action's bundled
+  scanner version is unverified, so neither form could be tested. The
+  current `gitleaks protect --staged` and `[allowlist]` still work.
+- **Narrowing the prompt guard's "disregard your" / "override your"
+  phrases.** They only raise an advisory here, never a block.
+- **lefthook, ESLint 10, pnpm 12, the CI gitleaks CLI, `.harness-base`,
+  better-auth / Drizzle items.** Unchanged reasons; see the entries above.
+- **pnpm ≥ 11.11.0 and `eslint-plugin-sonarjs` 4.2.2** are wanted (pnpm for
+  two security advisories) and left for their own dependency PR.
+
 ## AI Harness
 
 PreToolUse: `protect-files.sh` normalizes Windows and relative paths and
@@ -315,14 +359,18 @@ UserPromptSubmit: `user-prompt-guard.cjs` emits advisory context for injection p
 (so legitimate security investigation is permitted) and blocks embedded credentials — AWS keys, GitHub PATs,
 Anthropic API keys, PEM blocks, DB/broker URLs (OWASP LLM02); exit 2 blocks.
 PostToolUse: `post-edit-typecheck.sh` runs incremental `tsc --noEmit` after
-every Edit/Write to a `.ts`/`.tsx` file (feedback-only); `skill-usage-log.sh`
-logs every skill invocation to `.claude/skill-usage.log`.
-PostToolUseFailure: `post-tool-failure.sh` surfaces the failed tool's name/error
-to stderr so the model can self-correct; always exits 0.
-Stop: `stop-checks.sh` exits 0 when `stop_hook_active` (no re-entry loop); else
+every Edit/Write to a `.ts`/`.tsx` file and returns any errors through
+`additionalContext` (feedback-only); `skill-usage-log.sh` logs every skill
+invocation to `.claude/skill-usage.log`.
+Stop: `stop-checks.sh` exits 0 when `stop_hook_active` (no re-entry loop) or
+when nothing is uncommitted (no tracked change, no new untracked file); else
 runs the test suite, exit 2 feeds failures back, exit 0 on pass.
 SubagentStop: `subagent-stop.sh` type-gates a subagent's uncommitted `.ts`/`.tsx`
-changes before it can hand back control.
+changes before it can hand back control; read-only `Explore`/`Plan` agents and
+clean trees skip it.
+Every hook command is anchored on `${CLAUDE_PROJECT_DIR}` and each script
+`cd`s there first, so the hooks keep working after the shell changes
+directory; each carries a timeout.
 SessionStart (startup|resume|clear|compact): `session-context.sh` re-injects
 the first 30 lines of this file, all of `docs/CONSTITUTION.md`, and a fixed
 list of always-on invariants. PostCompact also fires after compaction and its

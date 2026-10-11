@@ -29,13 +29,19 @@ read_manifest() {
   else echo "verify-harness: need jq, node, or python3" >&2; exit 3; fi
 }
 
+# A manifest that cannot be read, or that lists nothing to guard, must fail: an
+# empty list would otherwise walk zero files and report the harness as intact.
+entries=$(read_manifest | tr -d '\r') || { echo "verify-harness: $manifest is not readable JSON" >&2; exit 2; }
+guarded=$(printf '%s\n' "$entries" | cut -f1 | grep -cE "$guard" || true)
+[ "${guarded:-0}" -gt 0 ] || { echo "verify-harness: $manifest lists no enforcement files" >&2; exit 2; }
+
 drift=0
 while IFS=$'\t' read -r path origin; do
   printf '%s' "$path" | grep -qE "$guard" || continue
   case "$origin" in "<"*) continue;; esac
   if ! git cat-file -e "HEAD:$path" 2>/dev/null; then echo "MISSING:  $path" >&2; drift=1; continue; fi
   [ "$(sha "$path")" = "$origin" ] || { echo "MODIFIED: $path" >&2; drift=1; }
-done < <(read_manifest | tr -d '\r')
+done <<< "$entries"
 
 if [ "$drift" -ne 0 ]; then
   echo "❌ harness integrity drift. If intentional, a human runs: bash .claude/regen-harness.sh" >&2

@@ -64,4 +64,4 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 
 ## Current board and walk-up controls
 
-Select all targets eligible preparing orders. The customer-screen dialog opens the public booth display. Walk-up entry places the order before its optional payment step; collecting payment calls explicit Paykit-backed confirmation. Stale-order sweeps update fulfillment state independently of payment settlement.
+Select all targets eligible preparing orders. While tickets are being ticked the filter-and-batch row is pinned to the top of the screen, a tap anywhere on a ticket ticks it (its own buttons still do their own job), and the toast for a batch carries an Undo that walks every moved order back one step with `revertOrderAdvance`. On a phone the Incoming/Accepted switch is a pair of 44px pressed-state buttons, and the settings gear is left to the navigation. The customer-screen dialog opens the public booth display. Walk-up entry places the order before its optional payment step; collecting payment calls explicit Paykit-backed confirmation. Stale-order sweeps update fulfillment state independently of payment settlement.

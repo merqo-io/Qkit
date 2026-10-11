@@ -2,11 +2,12 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Read|Edit|Write",
+        "matcher": "Read|Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/protect-files.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/protect-files.sh\"",
+            "timeout": 10
           }
         ]
       },
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/block-no-verify.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-no-verify.sh\"",
+            "timeout": 10
           }
         ]
       }
@@ -25,7 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/user-prompt-guard.cjs"
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/user-prompt-guard.cjs\"",
+            "timeout": 10
           }
         ]
       }
@@ -36,30 +39,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-edit-typecheck.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/post-edit-typecheck.sh\"",
+            "timeout": 60
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-edit-comment-check.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/post-edit-comment-check.sh\"",
+            "timeout": 30
           }
         ]
       },
       {
-        "matcher": "Skill__.*",
+        "matcher": "Skill",
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/skill-usage-log.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/post-tool-failure.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/skill-usage-log.sh\"",
+            "timeout": 10
           }
         ]
       }
@@ -67,7 +63,11 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash .claude/hooks/stop-checks.sh" }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/stop-checks.sh\"",
+            "timeout": 1200
+          }
         ]
       }
     ],
@@ -76,7 +76,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/subagent-stop.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/subagent-stop.sh\"",
+            "timeout": 120
           }
         ]
       }
@@ -87,7 +88,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-context.sh"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-context.sh\"",
+            "timeout": 10
           }
         ]
       }
@@ -140,6 +142,8 @@
       "Read(**/.env.production)",
       "Read(**/.env.staging)",
       "Read(**/.env.test)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
       "Read(./secrets/**)",
       "Read(./.secrets/**)",
       "Edit(.env)",

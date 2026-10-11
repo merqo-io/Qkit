@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SessionStart(startup|resume|clear|compact) — re-inject routing context + universal invariants.
+cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 echo "=== qkit routing context (AGENTS.md) ==="
 head -30 AGENTS.md 2>/dev/null
 

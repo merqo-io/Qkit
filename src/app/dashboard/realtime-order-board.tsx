@@ -58,6 +58,7 @@ import { fireNewOrderNotification, playSound } from "@/lib/order-alerts";
 import { toggleBoothActive } from "./booths/actions";
 import {
   advanceOrder,
+  revertOrderAdvance,
   sweepReadyOrders,
   sweepAbandonedPayments,
 } from "./order-actions";
@@ -65,7 +66,7 @@ import { WalkupOrderDialog } from "./walkup-order-dialog";
 import { SegmentedControl } from "@/components/widgets/segmented-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 import { cn } from "@/lib/utils";
-import type { BoardOrder, BoardSettings } from "@/lib/types";
+import type { BoardOrder, BoardSettings, PaymentStatus } from "@/lib/types";
 
 type BoothView = {
   id: string;
@@ -183,7 +184,7 @@ function SectionSwitcher({
   ];
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label="Which orders to show"
       className="mb-5 flex gap-1 rounded-full border border-border bg-card p-1 sm:hidden"
     >
@@ -191,11 +192,10 @@ function SectionSwitcher({
         <button
           key={tab.key}
           type="button"
-          role="tab"
-          aria-selected={value === tab.key}
+          aria-pressed={value === tab.key}
           onClick={() => onChange(tab.key)}
           className={cn(
-            "flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+            "min-h-11 flex-1 rounded-full px-3 text-sm font-semibold transition-colors",
             value === tab.key
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground",
@@ -504,6 +504,33 @@ function BatchControls({
   );
 }
 
+// How long the Undo on a batch toast stays up. Longer than a single ticket's
+// undo window: there are more orders to notice a mistake across.
+const BATCH_UNDO_MS = 8000;
+
+/** Walk a batch back the one step it was just moved. */
+async function undoAdvanced(
+  ids: string[],
+  from: "preparing" | "ready",
+  paymentById: ReadonlyMap<string, PaymentStatus>,
+) {
+  const to = from === "preparing" ? "ready" : "completed";
+  const results = await Promise.allSettled(
+    ids.map((id) =>
+      revertOrderAdvance(id, from, to, paymentById.get(id) ?? "not_required"),
+    ),
+  );
+  const ok = results.filter(
+    (r) => r.status === "fulfilled" && r.value.success,
+  ).length;
+  const failed = results.length - ok;
+  if (ok > 0) toast.success(`Put ${ok} order${ok === 1 ? "" : "s"} back`);
+  if (failed > 0)
+    toast.error(
+      `${failed} order${failed === 1 ? "" : "s"} couldn't be put back. Check the board.`,
+    );
+}
+
 // An order the batch control can act on: one step from done either way.
 function isBatchable(order: BoardOrder): boolean {
   return order.status === "preparing" || order.status === "ready";
@@ -528,6 +555,7 @@ function useBatchSelection() {
   async function advanceSelected(
     ids: string[],
     expectedStatus: "preparing" | "ready",
+    paymentById: ReadonlyMap<string, PaymentStatus>,
   ) {
     const outcome = expectedStatus === "preparing" ? "ready" : "picked up";
     setAdvancing(true);
@@ -535,12 +563,22 @@ function useBatchSelection() {
       const results = await Promise.allSettled(
         ids.map((id) => advanceOrder(id, expectedStatus)),
       );
-      const ok = results.filter(
-        (r) => r.status === "fulfilled" && r.value.success,
-      ).length;
+      const moved = ids.filter((_, i) => {
+        const r = results[i];
+        return r.status === "fulfilled" && r.value.success;
+      });
+      const ok = moved.length;
       const failed = results.length - ok;
+      // One tap moved many orders, and a customer watching theirs sees it
+      // change, so the same tap has to be reversible in one tap.
       if (ok > 0)
-        toast.success(`Marked ${ok} order${ok === 1 ? "" : "s"} ${outcome}`);
+        toast.success(`Marked ${ok} order${ok === 1 ? "" : "s"} ${outcome}`, {
+          duration: BATCH_UNDO_MS,
+          action: {
+            label: "Undo",
+            onClick: () => undoAdvanced(moved, expectedStatus, paymentById),
+          },
+        });
       if (failed > 0)
         toast.error(
           `${failed} order${failed === 1 ? "" : "s"} couldn't be updated`,
@@ -874,6 +912,8 @@ export function RealtimeOrderBoard({
   // ticked while preparing may have been marked ready from another device.
   const tickedPreparing = preparingIds.filter((id) => selectedIds.has(id));
   const tickedReady = readyIds.filter((id) => selectedIds.has(id));
+  // What a batch undo hands back to revertOrderAdvance for each order.
+  const paymentById = new Map(visible.map((o) => [o.id, o.payment_status]));
   // Split the board so an order the vendor hasn't accepted yet (no printer
   // connected, or the booth waits for the customer's own arrival tap) can't
   // get buried under everything already being worked on.
@@ -986,7 +1026,7 @@ export function RealtimeOrderBoard({
                 asChild
                 variant="outline"
                 size="icon"
-                className="rounded-full"
+                className="hidden rounded-full sm:inline-flex"
               >
                 <Link href="/dashboard/settings" aria-label="Board settings">
                   <SettingsIcon className="size-3.5" />
@@ -1074,7 +1114,15 @@ export function RealtimeOrderBoard({
         </DialogContent>
       </Dialog>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      {/* Pinned while tickets are being ticked, so the action for a long
+          selection is still on screen at the bottom of the list. */}
+      <div
+        className={cn(
+          "mb-6 flex flex-wrap items-center gap-3",
+          selectMode &&
+            "sticky top-0 z-10 -mx-5 border-b border-border bg-background px-5 py-2",
+        )}
+      >
         {/* A dropdown rather than a tab-per-booth row: a vendor running a
             large event (a dozen-plus booths) would otherwise get a wall of
             pills wrapping across several lines before a single order card is
@@ -1141,8 +1189,12 @@ export function RealtimeOrderBoard({
             onToggleAll={() =>
               setSelectedIds(allSelected ? new Set() : new Set(batchableIds))
             }
-            onMarkReady={() => advanceSelected(tickedPreparing, "preparing")}
-            onMarkPickedUp={() => advanceSelected(tickedReady, "ready")}
+            onMarkReady={() =>
+              advanceSelected(tickedPreparing, "preparing", paymentById)
+            }
+            onMarkPickedUp={() =>
+              advanceSelected(tickedReady, "ready", paymentById)
+            }
           />
         )}
       </div>
