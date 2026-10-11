@@ -56,9 +56,8 @@ async function pendingPayment(
     } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Same call, and so the same paykit transaction, that the ticket's
-    // "Mark as paid" reaches through confirmOrderPayment (order_ref is the
-    // idempotency key).
+    // Same order reference, so the same paykit transaction that
+    // confirmOrderPayment later finds (order_ref is the idempotency key).
     const checkout = await createCheckout({
       vendorId: user.id,
       amountCents: order.total_cents,

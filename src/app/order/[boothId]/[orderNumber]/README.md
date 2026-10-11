@@ -215,7 +215,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   `place_order` time for any payment-required order; rate-limited 10/60s per
   IP+booth). Order of operations is load-bearing: uploads the photo to the
   private `payment-proofs` bucket and hashes it (`@/lib/hash`'s `hashBuffer`)
-  first, **then** calls paykit's `createCheckout`/`claimCheckout`, **then**
+  first, **then** finds the paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) and calls `claimCheckout`, **then**
   assigns the number via `qkit.assign_order_number` and fires
   `notifyVendorTelegram`/`notifyPrintkit` (imported from
   `src/app/o/[code]/notify.ts`, not duplicated), **then** writes the local
@@ -226,7 +226,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   then). `unclaimPayment` is unchanged (still `(boothId, orderNumber,
 token)`, only ever runs post-claim when a number already exists): the
   "Tapped by mistake? Undo" companion, same rate-limit/lookup shape;
-  re-fetches the same paykit transaction via `createCheckout` — there's no
+  finds the same paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) — there's no
   stored transaction id — then calls `unclaimCheckout`, idempotent on
   already-`pending` and refusing to revert a `confirmed` transaction, which
   paykit enforces itself and this mirrors with a fast local pre-check).
