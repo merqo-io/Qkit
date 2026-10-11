@@ -328,6 +328,11 @@ html::-webkit-scrollbar {
   :is(button, a)[data-variant][data-size^="icon"] {
     min-width: 2.75rem;
   }
+  /* Rows in a menu or a dropdown list. */
+  [data-slot="dropdown-menu-item"],
+  [data-slot="select-item"] {
+    min-height: 2.75rem;
+  }
   .tap-area,
   [data-slot="switch"],
   [data-slot="popover-trigger"].size-4 {
@@ -382,11 +387,20 @@ html::-webkit-scrollbar {
    over this shorthand's duration component. */
 @keyframes undo-drain {
   from {
-    width: 100%;
+    transform: scaleX(1);
   }
   to {
-    width: 0%;
+    transform: scaleX(0);
   }
+}
+/* The bars scale instead of changing width: a width animation re-lays-out the
+   button on every frame, and the auto-clear bar runs for minutes on every
+   ready ticket. */
+.undo-bar,
+.autoclear-bar,
+.hold-fill-bar {
+  width: 100%;
+  transform-origin: left center;
 }
 .undo-bar {
   animation: undo-drain 4s linear forwards;
@@ -405,10 +419,10 @@ html::-webkit-scrollbar {
    setTimeout, independent of this; the animation is feedback only. */
 @keyframes hold-fill {
   from {
-    width: 0%;
+    transform: scaleX(0);
   }
   to {
-    width: 100%;
+    transform: scaleX(1);
   }
 }
 .hold-fill-bar {
@@ -424,15 +438,31 @@ html::-webkit-scrollbar {
   }
   .undo-bar {
     animation: none;
-    width: 40%;
+    transform: scaleX(0.4);
   }
   .autoclear-bar {
     animation: none;
-    width: 40%;
+    transform: scaleX(0.4);
   }
   .hold-fill-bar {
     animation: none;
-    width: 60%;
+    transform: scaleX(0.6);
+  }
+  /* Dialogs, sheets, menus, selects, popovers and tooltips slide and zoom in
+     through tw-animate-css, which does not read the preference. They still
+     run, for one millisecond, so Radix gets the animationend it waits on
+     before unmounting a closed one. */
+  :is(
+    [data-slot^="dialog"],
+    [data-slot^="alert-dialog"],
+    [data-slot^="sheet"],
+    [data-slot^="dropdown-menu"],
+    [data-slot^="select"],
+    [data-slot^="popover"],
+    [data-slot^="tooltip"]
+  )[data-state] {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
   }
   /* Tailwind's always-on animation utilities don't self-respect the
      preference: the live board's pulsing "N active" dot, skeleton shimmers,

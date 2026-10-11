@@ -402,7 +402,7 @@ export function WalkupOrderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl md:h-[640px] md:max-h-[85vh]"
+        className="flex max-h-[90dvh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl md:h-[640px] md:max-h-[85vh]"
       >
         <DialogHeader className="border-b border-border px-6 py-4">
           <DialogTitle>

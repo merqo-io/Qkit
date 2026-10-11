@@ -14,8 +14,9 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.32.1`, from which `Section` title tooltips and default-mode
-`InfoTooltip`s open on a tap as well as on hover and keyboard focus.
+commit tagged `v0.32.2`: `Section` title tooltips and default-mode
+`InfoTooltip`s open on a tap as well as on hover and keyboard focus, and every
+info icon takes taps through a 44px touch area on touch devices.
 
 qkit uses Supabase, **not** templateCentral's better-auth/Drizzle data layer.
 Database authorization is enforced through RLS and SQL privileges. Service-role

@@ -83,7 +83,7 @@ const BOOTHS = [{ id: "b1", name: "Kopi Corner", is_active: true, open: true }];
 // OrderCard emphasizes the order number's trailing digit in its own <span>
 // (see splitTrailingDigit), so its text is split across elements — a plain
 // string/regex getByText can't match that (TRL's own hint: use a function
-// matcher). Always pass with { selector: "p" } (ORDER_NUMBER_OPTS below) so
+// matcher). Always pass with { selector: "h3" } (ORDER_NUMBER_OPTS below) so
 // the (identical-text) wrapping <div> around it isn't also a match.
 function byOrderNumber(pattern: string | RegExp) {
   return (_content: string, element: Element | null) => {
@@ -91,7 +91,7 @@ function byOrderNumber(pattern: string | RegExp) {
     return typeof pattern === "string" ? text === pattern : pattern.test(text);
   };
 }
-const ORDER_NUMBER_OPTS = { selector: "p" };
+const ORDER_NUMBER_OPTS = { selector: "h3" };
 
 // DEFAULT_BOARD_SETTINGS has daily_order_number_reset on (migration 0067 turned
 // it on vendor-wide), but the board only rebases orders placed today, matching
