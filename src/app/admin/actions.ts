@@ -17,6 +17,7 @@ import {
 import { MS_PER_DAY } from "@/lib/utils";
 import type { ActionResult } from "@/lib/action-result";
 import { recordAudit } from "@/lib/audit";
+import { forgetPlatformSettings } from "@/lib/platform-settings";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 
 const setPlanSchema = z.object({
@@ -391,6 +392,7 @@ export async function setBanner(input: BannerFormInput): Promise<ActionResult> {
     },
   });
 
+  forgetPlatformSettings();
   revalidatePath("/admin");
   return { success: true };
 }

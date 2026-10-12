@@ -198,9 +198,14 @@ paykit PR:
 
 - `GET /api/v1/checkout?order_ref=<ref>`, bearer kit auth, scoped to the
   calling kit's slug. Uses the existing unique `(kit_slug, order_ref)` index.
-- paykit's UEN rule adopts qkit's (9 to 10 characters, ending in a letter).
-  Before tightening, the owner checks existing `vendor_payment_config.uen`
-  values; a row that fails the new rule is fixed first.
+- paykit's UEN rule is tightened so an 8-digit mobile number can no longer be
+  saved as a UEN. As shipped it accepts a UEN (9 to 10 characters, ending in
+  a letter) with an optional 3-character suffix, because PayNow Corporate
+  lets a business append one and paykit's old rule accepted it. That is
+  slightly wider than qkit's own form rule, which accepts only the bare UEN;
+  qkit's rule is left alone since P4 removes that form. Before tightening,
+  the owner checked existing `vendor_payment_config.uen` values against the
+  bare-UEN rule: no row failed it.
 
 qkit PR:
 

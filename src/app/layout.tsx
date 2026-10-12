@@ -4,7 +4,10 @@ import { ThemeProvider } from "next-themes";
 import { Providers } from "@/components/layout/providers";
 import { ServiceWorkerRegistrar } from "@/components/layout/service-worker-registrar";
 import { MaintenanceBanner } from "@/components/layout/maintenance-banner";
-import { DEFAULT_PLATFORM_SETTINGS } from "@/lib/platform-settings";
+import {
+  DEFAULT_PLATFORM_SETTINGS,
+  platformSettings,
+} from "@/lib/platform-settings";
 import { createServerClient } from "@/lib/supabase/server";
 import { BRAND_KHAKI } from "@/lib/brand-icon";
 import "./globals.css";
@@ -48,16 +51,22 @@ export default async function RootLayout({
   // Anonymous-safe (same client shape as the public order page) — read errors
   // fail closed to "no banner" (DEFAULT_PLATFORM_SETTINGS) rather than
   // breaking every single page load site-wide over a display-only feature.
+  // The client is still made on every request: it reads the cookies, which
+  // keeps every page rendered per request. Only the query is skipped while a
+  // recent answer is remembered, so no page is built once with a banner state
+  // frozen into it.
   let banner = DEFAULT_PLATFORM_SETTINGS;
   try {
     const supabase = await createServerClient();
-    const { data, error } = await supabase
-      .from("platform_settings")
-      .select("banner_enabled, banner_message")
-      .eq("id", 1)
-      .maybeSingle();
-    if (error) console.error("platform_settings read failed", error.message);
-    if (!error && data) banner = data;
+    banner = await platformSettings(async () => {
+      const { data, error } = await supabase
+        .from("platform_settings")
+        .select("banner_enabled, banner_message")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) console.error("platform_settings read failed", error.message);
+      return error ? null : data;
+    });
   } catch {
     console.error("platform_settings request failed");
   }
