@@ -28,6 +28,28 @@ interface MockTransaction {
   confirmedAt: string | null;
 }
 
+// Real paykit calls qkit back after a claim or confirm commits (see
+// src/app/api/paykit/payment-status/route.ts). The mock does the same, so
+// e2e runs the customer's own claim and the callback against one order at
+// the same moment, as production does.
+export const PAYKIT_MOCK_CALLBACK_SECRET = "e2e-mock-callback-secret";
+const QKIT_CALLBACK_URL = "http://localhost:3000/api/paykit/payment-status";
+
+function fireCallback(tx: MockTransaction) {
+  void fetch(QKIT_CALLBACK_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${PAYKIT_MOCK_CALLBACK_SECRET}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      order_ref: tx.orderRef,
+      transaction_id: tx.id,
+      status: tx.status,
+    }),
+  }).catch(() => undefined);
+}
+
 function statusBody(tx: MockTransaction) {
   return {
     transaction_id: tx.id,
@@ -119,11 +141,13 @@ function handleClaim(store: MockStore, id: string, send: Send) {
     send(404, { error: "Not found" });
     return;
   }
-  if (tx.status === "pending") {
+  const changed = tx.status === "pending";
+  if (changed) {
     tx.status = "claimed";
     tx.claimedAt = new Date().toISOString();
   }
   send(200, statusBody(tx));
+  if (changed) fireCallback(tx);
 }
 
 function handleConfirm(store: MockStore, id: string, send: Send) {
@@ -132,11 +156,13 @@ function handleConfirm(store: MockStore, id: string, send: Send) {
     send(404, { error: "Not found" });
     return;
   }
-  if (tx.status !== "confirmed") {
+  const changed = tx.status !== "confirmed";
+  if (changed) {
     tx.status = "confirmed";
     tx.confirmedAt = new Date().toISOString();
   }
   send(200, statusBody(tx));
+  if (changed) fireCallback(tx);
 }
 
 function handleStatus(store: MockStore, id: string, send: Send) {

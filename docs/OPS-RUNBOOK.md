@@ -20,12 +20,13 @@ These integrations **fail silently** by design — a missing/wrong secret looks
 exactly like "the feature just doesn't fire," not an error. Before treating
 any of these as a bug, check the var is set on Vercel → Production first:
 
-| Reported symptom                            | Env var to check                                                              |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
-| PayNow / checkout doesn't show for a booth  | `PAYKIT_KIT_SECRET`                                                           |
-| Order never auto-prints                     | `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET`, `NEXT_PUBLIC_PRINTKIT_URL` |
-| No Telegram ping to vendor or customer      | `MERQO_CUSTOMER_SECRET`, `MERQO_BASE_URL`                                     |
-| "Earn a stamp" link missing on order-status | `NEXT_PUBLIC_LOOPKIT_URL`                                                     |
+| Reported symptom                                         | Env var to check                                                                                     |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| PayNow / checkout doesn't show for a booth               | `PAYKIT_KIT_SECRET`                                                                                  |
+| A payment changed in paykit but the order did not follow | `PAYKIT_CALLBACK_SECRET`, and `callback_url` / `callback_secret` on qkit's `paykit.kit_api_keys` row |
+| Order never auto-prints                                  | `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET`, `NEXT_PUBLIC_PRINTKIT_URL`                        |
+| No Telegram ping to vendor or customer                   | `MERQO_CUSTOMER_SECRET`, `MERQO_BASE_URL`                                                            |
+| "Earn a stamp" link missing on order-status              | `NEXT_PUBLIC_LOOPKIT_URL`                                                                            |
 
 ## When it actually needs a dev (me)
 

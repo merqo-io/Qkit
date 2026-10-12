@@ -17,6 +17,14 @@ in its own `qkit` schema.
   configured feature that just never fires rather than an error. Set all
   three in Vercel env before relying on the "Print failed" dashboard badge.
   See `.env.example` for what each one guards.
+- **paykit callback**: `PAYKIT_CALLBACK_SECRET` (inbound,
+  `src/app/api/paykit/payment-status/route.ts`) is the secret paykit presents
+  when it reports a payment change. It must equal `callback_secret` on qkit's
+  row in `paykit.kit_api_keys`, whose `callback_url` is this deployment's
+  `/api/paykit/payment-status`. Production only: paykit holds one callback
+  address per kit. Unset, the route answers 401 to everything and paykit's
+  reports are dropped; ordering and paying still work, because qkit's own
+  actions write the same status.
 - **Telegram vendor alerts (2026-08-16, Phase A2)**: qkit's own Telegram bot
   (and its one-time `setWebhook` registration) was retired — vendor order
   alerts now route through merqo's shared bot via `notifyVendor`

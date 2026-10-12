@@ -24,12 +24,16 @@ the current (non-legacy) customer ordering entry point.
 - `notify.ts` — **not** a `"use server"` file, deliberately: every export of
   a `"use server"` file becomes its own independently client-callable Server
   Action regardless of who imports it, and these two are only ever meant to
-  be called from `placeOrder` here and `claimPayment`
-  (`order/[boothId]/[orderNumber]/payment-actions.ts`) — never a client
+  be called from `placeOrder` here and `finalizePaidOrder`
+  (`order/[boothId]/[orderNumber]/finalize-paid-order.ts`) — never a client
   component. Keeping them in a plain module closes that unintended public
   endpoint (a client that knew a real `boothId`/`orderNumber` could otherwise
   invoke either directly, bypassing `placeOrder`'s own validation and rate
   limit entirely).
+- `notify.test.ts` — `notifyPrintkit` run again for one order: printkit's 409
+  ("a job already exists") is not logged as a failure and the guarded
+  `print_status` write is still made; any other failure logs and writes
+  nothing.
   `notifyVendorTelegram(boothId, orderNumber)` (a redundant vendor alert via
   merqo's shared Telegram bot) is entirely best-effort and wrapped in its own
   try/catch: it resolves the booth's `vendor_id`, looks up the order's

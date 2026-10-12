@@ -199,6 +199,22 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   not here.
 - `pay-panel.dom.test.tsx` — RTL tests for the claimed/undo/confirmed/
   not-required states.
+- `finalize-paid-order.ts` — **not** a `"use server"` file (same reason as
+  `src/app/o/[code]/notify.ts`). `finalizePaidOrder(order, payment)` is the
+  order half of a payment: assign the number (`qkit.assign_order_number`,
+  which returns an existing one), alert the vendor, send the print job, write
+  the `orders.payment_status` mirror last. Called by `claimPayment` here and
+  by the paykit callback route (`src/app/api/paykit/payment-status/route.ts`),
+  usually for the same order at the same moment, so it is built to run twice:
+  the vendor alert is sent only by the run the limiter allows
+  (`paid-order-alert:<orderId>`, once a day), and the print job relies on
+  printkit keeping one job per order. `writePaidMirror(supabase, orderId,
+payment)` moves the mirror forward only (`claimed` never overwrites
+  `confirmed`), sets `paid_at` on `confirmed`, and still records a screenshot
+  when the order is already further along.
+- `finalize-paid-order.test.ts` — the order of the steps, running twice in a
+  row and at the same moment (one alert), a failed number assignment, each
+  mirror rule, and the screenshot-only fallback.
 - `payment-actions.ts` — service-client server actions: `getPaymentStatus`
   (read-only poll of the local `orders.payment_status` mirror — cheaper than
   round-tripping paykit every 5s; rate-limited per token, 30/60s — a holder
@@ -216,9 +232,8 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   IP+booth). Order of operations is load-bearing: uploads the photo to the
   private `payment-proofs` bucket and hashes it (`@/lib/hash`'s `hashBuffer`)
   first, **then** finds the paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) and calls `claimCheckout`, **then**
-  assigns the number via `qkit.assign_order_number` and fires
-  `notifyVendorTelegram`/`notifyPrintkit` (imported from
-  `src/app/o/[code]/notify.ts`, not duplicated), **then** writes the local
+  hands the order to `finalizePaidOrder` (`./finalize-paid-order.ts`), which
+  assigns the number, fires the notifications and writes the
   `orders.payment_status`/`payment_proof_path`/`payment_proof_hash` mirror
   last — a failed upload never touches payment state at all, a failed paykit
   claim leaves only a harmless orphaned photo, and a failed mirror write
