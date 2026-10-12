@@ -37,12 +37,15 @@ const PRINTER = {
   hardware_verified: false,
 };
 
+const MANAGE_URL = "https://printkit.test/dashboard/printers#booth-loc-1";
+
 beforeEach(() => {
   getUserMock.mockReset().mockResolvedValue({ data: { user: { id: "v1" } } });
   maybeSingleMock.mockReset().mockResolvedValue({ data: { id: BOOTH } });
-  getPrinterStatusMock
-    .mockReset()
-    .mockResolvedValue({ ok: true, data: { printer: PRINTER } });
+  getPrinterStatusMock.mockReset().mockResolvedValue({
+    ok: true,
+    data: { printer: PRINTER, manage_url: MANAGE_URL },
+  });
 });
 
 describe("GET /api/printkit/printer-status", () => {
@@ -69,7 +72,11 @@ describe("GET /api/printkit/printer-status", () => {
     const body = await (await GET(request())).json();
 
     expect(getPrinterStatusMock).toHaveBeenCalledWith(BOOTH);
-    expect(body).toEqual({ printer: PRINTER, reachable: true });
+    expect(body).toEqual({
+      printer: PRINTER,
+      manage_url: MANAGE_URL,
+      reachable: true,
+    });
   });
 
   it("reports printkit as unreachable rather than failing the page", async () => {

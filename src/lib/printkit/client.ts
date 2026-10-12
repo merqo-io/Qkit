@@ -19,6 +19,24 @@ const createPrintJobResponseSchema = z.object({ id: z.string() });
 const registerLocationResponseSchema = z.object({ id: z.string() });
 const errorBodySchema = z.object({ error: z.string() });
 
+/**
+ * Only an http(s) URL may become a link in the dashboard. Anything else
+ * printkit might send (no field at all from a deployment that predates it,
+ * a non-string, another scheme) reads as "no link" and never fails the
+ * status it came with.
+ */
+function httpUrlOrNull(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 const printerStatusSchema = z.object({
   printer: z
     .object({
@@ -30,6 +48,7 @@ const printerStatusSchema = z.object({
       hardware_verified: z.boolean(),
     })
     .nullable(),
+  manage_url: z.unknown().transform(httpUrlOrNull),
 });
 
 export type PrinterStatusBody = z.infer<typeof printerStatusSchema>;
@@ -149,6 +168,7 @@ export async function createPrintJob(args: {
  * right now. printkit owns that fact for every kind of printer (cloud, 4G,
  * Bluetooth bridge), so qkit reads it over HTTP rather than subscribing to
  * printkit's own realtime channel with qkit's Supabase client.
+ * `manage_url` names the printkit page to link to; qkit builds no such path.
  */
 export async function getPrinterStatus(
   boothId: string,
