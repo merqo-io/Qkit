@@ -208,9 +208,17 @@ function validatePaymentProof(
 function claimRefusal(order: {
   status: string;
   payment_status: string;
+  payment_proof_path: string | null;
   created_at: string;
 }): string | null {
   if (order.status === "cancelled") return "This order was cancelled.";
+  // paykit's callback can mark an order claimed before this action has
+  // recorded the screenshot: a first attempt whose paykit answer was slow, or
+  // one that died after paykit took the claim. Let the retry through so the
+  // screenshot is recorded. paykit's claim and finalizePaidOrder both repeat
+  // safely.
+  if (order.payment_status === "claimed" && !order.payment_proof_path)
+    return null;
   if (order.payment_status !== "pending")
     return "This order isn't awaiting payment.";
   if (isAbandonedPayment(order.created_at, Date.now()))
@@ -267,7 +275,9 @@ export async function claimPayment(
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, total_cents, payment_status, status, created_at")
+    .select(
+      "id, total_cents, payment_status, payment_proof_path, status, created_at",
+    )
     .eq("booth_id", boothId)
     .eq("access_token", token)
     .maybeSingle();

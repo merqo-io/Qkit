@@ -207,7 +207,8 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   by the paykit callback route (`src/app/api/paykit/payment-status/route.ts`),
   usually for the same order at the same moment, so it is built to run twice:
   the vendor alert is sent only by the run the limiter allows
-  (`paid-order-alert:<orderId>`, once a day), and the print job relies on
+  (`paid-order-alert:<orderId>`, once per clock hour, the longest window the
+  limiter's cleanup keeps), and the print job relies on
   printkit keeping one job per order. `writePaidMirror(supabase, orderId,
 payment)` moves the mirror forward only (`claimed` never overwrites
   `confirmed`), sets `paid_at` on `confirmed`, and still records a screenshot

@@ -132,13 +132,9 @@ describe("finalizePaidOrder", () => {
     });
   });
 
-  it("asks for the alert under a per-order, once-a-day key", async () => {
+  it("asks for the alert under a per-order, once-an-hour key", async () => {
     await finalizePaidOrder(ORDER, { status: "claimed" });
-    expect(rateLimitMock).toHaveBeenCalledWith(
-      "paid-order-alert:o1",
-      1,
-      86_400,
-    );
+    expect(rateLimitMock).toHaveBeenCalledWith("paid-order-alert:o1", 1, 3_600);
   });
 
   it("run twice in a row: same number, one vendor alert, the print request repeated", async () => {

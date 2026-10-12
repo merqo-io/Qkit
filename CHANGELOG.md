@@ -170,8 +170,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sold-out limit and section fields of a menu item, the walk-up booth picker
   and the maintenance banner switch are linked to their labels.
 - The dashboard shows the outline of a page while it loads, not a spinner.
-- An order confirmed with "confirm and start" now records when it was paid.
-  The paid time was left empty for those orders.
+- An order confirmed with "confirm and start" records when it was paid, once
+  paykit's callback is switched on: the callback fills in the paid time that
+  action leaves empty.
 - A print request repeated for the same order is no longer logged as a
   failure. printkit already printed such an order only once.
 

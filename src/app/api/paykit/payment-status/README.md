@@ -39,9 +39,17 @@ reached. On 409 and 503 nothing is changed.
 
 Because the status is read back, a replayed, reordered or forged body cannot
 set a status paykit does not hold, and no timestamp is needed to order events.
-paykit does not retry: a callback lost to a 503 is repaired by the next
-callback, by the action that caused the change, or by the vendor's confirm
-button.
+paykit does not retry. A lost callback costs nothing when a qkit action caused
+the change, because that action writes the same status itself. Two things only
+the callback does are not repaired if it is lost: filling `paid_at` after
+"confirm and start", and finalizing an order whose payment changed outside
+qkit.
+
+The read from paykit and the write to the order are not one step. A status that
+changes in paykit in between (a customer who undoes and claims again within the
+few seconds a slow lookup takes) can leave the mirror one step stale until the
+next callback or action. The mirror is never moved past what paykit held at the
+time of the read.
 
 This route never creates a checkout. It calls `getCheckoutByOrderRef`
 directly, not `transactionIdForOrder`, which would create one.

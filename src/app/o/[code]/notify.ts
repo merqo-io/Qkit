@@ -1,9 +1,10 @@
 // Deliberately NOT a "use server" file. Every exported async function in a
 // "use server" file becomes its own independently client-callable Server
 // Action regardless of who actually imports it -- these two are only ever
-// called from placeOrder (this dir's actions.ts) and claimPayment
-// (../[orderNumber]/payment-actions.ts), never from a client component, so
-// keeping them as plain functions removes that unintended public endpoint
+// called from placeOrder (this dir's actions.ts) and finalizePaidOrder
+// (order/[boothId]/[orderNumber]/finalize-paid-order.ts), never from a client
+// component, so keeping them as plain functions removes that unintended
+// public endpoint
 // (an attacker who knows a real boothId -- visible in every /order/{boothId}
 // URL -- could otherwise call notifyPrintkit directly with an arbitrary
 // orderNumber/customerName, bypassing placeOrder's own validation and rate

@@ -30,10 +30,6 @@ the current (non-legacy) customer ordering entry point.
   endpoint (a client that knew a real `boothId`/`orderNumber` could otherwise
   invoke either directly, bypassing `placeOrder`'s own validation and rate
   limit entirely).
-- `notify.test.ts` — `notifyPrintkit` run again for one order: printkit's 409
-  ("a job already exists") is not logged as a failure and the guarded
-  `print_status` write is still made; any other failure logs and writes
-  nothing.
   `notifyVendorTelegram(boothId, orderNumber)` (a redundant vendor alert via
   merqo's shared Telegram bot) is entirely best-effort and wrapped in its own
   try/catch: it resolves the booth's `vendor_id`, looks up the order's
@@ -76,6 +72,10 @@ the current (non-legacy) customer ordering entry point.
   fire the same two calls at claim time for a payment-required order
   (numbering + vendor notification are deferred to a successful claim
   there, not `placeOrder` time) without duplicating either function's logic.
+- `notify.test.ts` — `notifyPrintkit` run again for one order: printkit's 409
+  ("a job already exists") is not logged as a failure and the guarded
+  `print_status` write is still made; any other failure logs and writes
+  nothing.
 - `actions.place-order.test.ts` — unit tests (RPC mocked) covering: the
   expired-code message mapping, a successful order, the action-level flood
   guard rejecting before `place_order` is ever called, fail-open behaviour

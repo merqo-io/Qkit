@@ -18,9 +18,11 @@ export type PaidOrderPayment = {
 
 export type FinalizeResult = { ok: true; orderNumber: string } | { ok: false };
 
-// A fixed UTC day. Long enough that the customer's own claim and paykit's
-// callback, which arrive within the same second, share one window.
-const ALERT_ONCE_WINDOW_SECONDS = 86_400;
+// A fixed clock hour, and no longer: the limiter's cleanup deletes any row
+// whose window began over an hour ago, so a longer window would be forgotten
+// early. The customer's claim and paykit's callback arrive within the same
+// second, so they share a window unless the hour turns between them.
+const ALERT_ONCE_WINDOW_SECONDS = 3_600;
 
 function proofPatch(payment: PaidOrderPayment) {
   return payment.proof
@@ -98,8 +100,9 @@ export async function writePaidMirror(
  * own claim is still running.
  *  - The number: qkit.assign_order_number returns the existing one.
  *  - The vendor alert: sent only by the run the limiter allows, once per
- *    order per day. The limiter fails open, so a limiter outage can repeat an
- *    alert and cannot lose one.
+ *    order per clock hour. The limiter fails open, so a limiter outage can
+ *    repeat an alert. The run that is allowed is the only one that tries: if
+ *    its send fails, no later run retries it.
  *  - The print job: printkit keeps one per order, so notifyPrintkit is
  *    attempted every time and prints once.
  *  - The mirror: see writePaidMirror.
