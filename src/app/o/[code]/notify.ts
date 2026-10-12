@@ -139,7 +139,13 @@ export async function notifyPrintkit(
       orderNumber: labelOrderNumber,
     });
 
-    if (!result.ok) {
+    // printkit keeps one job per order id and answers 409 to a repeat, so a
+    // second call for the same order prints nothing. That makes this function
+    // safe to run again for an order (the payment callback and the customer's
+    // own claim can both reach it). On a 409, fall through to the guarded
+    // write below: it repairs a first call that died before marking the order
+    // queued, and changes nothing otherwise.
+    if (!result.ok && result.status !== 409) {
       console.error(
         "notifyPrintkit: createPrintJob failed",
         result.status,
