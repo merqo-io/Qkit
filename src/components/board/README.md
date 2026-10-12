@@ -15,6 +15,10 @@ completed-orders history.
   order with an outstanding payment claim, on both a QR and a walk-up order,
   the plain Start-now button once payment is already settled, and that
   tapping/undoing it calls `confirmPaymentAndStart`/`revertPaymentAndStart`.
+- `order-card-parts.tsx` — the pieces `OrderCard` is assembled from, moved
+  out of `order-card.tsx` unchanged: `TicketMenu` (the "more" menu),
+  `TicketItems`, `TicketActions` (the action row and its Undo), the
+  proof-photo trigger and the `PendingUndo` type.
 - `order-card.tsx` — `OrderCard`, the vendor's order ticket, laid out for
   reading at a counter: the number (largest, last digit in the accent colour)
   and the customer's name, one line of always-visible options per item (the

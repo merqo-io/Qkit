@@ -9,18 +9,14 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
-  useDroppable,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   ChevronDown,
   ChevronRight,
@@ -43,31 +39,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ImageUploader, InfoTooltip, MoneyInput } from "@merqo/ui";
+import { ImageUploader } from "@merqo/ui";
 import { MediaImage } from "@/components/widgets/media-image";
 import { uploadQkitImage } from "@/lib/image-upload-adapter";
 import { resizeToWebp } from "@merqo/ui";
 import { ProLock } from "@/components/widgets/pro-lock";
 import { OptionGroupsEditor } from "./option-groups-editor";
+import { MenuItemPricingFields } from "./menu-item-fields";
+import {
+  NO_SECTION_GROUP,
+  reorderCategories,
+  resolveItemDrop,
+  type ItemDropTarget,
+} from "./menu-order";
+import {
+  GroupDropZone,
+  SortableItemCard,
+  SortableSectionGroup,
+} from "./menu-sortables";
 import { canAddMenuItem, type Entitlement } from "@/lib/plan";
 import { cn } from "@/lib/utils";
 import { ALLERGEN_TAGS, type MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory, OptionGroup } from "@/lib/types";
 import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
 
-// Radix Select reserves "" for "no selection" — a real sentinel stands in
-// for "no section" instead.
-const NO_CATEGORY = "__none__";
-// groupId tag for items with no (or a dangling) section — never a real
-// category id, those are crypto.randomUUID().
-const NO_SECTION_GROUP = "__no_section__";
 const REMOVE_UNDO_MS = 60_000;
 const MAX_CATEGORIES = 40;
 
@@ -78,98 +73,6 @@ interface Props {
   entitlement: Entitlement;
   categories?: MenuCategory[];
   onCategoriesChange?: (categories: MenuCategory[]) => void;
-}
-
-/** Same array instance back when there's nothing to reorder. */
-export function reorderMenuItems(
-  items: MenuItemFormInput[],
-  activeId: string,
-  overId: string,
-): MenuItemFormInput[] {
-  if (activeId === overId) return items;
-  const oldIndex = items.findIndex((it) => it.id === activeId);
-  const newIndex = items.findIndex((it) => it.id === overId);
-  if (oldIndex === -1 || newIndex === -1) return items;
-  return arrayMove(items, oldIndex, newIndex);
-}
-
-/**
- * Reassigns one item to a different section (or `null` for "no section")
- * and moves it to sit right after that section's current last item — same
- * array instance back if the item is already there with nothing to move.
- */
-export function moveItemToGroup(
-  items: MenuItemFormInput[],
-  categories: MenuCategory[],
-  activeId: string,
-  targetCategory: string | null,
-): MenuItemFormInput[] {
-  const activeIndex = items.findIndex((it) => it.id === activeId);
-  if (activeIndex === -1) return items;
-  const active = items[activeIndex]!;
-  if ((active.category ?? null) === targetCategory) return items;
-
-  const known = new Set(categories.map((c) => c.id));
-  const inTargetGroup = (it: MenuItemFormInput) =>
-    targetCategory == null
-      ? !it.category || !known.has(it.category)
-      : it.category === targetCategory;
-
-  const without = items.filter((it) => it.id !== activeId);
-  let insertAt = without.length;
-  for (let i = without.length - 1; i >= 0; i--) {
-    if (inTargetGroup(without[i]!)) {
-      insertAt = i + 1;
-      break;
-    }
-  }
-  const patched = { ...active, category: targetCategory };
-  return [...without.slice(0, insertAt), patched, ...without.slice(insertAt)];
-}
-
-type ItemDropTarget =
-  | { type: "item"; groupId: string }
-  | { type: "section-drop"; groupId: string };
-
-/**
- * Routes one item drag-end to reorder-within-group, cross-group reassign
- * (dropped on another item), or cross-group reassign-to-end (dropped on a
- * group's drop zone) — same array instance back when `overData` is missing.
- */
-export function resolveItemDrop(
-  items: MenuItemFormInput[],
-  categories: MenuCategory[],
-  activeGroupId: string,
-  activeId: string,
-  overData: ItemDropTarget | undefined,
-  overId: string,
-): MenuItemFormInput[] {
-  if (!overData) return items;
-  const targetCategory =
-    overData.groupId === NO_SECTION_GROUP ? null : overData.groupId;
-  if (overData.type === "section-drop") {
-    return moveItemToGroup(items, categories, activeId, targetCategory);
-  }
-  if (activeGroupId === overData.groupId) {
-    return reorderMenuItems(items, activeId, overId);
-  }
-  const patched = items.map((it) =>
-    it.id === activeId ? { ...it, category: targetCategory } : it,
-  );
-  return reorderMenuItems(patched, activeId, overId);
-}
-
-/** Same array instance back when there's nothing to reorder. */
-export function reorderCategories(
-  categories: MenuCategory[],
-  activeId: string,
-  overId: string,
-): MenuCategory[] {
-  if (activeId === overId) return categories;
-  const oldIndex = categories.findIndex((c) => c.id === activeId);
-  const newIndex = categories.findIndex((c) => c.id === overId);
-  if (oldIndex === -1 || newIndex === -1) return categories;
-  return arrayMove(categories, oldIndex, newIndex);
 }
 
 export function MenuEditor({
@@ -547,128 +450,16 @@ export function MenuEditor({
               </div>
             </div>
 
-            {/* Price/cost/sold-out limit/section as one compact row, each
-                field with a persistent label (not just a placeholder, which
-                disappears once filled) and its longer explanation behind a
-                tap-tooltip instead of a permanent caption line, so the row
-                doesn't grow with every item on a long menu. Section wraps
-                onto its own line below Sold-out limit on narrow screens,
-                and just doesn't render as a 4th column when the booth has
-                no sections yet. */}
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[8rem] flex-1 space-y-1">
-                <Label
-                  htmlFor={`menu-item-${index}-price`}
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  Price
-                </Label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    $
-                  </span>
-                  <MoneyInput
-                    id={`menu-item-${index}-price`}
-                    placeholder="Optional"
-                    cents={item.price_cents}
-                    onCommit={(cents) => setPrice(index, cents)}
-                    className="rounded-lg pl-7"
-                  />
-                </div>
-              </div>
-              <div className="min-w-[8rem] flex-1 space-y-1">
-                <div className="flex items-center gap-1">
-                  <Label
-                    htmlFor={`menu-item-${index}-cost`}
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    Cost
-                  </Label>
-                  <InfoTooltip
-                    content="Private, used only for your profit/margin stats, never shown to customers."
-                    ariaLabel="About cost"
-                    trigger="tap"
-                  />
-                </div>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    $
-                  </span>
-                  <MoneyInput
-                    id={`menu-item-${index}-cost`}
-                    placeholder="Optional"
-                    cents={item.cost_cents}
-                    onCommit={(cents) => setCost(index, cents)}
-                    className="rounded-lg pl-7"
-                  />
-                </div>
-              </div>
-              {entitlement.stockCaps ? (
-                <div className="min-w-[8rem] flex-1 space-y-1">
-                  <div className="flex items-center gap-1">
-                    <Label
-                      htmlFor={`menu-item-${index}-stock`}
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      Sold-out limit
-                    </Label>
-                    <InfoTooltip
-                      content="Orders stop once this many are sold. Leave blank for unlimited."
-                      ariaLabel="About sold-out limit"
-                      trigger="tap"
-                    />
-                  </div>
-                  <Input
-                    id={`menu-item-${index}-stock`}
-                    inputMode="numeric"
-                    placeholder="Unlimited"
-                    value={item.stock == null ? "" : String(item.stock)}
-                    onChange={(e) => setStock(index, e.target.value)}
-                    className="h-9 w-full rounded-lg"
-                  />
-                </div>
-              ) : (
-                <div className="flex min-w-[8rem] flex-1 items-center gap-2">
-                  <ProLock feature="stock_cap" label="Pro" />
-                  <span className="text-xs text-muted-foreground">
-                    Sold-out limit
-                  </span>
-                </div>
-              )}
-              {categories.length > 0 && (
-                <div className="min-w-[8rem] flex-1 space-y-1">
-                  <Label
-                    htmlFor={`menu-item-${index}-section`}
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    Section
-                  </Label>
-                  <Select
-                    value={item.category ?? NO_CATEGORY}
-                    onValueChange={(v) =>
-                      update(index, {
-                        category: v === NO_CATEGORY ? null : v,
-                      })
-                    }
-                  >
-                    <SelectTrigger
-                      id={`menu-item-${index}-section`}
-                      className="h-9 w-full rounded-lg"
-                    >
-                      <SelectValue placeholder="No section" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_CATEGORY}>No section</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.label || "Untitled"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+            <MenuItemPricingFields
+              item={item}
+              index={index}
+              categories={categories}
+              stockCaps={entitlement.stockCaps}
+              onPrice={(cents) => setPrice(index, cents)}
+              onCost={(cents) => setCost(index, cents)}
+              onStock={(raw) => setStock(index, raw)}
+              onCategory={(category) => update(index, { category })}
+            />
 
             {/* Advanced: fixed/inherent allergens — collapsed by default,
                 most items need none. Anything that varies by customization
@@ -1024,67 +815,4 @@ export function MenuEditor({
         ))}
     </div>
   );
-}
-
-type SortableRenderProps = ReturnType<typeof useSortable> & {
-  style: React.CSSProperties;
-};
-
-// useSortable can't be called directly inside items.map.
-function SortableItemCard({
-  id,
-  data,
-  children,
-}: {
-  id: string;
-  data: { type: "item"; groupId: string };
-  children: (sortable: SortableRenderProps) => React.ReactNode;
-}) {
-  const sortable = useSortable({ id, data });
-  return children({
-    ...sortable,
-    style: {
-      transform: CSS.Transform.toString(sortable.transform),
-      transition: sortable.transition,
-    },
-  });
-}
-
-function SortableSectionGroup({
-  id,
-  children,
-}: {
-  id: string;
-  children: (sortable: SortableRenderProps) => React.ReactNode;
-}) {
-  const sortable = useSortable({ id, data: { type: "section" } });
-  return children({
-    ...sortable,
-    style: {
-      transform: CSS.Transform.toString(sortable.transform),
-      transition: sortable.transition,
-    },
-  });
-}
-
-// Makes an entire group (header + body, including its empty state) a valid
-// drop target for reassigning an item into it — not just its individual
-// item rows, which don't exist yet on an empty section.
-function GroupDropZone({
-  id,
-  groupId,
-  children,
-}: {
-  id: string;
-  groupId: string;
-  children: (d: {
-    setNodeRef: (el: HTMLElement | null) => void;
-    isOver: boolean;
-  }) => React.ReactNode;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id,
-    data: { type: "section-drop", groupId },
-  });
-  return children({ setNodeRef, isOver });
 }

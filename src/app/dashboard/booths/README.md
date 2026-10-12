@@ -24,7 +24,10 @@ booth proceeds to menu setup, whose first save proceeds to the QR poster.
 
 `MenuManager` handles CSV preview/import/export and saves items and categories
 through `saveMenuItems` and `saveMenuCategories`. `MenuEditor` owns grouping,
-item/section reorder, availability and duplication; `OptionGroupsEditor`
+item/section reorder, availability and duplication. Its pure ordering rules
+live in `menu-order.ts`, its drag-and-drop wrappers in `menu-sortables.tsx`
+and an item's price, cost, sold-out limit and section row in
+`menu-item-fields.tsx`; `OptionGroupsEditor`
 owns choices, prices, costs and allergens. These are the exclusive application
 write paths for menu columns; a booth-metadata save does not overwrite them.
 Item and category writes are separate operations, so callers handle partial

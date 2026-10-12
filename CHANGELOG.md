@@ -344,6 +344,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   them by design. Three existing cases were reordered to comply:
   `NOTE_SPACING`/`PEAK_GAIN` in `src/lib/order-alerts.ts` and `empty` in
   `src/app/dashboard/stats/reviews-card.tsx`.
+- Performance: the site-wide maintenance banner is read from the database at
+  most once every 30 seconds per server instance, not on every page request.
+  A banner switched on in `/admin` can take up to 30 seconds to reach every
+  visitor.
+- Split the four source files over 900 lines by moving whole pieces into
+  sibling files, with no behaviour change: the order board (1315 lines to
+  788), the menu editor (1090 to 818), the order ticket (1036 to 675) and the
+  customer order form (994 to 890).
 
 ### Security
 
