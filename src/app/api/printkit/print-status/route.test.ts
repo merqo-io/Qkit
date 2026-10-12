@@ -43,6 +43,7 @@ function requestWith(body: unknown) {
 }
 
 const ORDER_ID = "11111111-1111-1111-1111-111111111111";
+const OTHER_ORDER_ID = "22222222-2222-2222-2222-222222222222";
 
 beforeEach(() => {
   printkitCallbackBearerOkMock.mockReset();
@@ -143,6 +144,87 @@ describe("POST /api/printkit/print-status", () => {
 
     const res = await POST(
       requestWith({ order_id: ORDER_ID, status: "printed" }),
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it("accepts source_ref as the order's id", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+
+    const res = await POST(
+      requestWith({ source_ref: ORDER_ID, status: "printed" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(updateMock).toHaveBeenCalledWith({
+      print_status: "printed",
+      print_status_updated_at: ATTEMPT_AT,
+    });
+    expect(eqMock).toHaveBeenCalledWith("id", ORDER_ID);
+  });
+
+  it("accepts a body that carries both names for the same order", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+
+    const res = await POST(
+      requestWith({
+        source_ref: ORDER_ID,
+        order_id: ORDER_ID,
+        status: "failed",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(eqMock).toHaveBeenCalledWith("id", ORDER_ID);
+  });
+
+  it("returns 400 when source_ref and order_id name different orders", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+
+    const res = await POST(
+      requestWith({
+        source_ref: ORDER_ID,
+        order_id: OTHER_ORDER_ID,
+        status: "failed",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "source_ref and order_id disagree",
+    });
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the body names no order at all", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+
+    const res = await POST(requestWith({ status: "failed" }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "source_ref is required" });
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 on a non-UUID source_ref", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+
+    const res = await POST(
+      requestWith({ source_ref: "order-1", status: "failed" }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when no order matches source_ref", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+    maybeSingleMock.mockResolvedValue({ data: null, error: null });
+    existsMock.mockResolvedValue({ data: null, error: null });
+
+    const res = await POST(
+      requestWith({ source_ref: ORDER_ID, status: "printed" }),
     );
 
     expect(res.status).toBe(404);
