@@ -192,7 +192,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Mutation-test changed src/lib files
         run: |
-          git fetch origin "$GITHUB_BASE_REF" --depth=1
+          # No --depth here. The checkout above has full history, and a
+          # shallow fetch would cut the base branch off at its new tip: once
+          # main moves past the PR's merge ref, the three-dot diff below
+          # fails with "no merge base".
+          git fetch origin "$GITHUB_BASE_REF"
           # --diff-filter=d drops deleted paths: a PR that only removes a
           # src/lib file (e.g. code promoted into @merqo/ui along with its
           # tests) would otherwise hand Stryker a path that no longer

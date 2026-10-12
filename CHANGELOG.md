@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The `mutation (changed lib)` CI job no longer fails with `no merge base`
+  when main moves while a pull request is open. Its step fetched the base
+  branch with `--depth=1`, which made a full-history checkout shallow at
+  main's new tip, so the diff against the base had nothing to compare from.
+  It now fetches without a depth limit.
 - A long hint beside a section title now wraps inside the screen instead of staying on one line that runs off a phone. `@merqo/ui` is pinned to commit `9b202ba529dfd8fecbcbb9a2cc9f37efba4bd7d4` (tag `v0.32.3`) with matching build permission; tests that import it no longer load about 3,400 Simple Icons modules.
 - The menu manager's info icon has a finger-sized (44px) touch area on a phone or tablet, like every other hint. It was a 16px target. `@merqo/ui` is pinned to commit `a8063218e5954bef35242550070606628d79375a` (tag `v0.32.2`) with matching build permission, and now provides that touch area itself.
 - Customers can attach a saved payment screenshot. The upload field used to
