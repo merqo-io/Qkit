@@ -1,4 +1,4 @@
-<!-- templateCentral: nextjs@6.0.1 (Supabase variant — NOT better-auth/Drizzle) -->
+<!-- templateCentral: nextjs@6.0.4 (Supabase variant — NOT better-auth/Drizzle) -->
 
 # AGENTS.md — qkit
 
@@ -340,6 +340,32 @@ Deliberately **not** adopted:
   better-auth / Drizzle items.** Unchanged reasons; see the entries above.
 - **pnpm ≥ 11.11.0 and `eslint-plugin-sonarjs` 4.2.2** are wanted (pnpm for
   two security advisories) and left for their own dependency PR.
+
+**templateCentral 6.0.4 review (2026-10-12):** version marker and
+`harness.json` moved 6.0.1 → 6.0.4. Adopted:
+
+- 6.0.4's `block-no-verify.sh` change, ported line for line. A bare
+  `git commit` / `git push` is judged by the branch it can land on: the
+  hook input's `cwd`, plus every literal `cd`/`pushd`/`env -C`/`sudo -D`
+  target in the command. Any protected candidate blocks. Before, a hook
+  started from the session root read the main checkout's branch, so a
+  worktree commit was blocked whenever that checkout sat on `main`.
+  Anything the hook cannot resolve (a variable, `$(…)`, `eval`, a shell
+  function, `--git-dir`) also judges the project root, so
+  `cd "$W" && git commit` still blocks when the project root is on `main`;
+  use a bare `git commit` or `git -C <literal path>`. A Windows drive path
+  (`C:/…`) as a `cd` target counts as unresolved and falls back the same way.
+- 6.0.2's fail-closed fix, applied to the `comment-hygiene` CI job: it now
+  fails when `origin/<base>` is missing (an empty diff used to pass it) and
+  reads the base branch from `env` instead of an inline
+  `${{ github.base_ref }}`.
+
+Already true here: CI/CD workflow edits ask for approval and are not
+hard-blocked, and no `Edit`/`Write` deny sits on a CI or governance path.
+Not adopted: the shared `.claude/ci-gates.sh` (qkit keeps its own CI),
+`.claude/hooks/local/` (the hooks here are a hand-kept husky port, not a
+canonical copy a re-sync overwrites), and every Azure DevOps and OpenCode
+item in 6.0.2 to 6.0.4 (GitHub-only repo, Claude Code only).
 
 ## AI Harness
 

@@ -191,6 +191,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   directory, the end-of-turn test run is skipped when nothing changed, the
   guard against skipping git hooks closes six gaps, and the integrity check
   fails on an unreadable manifest. See the dated entry in `AGENTS.md`.
+- Internal: the AI harness follows templateCentral 6.0.4. The guard against
+  committing to `main` reads the branch of the directory a command runs in,
+  so commits from a git worktree are no longer blocked by the main
+  checkout's branch. The comment check on pull requests fails when the base
+  branch is missing, where it used to pass.
 - Internal: `src/components` and `src/lib` are grouped into folders. Shared
   components sit in `widgets/`, `layout/`, `board/`, `tour/`, `landing/` and
   `order/`; the `merqo-*`, `admin*` and `booth-*` library files sit in
