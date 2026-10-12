@@ -11,13 +11,14 @@ export type PrinterSummary = {
 export type PrinterStatusView =
   | { kind: "loading" }
   | { kind: "unreachable" }
-  | { kind: "none" }
-  | { kind: "printer"; printer: PrinterSummary };
+  | { kind: "none"; manageUrl: string | null }
+  | { kind: "printer"; printer: PrinterSummary; manageUrl: string | null };
 
 const REFRESH_MS = 30_000;
 
 type StatusBody = {
   reachable?: boolean;
+  manage_url?: string | null;
   printer?: {
     display_name: string;
     state: "online" | "offline" | "not_set_up";
@@ -30,6 +31,9 @@ type StatusBody = {
  * of printer -- a cloud printer, a 4G printer and a Bluetooth bridge all
  * report the same way. The call goes through qkit's own route handler so the
  * printkit secret never reaches the browser.
+ *
+ * `manageUrl` is the printkit page for this booth's printer, as printkit
+ * names it, or null when printkit named none.
  */
 export function usePrinterStatus(boothId?: string | null): PrinterStatusView {
   const [view, setView] = useState<PrinterStatusView>({ kind: "loading" });
@@ -53,6 +57,7 @@ export function usePrinterStatus(boothId?: string | null): PrinterStatusView {
           setView({ kind: "unreachable" });
           return;
         }
+        const manageUrl = body.manage_url ?? null;
         setView(
           body.printer
             ? {
@@ -62,8 +67,9 @@ export function usePrinterStatus(boothId?: string | null): PrinterStatusView {
                   state: body.printer.state,
                   hardwareVerified: body.printer.hardware_verified,
                 },
+                manageUrl,
               }
-            : { kind: "none" },
+            : { kind: "none", manageUrl },
         );
       } catch {
         if (active) setView({ kind: "unreachable" });
@@ -80,5 +86,5 @@ export function usePrinterStatus(boothId?: string | null): PrinterStatusView {
 
   // An unsaved booth has nothing to ask about, so that case is derived here
   // rather than written into state from an effect.
-  return boothId ? view : { kind: "none" };
+  return boothId ? view : { kind: "none", manageUrl: null };
 }

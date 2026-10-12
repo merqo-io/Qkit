@@ -5,6 +5,7 @@ import { PrintingSection } from "./printing-section";
 
 type StatusBody = {
   reachable: boolean;
+  manage_url?: string | null;
   printer: {
     display_name: string;
     state: "online" | "offline" | "not_set_up";
@@ -22,8 +23,13 @@ function respondsWith(body: StatusBody | null) {
   return fetchMock;
 }
 
+const PICKER_URL =
+  "https://printkit.test/dashboard/printers/new?location=loc-1";
+const ROW_URL = "https://printkit.test/dashboard/printers#booth-loc-1";
+
 const ONLINE: StatusBody = {
   reachable: true,
+  manage_url: ROW_URL,
   printer: {
     display_name: "Feie FP-N20H",
     state: "online",
@@ -33,6 +39,7 @@ const ONLINE: StatusBody = {
 
 const OFFLINE: StatusBody = {
   reachable: true,
+  manage_url: ROW_URL,
   printer: {
     display_name: "Feie FP-N20H",
     state: "offline",
@@ -40,7 +47,11 @@ const OFFLINE: StatusBody = {
   },
 };
 
-const NO_PRINTER: StatusBody = { reachable: true, printer: null };
+const NO_PRINTER: StatusBody = {
+  reachable: true,
+  manage_url: PICKER_URL,
+  printer: null,
+};
 
 describe("PrintingSection", () => {
   const originalUrl = process.env.NEXT_PUBLIC_PRINTKIT_URL;
@@ -155,7 +166,7 @@ describe("PrintingSection", () => {
     expect(onChange).toHaveBeenCalledWith(true);
   });
 
-  it("prompts to save the booth first when enabled but unsaved", () => {
+  it("prompts to save the booth first when enabled but unsaved, with no link", () => {
     render(<PrintingSection value={true} onChange={vi.fn()} />);
 
     expect(
@@ -163,49 +174,10 @@ describe("PrintingSection", () => {
         "Save this booth first to choose its printer in printkit.",
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("links to printkit's printers page", () => {
-    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.test";
-    render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
-    );
-
-    const link = screen.getByRole("link", {
-      name: "Choose the printer for this booth →",
-    });
-    expect(link).toHaveAttribute(
-      "href",
-      "https://printkit.test/dashboard/printers",
-    );
-    expect(link).toHaveAttribute("target", "_blank");
-  });
-
-  it("explains that a Bluetooth printer needs a second device", () => {
-    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.test";
-    render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
-    );
-
-    expect(screen.getByText(/works with just your iPad/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "read why" })).toHaveAttribute(
-      "href",
-      "https://printkit.test/guides/bluetooth-printers",
-    );
-  });
-
-  it("falls back to a not-configured hint when printkit's URL is unset", () => {
-    delete process.env.NEXT_PUBLIC_PRINTKIT_URL;
-    render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
-    );
-
-    expect(
-      screen.getByText("Printing isn't configured yet."),
-    ).toBeInTheDocument();
-  });
-
-  it("says printkit is unreachable rather than claiming no printer", async () => {
+  it("says printkit is unreachable rather than claiming no printer, with no link", async () => {
     respondsWith(null);
     render(
       <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
@@ -214,5 +186,101 @@ describe("PrintingSection", () => {
     expect(
       await screen.findByText(/can't reach printkit/i),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("links to the page printkit names for a booth with no printer", async () => {
+    respondsWith(NO_PRINTER);
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    const link = await screen.findByRole("link", {
+      name: "Choose the printer for this booth →",
+    });
+    expect(link).toHaveAttribute("href", PICKER_URL);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("links to the page printkit names for a booth that has a printer", async () => {
+    respondsWith(ONLINE);
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    expect(
+      await screen.findByRole("link", {
+        name: "Manage this booth's printer in printkit →",
+      }),
+    ).toHaveAttribute("href", ROW_URL);
+  });
+
+  it("still links to the printer's page while the printer is offline", async () => {
+    respondsWith(OFFLINE);
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    expect(await screen.findByText("Printer offline")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: "Manage this booth's printer in printkit →",
+      }),
+    ).toHaveAttribute("href", ROW_URL);
+  });
+
+  it("shows no link while the first status read is in flight", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    expect(screen.getByText(/checking the printer/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("builds no printkit link of its own when printkit names no page", async () => {
+    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.test";
+    respondsWith({ reachable: true, printer: null });
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    expect(
+      await screen.findByText(/no printer is set up for this booth yet/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("shows no link while printing is off", async () => {
+    const fetchMock = respondsWith(ONLINE);
+    render(
+      <PrintingSection value={false} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("carries no printer advice of its own", async () => {
+    respondsWith(NO_PRINTER);
+    render(
+      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+    );
+
+    await screen.findByRole("link", {
+      name: "Choose the printer for this booth →",
+    });
+    expect(screen.queryByText(/iPad/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bluetooth/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /read why/i }),
+    ).not.toBeInTheDocument();
   });
 });

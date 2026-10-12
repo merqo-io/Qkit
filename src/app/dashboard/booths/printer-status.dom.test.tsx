@@ -14,6 +14,7 @@ describe("PrinterStatus", () => {
             state: "online",
             hardwareVerified: false,
           },
+          manageUrl: null,
         }}
       />,
     );
@@ -33,6 +34,7 @@ describe("PrinterStatus", () => {
             state: "offline",
             hardwareVerified: false,
           },
+          manageUrl: null,
         }}
       />,
     );
@@ -42,7 +44,7 @@ describe("PrinterStatus", () => {
   });
 
   it("distinguishes a booth with no printer from an offline one", () => {
-    render(<PrinterStatus view={{ kind: "none" }} />);
+    render(<PrinterStatus view={{ kind: "none", manageUrl: null }} />);
 
     expect(screen.getByText(/no printer set up/i)).toBeInTheDocument();
     expect(screen.queryByText("Printer offline")).not.toBeInTheDocument();

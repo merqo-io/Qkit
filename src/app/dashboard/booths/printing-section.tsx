@@ -16,19 +16,6 @@ import {
 import { usePrinterStatus } from "@/hooks/use-printer-status";
 import { PrinterStatus } from "./printer-status";
 
-// No fallback host, same as src/lib/printkit/client.ts.
-function printkitLink(path: string): string | null {
-  const printkitUrl = process.env.NEXT_PUBLIC_PRINTKIT_URL;
-  if (!printkitUrl) return null;
-  return new URL(path, printkitUrl).toString();
-}
-
-function printerHint(boothId: string | undefined): string {
-  return boothId
-    ? "Printing isn't configured yet."
-    : "Save this booth first to choose its printer in printkit.";
-}
-
 export function PrintingSection({
   value,
   onChange,
@@ -46,8 +33,12 @@ export function PrintingSection({
 
   const hasPrinter = status.kind === "printer";
   const online = hasPrinter && status.printer.state === "online";
-  const choosePrinterLink = printkitLink("/dashboard/printers");
-  const guideLink = printkitLink("/guides/bluetooth-printers");
+  // printkit names the page for this booth's printer. qkit builds no
+  // printkit path of its own and carries no printer advice.
+  const manageUrl =
+    status.kind === "printer" || status.kind === "none"
+      ? status.manageUrl
+      : null;
 
   // Only interrupt turning printing ON when a printer exists but isn't
   // reachable. A booth with no printer yet has nothing to warn about: the
@@ -92,46 +83,24 @@ export function PrintingSection({
         </div>
       )}
 
-      {value && (
+      {value && manageUrl && (
         <p className="px-1 text-sm text-muted-foreground">
-          {choosePrinterLink ? (
-            <a
-              href={choosePrinterLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:underline"
-            >
-              {hasPrinter
-                ? "Manage this booth's printer in printkit →"
-                : "Choose the printer for this booth →"}
-            </a>
-          ) : (
-            printerHint(boothId)
-          )}
+          <a
+            href={manageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            {hasPrinter
+              ? "Manage this booth's printer in printkit →"
+              : "Choose the printer for this booth →"}
+          </a>
         </p>
       )}
 
-      {value && !hasPrinter && (
+      {value && !boothId && (
         <p className="px-1 text-sm text-muted-foreground">
-          A printer that connects to the internet by itself works with just your
-          iPad. Bluetooth printers need a phone or a Raspberry Pi next to them
-          all day
-          {guideLink ? (
-            <>
-              {" "}
-              <a
-                href={guideLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                read why
-              </a>
-              .
-            </>
-          ) : (
-            "."
-          )}
+          Save this booth first to choose its printer in printkit.
         </p>
       )}
 
