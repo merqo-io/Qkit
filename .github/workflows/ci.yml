@@ -16,11 +16,13 @@ jobs:
       - name: Require no change-narration comments (apply 'skip-comment-check' label to bypass)
         env:
           {
+            BASE_REF: "${{ github.base_ref }}",
             LABELS: "${{ join(github.event.pull_request.labels.*.name, ' ') }}",
           }
         run: |
           patterns=".claude/comment-hygiene-patterns.txt"
-          base="origin/${{ github.base_ref }}"
+          base="origin/$BASE_REF"
+          git rev-parse --verify -q "$base^{commit}" >/dev/null || { echo "::error::$base not found (check out with full history, fetch-depth 0)"; exit 1; }
           [ -f "$patterns" ] || { echo "::error::comment-hygiene pattern list missing (.claude/comment-hygiene-patterns.txt)"; exit 1; }
           strict_patterns=$(mktemp)
           head -n 10 "$patterns" > "$strict_patterns"
