@@ -61,6 +61,8 @@ const {
         return node;
       },
       neq: () => node,
+      in: () => node,
+      or: () => node,
       select: writeSelect,
       then: (onFulfilled: unknown, onRejected: unknown) =>
         writeSelect().then(
@@ -652,6 +654,58 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     writeSelect.mockResolvedValue({ data: null, error: { message: "boom" } });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({ success: true, orderNumber: "0007" });
+  });
+
+  it("sends no second vendor alert when the paykit callback already finalized the order", async () => {
+    rateLimitMock.mockImplementation((key: string) =>
+      Promise.resolve(!key.startsWith("paid-order-alert:")),
+    );
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      "paid-order-alert:o1",
+      1,
+      86_400,
+    );
+    expect(notifyVendorTelegramMock).not.toHaveBeenCalled();
+    expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "claimed",
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
+  });
+
+  it("keeps the screenshot when the callback's mirror write landed first", async () => {
+    writeSelect.mockResolvedValue({ data: [], error: null });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(update).toHaveBeenLastCalledWith({
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
+  });
+
+  it("records paid_at when paykit reports the payment already confirmed", async () => {
+    claimCheckoutMock.mockResolvedValue({
+      ok: true,
+      data: {
+        transactionId: "tx1",
+        status: "confirmed",
+        amountCents: 800,
+        orderRef: "o1",
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: "2026-08-11T00:00:05Z",
+      },
+    });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "confirmed",
+      paid_at: "2026-08-11T00:00:05Z",
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
   });
 });
 

@@ -20,7 +20,7 @@ import {
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { hashBuffer } from "@/lib/hash";
 import { isAbandonedPayment } from "@/lib/orders";
-import { notifyVendorTelegram, notifyPrintkit } from "@/app/o/[code]/notify";
+import { finalizePaidOrder } from "./finalize-paid-order";
 import type { ActionResult } from "@/lib/action-result";
 import type { PaymentStatus } from "@/lib/types";
 
@@ -227,12 +227,19 @@ function claimRefusal(order: {
 // the board.
 //
 // Order of operations is load-bearing: upload the photo + hash it first,
-// THEN call paykit's claim, THEN assign the order number and fire the vendor
-// notifications, THEN write the local payment_status mirror last. A failed
-// upload never touches payment_status or order_number at all (no
-// half-claimed state); a failed paykit claim leaves only a harmless orphaned
-// photo in storage; a failed mirror write doesn't undo an already-successful
-// paykit claim + already-assigned number, so it still reports success.
+// THEN call paykit's claim, THEN hand the order to finalizePaidOrder, which
+// assigns the order number, fires the vendor notifications, and writes the
+// local payment_status mirror last. A failed upload never touches
+// payment_status or order_number at all (no half-claimed state); a failed
+// paykit claim leaves only a harmless orphaned photo in storage; a failed
+// mirror write doesn't undo an already-successful paykit claim +
+// already-assigned number, so it still reports success.
+//
+// paykit calls qkit back as soon as its claim commits, so the callback route
+// (src/app/api/paykit/payment-status/route.ts) usually runs
+// finalizePaidOrder for this same order while this action is still inside
+// it. That function is built for it: one number, one vendor alert, one
+// label, and the screenshot is kept whichever mirror write lands first.
 export async function claimPayment(
   boothId: string,
   token: string,
@@ -312,39 +319,18 @@ export async function claimPayment(
   if (claim.data.status === "pending")
     return { success: false, error: "Could not record payment. Try again." };
 
-  const { data: orderNumber, error: assignError } = await supabase.rpc(
-    "assign_order_number",
-    { p_order_id: order.id },
+  const finalized = await finalizePaidOrder(
+    { id: order.id, boothId },
+    {
+      status: claim.data.status,
+      confirmedAt: claim.data.confirmedAt,
+      proof: { path, hash },
+    },
   );
-  if (assignError || !orderNumber) {
-    console.error(
-      "claimPayment: assign_order_number failed",
-      assignError?.message,
-    );
+  if (!finalized.ok)
     return { success: false, error: "Could not finalize order. Try again." };
-  }
 
-  await Promise.all([
-    notifyVendorTelegram(boothId, orderNumber),
-    notifyPrintkit(boothId, orderNumber),
-  ]);
-
-  const { error: mirrorError } = await supabase
-    .from("orders")
-    .update({
-      payment_status: claim.data.status,
-      payment_proof_path: path,
-      payment_proof_hash: hash,
-    })
-    .eq("id", order.id)
-    .eq("payment_status", "pending");
-  if (mirrorError)
-    console.error(
-      "claimPayment: local mirror update failed",
-      mirrorError.message,
-    );
-
-  return { success: true, orderNumber };
+  return { success: true, orderNumber: finalized.orderNumber };
 }
 
 // Undo an accidental "I've paid" tap: revert a still-unverified 'claimed'
