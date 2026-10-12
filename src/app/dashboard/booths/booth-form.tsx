@@ -586,6 +586,7 @@ export function BoothForm({
               value={printEnabled}
               onChange={setPrintEnabled}
               boothId={initial?.boothId}
+              savedEnabled={initial?.print_enabled ?? false}
             />
           </Section>
 

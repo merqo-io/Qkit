@@ -11,6 +11,7 @@ export type PrinterSummary = {
 export type PrinterStatusView =
   | { kind: "loading" }
   | { kind: "unreachable" }
+  | { kind: "unconfigured" }
   | { kind: "none"; manageUrl: string | null }
   | { kind: "printer"; printer: PrinterSummary; manageUrl: string | null };
 
@@ -18,6 +19,7 @@ const REFRESH_MS = 30_000;
 
 type StatusBody = {
   reachable?: boolean;
+  configured?: boolean;
   manage_url?: string | null;
   printer?: {
     display_name: string;
@@ -25,6 +27,14 @@ type StatusBody = {
     hardware_verified: boolean;
   } | null;
 };
+
+// The server keeps only http(s) links. Checked again here so a value from
+// any other source can never become an href.
+function httpUrlOrNull(value: unknown): string | null {
+  return typeof value === "string" && /^https?:\/\//i.test(value)
+    ? value
+    : null;
+}
 
 /**
  * Reads a booth's printer from printkit, which owns that fact for every kind
@@ -54,10 +64,14 @@ export function usePrinterStatus(boothId?: string | null): PrinterStatusView {
         if (!active) return;
 
         if (!body.reachable) {
-          setView({ kind: "unreachable" });
+          setView(
+            body.configured === false
+              ? { kind: "unconfigured" }
+              : { kind: "unreachable" },
+          );
           return;
         }
-        const manageUrl = body.manage_url ?? null;
+        const manageUrl = httpUrlOrNull(body.manage_url);
         setView(
           body.printer
             ? {

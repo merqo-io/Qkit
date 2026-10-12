@@ -260,8 +260,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   it, called when an admin saves the banner.
 - `platform-settings.test.ts` — reuse inside the window, a fresh read after
   it, the one-request fallback on a failed read, and forgetting.
-- `printkit/` — server-only HTTP client for printkit's job-creation API
-  (`createPrintJob`, the only endpoint today); see its own README. Unlike
+- `printkit/` — server-only HTTP client for printkit's job-creation,
+  location-registration and printer-status APIs; see its own README. Unlike
   `paykit/`, an unset `NEXT_PUBLIC_PRINTKIT_URL` has no fallback host — it
   fails closed rather than guessing a deployment.
 - `pricing.ts` — `PricingConfig` type and `DEFAULT_PRICING` (zeroed fallback

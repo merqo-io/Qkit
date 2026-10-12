@@ -17,7 +17,7 @@ print job — is `@/lib/printkit/client.ts`, not a route). Machine-to-machine
   printer. It runs
   the other way round from `print-status/`: qkit is the caller here. It
   exists so the `PRINTKIT_KIT_SECRET` stays on the server, and it answers
-  `{printer: null, reachable: false}` rather than an error when printkit
+  `{printer: null, reachable: false, configured}` rather than an error when printkit
   cannot be reached, so an outage reads as "can't check right now" instead of
   "no printer".
 

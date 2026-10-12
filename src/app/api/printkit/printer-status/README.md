@@ -18,7 +18,9 @@ cannot call printkit itself without shipping that secret to the browser.
   (`@/lib/printkit/client`). The answer is the client's own, `manage_url`
   included, plus `reachable: true`.
 
-  A printkit failure answers `200` with `{printer: null, reachable: false}`
+  A printkit failure answers `200` with `{printer: null, reachable: false,
+configured}`, where `configured` is false when qkit has no printkit address
+  or secret,
   rather than an error status. The difference matters in the UI: "we can't
   check right now" is not the same message as "this booth has no printer",
   and only one of them should worry a vendor mid-service.

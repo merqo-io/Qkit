@@ -56,6 +56,14 @@ describe("PrinterStatus", () => {
     expect(screen.getByText(/can't reach printkit/i)).toBeInTheDocument();
   });
 
+  it("says printing is not configured when qkit has no printkit settings", () => {
+    render(<PrinterStatus view={{ kind: "unconfigured" }} />);
+
+    expect(
+      screen.getByText("Printing isn't configured yet."),
+    ).toBeInTheDocument();
+  });
+
   it("shows a checking state while the first read is in flight", () => {
     render(<PrinterStatus view={{ kind: "loading" }} />);
 

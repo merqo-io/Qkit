@@ -17,8 +17,9 @@ having to poll printkit.
   `order_id` from a printkit release that predates it; one is required, and
   a body where the two differ is a 400. It then updates `orders.print_status`/
   `print_status_updated_at` via `createServiceClient()`, keyed on `id`.
-  Returns 401 on a bad/missing bearer, 400 on an unparseable body,
-  503 on a DB write failure, 200 (`{ok:true}`) otherwise.
+  Returns 401 on a bad/missing bearer, 429 when rate limited, 400 on an
+  unparseable body, 404 when no order has that id, 503 on a DB failure,
+  200 (`{ok:true}`, or `{ok:true, stale:true}` for an older attempt) otherwise.
 - `route.test.ts` — tests the 401/400/200/503 branches and both names for the order against a mocked
   `printkitCallbackBearerOk`/Supabase client.
 

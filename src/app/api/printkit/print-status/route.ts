@@ -24,7 +24,10 @@ const bodySchema = z
       });
       return z.NEVER;
     }
-    if (body.order_id && body.order_id !== orderId) {
+    if (
+      body.order_id &&
+      body.order_id.toLowerCase() !== orderId.toLowerCase()
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "source_ref and order_id disagree",

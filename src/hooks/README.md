@@ -90,7 +90,8 @@ entries, items, add, increment, decrement }`: lines keyed by item plus
   keeps the newer of {local, snapshot} per id, and error statuses flip to
   `"disconnected"`.
 - `use-printer-status.ts` — `usePrinterStatus(boothId)` returns a small view
-  of this booth's printer as printkit reports it: `loading`, `unreachable`,
+  of this booth's printer as printkit reports it: `loading`, `unreachable`, `unconfigured` (qkit has no printkit address or
+  secret),
   `none` (no printer set up), or `printer` with its name and whether it is
   online. `none` and `printer` also carry `manageUrl`, the printkit page for
   this booth's printer as printkit names it, or null. It polls qkit's own `/api/printkit/printer-status` route every 30

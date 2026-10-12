@@ -20,9 +20,13 @@ export function PrintingSection({
   value,
   onChange,
   boothId,
+  savedEnabled,
 }: {
   value: boolean;
   onChange: (v: boolean) => void;
+  // Printing as last saved. printkit only knows a booth once it is saved
+  // with printing on, so until then there is no printer to show or choose.
+  savedEnabled: boolean;
   // Unset until the booth is saved and registered with printkit.
   boothId?: string;
 }) {
@@ -39,6 +43,7 @@ export function PrintingSection({
     status.kind === "printer" || status.kind === "none"
       ? status.manageUrl
       : null;
+  const needsSave = !boothId || !savedEnabled;
 
   // Only interrupt turning printing ON when a printer exists but isn't
   // reachable. A booth with no printer yet has nothing to warn about: the
@@ -68,9 +73,9 @@ export function PrintingSection({
         />
       </div>
 
-      {value && boothId && <PrinterStatus view={status} />}
+      {value && !needsSave && <PrinterStatus view={status} />}
 
-      {value && boothId && status.kind === "none" && (
+      {value && !needsSave && status.kind === "none" && (
         <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
           <TriangleAlert
             className="mt-0.5 size-4 shrink-0 text-warning"
@@ -83,7 +88,7 @@ export function PrintingSection({
         </div>
       )}
 
-      {value && manageUrl && (
+      {value && !needsSave && manageUrl && (
         <p className="px-1 text-sm text-muted-foreground">
           <a
             href={manageUrl}
@@ -98,7 +103,7 @@ export function PrintingSection({
         </p>
       )}
 
-      {value && !boothId && (
+      {value && needsSave && (
         <p className="px-1 text-sm text-muted-foreground">
           Save this booth first to choose its printer in printkit.
         </p>

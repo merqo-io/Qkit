@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   createPrintJob,
   getPrinterStatus,
+  printkitConfigured,
   registerPrintLocation,
 } from "./client";
 
@@ -303,6 +304,8 @@ describe("getPrinterStatus", () => {
     ["a relative path", "/dashboard/printers"],
     ["a number", 42],
     ["null", null],
+    ["an object", { href: "https://x.test" }],
+    ["an array", ["https://x.test"]],
   ])(
     "drops %s sent as manage_url and keeps the status",
     async (_, manageUrl) => {
@@ -329,4 +332,27 @@ describe("getPrinterStatus", () => {
       },
     });
   });
+});
+
+describe("printkitConfigured", () => {
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.PRINTKIT_KIT_SECRET = "secret";
+    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.example";
+  });
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it("is true when qkit has both the printkit address and its secret", () => {
+    expect(printkitConfigured()).toBe(true);
+  });
+
+  it.each(["PRINTKIT_KIT_SECRET", "NEXT_PUBLIC_PRINTKIT_URL"])(
+    "is false without %s",
+    (name) => {
+      delete process.env[name];
+      expect(printkitConfigured()).toBe(false);
+    },
+  );
 });

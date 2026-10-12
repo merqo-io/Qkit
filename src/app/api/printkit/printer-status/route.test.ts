@@ -13,8 +13,10 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const getPrinterStatusMock = vi.fn();
+const printkitConfiguredMock = vi.fn();
 vi.mock("@/lib/printkit/client", () => ({
   getPrinterStatus: (...args: unknown[]) => getPrinterStatusMock(...args),
+  printkitConfigured: () => printkitConfiguredMock(),
 }));
 
 import { GET } from "./route";
@@ -42,6 +44,7 @@ const MANAGE_URL = "https://printkit.test/dashboard/printers#booth-loc-1";
 beforeEach(() => {
   getUserMock.mockReset().mockResolvedValue({ data: { user: { id: "v1" } } });
   maybeSingleMock.mockReset().mockResolvedValue({ data: { id: BOOTH } });
+  printkitConfiguredMock.mockReset().mockReturnValue(true);
   getPrinterStatusMock.mockReset().mockResolvedValue({
     ok: true,
     data: { printer: PRINTER, manage_url: MANAGE_URL },
@@ -89,6 +92,25 @@ describe("GET /api/printkit/printer-status", () => {
     const response = await GET(request());
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ printer: null, reachable: false });
+    expect(await response.json()).toEqual({
+      printer: null,
+      reachable: false,
+      configured: true,
+    });
+  });
+
+  it("says so when qkit itself has no printkit settings", async () => {
+    printkitConfiguredMock.mockReturnValue(false);
+    getPrinterStatusMock.mockResolvedValue({
+      ok: false,
+      status: null,
+      error: "Printing is not configured yet.",
+    });
+
+    expect(await (await GET(request())).json()).toEqual({
+      printer: null,
+      reachable: false,
+      configured: false,
+    });
   });
 });

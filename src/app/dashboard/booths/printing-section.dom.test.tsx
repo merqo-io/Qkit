@@ -5,6 +5,7 @@ import { PrintingSection } from "./printing-section";
 
 type StatusBody = {
   reachable: boolean;
+  configured?: boolean;
   manage_url?: string | null;
   printer: {
     display_name: string;
@@ -70,7 +71,7 @@ describe("PrintingSection", () => {
 
   it("calls onChange with the new value when toggled", () => {
     const onChange = vi.fn();
-    render(<PrintingSection value={false} onChange={onChange} />);
+    render(<PrintingSection savedEnabled value={false} onChange={onChange} />);
 
     fireEvent.click(screen.getByRole("switch"));
 
@@ -78,20 +79,27 @@ describe("PrintingSection", () => {
   });
 
   it("reflects a true value as checked", () => {
-    render(<PrintingSection value={true} onChange={vi.fn()} />);
+    render(<PrintingSection savedEnabled value={true} onChange={vi.fn()} />);
     expect(screen.getByRole("switch")).toBeChecked();
   });
 
   it("asks printkit nothing until the booth has been saved", () => {
     const fetchMock = respondsWith(NO_PRINTER);
-    render(<PrintingSection value={false} onChange={vi.fn()} />);
+    render(<PrintingSection savedEnabled value={false} onChange={vi.fn()} />);
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("checks the printer even while printing is off, so the toggle can warn", async () => {
     const fetchMock = respondsWith(OFFLINE);
-    render(<PrintingSection value={false} onChange={vi.fn()} boothId="b1" />);
+    render(
+      <PrintingSection
+        savedEnabled
+        value={false}
+        onChange={vi.fn()}
+        boothId="b1"
+      />,
+    );
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
@@ -101,7 +109,12 @@ describe("PrintingSection", () => {
   it("reads this booth's status through qkit, never printkit directly", async () => {
     const fetchMock = respondsWith(ONLINE);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     await waitFor(() => {
@@ -115,7 +128,12 @@ describe("PrintingSection", () => {
   it("names the connected printer", async () => {
     respondsWith(ONLINE);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(await screen.findByText("Printer connected")).toBeInTheDocument();
@@ -125,7 +143,12 @@ describe("PrintingSection", () => {
   it("warns that orders will not print when no printer is set up", async () => {
     respondsWith(NO_PRINTER);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(
@@ -137,7 +160,12 @@ describe("PrintingSection", () => {
     const onChange = vi.fn();
     const fetchMock = respondsWith(OFFLINE);
     render(
-      <PrintingSection value={false} onChange={onChange} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={false}
+        onChange={onChange}
+        boothId="booth-42"
+      />,
     );
 
     await waitFor(() => {
@@ -155,7 +183,12 @@ describe("PrintingSection", () => {
     const onChange = vi.fn();
     const fetchMock = respondsWith(ONLINE);
     render(
-      <PrintingSection value={false} onChange={onChange} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={false}
+        onChange={onChange}
+        boothId="booth-42"
+      />,
     );
 
     await waitFor(() => {
@@ -167,7 +200,7 @@ describe("PrintingSection", () => {
   });
 
   it("prompts to save the booth first when enabled but unsaved, with no link", () => {
-    render(<PrintingSection value={true} onChange={vi.fn()} />);
+    render(<PrintingSection savedEnabled value={true} onChange={vi.fn()} />);
 
     expect(
       screen.getByText(
@@ -180,7 +213,12 @@ describe("PrintingSection", () => {
   it("says printkit is unreachable rather than claiming no printer, with no link", async () => {
     respondsWith(null);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(
@@ -192,7 +230,12 @@ describe("PrintingSection", () => {
   it("links to the page printkit names for a booth with no printer", async () => {
     respondsWith(NO_PRINTER);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     const link = await screen.findByRole("link", {
@@ -206,7 +249,12 @@ describe("PrintingSection", () => {
   it("links to the page printkit names for a booth that has a printer", async () => {
     respondsWith(ONLINE);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(
@@ -219,7 +267,12 @@ describe("PrintingSection", () => {
   it("still links to the printer's page while the printer is offline", async () => {
     respondsWith(OFFLINE);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(await screen.findByText("Printer offline")).toBeInTheDocument();
@@ -236,7 +289,12 @@ describe("PrintingSection", () => {
       vi.fn(() => new Promise<Response>(() => {})),
     );
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(screen.getByText(/checking the printer/i)).toBeInTheDocument();
@@ -247,7 +305,12 @@ describe("PrintingSection", () => {
     process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.test";
     respondsWith({ reachable: true, printer: null });
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     expect(
@@ -259,7 +322,12 @@ describe("PrintingSection", () => {
   it("shows no link while printing is off", async () => {
     const fetchMock = respondsWith(ONLINE);
     render(
-      <PrintingSection value={false} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={false}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     await waitFor(() => {
@@ -271,7 +339,12 @@ describe("PrintingSection", () => {
   it("carries no printer advice of its own", async () => {
     respondsWith(NO_PRINTER);
     render(
-      <PrintingSection value={true} onChange={vi.fn()} boothId="booth-42" />,
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
     );
 
     await screen.findByRole("link", {
@@ -282,5 +355,66 @@ describe("PrintingSection", () => {
     expect(
       screen.queryByRole("link", { name: /read why/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("asks to save first when printing is switched on but saved off", async () => {
+    const fetchMock = respondsWith({ reachable: true, printer: null });
+    render(
+      <PrintingSection
+        savedEnabled={false}
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(
+      screen.getByText(
+        "Save this booth first to choose its printer in printkit.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no printer/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("never turns a manage_url that is not http(s) into a link", async () => {
+    respondsWith({
+      reachable: true,
+      manage_url: "javascript:alert(1)",
+      printer: null,
+    });
+    render(
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
+    );
+
+    expect(
+      await screen.findByText(/no printer is set up for this booth yet/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("says printing is not configured, not that printkit is down", async () => {
+    respondsWith({ reachable: false, configured: false, printer: null });
+    render(
+      <PrintingSection
+        savedEnabled
+        value={true}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
+    );
+
+    expect(
+      await screen.findByText("Printing isn't configured yet."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/can't reach printkit/i)).not.toBeInTheDocument();
   });
 });

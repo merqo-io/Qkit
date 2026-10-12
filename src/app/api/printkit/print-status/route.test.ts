@@ -179,6 +179,22 @@ describe("POST /api/printkit/print-status", () => {
     expect(eqMock).toHaveBeenCalledWith("id", ORDER_ID);
   });
 
+  it("treats the two names as one order when only their letter case differs", async () => {
+    printkitCallbackBearerOkMock.mockReturnValue(true);
+    const upper = "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA";
+
+    const res = await POST(
+      requestWith({
+        source_ref: upper,
+        order_id: upper.toLowerCase(),
+        status: "failed",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(eqMock).toHaveBeenCalledWith("id", upper);
+  });
+
   it("returns 400 when source_ref and order_id name different orders", async () => {
     printkitCallbackBearerOkMock.mockReturnValue(true);
 

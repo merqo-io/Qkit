@@ -28,7 +28,7 @@ orderNumber})`: fires a job-creation request and returns a
   `*.vercel.app` subdomain, because guessing could send the bearer secret to an unclaimed or incorrect host.
   Bearer-authenticates as `Authorization: Bearer qkit:<secret>`, validating
   the response body against a local Zod schema.
-- `client.test.ts` — tests, for both functions, the missing-secret degrade
+- `client.test.ts` — tests, for `createPrintJob` and `registerPrintLocation`, the missing-secret degrade
   path, the missing-URL fail-closed path (both never call `fetch`), the
   bearer header/payload shape, non-2xx error-body surfacing, network-failure
   handling, and an invalid-JSON response body (both collapse to `ok:false`
@@ -44,7 +44,9 @@ Its answer also carries `manage_url`, the printkit page for this booth's
 printer. The client keeps it only when it is an http(s) URL and reads
 anything else, including no field at all, as null: the link is optional and
 a bad one must never cost the vendor the status. `client.test.ts` covers
-each of those cases.
+each of those cases. `printkitConfigured()` says whether qkit holds both the
+printkit address and its secret, so a caller can tell "not set up in this
+deployment" from "printkit did not answer".
 
 ## Connectivity
 
