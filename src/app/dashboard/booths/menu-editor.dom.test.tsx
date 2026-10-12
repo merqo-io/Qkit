@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MenuEditor } from "./menu-editor";
 import {
-  MenuEditor,
   moveItemToGroup,
   reorderCategories,
   reorderMenuItems,
-} from "./menu-editor";
+} from "./menu-order";
 import type { MenuItemFormInput } from "@/lib/schemas";
 import type { Entitlement } from "@/lib/plan";
 import type { MenuCategory } from "@/lib/types";
