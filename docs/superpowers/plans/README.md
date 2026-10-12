@@ -34,6 +34,7 @@ Step-by-step implementation plans, one per feature, each derived from the matchi
 
 - `2026-10-08-merqo-products-audit.md` — Seven-product audit scope, source-inclusive coverage targets, independent review and verification limits. Current completion evidence is in `../../meta/2026-10-08-product-sweep-status.md` and the per-file review ledgers.
 - `2026-10-10-paykit-order-ref-lookup.md` — Phase P1 of the paykit and printkit separation design: paykit gains `GET /api/v1/checkout?order_ref=` and qkit's confirm, claim and undo actions look an order's transaction up instead of creating the checkout again. Two PRs, paykit first; no migration. Awaiting owner review.
+- `2026-10-12-printing-goes-thin.md` — Phase R1 of the paykit and printkit separation design: printkit's location status names the printkit page for a booth (`manage_url`), its picker shows the printer advice, and its status callback carries `source_ref`; qkit's Printing section becomes a switch, a badge and that one link, its callback route accepts either field name, and it stops storing printkit's location id. Two PRs, printkit first; no migration. Awaiting owner review.
 
 ## Parent
 
