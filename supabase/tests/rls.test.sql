@@ -1111,8 +1111,9 @@ select throws_like(
   '%permission denied%',
   'authenticated cannot assign order_number directly, even from NULL');
 
--- 0091: printkit_location_id is server-assigned only (syncPrintLocation
--- writes it via service-role) -- vendor D still owns this booth here.
+-- 0091: printkit_location_id is not writable by a vendor. No application
+-- code writes it; the column and this revoke stay -- vendor D still owns
+-- this booth here.
 select throws_like(
   $$ update qkit.booths set printkit_location_id = 'fake-loc'
      where id = '00000000-0000-0000-0000-0000000b0005' $$,

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
-import { createServerClient, createServiceClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { loadEntitlement } from "@/lib/supabase/get-entitlement";
 import type { Entitlement } from "@/lib/plan";
 import {
@@ -47,8 +47,9 @@ async function removeBoothImages(
   }
 }
 
-// Mirrors printkit's location id onto the booth row via service-role
-// (0091 revokes authenticated's write); best-effort, same contract as notifyPrintkit.
+// Tells printkit whether this booth prints. Best-effort, same contract as
+// notifyPrintkit: a failure is logged and never fails the caller. printkit
+// keys the location on the booth id, so nothing from its answer is stored.
 async function syncPrintLocation(
   vendorId: string,
   boothId: string,
@@ -63,23 +64,11 @@ async function syncPrintLocation(
       label,
       active,
     });
-    if (!result.ok) {
+    if (!result.ok)
       console.error(
         `${context}: registerPrintLocation failed`,
         result.status,
         result.error,
-      );
-      return;
-    }
-    const service = await createServiceClient();
-    const { error } = await service
-      .from("booths")
-      .update({ printkit_location_id: result.data.id })
-      .eq("id", boothId);
-    if (error)
-      console.error(
-        `${context}: printkit_location_id mirror update failed`,
-        error.message,
       );
   } catch (err) {
     console.error(`${context}: registerPrintLocation failed`, err);

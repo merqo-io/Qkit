@@ -71,7 +71,7 @@ export default async function EditBoothPage({ params }: Props) {
   const { data: booth } = await supabase
     .from("booths")
     .select(
-      "id, name, image_url, is_active, hours, menu_items, payment, social_links, requires_arrival_confirm, walkup_default, print_enabled, printkit_location_id, paykit_booking_id, daily_cup_cap, max_items_per_order",
+      "id, name, image_url, is_active, hours, menu_items, payment, social_links, requires_arrival_confirm, walkup_default, print_enabled, paykit_booking_id, daily_cup_cap, max_items_per_order",
     )
     .eq("id", boothId)
     .maybeSingle();
@@ -108,7 +108,6 @@ export default async function EditBoothPage({ params }: Props) {
           requires_arrival_confirm: booth.requires_arrival_confirm,
           walkup_default: booth.walkup_default,
           print_enabled: booth.print_enabled,
-          printkit_location_id: booth.printkit_location_id,
           paykit_booking_id: booth.paykit_booking_id,
           daily_cup_cap: booth.daily_cup_cap,
           max_items_per_order: booth.max_items_per_order,
