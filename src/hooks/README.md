@@ -92,7 +92,8 @@ entries, items, add, increment, decrement }`: lines keyed by item plus
 - `use-printer-status.ts` — `usePrinterStatus(boothId)` returns a small view
   of this booth's printer as printkit reports it: `loading`, `unreachable`,
   `none` (no printer set up), or `printer` with its name and whether it is
-  online. It polls qkit's own `/api/printkit/printer-status` route every 30
+  online. `none` and `printer` also carry `manageUrl`, the printkit page for
+  this booth's printer as printkit names it, or null. It polls qkit's own `/api/printkit/printer-status` route every 30
   seconds rather than calling printkit directly, because the printkit bearer
   secret must never reach the browser. It replaced a realtime presence
   subscription that only a Bluetooth bridge could ever feed: printkit now

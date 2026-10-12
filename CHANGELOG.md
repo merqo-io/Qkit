@@ -264,6 +264,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   order history; on the live board the amount owed is printed on the payment
   button, the one place it is being checked.
 - Waiting time on a ticket reads `2h 5m` or `6d` past an hour, not `9802m`.
+- The booth form's Printing section is a switch, the printer's status and one link. The link opens the page printkit names for that booth: the printer picker when the booth has no printer, the booth's printer when it has one. Advice on which printer to buy now lives in printkit only, where it is kept current. While printkit cannot be reached there is no link, since printkit is what supplies it.
+- qkit no longer stores printkit's location id on a booth. `booths.printkit_location_id` stays as an unused column; no migration.
+- The print-status callback accepts the order's id as `source_ref` or `order_id`.
 
 ### Added
 

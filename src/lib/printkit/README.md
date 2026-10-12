@@ -40,6 +40,11 @@ it supports, so qkit asks over HTTP instead of subscribing to printkit's own
 realtime channel with qkit's Supabase client. That subscription used to work
 only because the two kits share a Supabase project, and only for a Bluetooth
 bridge; a cloud printer has no bridge to publish presence at all.
+Its answer also carries `manage_url`, the printkit page for this booth's
+printer. The client keeps it only when it is an http(s) URL and reads
+anything else, including no field at all, as null: the link is optional and
+a bad one must never cost the vendor the status. `client.test.ts` covers
+each of those cases.
 
 ## Connectivity
 
@@ -52,10 +57,10 @@ itself, since `place_order`'s RPC output carries none, and marks
 (`syncPrintLocation`, best-effort from both `saveBooth`, matching
 `print_enabled`, and `deleteBooth`, always `active: false`).
 `PRINTKIT_KIT_SECRET` / `NEXT_PUBLIC_PRINTKIT_URL` are the two env vars this
-module reads. `NEXT_PUBLIC_PRINTKIT_URL` is also read directly (client-side,
-not through this module) by `src/app/dashboard/booths/printing-section.tsx`
-to build its "choose the printer for this booth" deep link — same
-no-fallback-host convention as here.
+module reads. No browser code reads `NEXT_PUBLIC_PRINTKIT_URL`: the Printing section's
+link comes from printkit's `manage_url`, not from a path built here.
+`registerPrintLocation`'s returned id is not stored; printkit keys a
+location on the booth id.
 
 ## Parent
 
