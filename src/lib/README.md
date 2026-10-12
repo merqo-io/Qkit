@@ -254,6 +254,12 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   `DEFAULT_PLATFORM_SETTINGS` (banner off): the fail-safe fallback when the
   `platform_settings` row can't be read, so a read failure never shows a
   stale/wrong banner to every visitor.
+  `platformSettings(read)` remembers the last successful read for 30 seconds
+  per server instance, so the root layout does not query on every page
+  request; a failed read is not remembered. `forgetPlatformSettings()` drops
+  it, called when an admin saves the banner.
+- `platform-settings.test.ts` — reuse inside the window, a fresh read after
+  it, the one-request fallback on a failed read, and forgetting.
 - `printkit/` — server-only HTTP client for printkit's job-creation API
   (`createPrintJob`, the only endpoint today); see its own README. Unlike
   `paykit/`, an unset `NEXT_PUBLIC_PRINTKIT_URL` has no fallback host — it
