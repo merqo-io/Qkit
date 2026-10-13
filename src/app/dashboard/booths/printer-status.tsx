@@ -39,6 +39,14 @@ export function PrinterStatus({ view }: { view: PrinterStatusView }) {
     );
   }
 
+  if (view.kind === "unconfigured") {
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        Printing isn&apos;t configured yet.
+      </p>
+    );
+  }
+
   if (view.kind === "none") {
     return (
       <p role="status" className="text-sm text-muted-foreground">

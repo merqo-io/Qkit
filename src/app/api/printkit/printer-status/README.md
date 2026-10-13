@@ -15,9 +15,12 @@ cannot call printkit itself without shipping that secret to the browser.
   a UUID, and reads the booth through the vendor's own session client, so
   qkit's RLS decides whose booth it is: another vendor's booth is a 404, not
   a printkit call. Then delegates to `getPrinterStatus`
-  (`@/lib/printkit/client`).
+  (`@/lib/printkit/client`). The answer is the client's own, `manage_url`
+  included, plus `reachable: true`.
 
-  A printkit failure answers `200` with `{printer: null, reachable: false}`
+  A printkit failure answers `200` with `{printer: null, reachable: false,
+configured}`, where `configured` is false when qkit has no printkit address
+  or secret,
   rather than an error status. The difference matters in the UI: "we can't
   check right now" is not the same message as "this booth has no printer",
   and only one of them should worry a vendor mid-service.

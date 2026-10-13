@@ -40,7 +40,13 @@ hold to close an existing booth, with a reversible undo; reopening is immediate.
 
 The payment editor writes full configuration to Paykit; the booth retains only
 its minimal payment-kind marker. Printing registration is best effort after a
-successful booth save/delete. `usePrinterStatus` polls qkit's authenticated
+successful booth save/delete, and nothing from Printkit's answer is stored on
+the booth (`booths.printkit_location_id` is an unused column). The Printing
+section is a switch, a status badge and one link. The link's address is the
+`manage_url` Printkit sends with the status, so qkit builds no Printkit path
+and carries no printer advice; both live in Printkit. A booth not yet saved
+with printing on shows a save-first hint in place of the status and link,
+because Printkit has no active location for it until then. `usePrinterStatus` polls qkit's authenticated
 server route, which asks Printkit; no integration secret reaches the browser.
 A status is an operational hint, not payment confirmation or proof of delivery.
 

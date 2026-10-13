@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
-import { getPrinterStatus } from "@/lib/printkit/client";
+import { getPrinterStatus, printkitConfigured } from "@/lib/printkit/client";
 
 const querySchema = z.object({ booth: z.string().uuid() });
 
@@ -42,7 +42,11 @@ export async function GET(request: Request) {
 
   const result = await getPrinterStatus(booth.id);
   if (!result.ok) {
-    return NextResponse.json({ printer: null, reachable: false });
+    return NextResponse.json({
+      printer: null,
+      reachable: false,
+      configured: printkitConfigured(),
+    });
   }
 
   return NextResponse.json({ ...result.data, reachable: true });

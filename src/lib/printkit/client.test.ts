@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createPrintJob, registerPrintLocation } from "./client";
+import {
+  createPrintJob,
+  getPrinterStatus,
+  printkitConfigured,
+  registerPrintLocation,
+} from "./client";
 
 const originalFetch = global.fetch;
 const originalEnv = { ...process.env };
@@ -240,4 +245,114 @@ describe("registerPrintLocation", () => {
       error: "printkit returned an invalid response",
     });
   });
+});
+
+describe("getPrinterStatus", () => {
+  const PRINTER = {
+    display_name: "Feie FP-N20H",
+    catalog_id: "feie-fp-n20h",
+    connector: "vendor_cloud",
+    state: "online",
+    last_seen_at: "2026-09-20T10:00:00.000Z",
+    hardware_verified: false,
+  };
+  const ROW_URL = "https://printkit.example/dashboard/printers#booth-loc-1";
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.PRINTKIT_KIT_SECRET = "secret";
+    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.example";
+  });
+  afterEach(() => {
+    global.fetch = originalFetch;
+    process.env = { ...originalEnv };
+  });
+
+  function respondsWith(body: unknown) {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    return fetchMock;
+  }
+
+  it("asks printkit about this booth and returns the printer with its link", async () => {
+    const fetchMock = respondsWith({ printer: PRINTER, manage_url: ROW_URL });
+
+    const result = await getPrinterStatus("booth 1");
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "https://printkit.example/api/v1/print-locations/status?source_ref=booth%201",
+    );
+    expect(result).toEqual({
+      ok: true,
+      data: { printer: PRINTER, manage_url: ROW_URL },
+    });
+  });
+
+  it("reads an answer with no manage_url as having no link", async () => {
+    respondsWith({ printer: null });
+
+    expect(await getPrinterStatus("booth-1")).toEqual({
+      ok: true,
+      data: { printer: null, manage_url: null },
+    });
+  });
+
+  it.each([
+    ["a javascript: URL", "javascript:alert(1)"],
+    ["a relative path", "/dashboard/printers"],
+    ["a number", 42],
+    ["null", null],
+    ["an object", { href: "https://x.test" }],
+    ["an array", ["https://x.test"]],
+  ])(
+    "drops %s sent as manage_url and keeps the status",
+    async (_, manageUrl) => {
+      respondsWith({ printer: PRINTER, manage_url: manageUrl });
+
+      expect(await getPrinterStatus("booth-1")).toEqual({
+        ok: true,
+        data: { printer: PRINTER, manage_url: null },
+      });
+    },
+  );
+
+  it("keeps an http link, which a local printkit sends", async () => {
+    respondsWith({
+      printer: null,
+      manage_url: "http://localhost:3001/dashboard/printers",
+    });
+
+    expect(await getPrinterStatus("booth-1")).toEqual({
+      ok: true,
+      data: {
+        printer: null,
+        manage_url: "http://localhost:3001/dashboard/printers",
+      },
+    });
+  });
+});
+
+describe("printkitConfigured", () => {
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.PRINTKIT_KIT_SECRET = "secret";
+    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.example";
+  });
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it("is true when qkit has both the printkit address and its secret", () => {
+    expect(printkitConfigured()).toBe(true);
+  });
+
+  it.each(["PRINTKIT_KIT_SECRET", "NEXT_PUBLIC_PRINTKIT_URL"])(
+    "is false without %s",
+    (name) => {
+      delete process.env[name];
+      expect(printkitConfigured()).toBe(false);
+    },
+  );
 });

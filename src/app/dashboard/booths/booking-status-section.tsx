@@ -13,7 +13,7 @@ const STATUS_LABEL: Record<BookingStatus["status"], string> = {
 };
 
 // General entry point for finding/creating a booking before pasting its ID
-// here — mirrors printing-section.tsx's printkitDashboardLink() pattern.
+// here.
 function paykitBookingsLink(): string | null {
   const paykitUrl = process.env.NEXT_PUBLIC_PAYKIT_URL;
   if (!paykitUrl) return null;

@@ -66,7 +66,6 @@ const h = vi.hoisted(() => {
       error: { message: string } | null;
     },
     authUser: { id: "v1" } as { id: string } | null,
-    printkitMirrorError: null as { message: string } | null,
   };
   return {
     state,
@@ -126,17 +125,10 @@ vi.mock("@/lib/supabase/server", () => {
         update: (row: unknown) => {
           h.updateSpy(row);
           return {
-            // Two distinct callers share this mock: the main booth
-            // upsert chains .select().maybeSingle(); syncPrintLocation's
-            // printkit_location_id mirror write awaits the .eq() result
-            // directly. Thenable + chainable so both shapes work.
             eq: () => ({
               select: () => ({
                 maybeSingle: () => Promise.resolve(h.state.updateResult),
               }),
-              then: (
-                resolve: (v: { error: { message: string } | null }) => void,
-              ) => resolve({ error: h.state.printkitMirrorError }),
             }),
           };
         },
@@ -209,7 +201,6 @@ beforeEach(() => {
   h.state.prevResult = { data: null };
   h.state.deleteResult = { count: 1, error: null };
   h.state.authUser = { id: "v1" };
-  h.state.printkitMirrorError = null;
   upsertVendorConfigMock.mockReset().mockResolvedValue({
     ok: true,
     data: { hasConfig: true, displayName: "Cart" },
@@ -333,9 +324,7 @@ describe("saveBooth entitlement enforcement", () => {
 
     expect(res).toEqual({ success: true, boothId: "b-edit" });
     expect(h.neqSpy).toHaveBeenCalledWith("id", BOOTH_ID);
-    // The booth row update, plus syncPrintLocation's own printkit_location_id
-    // mirror update once registerPrintLocation succeeds.
-    expect(h.updateSpy).toHaveBeenCalledTimes(2);
+    expect(h.updateSpy).toHaveBeenCalledTimes(1);
     expect(h.insertSpy).not.toHaveBeenCalled();
   });
 
@@ -668,29 +657,19 @@ describe("saveBooth — printkit location registration", () => {
     expect(res).toEqual({ success: true, boothId: "b-new" });
   });
 
-  it("mirrors printkit's returned location id onto the booth row on success", async () => {
+  it("stores nothing from printkit's answer on the booth row", async () => {
     registerPrintLocationMock.mockResolvedValue({
       ok: true,
       data: { id: "loc-42" },
     });
 
-    const res = await saveBooth(makeBooth({ print_enabled: true }));
+    const res = await saveBooth(
+      makeBooth({ boothId: BOOTH_ID, print_enabled: true }),
+    );
 
-    expect(res).toEqual({ success: true, boothId: "b-new" });
-    expect(h.updateSpy).toHaveBeenCalledWith({
-      printkit_location_id: "loc-42",
-    });
-  });
-
-  it("does not touch printkit_location_id when registerPrintLocation fails", async () => {
-    registerPrintLocationMock.mockResolvedValue({
-      ok: false,
-      status: 500,
-      error: "printkit unreachable",
-    });
-
-    await saveBooth(makeBooth({ print_enabled: true }));
-
+    expect(res).toEqual({ success: true, boothId: "b-edit" });
+    expect(registerPrintLocationMock).toHaveBeenCalled();
+    expect(h.updateSpy).toHaveBeenCalledTimes(1);
     expect(h.updateSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ printkit_location_id: expect.anything() }),
     );

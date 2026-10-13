@@ -85,7 +85,6 @@ interface Props {
     requires_arrival_confirm: boolean;
     walkup_default: boolean;
     print_enabled: boolean;
-    printkit_location_id: string | null;
     paykit_booking_id: string | null;
     daily_cup_cap: number | null;
     max_items_per_order?: number | null;
@@ -587,6 +586,7 @@ export function BoothForm({
               value={printEnabled}
               onChange={setPrintEnabled}
               boothId={initial?.boothId}
+              savedEnabled={initial?.print_enabled ?? false}
             />
           </Section>
 

@@ -14,6 +14,7 @@ describe("PrinterStatus", () => {
             state: "online",
             hardwareVerified: false,
           },
+          manageUrl: null,
         }}
       />,
     );
@@ -33,6 +34,7 @@ describe("PrinterStatus", () => {
             state: "offline",
             hardwareVerified: false,
           },
+          manageUrl: null,
         }}
       />,
     );
@@ -42,7 +44,7 @@ describe("PrinterStatus", () => {
   });
 
   it("distinguishes a booth with no printer from an offline one", () => {
-    render(<PrinterStatus view={{ kind: "none" }} />);
+    render(<PrinterStatus view={{ kind: "none", manageUrl: null }} />);
 
     expect(screen.getByText(/no printer set up/i)).toBeInTheDocument();
     expect(screen.queryByText("Printer offline")).not.toBeInTheDocument();
@@ -52,6 +54,14 @@ describe("PrinterStatus", () => {
     render(<PrinterStatus view={{ kind: "unreachable" }} />);
 
     expect(screen.getByText(/can't reach printkit/i)).toBeInTheDocument();
+  });
+
+  it("says printing is not configured when qkit has no printkit settings", () => {
+    render(<PrinterStatus view={{ kind: "unconfigured" }} />);
+
+    expect(
+      screen.getByText("Printing isn't configured yet."),
+    ).toBeInTheDocument();
   });
 
   it("shows a checking state while the first read is in flight", () => {

@@ -4,11 +4,42 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { printkitCallbackBearerOk } from "@/lib/qkit-printkit-auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
-const bodySchema = z.object({
-  order_id: z.string().uuid(),
-  status: z.enum(["printed", "failed"]),
-  attempt_at: z.string().datetime({ precision: 6 }),
-});
+// printkit names the order `source_ref`, the word its own API uses for a
+// calling kit's reference. `order_id` is the name its earlier releases
+// send, and a release in between sends both with the same value. Either is
+// accepted. A body whose two names disagree is refused, not guessed at.
+const bodySchema = z
+  .object({
+    source_ref: z.string().uuid().optional(),
+    order_id: z.string().uuid().optional(),
+    status: z.enum(["printed", "failed"]),
+    attempt_at: z.string().datetime({ precision: 6 }),
+  })
+  .transform((body, ctx) => {
+    const orderId = body.source_ref ?? body.order_id;
+    if (!orderId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "source_ref is required",
+      });
+      return z.NEVER;
+    }
+    if (
+      body.order_id &&
+      body.order_id.toLowerCase() !== orderId.toLowerCase()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "source_ref and order_id disagree",
+      });
+      return z.NEVER;
+    }
+    return {
+      order_id: orderId,
+      status: body.status,
+      attempt_at: body.attempt_at,
+    };
+  });
 
 export async function POST(request: Request) {
   if (!printkitCallbackBearerOk(request)) {

@@ -144,7 +144,6 @@ describe("BoothForm walk-up-default toggle", () => {
           requires_arrival_confirm: false,
           walkup_default: true,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: null,
           daily_cup_cap: null,
         }}
@@ -175,7 +174,6 @@ describe("BoothForm walk-up-default toggle", () => {
           requires_arrival_confirm: false,
           walkup_default: true,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: null,
           daily_cup_cap: null,
         }}
@@ -248,7 +246,6 @@ describe("BoothForm paykit booking id", () => {
           requires_arrival_confirm: false,
           walkup_default: true,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: "book-42",
           daily_cup_cap: null,
           bookingStatus: {
@@ -326,7 +323,6 @@ describe("BoothForm menu section", () => {
           requires_arrival_confirm: false,
           walkup_default: false,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: null,
           daily_cup_cap: null,
         }}
@@ -357,7 +353,6 @@ describe("BoothForm menu section", () => {
           requires_arrival_confirm: false,
           walkup_default: false,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: null,
           daily_cup_cap: null,
         }}
@@ -438,7 +433,6 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
     requires_arrival_confirm: false,
     walkup_default: false,
     print_enabled: false,
-    printkit_location_id: null,
     paykit_booking_id: null,
     daily_cup_cap: 200,
   };
@@ -545,7 +539,6 @@ describe("BoothForm daily cup cap", () => {
           requires_arrival_confirm: false,
           walkup_default: false,
           print_enabled: false,
-          printkit_location_id: null,
           paykit_booking_id: null,
           daily_cup_cap: 200,
         }}
