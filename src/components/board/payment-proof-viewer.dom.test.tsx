@@ -14,20 +14,6 @@ vi.mock("@/app/dashboard/payment-evidence-actions", () => ({
   getOrderPaymentProof: getOrderPaymentProofMock,
 }));
 
-// tesseract.js is a heavy WASM library, loaded via a dynamic import inside the
-// component (never at module scope) — mocked entirely so this test never
-// actually loads WASM, matching this codebase's next/dynamic-for-heavy-deps
-// pattern (see PayPanel/react-qr-code).
-const { createWorkerMock, recognizeMock, terminateMock } = vi.hoisted(() => ({
-  createWorkerMock: vi.fn(),
-  recognizeMock: vi.fn(),
-  terminateMock: vi.fn(),
-}));
-
-vi.mock("tesseract.js", () => ({
-  createWorker: createWorkerMock,
-}));
-
 const PHOTO = "https://signed.example/proof.png";
 
 function proof(over: Record<string, unknown> = {}) {
@@ -42,27 +28,35 @@ function proof(over: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   getOrderPaymentProofMock.mockReset().mockResolvedValue(proof());
-  createWorkerMock.mockReset();
-  recognizeMock.mockReset();
-  terminateMock.mockReset();
-  terminateMock.mockResolvedValue(undefined);
-  createWorkerMock.mockResolvedValue({
-    recognize: recognizeMock,
-    terminate: terminateMock,
-  });
-  recognizeMock.mockResolvedValue({ data: { text: "" } });
 });
 
 describe("PaymentProofViewer", () => {
-  it("reads the order's proof through the one server action", async () => {
+  it("reads the order's proof through the one server action and shows the photo", async () => {
     render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
     expect(await screen.findByRole("img")).toHaveAttribute("src", PHOTO);
     expect(getOrderPaymentProofMock).toHaveBeenCalledTimes(1);
     expect(getOrderPaymentProofMock).toHaveBeenCalledWith("order-1");
   });
 
-  it("does not match an expected amount inside a larger amount", async () => {
-    recognizeMock.mockResolvedValueOnce({ data: { text: "PAID $15.50" } });
+  it("shows no amount hint and no warning when paykit reports neither", async () => {
+    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
+    await screen.findByRole("img");
+    expect(screen.queryByText(/amount/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/already used/i)).not.toBeInTheDocument();
+  });
+
+  it("says the amount matches, with the order's amount, when paykit read it in the photo", async () => {
+    getOrderPaymentProofMock.mockResolvedValue(proof({ amountMatch: true }));
+    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
+    expect(
+      await screen.findByText(
+        "Amount matches $5.50. Verify payment in your payment app.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says it could not confirm the amount when paykit did not find it", async () => {
+    getOrderPaymentProofMock.mockResolvedValue(proof({ amountMatch: false }));
     render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
     expect(
       await screen.findByText(/couldn't confirm the amount/i),
@@ -70,72 +64,11 @@ describe("PaymentProofViewer", () => {
     expect(screen.queryByText(/amount matches/i)).not.toBeInTheDocument();
   });
 
-  it.each(["5.50", "PAID $5.50 to stall", "Ref 12.00\n5.50"])(
-    "matches the expected amount as a whole number in %j",
-    async (text) => {
-      recognizeMock.mockResolvedValueOnce({ data: { text } });
-      render(
-        <PaymentProofViewer orderId="order-1" expectedAmountCents={550} />,
-      );
-      expect(await screen.findByText(/amount matches/i)).toBeInTheDocument();
-    },
-  );
-
-  it("reads the photo paykit linked to", async () => {
-    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-    await waitFor(() => expect(recognizeMock).toHaveBeenCalledWith(PHOTO));
-  });
-
-  it.each([
-    [true, /amount matches \$5\.50/i],
-    [false, /couldn't confirm the amount/i],
-  ])(
-    "shows paykit's own amount reading (%j) without reading the photo again",
-    async (amountMatch, text) => {
-      getOrderPaymentProofMock.mockResolvedValue(proof({ amountMatch }));
-      render(
-        <PaymentProofViewer orderId="order-1" expectedAmountCents={550} />,
-      );
-      expect(await screen.findByText(text)).toBeInTheDocument();
-      expect(createWorkerMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it("terminates the OCR worker when recognition fails", async () => {
-    recognizeMock.mockRejectedValueOnce(new Error("Unreadable image"));
-    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-    await waitFor(() => expect(terminateMock).toHaveBeenCalledOnce());
-  });
-
-  it("terminates pending OCR when the viewer is closed", async () => {
-    recognizeMock.mockImplementationOnce(() => new Promise(() => {}));
-    const { unmount } = render(
-      <PaymentProofViewer orderId="order-1" expectedAmountCents={550} />,
-    );
-    await waitFor(() => expect(recognizeMock).toHaveBeenCalled());
-    unmount();
-    await waitFor(() => expect(terminateMock).toHaveBeenCalledOnce());
-  });
-
-  it("shows the photo, then the amount hint, and no duplicate warning", async () => {
-    recognizeMock.mockResolvedValueOnce({ data: { text: "PAID $5.50" } });
-
-    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-
-    expect(await screen.findByRole("img")).toBeInTheDocument();
-    expect(
-      await screen.findByText(/amount matches \$5\.50/i),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/already used/i)).not.toBeInTheDocument();
-  });
-
   it("names the other order when the same photo was used for it", async () => {
     getOrderPaymentProofMock.mockResolvedValue(
       proof({ duplicateOrderNumber: "0031" }),
     );
-
     render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-
     expect(
       await screen.findByText(/already used for order #0031/i),
     ).toBeInTheDocument();
@@ -146,9 +79,7 @@ describe("PaymentProofViewer", () => {
     getOrderPaymentProofMock.mockResolvedValue(
       proof({ duplicateElsewhere: true }),
     );
-
     render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-
     expect(
       await screen.findByText(/already used for another payment/i),
     ).toBeInTheDocument();
@@ -171,7 +102,6 @@ describe("PaymentProofViewer", () => {
         await screen.findByText(/no payment screenshot on file/i),
       ).toBeInTheDocument();
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
-      expect(createWorkerMock).not.toHaveBeenCalled();
     },
   );
 
@@ -185,25 +115,16 @@ describe("PaymentProofViewer", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("spawns the tesseract worker with workerBlobURL disabled (blob: workers are refused under this app's CSP, which has no worker-src/child-src)", async () => {
-    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-
-    await waitFor(() => expect(createWorkerMock).toHaveBeenCalled());
-    expect(createWorkerMock).toHaveBeenCalledWith(
-      "eng",
-      1,
-      expect.objectContaining({ workerBlobURL: false }),
+  it("does not show one order's photo under another order", async () => {
+    const { rerender } = render(
+      <PaymentProofViewer orderId="order-1" expectedAmountCents={550} />,
     );
-  });
-
-  it("shows a couldn't-confirm hint when the OCR text doesn't contain the amount", async () => {
-    recognizeMock.mockResolvedValueOnce({ data: { text: "no numbers here" } });
-
-    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
-
-    expect(await screen.findByRole("img")).toBeInTheDocument();
-    expect(
-      await screen.findByText(/couldn't confirm the amount/i),
-    ).toBeInTheDocument();
+    await screen.findByRole("img");
+    getOrderPaymentProofMock.mockImplementation(() => new Promise(() => {}));
+    rerender(
+      <PaymentProofViewer orderId="order-2" expectedAmountCents={550} />,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(getOrderPaymentProofMock).toHaveBeenLastCalledWith("order-2");
   });
 });

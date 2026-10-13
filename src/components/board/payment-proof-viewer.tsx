@@ -1,104 +1,50 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOrderPaymentProof } from "@/app/dashboard/payment-evidence-actions";
+import {
+  getOrderPaymentProof,
+  type OrderPaymentProof,
+} from "@/app/dashboard/payment-evidence-actions";
 
 interface Props {
   orderId: string;
   expectedAmountCents: number;
 }
 
-type ProofView = {
-  orderId: string;
-  expectedAmountCents: number;
-  url: string | null;
-  duplicateOrderNumber: string | null;
-  duplicateElsewhere: boolean;
-  // null until something has checked the amount: paykit, or the OCR below.
-  amountMatch: boolean | null;
+type ProofView = OrderPaymentProof & { orderId: string };
+
+const NOTHING: OrderPaymentProof = {
+  url: null,
+  duplicateOrderNumber: null,
+  duplicateElsewhere: false,
+  amountMatch: null,
 };
 
-// Self-hosted under /public/tesseract (see that folder's own note) — never
-// the default jsDelivr CDN, so the model's WASM/worker/traineddata assets
-// stay same-origin under this app's CSP. corePath is a directory (not a
-// single file): tesseract.js picks between its SIMD/non-SIMD LSTM builds at
-// runtime, both of which live there.
-const TESSERACT_ASSET_PATH = "/tesseract";
-
+/**
+ * The payment screenshot for one order, with what paykit says about it: a
+ * duplicate warning, and whether the order's amount was read in the photo.
+ * Both are hints for the vendor. Nothing here reads the photo itself; paykit
+ * does that on its server, and reports no amount hint when it could not.
+ */
 export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
   const [proof, setProof] = useState<ProofView | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    let worker: Awaited<
-      ReturnType<typeof import("tesseract.js").createWorker>
-    > | null = null;
-    const terminate = async () => {
-      const activeWorker = worker;
-      worker = null;
-      await activeWorker?.terminate();
-    };
     void (async () => {
       try {
         const found = await getOrderPaymentProof(orderId);
-        if (cancelled) return;
-        const view: ProofView = {
-          orderId,
-          expectedAmountCents,
-          url: found?.url ?? null,
-          duplicateOrderNumber: found?.duplicateOrderNumber ?? null,
-          duplicateElsewhere: found?.duplicateElsewhere ?? false,
-          amountMatch: found?.amountMatch ?? null,
-        };
-        setProof(view);
-        // paykit's own reading of the amount, when it has one, stands: the
-        // photo is not read a second time here.
-        if (!view.url || view.amountMatch !== null) return;
-
-        // OCR failure leaves the photo available for manual review.
-        const { createWorker } = await import("tesseract.js");
-        if (cancelled) return;
-        worker = await createWorker("eng", 1, {
-          workerPath: `${TESSERACT_ASSET_PATH}/worker.min.js`,
-          corePath: TESSERACT_ASSET_PATH,
-          langPath: TESSERACT_ASSET_PATH,
-          // Keep worker loading same-origin under the script CSP.
-          workerBlobURL: false,
-        });
-        if (cancelled) return;
-        const { data } = await worker.recognize(view.url);
-        if (cancelled) return;
-        // OCR is an amount hint, never proof that a transfer settled.
-        // No lookbehind: Safari before 16.4 fails to parse the whole chunk.
-        const amounts = Array.from(
-          data.text.matchAll(
-            /(?:^|[^\d.,])((?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})(?![\d.,])/g,
-          ),
-          (match) => match[1],
-        );
-        const expected = (expectedAmountCents / 100).toFixed(2);
-        const amountMatch = amounts.some(
-          (amount) => amount.replaceAll(",", "") === expected,
-        );
-        setProof({ ...view, amountMatch });
+        if (!cancelled) setProof({ ...(found ?? NOTHING), orderId });
       } catch (error) {
-        if (!cancelled) console.error("Payment proof OCR failed", error);
-      } finally {
-        await terminate().catch(() => {});
+        if (!cancelled) console.error("Payment proof failed to load", error);
       }
     })();
     return () => {
       cancelled = true;
-      terminate().catch(() => {});
     };
-  }, [orderId, expectedAmountCents]);
+  }, [orderId]);
 
-  if (
-    !proof ||
-    proof.orderId !== orderId ||
-    proof.expectedAmountCents !== expectedAmountCents
-  )
-    return null;
+  if (!proof || proof.orderId !== orderId) return null;
   const { url, duplicateOrderNumber, duplicateElsewhere, amountMatch } = proof;
 
   if (!url)

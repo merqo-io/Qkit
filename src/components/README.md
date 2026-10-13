@@ -38,7 +38,7 @@ shell used by both the dashboard and the ordering flow. `feedback-form.tsx` post
 to a server action under `src/app/actions/`. `payment-proof-viewer.tsx`
 (dynamically imported by `order-card.tsx`) calls `getOrderPaymentProof` in
 `src/app/dashboard/payment-evidence-actions.ts` for the photo link and
-paykit's signals, and loads its self-hosted `tesseract.js` assets from `/public/tesseract`.
+paykit's signals. It reads nothing out of the photo itself: paykit checks the amount on its server.
 
 ## Shared package note
 

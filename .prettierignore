@@ -9,6 +9,3 @@ test-results
 playwright-report
 scripts/demo/out
 PRODUCT.md
-# Vendored tesseract.js runtime assets (minified/generated, self-hosted for
-# same-origin CSP -- see public/tesseract's own note in payment-proof-viewer.tsx)
-public/tesseract

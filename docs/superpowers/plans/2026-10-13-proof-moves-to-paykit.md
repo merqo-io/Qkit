@@ -48,7 +48,9 @@
 
 ## Spike outcome (Decision 3A)
 
-Run 2026-10-13. **Not settled: the result on Vercel could not be read.** Both PRs are therefore built so that either answer works, and qkit's Tesseract is not deleted yet.
+Run 2026-10-13. **It works: 3A.** The owner opened the spike route on the Vercel preview and it answered `{"ok":true,"ms":1366,"text":"Transfer successful
+SGD 12.50
+...","memoryMb":182}`. paykit now reads the amount on its server after the claim answers and returns `amount_match`; qkit's Tesseract is deleted. The record of how it got there follows; the agent could not read the route itself, so both PRs were first built to work either way.
 
 What was established:
 
@@ -56,13 +58,14 @@ What was established:
 - A preview-only route, `GET /api/spike-ocr-7f3a` on paykit branch `spike/server-ocr`, built locally and on Vercel. Getting the build to carry the files took three tries: the worker thread loads `bmp-js`, `zlibjs`, `wasm-feature-detect` and `tesseract.js-core` by name at run time, which the build's file trace does not see, so they had to become direct dependencies imported by the helper, plus `outputFileTracingIncludes` for the worker script, the wasm core and the language file. A glob that matched pnpm's linked folders crashed the Windows build ("Access is denied"), so the includes name real package folders only. The final trace lists every file the worker needs.
 - The deployed route was never called. paykit previews are behind Vercel's login, and the Chrome profile available to the agent is signed in to an account that is not on the team ("You Need Access"). The agent did not request access or switch accounts.
 
-What this means for the two PRs:
+What shipped as a result:
 
-- paykit returns `amount_match: null` (not checked). The evidence row has a `detail` JSON the check can write to later with no migration.
-- qkit's viewer shows paykit's `amount_match` when it is not null and only otherwise runs its own browser OCR, on the photo paykit links to. So today it behaves as 3B, and it needs no change if 3A lands.
-- Task 9 (deleting Tesseract from qkit) is deferred until the spike is read.
-
-To settle it, the owner opens `https://paykit-f3pbzat7d-merqo-io.vercel.app/api/spike-ocr-7f3a` while signed in to Vercel. `"ok": true` with `12.50` in `text` means 3A works: a follow-up paykit PR runs the check after the claim's response and writes `detail.amount_match`, and a follow-up qkit PR deletes Tesseract. Anything else means 3B stays and the spike branch can be deleted. Cost to weigh if it works: paykit gains five dependencies and a 3 MB language file in its repo.
+- paykit: `src/lib/proof-ocr.ts` (`recognizeText`) and `src/lib/proof-amount-check.ts`. The claim route schedules the check with `after()` once the screenshot is stored; the result is written to the evidence row's `detail.amount_match`, matched by the file's hash so a replaced screenshot is not overwritten by a stale read. No migration beyond `0022`.
+- The tracing key for the claim route is `"/api/v1/checkout/*/claim"`. The key is a glob: written as `[id]` it matched nothing, the build still passed, and the function would have shipped without the wasm core. A test in `proof-ocr.test.ts` pins the key and the patterns.
+- OCR was confirmed locally on PNG, JPEG and WebP encodings of the synthetic screenshot (the WebP and JPEG made by a headless browser's canvas, as a phone would).
+- qkit: the viewer shows paykit's reading and has no OCR. `public/tesseract/` (16 MB), `tesseract.js` and `tesseract.js-core` are removed. When paykit has no reading, no amount hint is shown.
+- Not verified on Vercel: the real claim route's check, which needs a kit secret to call. The spike proved the runtime; the build trace proves the claim route carries the same files. The owner's manual check (an amount hint under a real screenshot) closes it.
+- Cost accepted: paykit gains five pinned dependencies and a 3 MB language file.
 
 ## Review Focus
 
@@ -323,7 +326,7 @@ Flow: validate the id; read the signed-in user; read the order and its booth's `
 
 ### Task 9: Tesseract, per the spike
 
-- [ ] 3A only: delete `public/tesseract/`, `tesseract.js`, `tesseract.js-core`, and their references in `eslint.config.mjs`, `vitest.config.ts`, `.prettierignore`, `pnpm-workspace.yaml`, `package.json`, `order-card-parts.tsx`, the viewer and its dom test. 3B: nothing to do; say so in the PR.
+- [x] 3A only: delete `public/tesseract/`, `tesseract.js`, `tesseract.js-core`, and their references in `eslint.config.mjs`, `vitest.config.ts`, `.prettierignore`, `pnpm-workspace.yaml`, `package.json`, `order-card-parts.tsx`, the viewer and its dom test. 3B: nothing to do; say so in the PR.
 
 ### Task 10: Mock, docs, gate, PR
 

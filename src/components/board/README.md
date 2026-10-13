@@ -135,32 +135,28 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   file, the chosen design target over other kits' plain shadcn `Badge` uses)
   — keeps qkit's own `STATUS_CONFIG` label/colour map, passed through as the
   `config` prop; same rendered markup as before.
-- `payment-proof-viewer.dom.test.tsx` — RTL tests for `PaymentProofViewer`'s
-  no-photo ("No payment screenshot on file"), duplicate (a numbered order,
-  or "another payment"), paykit's own amount reading (no OCR started), and
-  OCR amount-match/mismatch/failure branches, with `tesseract.js` and
-  `getOrderPaymentProof` mocked.
+- `payment-proof-viewer.dom.test.tsx` — RTL tests for `PaymentProofViewer`:
+  the photo, no hint when paykit reports none, the amount-match and
+  could-not-confirm hints, both duplicate warnings (a numbered order, or
+  "another payment"), "No payment screenshot on file", a failing action, and
+  that one order's photo is never shown under another. `getOrderPaymentProof`
+  is mocked.
 - `payment-proof-viewer.tsx` — `PaymentProofViewer({ orderId,
-expectedAmountCents })`: `"use client"`, always dynamically imported
-  (`order-card.tsx`'s `ProofPhotoTrigger`) so `tesseract.js` never loads for a
-  card the vendor hasn't opened. On mount, makes one call,
-  `getOrderPaymentProof` (`@/app/dashboard/payment-evidence-actions`), which
-  answers from paykit, or from qkit's own bucket for an order claimed before
-  screenshots moved. Renders nothing until it answers, then the photo plus a
-  duplicate warning ("This photo was already used for order #N", or "for
-  another payment" when paykit names one this board cannot), or "No payment
-  screenshot on file" when there is none. When paykit supplies its own
-  amount reading that is shown and no OCR runs; paykit does not check the
-  amount yet, so today it always spins up a self-hosted (`/public/tesseract`, not the
-  default jsDelivr CDN — keeps every asset same-origin under this app's CSP,
-  which has no third-party `script-src`/`connect-src` allowance) `tesseract.js`
-  worker (`workerBlobURL: false`, since this app's CSP has no `worker-src`/
-  `child-src` to permit the library's default `blob:` worker spawn) to OCR the
-  photo and compares the recognized text against `expectedAmountCents`,
-  matching complete monetary tokens and showing "Amount matches $X.XX" or "Couldn't confirm the amount, check
-  manually" — a hint only, never blocking the vendor's own manual review
-  action, and any OCR failure (worker init, recognition) just leaves the hint
-  unset rather than surfacing an error. The amount hint directs vendors to verify in their payment app; OCR never asserts settlement. Workers terminate on completion, failure, and unmount, and results from an earlier order/amount are hidden.
+expectedAmountCents })`: `"use client"`, dynamically imported
+  (`order-card-parts.tsx`'s `ProofPhotoTrigger`) so it loads only for a card
+  the vendor opens. On mount it makes one call, `getOrderPaymentProof`
+  (`@/app/dashboard/payment-evidence-actions`), which answers from paykit, or
+  from qkit's own bucket for an order claimed before screenshots moved.
+  Renders nothing until it answers, then the photo plus a duplicate warning
+  ("This photo was already used for order #N", or "for another payment" when
+  paykit names one this board cannot), or "No payment screenshot on file"
+  when there is none. The amount hint ("Amount matches $X.XX. Verify payment
+  in your payment app." or "Couldn't confirm the amount, check manually") is
+  paykit's reading: paykit reads the photo on its server just after the
+  claim. When paykit has no reading (the photo could not be read, or an
+  order from before the move) no amount hint is shown. Nothing in qkit reads
+  the photo: there is no OCR, no worker and no Tesseract here any more. Both
+  hints only inform the vendor's own check and never confirm a payment.
 
 ## Parent
 

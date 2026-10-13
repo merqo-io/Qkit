@@ -17,8 +17,8 @@ import { ticketOptions, type OptionCodes } from "@/lib/ticket";
 import { shortDateTime } from "@/lib/tz";
 import type { BoardOrder, OrderStatus, PaymentStatus } from "@/lib/types";
 
-// Heavy (pulls in tesseract.js on demand once opened) — code-split out of the
-// board's initial bundle, same next/dynamic pattern as PayPanel.
+// Only needed once a vendor opens a claimed order's proof, so it is kept out
+// of the board's initial bundle, same next/dynamic pattern as PayPanel.
 const PaymentProofViewer = dynamic(() =>
   import("./payment-proof-viewer").then((m) => m.PaymentProofViewer),
 );

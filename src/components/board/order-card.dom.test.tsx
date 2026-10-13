@@ -46,8 +46,8 @@ vi.mock("@/app/dashboard/order-actions", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 // PaymentProofViewer is dynamically imported (next/dynamic, see order-card.tsx)
-// and heavy (pulls in tesseract.js on demand) — its own rendering/OCR/duplicate
-// logic is covered by payment-proof-viewer.dom.test.tsx. Here we only assert
+// — its own rendering of the photo, the duplicate warning and the amount hint
+// is covered by payment-proof-viewer.dom.test.tsx. Here we only assert
 // the wiring: the trigger's visibility rules and the props it's given.
 vi.mock("./payment-proof-viewer", () => ({
   PaymentProofViewer: ({
