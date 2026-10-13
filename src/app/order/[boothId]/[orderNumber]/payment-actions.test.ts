@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   claimPayment,
@@ -13,12 +12,11 @@ import {
 // order lookup vs. loadPreClaimContext/claimPayment's 2-eq one), and the mock
 // doesn't care how many, only what it resolves to:
 //   orders:  select().eq()[.eq()...].maybeSingle()
-//            update().eq()[.eq()|.neq()|.in()|.or()...][.select()] -- both
-//            mirror writes end in .select("id"); claimPayment's
-//            screenshot-only fallback (finalize-paid-order.ts) is awaited
-//            with no .select(), so the chain is also directly thenable.
+//            update().eq()[.eq()|.neq()|.in()|.or()...].select() -- every
+//            mirror write ends in .select("id").
 //   booths:  select().eq().maybeSingle()
-//   storage: from("payment-proofs").upload(...)
+//   storage: a tripwire. claimPayment sends the screenshot to paykit and
+//            must never touch a qkit bucket; any call fails the test.
 //   rpc:     rpc("assign_order_number", { p_order_id })
 const {
   createServiceClientMock,
@@ -28,7 +26,7 @@ const {
   boothsMaybeSingle,
   update,
   writeSelect,
-  storageUploadMock,
+  storageFromMock,
   rpcMock,
   rateLimitMock,
   clientIpMock,
@@ -38,7 +36,7 @@ const {
   const writeEqMock = vi.fn();
   const boothsMaybeSingle = vi.fn();
   const writeSelect = vi.fn();
-  const storageUploadMock = vi.fn();
+  const storageFromMock = vi.fn();
   const rpcMock = vi.fn();
 
   function readChain(maybeSingleFn: () => unknown) {
@@ -64,11 +62,6 @@ const {
       in: () => node,
       or: () => node,
       select: writeSelect,
-      then: (onFulfilled: unknown, onRejected: unknown) =>
-        writeSelect().then(
-          onFulfilled as (v: unknown) => unknown,
-          onRejected as (v: unknown) => unknown,
-        ),
     };
     return node;
   });
@@ -81,7 +74,12 @@ const {
     createServiceClientMock: vi.fn(() =>
       Promise.resolve({
         from,
-        storage: { from: () => ({ upload: storageUploadMock }) },
+        storage: {
+          from: (...args: unknown[]) => {
+            storageFromMock(...args);
+            return { upload: storageFromMock };
+          },
+        },
         rpc: rpcMock,
       }),
     ),
@@ -91,7 +89,7 @@ const {
     boothsMaybeSingle,
     update,
     writeSelect,
-    storageUploadMock,
+    storageFromMock,
     rpcMock,
     rateLimitMock: vi.fn(),
     clientIpMock: vi.fn(() => "1.2.3.4"),
@@ -139,13 +137,8 @@ const ORDER = "A17";
 const TOKEN = "11111111-2222-4333-8444-555555555555";
 
 // The bytes of the proof as pay-form.tsx sends it: already resized to WebP
-// in the browser. claimPayment uploads them unchanged, so they are both the
-// upload payload and the input for independently computing the expected
-// payment_proof_hash via the real (unmocked) hashBuffer.
+// in the browser. claimPayment forwards the file to paykit unchanged.
 const PHOTO_BYTES = "resized-photo-bytes";
-function expectedHash(bytes: string): string {
-  return createHash("sha256").update(Buffer.from(bytes)).digest("hex");
-}
 
 function fakeFile(
   bytes: BlobPart = PHOTO_BYTES,
@@ -176,9 +169,7 @@ beforeEach(() => {
   writeSelect
     .mockReset()
     .mockResolvedValue({ data: [{ id: "o1" }], error: null });
-  storageUploadMock
-    .mockReset()
-    .mockResolvedValue({ data: { path: "v1/o1.webp" }, error: null });
+  storageFromMock.mockReset();
   rpcMock.mockReset().mockResolvedValue({ data: "0007", error: null });
   rateLimitMock.mockReset().mockResolvedValue(true);
   clientIpMock.mockClear();
@@ -376,7 +367,7 @@ describe("loadPreClaimContext", () => {
 });
 
 describe("claimPayment on an expired order", () => {
-  it("refuses a claim for an order unpaid past the window, before any upload", async () => {
+  it("refuses a claim for an order unpaid past the window, before asking paykit", async () => {
     ordersMaybeSingle.mockResolvedValueOnce({
       data: {
         id: "order-1",
@@ -393,11 +384,20 @@ describe("claimPayment on an expired order", () => {
       success: false,
       error: "This order expired before it was paid. Please place a new one.",
     });
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 });
 
 describe("claimPayment (photo required, deferred numbering)", () => {
+  // Nothing about the order may change unless paykit took the claim.
+  function expectOrderUntouched() {
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(notifyVendorTelegramMock).not.toHaveBeenCalled();
+    expect(notifyPrintkitMock).not.toHaveBeenCalled();
+  }
+
   it("rejects a claim with no photo, before creating a client", async () => {
     const result = await claimPayment(BOOTH, TOKEN, null);
     expect(result).toEqual({
@@ -407,9 +407,8 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(createServiceClientMock).not.toHaveBeenCalled();
   });
 
-  // Size and type are checked before any client, rate-limit hit or storage
-  // write, so a bad upload costs nothing. The bucket enforces the same limits
-  // again at the storage layer (migration 0093).
+  // Size and type are checked before any client, rate-limit hit or call to
+  // paykit, so a bad upload costs nothing. paykit checks both again.
   it.each([
     ["an empty file", fakeFile(""), "The payment screenshot is empty."],
     [
@@ -423,33 +422,22 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       "Upload a screenshot or photo (JPEG, PNG or WebP).",
     ],
     [
-      "an image type the bucket rejects",
+      "an image type paykit rejects",
       fakeFile("heic-bytes", "image/heic", "IMG_0001.HEIC"),
       "Upload a screenshot or photo (JPEG, PNG or WebP).",
     ],
-  ])("rejects %s before touching storage", async (_label, file, error) => {
+  ])("rejects %s before calling paykit", async (_label, file, error) => {
     const result = await claimPayment(BOOTH, TOKEN, file);
     expect(result).toEqual({ success: false, error });
     expect(createServiceClientMock).not.toHaveBeenCalled();
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 
   it("accepts exactly 1 MB", async () => {
-    await claimPayment(BOOTH, TOKEN, fakeFile(new Uint8Array(1024 * 1024)));
-    expect(storageUploadMock).toHaveBeenCalled();
-  });
-
-  it("stores a JPEG proof as .jpg with its real content type", async () => {
-    await claimPayment(
-      BOOTH,
-      TOKEN,
-      fakeFile(PHOTO_BYTES, "image/jpeg", "proof.jpg"),
-    );
-    expect(storageUploadMock).toHaveBeenCalledWith(
-      "v1/o1.jpg",
-      expect.anything(),
-      { upsert: true, contentType: "image/jpeg" },
-    );
+    const file = fakeFile(new Uint8Array(1024 * 1024));
+    const result = await claimPayment(BOOTH, TOKEN, file);
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1", file);
   });
 
   it("rejects an invalid booth id before creating the client", async () => {
@@ -464,24 +452,25 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(createServiceClientMock).not.toHaveBeenCalled();
   });
 
-  it("blocks when rate-limited and never uploads or calls paykit", async () => {
+  it("blocks when rate-limited and never calls paykit", async () => {
     rateLimitMock.mockResolvedValue(false);
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({
       success: false,
       error: "Too many attempts. Wait a moment.",
     });
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 
   it("returns 'Invalid order' when the order/token lookup finds nothing", async () => {
     ordersMaybeSingle.mockResolvedValue({ data: null });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({ success: false, error: "Invalid order" });
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a claim on a cancelled order without uploading", async () => {
+  it("rejects a claim on a cancelled order without calling paykit", async () => {
     ordersMaybeSingle.mockResolvedValue({
       data: {
         id: "o1",
@@ -496,40 +485,40 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       success: false,
       error: "This order was cancelled.",
     });
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 
-  it("lets the customer retry when the paykit callback marked the order claimed before a screenshot was recorded", async () => {
+  it("lets the customer retry an order that is claimed but was never numbered", async () => {
     ordersMaybeSingle.mockResolvedValue({
       data: {
         id: "o1",
         total_cents: 800,
         payment_status: "claimed",
-        payment_proof_path: null,
+        order_number: null,
         status: "pending",
         customer_name: "Ann",
       },
     });
-    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    const file = fakeFile();
+    const result = await claimPayment(BOOTH, TOKEN, file);
     expect(result).toEqual({ success: true, orderNumber: "0007" });
-    expect(storageUploadMock).toHaveBeenCalled();
-    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
-    expect(update).toHaveBeenCalledWith({
-      payment_status: "claimed",
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: expectedHash(PHOTO_BYTES),
-    });
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1", file);
+    expect(update).toHaveBeenCalledWith({ payment_status: "claimed" });
   });
 
-  it.each(["claimed", "confirmed"])(
-    "rejects a claim on a %s order that already has its screenshot",
-    async (payment_status) => {
+  it.each([
+    ["claimed", "0007"],
+    ["confirmed", "0007"],
+    ["confirmed", null],
+  ])(
+    "rejects a claim on a %s order (number %j)",
+    async (payment_status, order_number) => {
       ordersMaybeSingle.mockResolvedValue({
         data: {
           id: "o1",
           total_cents: 800,
           payment_status,
-          payment_proof_path: "v1/o1.webp",
+          order_number,
           status: "preparing",
           customer_name: "Ann",
         },
@@ -539,60 +528,66 @@ describe("claimPayment (photo required, deferred numbering)", () => {
         success: false,
         error: "This order isn't awaiting payment.",
       });
-      expect(storageUploadMock).not.toHaveBeenCalled();
+      expect(claimCheckoutMock).not.toHaveBeenCalled();
     },
   );
-
-  it("rejects a claim on a confirmed order even with no screenshot on file", async () => {
-    ordersMaybeSingle.mockResolvedValue({
-      data: {
-        id: "o1",
-        total_cents: 800,
-        payment_status: "confirmed",
-        payment_proof_path: null,
-        status: "preparing",
-        customer_name: "Ann",
-      },
-    });
-    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
-    expect(result).toEqual({
-      success: false,
-      error: "This order isn't awaiting payment.",
-    });
-    expect(storageUploadMock).not.toHaveBeenCalled();
-  });
 
   it("returns 'Invalid order' when the booth/vendor lookup finds nothing", async () => {
     boothsMaybeSingle.mockResolvedValue({ data: null });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({ success: false, error: "Invalid order" });
-    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(claimCheckoutMock).not.toHaveBeenCalled();
   });
 
-  it("uploads the photo, claims via paykit, assigns a number, notifies, and updates the mirror", async () => {
-    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+  it("forwards the screenshot to paykit with the claim, assigns a number, notifies, and updates the mirror", async () => {
+    const file = fakeFile();
+    const result = await claimPayment(BOOTH, TOKEN, file);
     expect(readEqMock).toHaveBeenCalledWith("booth_id", BOOTH);
     expect(readEqMock).toHaveBeenCalledWith("access_token", TOKEN);
 
     expect(result).toEqual({ success: true, orderNumber: "0007" });
-    expect(storageUploadMock).toHaveBeenCalledWith(
-      "v1/o1.webp",
-      expect.any(ArrayBuffer),
-      { upsert: true, contentType: "image/webp" },
-    );
     expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
     expect(createCheckoutMock).not.toHaveBeenCalled();
-    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
+    expect(claimCheckoutMock).toHaveBeenCalledTimes(1);
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1", file);
     expect(rpcMock).toHaveBeenCalledWith("assign_order_number", {
       p_order_id: "o1",
     });
     expect(notifyVendorTelegramMock).toHaveBeenCalledWith(BOOTH, "0007");
     expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
-    expect(update).toHaveBeenCalledWith({
-      payment_status: "claimed",
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: expectedHash(PHOTO_BYTES),
-    });
+    expect(update).toHaveBeenCalledWith({ payment_status: "claimed" });
+  });
+
+  it("sends paykit the file's own bytes and type", async () => {
+    await claimPayment(
+      BOOTH,
+      TOKEN,
+      fakeFile(PHOTO_BYTES, "image/jpeg", "proof.jpg"),
+    );
+    const sent = claimCheckoutMock.mock.calls[0][1] as File;
+    expect(sent.type).toBe("image/jpeg");
+    expect(await sent.text()).toBe(PHOTO_BYTES);
+  });
+
+  it("keeps no copy: never touches a qkit bucket or the proof columns", async () => {
+    await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(storageFromMock).not.toHaveBeenCalled();
+    for (const [patch] of update.mock.calls as unknown as [
+      Record<string, unknown>,
+    ][]) {
+      expect(patch).not.toHaveProperty("payment_proof_path");
+      expect(patch).not.toHaveProperty("payment_proof_hash");
+    }
+  });
+
+  it("asks paykit for the transaction before sending the screenshot", async () => {
+    await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(getCheckoutByOrderRefMock.mock.invocationCallOrder[0]).toBeLessThan(
+      claimCheckoutMock.mock.invocationCallOrder[0],
+    );
+    expect(claimCheckoutMock.mock.invocationCallOrder[0]).toBeLessThan(
+      rpcMock.mock.invocationCallOrder[0],
+    );
   });
 
   it("does not finalize a claim when Paykit reports a concurrent return to pending", async () => {
@@ -604,8 +599,7 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       success: false,
       error: "Could not record payment. Try again.",
     });
-    expect(rpcMock).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expectOrderUntouched();
   });
 
   it("preserves Paykit's confirmed state when confirmation races the claim", async () => {
@@ -622,26 +616,7 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     );
   });
 
-  it("never touches payment state or calls paykit if the upload fails", async () => {
-    storageUploadMock.mockResolvedValueOnce({
-      data: null,
-      error: { message: "boom" },
-    });
-    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
-    expect(result).toEqual({
-      success: false,
-      error: "Could not upload photo. Try again.",
-    });
-    expect(createCheckoutMock).not.toHaveBeenCalled();
-    expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
-    expect(rpcMock).not.toHaveBeenCalledWith(
-      "assign_order_number",
-      expect.anything(),
-    );
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  it("reports a failure and never assigns a number when paykit's lookup fails", async () => {
+  it("leaves the order untouched when paykit's lookup fails", async () => {
     getCheckoutByOrderRefMock.mockResolvedValue({
       ok: false,
       status: 503,
@@ -653,7 +628,7 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       error: "Could not record payment. Try again.",
     });
     expect(claimCheckoutMock).not.toHaveBeenCalled();
-    expect(rpcMock).not.toHaveBeenCalled();
+    expectOrderUntouched();
   });
 
   it("records a payment after the vendor changed payment details", async () => {
@@ -662,25 +637,35 @@ describe("claimPayment (photo required, deferred numbering)", () => {
       status: 409,
       error: "Payment configuration changed since checkout creation",
     });
-    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    const file = fakeFile();
+    const result = await claimPayment(BOOTH, TOKEN, file);
     expect(result).toEqual({ success: true, orderNumber: "0007" });
     expect(getCheckoutByOrderRefMock).toHaveBeenCalledWith("o1");
     expect(createCheckoutMock).not.toHaveBeenCalled();
-    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1", file);
   });
 
-  it("reports a failure and never assigns a number when paykit's claim call fails", async () => {
-    claimCheckoutMock.mockResolvedValue({
-      ok: false,
-      status: 503,
-      error: "Upstream unavailable",
-    });
+  it.each([
+    [
+      "paykit could not store the screenshot",
+      503,
+      "Could not store the payment proof",
+    ],
+    ["paykit refused the file", 400, "proof must be a JPEG, PNG or WebP image"],
+    [
+      "paykit found the file too large",
+      413,
+      "The proof file is too large (1 MB at most)",
+    ],
+    ["paykit could not be reached", null, "fetch failed"],
+  ])("leaves the order untouched when %s", async (_label, status, error) => {
+    claimCheckoutMock.mockResolvedValue({ ok: false, status, error });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({
       success: false,
       error: "Could not record payment. Try again.",
     });
-    expect(rpcMock).not.toHaveBeenCalled();
+    expectOrderUntouched();
   });
 
   it("reports a failure and never notifies/mirrors when assign_order_number fails", async () => {
@@ -710,21 +695,14 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(rateLimitMock).toHaveBeenCalledWith("paid-order-alert:o1", 1, 3_600);
     expect(notifyVendorTelegramMock).not.toHaveBeenCalled();
     expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
-    expect(update).toHaveBeenCalledWith({
-      payment_status: "claimed",
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: expectedHash(PHOTO_BYTES),
-    });
+    expect(update).toHaveBeenCalledWith({ payment_status: "claimed" });
   });
 
-  it("keeps the screenshot when the order is already further along than the claim", async () => {
+  it("makes one mirror write when the callback already moved the order on", async () => {
     writeSelect.mockResolvedValue({ data: [], error: null });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({ success: true, orderNumber: "0007" });
-    expect(update).toHaveBeenLastCalledWith({
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: expectedHash(PHOTO_BYTES),
-    });
+    expect(update).toHaveBeenCalledTimes(1);
   });
 
   it("records paid_at when paykit reports the payment already confirmed", async () => {
@@ -744,8 +722,6 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(update).toHaveBeenCalledWith({
       payment_status: "confirmed",
       paid_at: "2026-08-11T00:00:05Z",
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: expectedHash(PHOTO_BYTES),
     });
   });
 });

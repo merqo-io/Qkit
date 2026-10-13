@@ -80,3 +80,9 @@ module reads — see `.env.example` for what they must equal on paykit's side.
 ## Parent
 
 [lib](../README.md)
+
+## Payment screenshots
+
+`claimCheckout(id, proof?)` sends the customer's screenshot with the claim as one `multipart/form-data` `proof` part when `proof` is given, and no body otherwise. The JSON content type is left off a `FormData` request so `fetch` can write the boundary, and that one request gets 15 seconds instead of 5. paykit stores the file before the claim commits; a failure to store it comes back as `ok: false` and the transaction is not claimed.
+
+`getCheckoutEvidence(id)` reads `GET /api/v1/checkout/{id}/evidence`: `proofUrl` (signed by paykit, valid 300 seconds), `duplicateOf` (`{ orderRef, kitSlug }` of another transaction of the same vendor carrying the same file) and `amountMatch` (`null` when paykit did not check). paykit trusts the calling kit, so the caller must first establish that the signed-in vendor owns the order; `getOrderPaymentProof` in `src/app/dashboard/payment-evidence-actions.ts` is the only caller.

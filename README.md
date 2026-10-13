@@ -150,7 +150,7 @@ checks; inspect `.github/workflows/` for the actual job conditions.
 - [test](test/README.md) and [e2e](e2e/README.md): test layers and prerequisites.
 - [docs](docs/README.md): operations, design history and audit findings.
 - [scripts](scripts/README.md): opt-in demo recording/composition tools.
-- [public](public/README.md): static assets and self-hosted OCR runtime.
+- [public](public/README.md): static assets (seed images and the service worker).
 - [AGENTS.md](AGENTS.md) and [constitution](docs/CONSTITUTION.md): project rules.
 - [.claude](.claude/README.md) and [.husky](.husky/README.md): agent and Git hooks.
 - [October audit](docs/meta/2026-10-07-project-audit.md): findings, verification,

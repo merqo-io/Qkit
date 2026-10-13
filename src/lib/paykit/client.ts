@@ -115,6 +115,30 @@ const bookingStatusResponseSchema = z.object({
   balance_confirmed: z.boolean(),
 });
 
+/** What paykit holds as evidence for a transaction. Both signals are hints
+ *  for a person: `duplicateOf` names another transaction of the same vendor
+ *  that carries the same screenshot, and `amountMatch` is null when paykit
+ *  did not check the amount. */
+export type CheckoutEvidence = {
+  proofUrl: string | null;
+  duplicateOf: { orderRef: string; kitSlug: string } | null;
+  amountMatch: boolean | null;
+};
+
+const checkoutEvidenceResponseSchema = z.object({
+  proof_url: z.string().url().nullable(),
+  signals: z.object({
+    duplicate_of: z
+      .object({ order_ref: z.string(), kit_slug: z.string() })
+      .nullable(),
+    amount_match: z.boolean().nullable(),
+  }),
+});
+
+// A claim that carries the screenshot uploads up to 1 MB through paykit to
+// its storage, so it gets longer than the default before qkit gives up.
+const PROOF_CLAIM_TIMEOUT_MS = 15_000;
+
 const errorBodySchema = z.object({ error: z.string() });
 
 /**
@@ -155,10 +179,14 @@ async function paykitRequest<T>(
       ...init,
       cache: "no-store",
       signal: controller.signal,
+      // fetch writes the multipart boundary itself for a FormData body, so
+      // the JSON content type is set for every other request only.
       headers: {
         ...init.headers,
         Authorization: `Bearer ${KIT_SLUG}:${secret}`,
-        "Content-Type": "application/json",
+        ...(init.body instanceof FormData
+          ? {}
+          : { "Content-Type": "application/json" }),
       },
     });
 
@@ -325,14 +353,25 @@ function toTransactionStatus(
 }
 
 /** Customer "I've paid" tap. Idempotent on paykit's side — already
- *  claimed/confirmed is a no-op success, never reverts a confirmed payment. */
+ *  claimed/confirmed is a no-op success, never reverts a confirmed payment.
+ *
+ *  With `proof`, the customer's payment screenshot travels with the claim and
+ *  paykit stores it before the claim commits: if it cannot be stored, paykit
+ *  answers an error and the transaction is not claimed. qkit keeps no copy. */
 export async function claimCheckout(
   transactionId: string,
+  proof?: Blob,
 ): Promise<PaykitResult<TransactionStatus>> {
+  let body: FormData | undefined;
+  if (proof) {
+    body = new FormData();
+    body.append("proof", proof, "proof");
+  }
   const result = await paykitRequest(
     `/api/v1/checkout/${encodeURIComponent(transactionId)}/claim`,
     transactionStatusResponseSchema,
-    { method: "POST" },
+    { method: "POST", body },
+    proof ? PROOF_CLAIM_TIMEOUT_MS : undefined,
   );
   return result.ok
     ? { ok: true, data: toTransactionStatus(result.data) }
@@ -412,4 +451,30 @@ export async function getCheckoutByOrderRef(
         },
       }
     : result;
+}
+
+/** Read the evidence paykit holds for a transaction: a link to the payment
+ *  screenshot that expires after 300 seconds, and paykit's signals about it.
+ *  The caller must already have established that the signed-in vendor owns
+ *  the order this transaction belongs to; paykit trusts the calling kit. */
+export async function getCheckoutEvidence(
+  transactionId: string,
+): Promise<PaykitResult<CheckoutEvidence>> {
+  const result = await paykitRequest(
+    `/api/v1/checkout/${encodeURIComponent(transactionId)}/evidence`,
+    checkoutEvidenceResponseSchema,
+    { method: "GET" },
+  );
+  if (!result.ok) return result;
+  const duplicate = result.data.signals.duplicate_of;
+  return {
+    ok: true,
+    data: {
+      proofUrl: result.data.proof_url,
+      duplicateOf: duplicate
+        ? { orderRef: duplicate.order_ref, kitSlug: duplicate.kit_slug }
+        : null,
+      amountMatch: result.data.signals.amount_match,
+    },
+  };
 }

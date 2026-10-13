@@ -7,7 +7,6 @@ const {
   rpcMock,
   updateMock,
   selectMock,
-  proofOnlyResult,
   rateLimitMock,
   alertMock,
   printMock,
@@ -16,9 +15,6 @@ const {
   const calls: string[] = [];
   const filters: unknown[][] = [];
   const selectMock = vi.fn();
-  const proofOnlyResult = {
-    value: { error: null as { message: string } | null },
-  };
   const updateMock = vi.fn((..._patch: unknown[]) => {
     calls.push("mirror");
     const node = {
@@ -39,8 +35,6 @@ const {
         return node;
       },
       select: selectMock,
-      then: (resolve: (value: unknown) => unknown) =>
-        Promise.resolve(proofOnlyResult.value).then(resolve),
     };
     return node;
   });
@@ -52,7 +46,6 @@ const {
     rpcMock,
     updateMock,
     selectMock,
-    proofOnlyResult,
     rateLimitMock: vi.fn(),
     alertMock: vi.fn(),
     printMock: vi.fn(),
@@ -70,7 +63,6 @@ vi.mock("@/app/o/[code]/notify", () => ({
 }));
 
 const ORDER = { id: "o1", boothId: "b1" };
-const PROOF = { path: "v1/o1.webp", hash: "abc123" };
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
 // One alert per order: the first ask is allowed, every later one is not.
@@ -86,7 +78,6 @@ function alertOncePerOrder() {
 beforeEach(() => {
   calls.length = 0;
   filters.length = 0;
-  proofOnlyResult.value = { error: null };
   updateMock.mockClear();
   selectMock
     .mockReset()
@@ -114,10 +105,7 @@ afterEach(() => {
 
 describe("finalizePaidOrder", () => {
   it("assigns the number, then notifies, then writes the mirror last", async () => {
-    const result = await finalizePaidOrder(ORDER, {
-      status: "claimed",
-      proof: PROOF,
-    });
+    const result = await finalizePaidOrder(ORDER, { status: "claimed" });
     expect(result).toEqual({ ok: true, orderNumber: "0007" });
     expect(calls).toEqual(["assign", "alert", "print", "mirror"]);
     expect(rpcMock).toHaveBeenCalledWith("assign_order_number", {
@@ -125,11 +113,7 @@ describe("finalizePaidOrder", () => {
     });
     expect(alertMock).toHaveBeenCalledWith("b1", "0007");
     expect(printMock).toHaveBeenCalledWith("b1", "0007");
-    expect(updateMock).toHaveBeenCalledWith({
-      payment_status: "claimed",
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: "abc123",
-    });
+    expect(updateMock).toHaveBeenCalledWith({ payment_status: "claimed" });
   });
 
   it("asks for the alert under a per-order, once-an-hour key", async () => {
@@ -138,10 +122,7 @@ describe("finalizePaidOrder", () => {
   });
 
   it("run twice in a row: same number, one vendor alert, the print request repeated", async () => {
-    const first = await finalizePaidOrder(ORDER, {
-      status: "claimed",
-      proof: PROOF,
-    });
+    const first = await finalizePaidOrder(ORDER, { status: "claimed" });
     const second = await finalizePaidOrder(ORDER, { status: "claimed" });
     expect(first).toEqual({ ok: true, orderNumber: "0007" });
     expect(second).toEqual({ ok: true, orderNumber: "0007" });
@@ -152,7 +133,7 @@ describe("finalizePaidOrder", () => {
 
   it("run twice at the same moment: one vendor alert", async () => {
     const [a, b] = await Promise.all([
-      finalizePaidOrder(ORDER, { status: "claimed", proof: PROOF }),
+      finalizePaidOrder(ORDER, { status: "claimed" }),
       finalizePaidOrder(ORDER, { status: "claimed" }),
     ]);
     expect(a).toEqual({ ok: true, orderNumber: "0007" });
@@ -199,21 +180,13 @@ describe("writePaidMirror", () => {
     );
   }
 
-  it("claimed, no screenshot: only a pending order moves", async () => {
+  it("claimed: only a pending order moves", async () => {
     await write({ status: "claimed" });
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(updateMock).toHaveBeenCalledWith({ payment_status: "claimed" });
     expect(filters).toEqual([
       ["eq", "id", "o1"],
-      ["in", "payment_status", ["pending"]],
-    ]);
-  });
-
-  it("claimed with a screenshot: also lands on an order the callback already marked claimed", async () => {
-    await write({ status: "claimed", proof: PROOF });
-    expect(filters).toEqual([
-      ["eq", "id", "o1"],
-      ["in", "payment_status", ["pending", "claimed"]],
+      ["eq", "payment_status", "pending"],
     ]);
   });
 
@@ -240,36 +213,26 @@ describe("writePaidMirror", () => {
     });
   });
 
-  it("keeps the screenshot when the order is already further along", async () => {
+  it("makes one write and no more when no order matched", async () => {
     selectMock.mockResolvedValue({ data: [], error: null });
-    await write({ status: "claimed", proof: PROOF });
-    expect(updateMock).toHaveBeenCalledTimes(2);
-    expect(updateMock).toHaveBeenLastCalledWith({
-      payment_proof_path: "v1/o1.webp",
-      payment_proof_hash: "abc123",
-    });
-    expect(filters.at(-1)).toEqual(["eq", "id", "o1"]);
-  });
-
-  it("makes no second write when nothing matched and there is no screenshot", async () => {
-    selectMock.mockResolvedValue({ data: [], error: null });
-    await write({ status: "confirmed", confirmedAt: "2026-08-11T00:00:05Z" });
+    await write({ status: "claimed" });
     expect(updateMock).toHaveBeenCalledTimes(1);
   });
 
-  it("makes no second write when the first one failed", async () => {
+  it("logs, and does not throw, when the write fails", async () => {
     selectMock.mockResolvedValue({ data: null, error: { message: "boom" } });
-    await write({ status: "claimed", proof: PROOF });
+    await expect(write({ status: "claimed" })).resolves.toBeUndefined();
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("logs, and does not throw, when the screenshot-only write fails", async () => {
-    selectMock.mockResolvedValue({ data: [], error: null });
-    proofOnlyResult.value = { error: { message: "boom" } };
-    await expect(
-      write({ status: "claimed", proof: PROOF }),
-    ).resolves.toBeUndefined();
-    expect(errorSpy).toHaveBeenCalled();
+  it.each([
+    [{ status: "claimed" as const }],
+    [{ status: "confirmed" as const, confirmedAt: "2026-08-11T00:00:05Z" }],
+  ])("never writes the screenshot columns (%j)", async (payment) => {
+    await write(payment);
+    const patch = updateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(patch).not.toHaveProperty("payment_proof_path");
+    expect(patch).not.toHaveProperty("payment_proof_hash");
   });
 });

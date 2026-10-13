@@ -46,8 +46,8 @@ vi.mock("@/app/dashboard/order-actions", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 // PaymentProofViewer is dynamically imported (next/dynamic, see order-card.tsx)
-// and heavy (pulls in tesseract.js on demand) — its own rendering/OCR/duplicate
-// logic is covered by payment-proof-viewer.dom.test.tsx. Here we only assert
+// — its own rendering of the photo, the duplicate warning and the amount hint
+// is covered by payment-proof-viewer.dom.test.tsx. Here we only assert
 // the wiring: the trigger's visibility rules and the props it's given.
 vi.mock("./payment-proof-viewer", () => ({
   PaymentProofViewer: ({
@@ -965,13 +965,37 @@ describe("OrderCard — payment proof review", () => {
     expect(screen.queryByTestId("proof-viewer")).not.toBeInTheDocument();
   });
 
-  it("shows no trigger for a claimed order with no uploaded proof photo", () => {
+  it("shows the trigger for a claimed order with no proof path of its own (paykit holds the photo)", () => {
     render(
       <OrderCard
         order={makeOrder({
           payment_status: "claimed",
           payment_proof_path: null,
         })}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByRole("button", { name: /view payment proof/i }),
+    ).toBeInTheDocument();
+  });
+
+  it.each(["pending", "not_required"] as const)(
+    "shows no trigger while payment is %s",
+    (payment_status) => {
+      render(<OrderCard order={makeOrder({ payment_status })} />, {
+        wrapper: TooltipProvider,
+      });
+      expect(
+        screen.queryByRole("button", { name: /view payment proof/i }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows no trigger on a cancelled order, even a claimed one", () => {
+    render(
+      <OrderCard
+        order={makeOrder({ status: "cancelled", payment_status: "claimed" })}
       />,
       { wrapper: TooltipProvider },
     );

@@ -13,7 +13,6 @@ type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 export type PaidOrderPayment = {
   status: "claimed" | "confirmed";
   confirmedAt?: string | null;
-  proof?: { path: string; hash: string };
 };
 
 export type FinalizeResult = { ok: true; orderNumber: string } | { ok: false };
@@ -23,15 +22,6 @@ export type FinalizeResult = { ok: true; orderNumber: string } | { ok: false };
 // early. The customer's claim and paykit's callback arrive within the same
 // second, so they share a window unless the hour turns between them.
 const ALERT_ONCE_WINDOW_SECONDS = 3_600;
-
-function proofPatch(payment: PaidOrderPayment) {
-  return payment.proof
-    ? {
-        payment_proof_path: payment.proof.path,
-        payment_proof_hash: payment.proof.hash,
-      }
-    : {};
-}
 
 function writeForward(
   supabase: ServiceClient,
@@ -44,7 +34,6 @@ function writeForward(
       .update({
         payment_status: "confirmed",
         paid_at: payment.confirmedAt ?? new Date().toISOString(),
-        ...proofPatch(payment),
       })
       .eq("id", orderId)
       .neq("payment_status", "not_required")
@@ -52,9 +41,9 @@ function writeForward(
       .select("id");
   return supabase
     .from("orders")
-    .update({ payment_status: "claimed", ...proofPatch(payment) })
+    .update({ payment_status: "claimed" })
     .eq("id", orderId)
-    .in("payment_status", payment.proof ? ["pending", "claimed"] : ["pending"])
+    .eq("payment_status", "pending")
     .select("id");
 }
 
@@ -65,28 +54,18 @@ function writeForward(
  * thrown: paykit already holds the payment, so a missed mirror write must not
  * fail the caller.
  *
- * When a screenshot is given and the order is already further along than the
- * status being recorded (paykit's callback got there first), the screenshot
- * is still written, by itself.
+ * The payment screenshot is not part of the mirror. paykit holds it with the
+ * transaction, and `orders.payment_proof_path` / `payment_proof_hash` are
+ * written by nothing: they remain only on orders claimed before that moved.
  */
 export async function writePaidMirror(
   supabase: ServiceClient,
   orderId: string,
   payment: PaidOrderPayment,
 ): Promise<void> {
-  const { data: rows, error } = await writeForward(supabase, orderId, payment);
-  if (error) {
+  const { error } = await writeForward(supabase, orderId, payment);
+  if (error)
     console.error("writePaidMirror: mirror update failed", error.message);
-    return;
-  }
-  if ((rows ?? []).length > 0 || !payment.proof) return;
-
-  const { error: proofError } = await supabase
-    .from("orders")
-    .update(proofPatch(payment))
-    .eq("id", orderId);
-  if (proofError)
-    console.error("writePaidMirror: proof update failed", proofError.message);
 }
 
 /**

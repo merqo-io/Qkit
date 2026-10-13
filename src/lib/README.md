@@ -69,13 +69,6 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `events.ts` — `eventLabel(license)`: display name for a paid pass/event
   (vendor's own label, or a dated default like "Pass · 7 Jun").
 - `events.test.ts` — tests label fallback and whitespace-only-label handling.
-- `hash.ts` — `hashBuffer(buffer)`: SHA-256 hex digest of an `ArrayBuffer` via
-  `node:crypto`'s `createHash` (matches this repo's existing hashing
-  convention, not the global Web Crypto `crypto.subtle`). Used by
-  `claimPayment` (`order/[boothId]/[orderNumber]/payment-actions.ts`) to
-  fingerprint an uploaded payment-proof photo (`orders.payment_proof_hash`).
-- `hash.test.ts` — tests digest stability and that different input hashes
-  differently.
 - `hours-editor.ts` — pure state transitions behind the working-hours editor:
   `WEEKDAY_KEYS`, `DEFAULT_WINDOW`, `emptyWeek`, `dailyHours`, `weekFromDaily`,
   `dailyFromWeek` — the daily↔weekly conversions, kept out of the component so
@@ -492,7 +485,7 @@ feeds `booth-access.ts`'s serveability calculation, mirroring the
 
 ## Payment proof schema
 
-`schemas.ts` exports `paymentProofSchema`, `PAYMENT_PROOF_MAX_BYTES` (1 MB) and `PAYMENT_PROOF_EXTENSIONS` (MIME type to file extension, JPEG/PNG/WebP). `claimPayment` and `pay-form.tsx` both validate against it, and the `payment-proofs` bucket enforces the same limits at the storage layer (migration `0093`). Keep all three in step.
+`schemas.ts` exports `paymentProofSchema`, `PAYMENT_PROOF_MAX_BYTES` (1 MB) and `PAYMENT_PROOF_EXTENSIONS` (MIME type to file extension, JPEG/PNG/WebP). `claimPayment` and `pay-form.tsx` both validate against it. `claimPayment` then forwards the file to paykit, which checks the same limits again (by the file's bytes) and stores it in its own bucket. qkit's `payment-proofs` bucket (migration `0093`) holds only screenshots from orders claimed before that moved. Keep qkit's schema and paykit's limits in step.
 
 ## Shared package note
 
