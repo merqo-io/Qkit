@@ -33,8 +33,8 @@ Step-by-step implementation plans, one per feature, each derived from the matchi
 - `2026-08-16-shared-plan-comparison-table.md` — "Shared Plan Comparison Table Implementation Plan": builds `@merqo/ui`'s new `PlanComparisonTable` component and migrates qkit's own `/dashboard/plan` page onto it.
 
 - `2026-10-08-merqo-products-audit.md` — Seven-product audit scope, source-inclusive coverage targets, independent review and verification limits. Current completion evidence is in `../../meta/2026-10-08-product-sweep-status.md` and the per-file review ledgers.
+- `2026-10-12-paykit-status-callback.md` — Phase P2 of the paykit and printkit separation design: paykit posts a payment-status callback to the kit that owns a transaction after a claim, unclaim or confirm, and qkit's new `POST /api/paykit/payment-status` reads the real status back and applies it through one repeat-safe `finalizePaidOrder`. Two PRs, paykit first; one paykit migration (two nullable columns), none in qkit. Awaiting owner review.
 - `2026-10-10-paykit-order-ref-lookup.md` — Phase P1 of the paykit and printkit separation design: paykit gains `GET /api/v1/checkout?order_ref=` and qkit's confirm, claim and undo actions look an order's transaction up instead of creating the checkout again. Two PRs, paykit first; no migration. Awaiting owner review.
-- `2026-10-12-paykit-status-callback.md` — Phase P2 of the same design: paykit posts a payment-status callback to the kit that owns a transaction after a claim, unclaim or confirm, and qkit's new `POST /api/paykit/payment-status` reads the real status back and applies it through one repeat-safe `finalizePaidOrder`. Two PRs, paykit first; one paykit migration (two nullable columns), none in qkit. Awaiting owner review.
 
 ## Parent
 
