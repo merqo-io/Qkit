@@ -183,6 +183,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Payment details are now entered in paykit only. A booth's Payment section
+  is a switch ("Take payment for orders at this booth"), one line naming what
+  paykit has on file, and a link to paykit's payment setup page, which offers
+  "Back to your booth" after a save. With nothing on file the switch is off
+  and the link reads "Set up payments in paykit". Saving a booth stores which
+  kind of payment it takes from the switch plus the kind paykit reports, so a
+  booth picks up a method changed in paykit the next time it is saved. If
+  paykit cannot be reached, the booth keeps its current payment setting and
+  everything else on the form still saves. Booths already taking payment are
+  unchanged, and a payment QR image uploaded here earlier stays where it is.
 - Board settings: every switch saves the moment it is flipped. Four of them
   (Telegram ready alerts, self-checkout pickup, daily order number, wait-time
   estimate) used to wait for a Save button further down the card while the
@@ -283,6 +293,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - qkit no longer stores printkit's location id on a booth. `booths.printkit_location_id` stays as an unused column; no migration.
 - The print-status callback accepts the order's id as `source_ref` or `order_id`.
 - A deployment with no printkit address or secret says "Printing isn't configured yet" in the Printing section, not that printkit cannot be reached.
+
+### Removed
+
+- The PayNow and payment-link form inside the booth editor, with qkit's own
+  rules for a UEN, mobile number, payment link and QR image. paykit's form is
+  the only one now, so the two can no longer disagree about what is valid.
+  Internal: `upsertVendorConfig`, `saved-vendor-payment.ts`,
+  `paymentConfigSchema` (a `{kind}` marker schema remains) and the reserved
+  `stripe` kind on the TypeScript side are gone.
 
 ### Added
 

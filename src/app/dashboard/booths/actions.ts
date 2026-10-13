@@ -19,11 +19,11 @@ import {
   orphanedImagePaths,
   failedSaveUploadPaths,
 } from "@/lib/booth/images";
-import { upsertVendorConfig } from "@/lib/paykit/client";
+import { setupKind, vendorPaymentSetup } from "@/lib/paykit/payment-setup";
 import { registerPrintLocation } from "@/lib/printkit/client";
 import { sweepUnsavedUploads } from "./sweep-unsaved-uploads";
 import type { ActionResult } from "@/lib/action-result";
-import type { Database } from "@/lib/types";
+import type { Database, PaymentKind } from "@/lib/types";
 import { paymentMarker } from "@/lib/payment-marker";
 
 type BoothRow = Database["qkit"]["Tables"]["booths"]["Update"] & {
@@ -257,30 +257,24 @@ export async function regenerateShortCode(
 }
 
 // Bounds the client-supplied list of images a save uploaded. A booth form
-// commits at most a banner and a payment QR.
+// commits at most a banner.
 const freshUploadsSchema = z.array(z.string().max(2048)).max(10);
 
 /**
  * Save the booth form. `freshUploads` lists the images the form uploaded for
- * this save (its pending banner/QR, committed on submit); if the save fails,
- * the ones nothing references are deleted here rather than by the client,
- * because only this action knows whether the payment QR already reached
- * paykit before a later step failed.
+ * this save (its pending banner, committed on submit); if the save fails,
+ * they are deleted here, where the vendor's own folder is known.
  */
 export async function saveBooth(
   input: BoothFormInput,
   freshUploads: string[] = [],
 ): Promise<SaveBoothResult> {
-  const persisted = new Set<string>();
-  const result = await persistBooth(input, persisted);
-  if (!result.success) await discardUnsavedUploads(freshUploads, persisted);
+  const result = await persistBooth(input);
+  if (!result.success) await discardUnsavedUploads(freshUploads);
   return result;
 }
 
-async function discardUnsavedUploads(
-  freshUploads: unknown,
-  persisted: ReadonlySet<string>,
-) {
+async function discardUnsavedUploads(freshUploads: unknown) {
   const parsed = freshUploadsSchema.safeParse(freshUploads);
   if (!parsed.success || parsed.data.length === 0) return;
   try {
@@ -291,7 +285,7 @@ async function discardUnsavedUploads(
     if (!user) return;
     await removeBoothImages(
       supabase,
-      failedSaveUploadPaths(parsed.data, user.id, persisted),
+      failedSaveUploadPaths(parsed.data, user.id),
       "saveBooth",
     );
   } catch (error) {
@@ -316,10 +310,33 @@ function dailyCapPatch(
   return {};
 }
 
-async function persistBooth(
-  input: BoothFormInput,
-  persisted: Set<string>,
-): Promise<SaveBoothResult> {
+/**
+ * The booth's `{kind}` marker, from the form's switch and the kind paykit
+ * holds for the vendor right now. The payment details are entered in paykit
+ * and are vendor-wide, so the kind is read there at save time rather than
+ * trusted from the form: a vendor who changed method in paykit gets the new
+ * kind on the next save of each booth.
+ *
+ * Switch off: no payment, and paykit is not asked. Switch on with nothing on
+ * file: no payment, since an order must not owe a payment nobody can make.
+ * Switch on and paykit did not answer: the key is left out, so an update
+ * keeps the marker the booth already has and the rest of the booth still
+ * saves. `qkit.place_order` and `qkit.place_walkup_order` read this marker.
+ */
+async function paymentPatch(
+  vendorId: string,
+  takesPayment: boolean,
+): Promise<{ payment?: { kind: PaymentKind } | null }> {
+  if (!takesPayment) return { payment: null };
+  const setup = await vendorPaymentSetup(vendorId);
+  if (setup.state === "unreachable") {
+    console.error("saveBooth: paykit unreachable, payment marker kept");
+    return {};
+  }
+  return { payment: paymentMarker(setupKind(setup)) };
+}
+
+async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
   const parsed = boothFormSchema.safeParse(input);
   if (!parsed.success)
     return { success: false, error: "Invalid booth details" };
@@ -349,29 +366,11 @@ async function persistBooth(
     if (capError) return { success: false, error: capError };
   }
 
-  // Full payment config now lives in paykit (vendor-scoped, reused across
-  // every booth this vendor runs), not booths.payment — the "quick add
-  // PayNow" section just redirects its write here instead of redesigning the
-  // form. A paykit failure fails the whole save (surfaced via the existing
-  // toast.error(result.error) path) rather than silently losing the vendor's
-  // payment settings.
-  if (data.payment && data.payment.kind !== "stripe") {
-    const result = await upsertVendorConfig(user.id, data.payment);
-    if (!result.ok)
-      return {
-        success: false,
-        error: `Could not save payment settings: ${result.error}`,
-      };
-    if (data.payment.kind === "pointer" && data.payment.qr_image_url)
-      persisted.add(data.payment.qr_image_url);
-  }
-
   const row = {
     name: data.name,
     image_url: data.image_url,
     is_active: data.is_active,
     hours,
-    payment: paymentMarker(data.payment?.kind),
     social_links: data.social_links,
     requires_arrival_confirm: data.requires_arrival_confirm,
     walkup_default: data.walkup_default,
@@ -379,6 +378,7 @@ async function persistBooth(
     paykit_booking_id: data.paykit_booking_id,
     max_items_per_order: data.max_items_per_order,
     ...dailyCapPatch(entitlement, data.daily_cup_cap, !data.boothId),
+    ...(await paymentPatch(user.id, data.takes_payment)),
   };
 
   const result = await upsertBoothRow(supabase, row, data.boothId, user.id);

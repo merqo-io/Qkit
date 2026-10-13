@@ -65,12 +65,15 @@ const ENTITLEMENT: Entitlement = {
   statsRanges: ["24h"],
 };
 
+const NO_SETUP = { state: "none" } as const;
+
 function renderForm() {
   return render(
     <BoothForm
       vendorId="v1"
       entitlement={ENTITLEMENT}
       vendorSocialLinks={{}}
+      paymentSetup={NO_SETUP}
     />,
   );
 }
@@ -95,7 +98,7 @@ describe("BoothForm deferred banner upload", () => {
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
     await waitFor(() => expect(saveBooth).toHaveBeenCalled());
-    expect(commitPendingImages).toHaveBeenCalledWith([PREVIEW, null]);
+    expect(commitPendingImages).toHaveBeenCalledWith([PREVIEW]);
     expect(saveBooth).toHaveBeenCalledWith(
       expect.objectContaining({ image_url: UPLOADED }),
       [UPLOADED],

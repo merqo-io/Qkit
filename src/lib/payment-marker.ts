@@ -1,3 +1,4 @@
+import { paymentMarkerSchema } from "@/lib/schemas";
 import type { PaymentKind } from "@/lib/types";
 
 /**
@@ -13,32 +14,24 @@ import type { PaymentKind } from "@/lib/types";
 
 /**
  * The kind stored on a booth, or null for a booth with no payment set up or
- * a value that is not a marker at all. Reads only the discriminant: the
- * full-config parser would reject a bare marker and report every configured
- * booth as taking no payment.
+ * a value that is not a marker at all. Reads only the discriminant, so a row
+ * that still holds a whole config from before the details moved to paykit
+ * reads as its kind. `stripe`, which SQL's check still allows and nothing
+ * ever stored, reads as none: the same answer `place_walkup_order` gives.
  */
 export function paymentKindOf(data: unknown): PaymentKind | null {
-  const kind = (data as { kind?: unknown } | null)?.kind;
-  return kind === "paynow" || kind === "pointer" || kind === "stripe"
-    ? kind
-    : null;
+  const parsed = paymentMarkerSchema.safeParse(data);
+  return parsed.success ? parsed.data.kind : null;
 }
 
-/**
- * Whether orders at a booth of this kind start out owing payment. `stripe`
- * is reserved but dark, and counts as no payment, the same rule
- * `place_walkup_order` applies.
- */
+/** Whether orders at a booth of this kind start out owing payment. */
 export function expectsPayment(kind: PaymentKind | null): boolean {
-  return kind !== null && kind !== "stripe";
+  return kind !== null;
 }
 
-/**
- * The marker to store for a booth saved with this kind, or null for no
- * payment. `stripe` cannot be chosen in the form and is stored as none.
- */
+/** The marker to store for a booth of this kind, or null for no payment. */
 export function paymentMarker(
-  kind: PaymentKind | undefined,
+  kind: PaymentKind | null,
 ): { kind: PaymentKind } | null {
-  return kind === "paynow" || kind === "pointer" ? { kind } : null;
+  return kind ? { kind } : null;
 }

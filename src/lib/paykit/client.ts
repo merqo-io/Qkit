@@ -16,20 +16,6 @@ export type PaykitResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number | null; error: string };
 
-export type VendorConfigWrite =
-  | { kind: "paynow"; payee_name: string; uen?: string; mobile?: string }
-  | { kind: "pointer"; label: string; url?: string; qr_image_url?: string };
-
-export type VendorConfigResponse = {
-  hasConfig: boolean;
-  displayName: string | null;
-};
-
-const vendorConfigResponseSchema = z.object({
-  has_config: z.boolean(),
-  display_name: z.string().nullable(),
-});
-
 export type VendorConfigFull = {
   hasConfig: boolean;
   displayName: string | null;
@@ -217,32 +203,12 @@ async function paykitRequest<T>(
   }
 }
 
-/** Upsert a vendor's PayNow/pointer payment config — the write side of the
- *  "quick add PayNow" section on the booth form. Reused across every booth
- *  the vendor runs (paykit's config is vendor-scoped, not booth-scoped). */
-export async function upsertVendorConfig(
-  vendorId: string,
-  config: VendorConfigWrite,
-): Promise<PaykitResult<VendorConfigResponse>> {
-  const result = await paykitRequest(
-    `/api/v1/vendors/${encodeURIComponent(vendorId)}/config`,
-    vendorConfigResponseSchema,
-    { method: "POST", body: JSON.stringify(config) },
-  );
-  if (!result.ok) return result;
-  return {
-    ok: true,
-    data: {
-      hasConfig: result.data.has_config,
-      displayName: result.data.display_name,
-    },
-  };
-}
-
-/** Read back a vendor's full PayNow/pointer config — the prefill source for
- *  re-opening a booth's Payment settings (see `EditBoothPage`). Falls back to
- *  the booth's own `{kind}` marker when this degrades (`ok:false`, e.g. no
- *  `PAYKIT_KIT_SECRET` in this environment) or reports `hasConfig:false`. */
+/** Read a vendor's payment config as paykit holds it. The config is entered
+ *  in paykit and is vendor-wide; qkit only reads it, to name what is on file
+ *  in the booth form (`vendorPaymentSetup`) and to learn the kind a booth's
+ *  marker should carry (`saveBooth`). `ok:false` (paykit unreachable, or no
+ *  `PAYKIT_KIT_SECRET` in this environment) means paykit did not say, which
+ *  is not the same as `hasConfig:false`. */
 export async function getVendorConfig(
   vendorId: string,
 ): Promise<PaykitResult<VendorConfigFull>> {

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
-  upsertVendorConfig,
   getVendorConfig,
   createCheckout,
   claimCheckout,
@@ -40,11 +39,7 @@ afterEach(() => {
 describe("paykit client — auth/config", () => {
   it("degrades to a clear error without hitting the network when the secret is unset", async () => {
     vi.stubEnv("PAYKIT_KIT_SECRET", "");
-    const res = await upsertVendorConfig(VENDOR, {
-      kind: "paynow",
-      payee_name: "Cart",
-      uen: "53312345A",
-    });
+    const res = await getVendorConfig(VENDOR);
     expect(res).toEqual({
       ok: false,
       status: null,
@@ -55,13 +50,19 @@ describe("paykit client — auth/config", () => {
 
   it("sends the qkit:<secret> bearer header and JSON content-type", async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse(200, { has_config: true, display_name: "Cart" }),
+      jsonResponse(200, {
+        has_config: false,
+        display_name: null,
+        kind: null,
+        payee_name: null,
+        uen: null,
+        mobile: null,
+        label: null,
+        url: null,
+        qr_image_url: null,
+      }),
     );
-    await upsertVendorConfig(VENDOR, {
-      kind: "paynow",
-      payee_name: "Cart",
-      uen: "53312345A",
-    });
+    await getVendorConfig(VENDOR);
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe(
       `https://paykit.example/api/v1/vendors/${VENDOR}/config`,
@@ -69,47 +70,44 @@ describe("paykit client — auth/config", () => {
     expect(init.headers.Authorization).toBe("Bearer qkit:test-secret");
     expect(init.headers["Content-Type"]).toBe("application/json");
   });
-});
 
-describe("upsertVendorConfig", () => {
-  it("maps a successful response to camelCase", async () => {
+  it("surfaces an error from the body of a failed answer", async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse(200, { has_config: true, display_name: "Kopitiam Cart" }),
+      jsonResponse(503, { error: "Upstream unavailable" }),
     );
-    const res = await upsertVendorConfig(VENDOR, {
-      kind: "paynow",
-      payee_name: "Kopitiam Cart",
-      uen: "53312345A",
-    });
-    expect(res).toEqual({
-      ok: true,
-      data: { hasConfig: true, displayName: "Kopitiam Cart" },
-    });
-  });
-
-  it("surfaces a 400 validation error from the body", async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse(400, { error: "Provide either a UEN or a mobile number" }),
-    );
-    const res = await upsertVendorConfig(VENDOR, {
-      kind: "paynow",
-      payee_name: "Cart",
-    });
-    expect(res).toEqual({
+    expect(await getVendorConfig(VENDOR)).toEqual({
       ok: false,
-      status: 400,
-      error: "Provide either a UEN or a mobile number",
+      status: 503,
+      error: "Upstream unavailable",
     });
   });
 
   it("reports a network failure without throwing", async () => {
     fetchMock.mockRejectedValue(new Error("fetch failed"));
-    const res = await upsertVendorConfig(VENDOR, {
-      kind: "pointer",
-      label: "Pay",
-      url: "https://pay.me/x",
+    expect(await getVendorConfig(VENDOR)).toEqual({
+      ok: false,
+      status: null,
+      error: "fetch failed",
     });
-    expect(res).toEqual({ ok: false, status: null, error: "fetch failed" });
+  });
+
+  it("never writes a vendor's payment config", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        has_config: false,
+        display_name: null,
+        kind: null,
+        payee_name: null,
+        uen: null,
+        mobile: null,
+        label: null,
+        url: null,
+        qr_image_url: null,
+      }),
+    );
+    await getVendorConfig(VENDOR);
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+    expect(await import("./client")).not.toHaveProperty("upsertVendorConfig");
   });
 });
 
@@ -517,15 +515,7 @@ describe("path-segment encoding", () => {
   const evilId = "abc/../secret?x=1#frag";
   const encoded = encodeURIComponent(evilId);
 
-  it("encodes vendorId in upsertVendorConfig/getVendorConfig", async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse(200, { has_config: false, display_name: null }),
-    );
-    await upsertVendorConfig(evilId, { kind: "paynow", payee_name: "Cart" });
-    expect(String(fetchMock.mock.calls[0][0])).toBe(
-      `https://paykit.example/api/v1/vendors/${encoded}/config`,
-    );
-
+  it("encodes vendorId in getVendorConfig", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {
         has_config: false,
@@ -540,7 +530,7 @@ describe("path-segment encoding", () => {
       }),
     );
     await getVendorConfig(evilId);
-    expect(String(fetchMock.mock.calls[1][0])).toBe(
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
       `https://paykit.example/api/v1/vendors/${encoded}/config`,
     );
   });

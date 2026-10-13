@@ -76,19 +76,22 @@ describe("booth editor data boundary", () => {
     expect(booking).not.toHaveBeenCalled();
   });
   it.each([
-    [null, null],
-    [{ kind: "paynow" }, { kind: "paynow", payee_name: "" }],
-    [{ kind: "pointer" }, { kind: "pointer", label: "" }],
-    [{ kind: "unknown" }, null],
+    [null, false],
+    [{ kind: "paynow" }, true],
+    [{ kind: "pointer" }, true],
+    [{ kind: "paynow", payee_name: "Cart", uen: "123456789A" }, true],
+    [{ kind: "stripe" }, false],
+    [{ kind: "unknown" }, false],
   ])(
-    "falls back to the local marker %j when Paykit is unavailable",
-    async (payment, expected) => {
+    "reads the booth's own marker %j as its switch when paykit is unavailable",
+    async (payment, takesPayment) => {
       booth.current = { ...booth.current, payment };
       render(await page());
       expect(form).toHaveBeenCalledWith(
         expect.objectContaining({
+          paymentSetup: { state: "unreachable" },
           initial: expect.objectContaining({
-            payment: expected,
+            takes_payment: takesPayment,
             bookingStatus: null,
             menuItemCount: 0,
           }),
@@ -101,61 +104,53 @@ describe("booth editor data boundary", () => {
   );
   it.each([
     [
-      {
-        kind: "paynow",
-        payeeName: "Coffee",
-        uen: "123456789A",
-        mobile: "+6581234567",
-      },
-      {
-        kind: "paynow",
-        payee_name: "Coffee",
-        uen: "123456789A",
-        mobile: "+6581234567",
-      },
+      { kind: "paynow", payeeName: "Coffee", uen: "123456789A" },
+      { state: "paynow", name: "Coffee" },
     ],
-    [{ kind: "paynow" }, { kind: "paynow", payee_name: "" }],
+    [
+      { kind: "pointer", label: "Pay here", url: "https://pay.example" },
+      { state: "link", name: "Pay here" },
+    ],
     [
       {
         kind: "pointer",
         label: "Pay here",
-        url: "https://pay.example",
         qrImageUrl: "https://pay.example/qr.png",
       },
-      {
-        kind: "pointer",
-        label: "Pay here",
-        url: "https://pay.example",
-        qr_image_url: "https://pay.example/qr.png",
-      },
+      { state: "image", name: "Pay here" },
     ],
-    [{ kind: "pointer" }, { kind: "pointer", label: "" }],
-    [{ kind: "unknown" }, null],
-    [{ hasConfig: false }, null],
-  ])("prefills supported remote configuration %j", async (data, payment) => {
-    booth.current = {
-      ...booth.current,
-      payment: payment ? { kind: payment.kind } : null,
-    };
-    config.mockResolvedValue({ ok: true, data: { hasConfig: true, ...data } });
-    render(await page());
-    expect(form).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initial: expect.objectContaining({ payment }),
-        savedPayment: payment,
-      }),
-    );
-  });
+    [{ hasConfig: false }, { state: "none" }],
+  ])(
+    "hands the form what paykit holds %j, with no payment identifier",
+    async (data, setup) => {
+      config.mockResolvedValue({
+        ok: true,
+        data: { hasConfig: true, ...data },
+      });
+      render(await page());
+      expect(form).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentSetup: setup }),
+      );
+      expect(JSON.stringify(form.mock.calls[0][0])).not.toContain("123456789A");
+    },
+  );
   it.each(["paynow", "pointer"])(
-    "does not enable booth payment merely because vendor configuration is %s",
+    "does not switch booth payment on merely because the vendor has a %s setup",
     async (kind) => {
-      config.mockResolvedValue({ ok: true, data: { hasConfig: true, kind } });
+      config.mockResolvedValue({
+        ok: true,
+        data: {
+          hasConfig: true,
+          kind,
+          payeeName: "Cart",
+          label: "Pay",
+          url: "https://pay.example",
+        },
+      });
       render(await page());
       expect(form).toHaveBeenCalledWith(
         expect.objectContaining({
-          initial: expect.objectContaining({ payment: null }),
-          savedPayment:
-            kind === "paynow" ? { kind, payee_name: "" } : { kind, label: "" },
+          initial: expect.objectContaining({ takes_payment: false }),
         }),
       );
     },
