@@ -584,3 +584,13 @@ All steps run from this worktree. Before Task 4: sync `main` with the app's `syn
 - [ ] **Step 3: Full gate.** `pnpm check`, then `pnpm test`, one suite at a time.
 - [ ] **Step 4:** Confirm the paykit PR is merged and its production deployment is live, merge `main` in, push in the background, open the PR against `main` on `merqo-io/Qkit`. Do not merge it.
 - [ ] **Step 5: Hand the owner the manual check.** On a preview: open "TEST · Walk-up", turn "Take payment for orders at this booth" on, save, place a walk-up order and confirm it starts out owing payment; turn it off, save, place another and confirm it does not. The owner enters any payment identifier in paykit. No QR order on "TEST · Printing".
+
+## What execution changed from this plan
+
+Recorded 2026-10-13, after Tasks 1 to 7.
+
+- Task 5 copy: a label is shown in curly quotes (`“Pay with PayLah”`), not straight ones, since a straight quote in JSX text trips the lint.
+- Task 6: `failedSaveUploadPaths` lost its `persisted` parameter rather than being called with an empty set. Nothing writes a payment QR to paykit before the booth row any more, so there was nothing left to pass.
+- Task 6: the action's marker rule and its tests were written together, not test-first. The other tasks ran red before green.
+- Task 8, step 2: the `AGENTS.md` wording is in `2026-10-13-payment-setup-in-paykit.agents-md-wording.md`, beside this plan, so the owner can open it.
+- paykit PR: merqo-io/Paykit#131.
