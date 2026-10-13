@@ -175,6 +175,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sold-out limit and section fields of a menu item, the walk-up booth picker
   and the maintenance banner switch are linked to their labels.
 - The dashboard shows the outline of a page while it loads, not a spinner.
+- An order confirmed with "confirm and start" records when it was paid, once
+  paykit's callback is switched on: the callback fills in the paid time that
+  action leaves empty.
+- A print request repeated for the same order is no longer logged as a
+  failure. printkit already printed such an order only once.
 
 ### Changed
 
@@ -281,6 +286,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- qkit now hears from paykit when a payment changes. paykit calls
+  `POST /api/paykit/payment-status`; qkit reads the payment's real status back
+  from paykit and gives the order its number, alerts the vendor, sends the
+  print job and updates the payment status, the same as when the customer
+  taps "I've paid". Needs `PAYKIT_CALLBACK_SECRET` and the matching row in
+  paykit; until both are set nothing changes.
 - The board's Incoming column has "Start all" when two or more orders can be
   started together. One tap starts them and offers Undo for 8 seconds. It
   leaves out an order whose payment still needs checking, and every order at

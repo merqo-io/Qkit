@@ -13,10 +13,10 @@ import {
 // order lookup vs. loadPreClaimContext/claimPayment's 2-eq one), and the mock
 // doesn't care how many, only what it resolves to:
 //   orders:  select().eq()[.eq()...].maybeSingle()
-//            update().eq()[.eq()...][.neq()][.select()] -- unclaimPayment's
-//            mirror write still terminates in .select("id") (unchanged); the
-//            new claimPayment's mirror write is awaited directly with no
-//            .select() call, so the chain is also directly thenable.
+//            update().eq()[.eq()|.neq()|.in()|.or()...][.select()] -- both
+//            mirror writes end in .select("id"); claimPayment's
+//            screenshot-only fallback (finalize-paid-order.ts) is awaited
+//            with no .select(), so the chain is also directly thenable.
 //   booths:  select().eq().maybeSingle()
 //   storage: from("payment-proofs").upload(...)
 //   rpc:     rpc("assign_order_number", { p_order_id })
@@ -61,6 +61,8 @@ const {
         return node;
       },
       neq: () => node,
+      in: () => node,
+      or: () => node,
       select: writeSelect,
       then: (onFulfilled: unknown, onRejected: unknown) =>
         writeSelect().then(
@@ -497,12 +499,57 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     expect(storageUploadMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a claim on an order that isn't awaiting payment", async () => {
+  it("lets the customer retry when the paykit callback marked the order claimed before a screenshot was recorded", async () => {
     ordersMaybeSingle.mockResolvedValue({
       data: {
         id: "o1",
         total_cents: 800,
         payment_status: "claimed",
+        payment_proof_path: null,
+        status: "pending",
+        customer_name: "Ann",
+      },
+    });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(storageUploadMock).toHaveBeenCalled();
+    expect(claimCheckoutMock).toHaveBeenCalledWith("tx1");
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "claimed",
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
+  });
+
+  it.each(["claimed", "confirmed"])(
+    "rejects a claim on a %s order that already has its screenshot",
+    async (payment_status) => {
+      ordersMaybeSingle.mockResolvedValue({
+        data: {
+          id: "o1",
+          total_cents: 800,
+          payment_status,
+          payment_proof_path: "v1/o1.webp",
+          status: "preparing",
+          customer_name: "Ann",
+        },
+      });
+      const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+      expect(result).toEqual({
+        success: false,
+        error: "This order isn't awaiting payment.",
+      });
+      expect(storageUploadMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a claim on a confirmed order even with no screenshot on file", async () => {
+    ordersMaybeSingle.mockResolvedValue({
+      data: {
+        id: "o1",
+        total_cents: 800,
+        payment_status: "confirmed",
+        payment_proof_path: null,
         status: "preparing",
         customer_name: "Ann",
       },
@@ -652,6 +699,54 @@ describe("claimPayment (photo required, deferred numbering)", () => {
     writeSelect.mockResolvedValue({ data: null, error: { message: "boom" } });
     const result = await claimPayment(BOOTH, TOKEN, fakeFile());
     expect(result).toEqual({ success: true, orderNumber: "0007" });
+  });
+
+  it("sends no second vendor alert when the paykit callback already finalized the order", async () => {
+    rateLimitMock.mockImplementation((key: string) =>
+      Promise.resolve(!key.startsWith("paid-order-alert:")),
+    );
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(rateLimitMock).toHaveBeenCalledWith("paid-order-alert:o1", 1, 3_600);
+    expect(notifyVendorTelegramMock).not.toHaveBeenCalled();
+    expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "claimed",
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
+  });
+
+  it("keeps the screenshot when the order is already further along than the claim", async () => {
+    writeSelect.mockResolvedValue({ data: [], error: null });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(update).toHaveBeenLastCalledWith({
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
+  });
+
+  it("records paid_at when paykit reports the payment already confirmed", async () => {
+    claimCheckoutMock.mockResolvedValue({
+      ok: true,
+      data: {
+        transactionId: "tx1",
+        status: "confirmed",
+        amountCents: 800,
+        orderRef: "o1",
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: "2026-08-11T00:00:05Z",
+      },
+    });
+    const result = await claimPayment(BOOTH, TOKEN, fakeFile());
+    expect(result).toEqual({ success: true, orderNumber: "0007" });
+    expect(update).toHaveBeenCalledWith({
+      payment_status: "confirmed",
+      paid_at: "2026-08-11T00:00:05Z",
+      payment_proof_path: "v1/o1.webp",
+      payment_proof_hash: expectedHash(PHOTO_BYTES),
+    });
   });
 });
 

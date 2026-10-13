@@ -274,6 +274,14 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   registered for this endpoint.
 - `qkit-printkit-auth.test.ts` — tests the unset-secret, missing-header,
   mismatched-secret, and matching-secret cases.
+- `qkit-paykit-auth.ts` — `paykitCallbackBearerOk`: constant-time bearer
+  check against `PAYKIT_CALLBACK_SECRET` for `POST
+/api/paykit/payment-status`. A plain shared secret with no `kit_slug:`
+  prefix. Separate from `qkit-printkit-auth.ts` on purpose: each inbound
+  route has its own secret.
+- `qkit-paykit-auth.test.ts` — tests the unset, empty, missing-header,
+  wrong-scheme, mismatched, different-length and matching cases, and that the
+  printkit callback secret is not accepted.
 - `rate-limit.ts` — `clientIp(headers)` (best-effort, spoofable fairness key —
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)

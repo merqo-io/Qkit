@@ -24,8 +24,8 @@ the current (non-legacy) customer ordering entry point.
 - `notify.ts` — **not** a `"use server"` file, deliberately: every export of
   a `"use server"` file becomes its own independently client-callable Server
   Action regardless of who imports it, and these two are only ever meant to
-  be called from `placeOrder` here and `claimPayment`
-  (`order/[boothId]/[orderNumber]/payment-actions.ts`) — never a client
+  be called from `placeOrder` here and `finalizePaidOrder`
+  (`order/[boothId]/[orderNumber]/finalize-paid-order.ts`) — never a client
   component. Keeping them in a plain module closes that unintended public
   endpoint (a client that knew a real `boothId`/`orderNumber` could otherwise
   invoke either directly, bypassing `placeOrder`'s own validation and rate
@@ -72,6 +72,10 @@ the current (non-legacy) customer ordering entry point.
   fire the same two calls at claim time for a payment-required order
   (numbering + vendor notification are deferred to a successful claim
   there, not `placeOrder` time) without duplicating either function's logic.
+- `notify.test.ts` — `notifyPrintkit` run again for one order: printkit's 409
+  ("a job already exists") is not logged as a failure and the guarded
+  `print_status` write is still made; any other failure logs and writes
+  nothing.
 - `actions.place-order.test.ts` — unit tests (RPC mocked) covering: the
   expired-code message mapping, a successful order, the action-level flood
   guard rejecting before `place_order` is ever called, fail-open behaviour

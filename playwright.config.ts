@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
-import { PAYKIT_MOCK_SECRET, PAYKIT_MOCK_URL } from "./e2e/paykit-mock";
+import {
+  PAYKIT_MOCK_CALLBACK_SECRET,
+  PAYKIT_MOCK_SECRET,
+  PAYKIT_MOCK_URL,
+} from "./e2e/paykit-mock";
 
 // E2E smoke layer. Deliberately small — a few critical-path flows against a
 // REAL local Supabase, covering what the mocked unit/component tests cannot:
@@ -37,6 +41,7 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_PAYKIT_URL: PAYKIT_MOCK_URL,
       PAYKIT_KIT_SECRET: PAYKIT_MOCK_SECRET,
+      PAYKIT_CALLBACK_SECRET: PAYKIT_MOCK_CALLBACK_SECRET,
     },
   },
 });
