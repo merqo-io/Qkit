@@ -29,8 +29,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov", "json-summary"],
       include: ["src/**/*.ts", "src/**/*.tsx", "public/**/*.js"],
-      // Tesseract assets match pinned upstream code after CRLF normalization.
-      exclude: ["**/*.test.{ts,tsx}", "**/*.d.ts", "public/tesseract/**"],
+      exclude: ["**/*.test.{ts,tsx}", "**/*.d.ts"],
       thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
     },
   },

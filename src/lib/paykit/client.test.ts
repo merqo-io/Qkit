@@ -8,6 +8,7 @@ import {
   confirmCheckout,
   getCheckoutStatus,
   getCheckoutByOrderRef,
+  getCheckoutEvidence,
   getBookingStatus,
 } from "./client";
 
@@ -590,6 +591,166 @@ describe("path-segment encoding", () => {
     await getBookingStatus(evilId);
     expect(String(fetchMock.mock.calls[0][0])).toBe(
       `https://paykit.example/api/v1/bookings/${encoded}`,
+    );
+  });
+});
+
+describe("claimCheckout with a payment screenshot", () => {
+  const statusBody = {
+    transaction_id: TX,
+    status: "claimed",
+    amount_cents: 800,
+    order_ref: "order-1",
+    claimed_at: "2026-08-11T00:00:00Z",
+    confirmed_at: null,
+  };
+
+  it("sends the file as one multipart proof part, with no JSON content type", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, statusBody));
+    const file = new File(["proof-bytes"], "screenshot.webp", {
+      type: "image/webp",
+    });
+    const res = await claimCheckout(TX, file);
+    expect(res.ok).toBe(true);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      `https://paykit.example/api/v1/checkout/${TX}/claim`,
+    );
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer qkit:test-secret");
+    expect(init.headers["Content-Type"]).toBeUndefined();
+    expect(init.body).toBeInstanceOf(FormData);
+    const parts = (init.body as FormData).getAll("proof");
+    expect(parts).toHaveLength(1);
+    const part = parts[0] as File;
+    expect(part.type).toBe("image/webp");
+    expect(await part.text()).toBe("proof-bytes");
+    expect(Array.from((init.body as FormData).keys())).toEqual(["proof"]);
+  });
+
+  it("sends no body at all without a screenshot", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, statusBody));
+    await claimCheckout(TX);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.body).toBeUndefined();
+    expect(init.headers["Content-Type"]).toBe("application/json");
+  });
+
+  it.each([
+    ["with a screenshot", true, 15_000],
+    ["without one", false, 5_000],
+  ])(
+    "gives a claim %s %i ms before giving up",
+    async (_name, withProof, ms) => {
+      vi.useFakeTimers();
+      try {
+        fetchMock.mockImplementation(
+          (_url: unknown, init: RequestInit) =>
+            new Promise((_resolve, reject) => {
+              init.signal?.addEventListener("abort", () =>
+                reject(new Error("aborted")),
+              );
+            }),
+        );
+        const pending = claimCheckout(
+          TX,
+          withProof ? new Blob(["x"], { type: "image/png" }) : undefined,
+        );
+        let settled = false;
+        void pending.then(() => {
+          settled = true;
+        });
+        await vi.advanceTimersByTimeAsync(ms - 1);
+        expect(settled).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await pending).toEqual({
+          ok: false,
+          status: null,
+          error: "aborted",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("surfaces paykit's refusal to store the screenshot as ok:false", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(503, { error: "Could not store the payment proof" }),
+    );
+    const res = await claimCheckout(TX, new Blob(["x"]));
+    expect(res).toEqual({
+      ok: false,
+      status: 503,
+      error: "Could not store the payment proof",
+    });
+  });
+});
+
+describe("getCheckoutEvidence", () => {
+  it("maps the evidence response to camelCase", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        proof_url: "https://storage.example/signed?token=abc",
+        signals: {
+          duplicate_of: { order_ref: "order-2", kit_slug: "qkit" },
+          amount_match: true,
+        },
+      }),
+    );
+    const res = await getCheckoutEvidence(TX);
+    expect(res).toEqual({
+      ok: true,
+      data: {
+        proofUrl: "https://storage.example/signed?token=abc",
+        duplicateOf: { orderRef: "order-2", kitSlug: "qkit" },
+        amountMatch: true,
+      },
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      `https://paykit.example/api/v1/checkout/${TX}/evidence`,
+    );
+    expect(init.method).toBe("GET");
+  });
+
+  it("maps an answer with no screenshot and no signals", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        proof_url: null,
+        signals: { duplicate_of: null, amount_match: null },
+      }),
+    );
+    expect(await getCheckoutEvidence(TX)).toEqual({
+      ok: true,
+      data: { proofUrl: null, duplicateOf: null, amountMatch: null },
+    });
+  });
+
+  it("rejects a body that is missing the signals", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { proof_url: null }));
+    expect(await getCheckoutEvidence(TX)).toEqual({
+      ok: false,
+      status: 200,
+      error: "paykit returned an unexpected response",
+    });
+  });
+
+  it("surfaces a 404 as ok:false", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(404, { error: "Not found" }));
+    expect(await getCheckoutEvidence(TX)).toEqual({
+      ok: false,
+      status: 404,
+      error: "Not found",
+    });
+  });
+
+  it("encodes the transaction id", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(404, { error: "Not found" }));
+    await getCheckoutEvidence("abc/../secret?x=1#frag");
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      `https://paykit.example/api/v1/checkout/${encodeURIComponent("abc/../secret?x=1#frag")}/evidence`,
     );
   });
 });

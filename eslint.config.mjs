@@ -24,9 +24,6 @@ const eslintConfig = [
       "scripts/demo/out/**",
       ".worktrees/**",
       ".claude/worktrees/**",
-      // Vendored, minified tesseract.js runtime assets (self-hosted for
-      // same-origin CSP) -- not source code.
-      "public/tesseract/**",
     ],
   },
   {
