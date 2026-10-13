@@ -4,12 +4,10 @@ import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
-  PAYMENT_PROOF_EXTENSIONS,
   parseOrderItems,
   parseOrderRef,
   parsePreClaimRef,
   paymentProofSchema,
-  type PaymentProofType,
 } from "@/lib/schemas";
 import {
   createCheckout,
@@ -18,7 +16,6 @@ import {
   type CheckoutView,
 } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
-import { hashBuffer } from "@/lib/hash";
 import { isAbandonedPayment } from "@/lib/orders";
 import { finalizePaidOrder } from "./finalize-paid-order";
 import type { ActionResult } from "@/lib/action-result";
@@ -208,17 +205,15 @@ function validatePaymentProof(
 function claimRefusal(order: {
   status: string;
   payment_status: string;
-  payment_proof_path: string | null;
+  order_number: string | null;
   created_at: string;
 }): string | null {
   if (order.status === "cancelled") return "This order was cancelled.";
-  // paykit's callback can mark an order claimed before this action has
-  // recorded the screenshot: a first attempt whose paykit answer was slow, or
-  // one that died after paykit took the claim. Let the retry through so the
-  // screenshot is recorded. paykit's claim and finalizePaidOrder both repeat
-  // safely.
-  if (order.payment_status === "claimed" && !order.payment_proof_path)
-    return null;
+  // An order can be claimed and still have no number: an earlier attempt
+  // got as far as paykit's claim and then failed to finalize. Let the retry
+  // through. paykit's claim and finalizePaidOrder both repeat safely, and
+  // paykit replaces the screenshot of a transaction that is only claimed.
+  if (order.payment_status === "claimed" && !order.order_number) return null;
   if (order.payment_status !== "pending")
     return "This order isn't awaiting payment.";
   if (isAbandonedPayment(order.created_at, Date.now()))
@@ -227,27 +222,31 @@ function claimRefusal(order: {
 }
 
 // Customer is anonymous, so this uses the service-role client (same pattern as
-// the order status page read). Requires an uploaded payment screenshot — the
-// photo upload IS the claim now, not a follow-on step, and doubles as the
+// the order status page read). Requires an uploaded payment screenshot: the
+// photo upload IS the claim, not a follow-on step, and doubles as the
 // mechanism that finally assigns this order's number (deferred at place_order
-// time for any payment-required order — see migration 0087). Payment is
-// trust-based: a claim is only a hint — the vendor confirms real receipt on
+// time for any payment-required order, see migration 0087). Payment is
+// trust-based: a claim is only a hint, and the vendor confirms real receipt on
 // the board.
 //
-// Order of operations is load-bearing: upload the photo + hash it first,
-// THEN call paykit's claim, THEN hand the order to finalizePaidOrder, which
-// assigns the order number, fires the vendor notifications, and writes the
-// local payment_status mirror last. A failed upload never touches
-// payment_status or order_number at all (no half-claimed state); a failed
-// paykit claim leaves only a harmless orphaned photo in storage; a failed
-// mirror write doesn't undo an already-successful paykit claim +
-// already-assigned number, so it still reports success.
+// The screenshot goes to paykit with the claim. paykit stores it with the
+// transaction before the claim commits, and qkit keeps no copy: nothing here
+// touches a storage bucket or the orders.payment_proof_* columns.
+//
+// Order of operations is load-bearing: find the transaction, THEN send the
+// claim and the screenshot to paykit in one request, THEN hand the order to
+// finalizePaidOrder, which assigns the order number, fires the vendor
+// notifications, and writes the local payment_status mirror last. Anything
+// that fails up to and including paykit's answer leaves the order exactly as
+// it was (no number, no notification, mirror still pending), so the customer
+// can try again; a failed mirror write doesn't undo an already-successful
+// paykit claim + already-assigned number, so it still reports success.
 //
 // paykit calls qkit back as soon as its claim commits, so the callback route
 // (src/app/api/paykit/payment-status/route.ts) usually runs
 // finalizePaidOrder for this same order while this action is still inside
 // it. That function is built for it: one number, one vendor alert, one
-// label, and the screenshot is kept whichever mirror write lands first.
+// label.
 export async function claimPayment(
   boothId: string,
   token: string,
@@ -275,9 +274,7 @@ export async function claimPayment(
 
   const { data: order } = await supabase
     .from("orders")
-    .select(
-      "id, total_cents, payment_status, payment_proof_path, status, created_at",
-    )
+    .select("id, total_cents, payment_status, order_number, status, created_at")
     .eq("booth_id", boothId)
     .eq("access_token", token)
     .maybeSingle();
@@ -292,23 +289,6 @@ export async function claimPayment(
     .maybeSingle();
   if (!booth?.vendor_id) return { success: false, error: "Invalid order" };
 
-  // No resize here. pay-form.tsx already resized to <=1600px WebP/JPEG in
-  // the browser; resizeToWebp needs a <canvas>, so calling it again in this
-  // server action only ever threw internally and fell back to the original
-  // file. paymentProofSchema above is what bounds the size server-side.
-  const contentType = proof.data.type as PaymentProofType;
-  const buffer = await proof.data.arrayBuffer();
-  const hash = await hashBuffer(buffer);
-  const path = `${booth.vendor_id}/${order.id}.${PAYMENT_PROOF_EXTENSIONS[contentType]}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("payment-proofs")
-    .upload(path, buffer, { upsert: true, contentType });
-  if (uploadError) {
-    console.error("claimPayment: proof upload failed", uploadError.message);
-    return { success: false, error: "Could not upload photo. Try again." };
-  }
-
   const transaction = await transactionIdForOrder({
     vendorId: booth.vendor_id,
     amountCents: order.total_cents,
@@ -321,7 +301,10 @@ export async function claimPayment(
     );
     return { success: false, error: "Could not record payment. Try again." };
   }
-  const claim = await claimCheckout(transaction.data);
+  // No resize here. pay-form.tsx already resized to <=1600px WebP/JPEG in
+  // the browser, and a server action has no <canvas>. paymentProofSchema
+  // above bounds the size and type; paykit checks both again.
+  const claim = await claimCheckout(transaction.data, proof.data);
   if (!claim.ok) {
     console.error("claimPayment: paykit claim failed", claim.error);
     return { success: false, error: "Could not record payment. Try again." };
@@ -331,11 +314,7 @@ export async function claimPayment(
 
   const finalized = await finalizePaidOrder(
     { id: order.id, boothId },
-    {
-      status: claim.data.status,
-      confirmedAt: claim.data.confirmedAt,
-      proof: { path, hash },
-    },
+    { status: claim.data.status, confirmedAt: claim.data.confirmedAt },
   );
   if (!finalized.ok)
     return { success: false, error: "Could not finalize order. Try again." };

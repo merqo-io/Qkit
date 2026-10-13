@@ -26,6 +26,9 @@ interface MockTransaction {
   status: MockStatus;
   claimedAt: string | null;
   confirmedAt: string | null;
+  // Whether the last claim carried a payment screenshot. The mock keeps no
+  // file: qkit's e2e only needs to know paykit was given one.
+  hasProof: boolean;
 }
 
 // Real paykit calls qkit back after a claim or confirm commits (see
@@ -96,6 +99,7 @@ class MockStore {
         status: "pending",
         claimedAt: null,
         confirmedAt: null,
+        hasProof: false,
       };
       this.byOrderRef.set(orderRef, tx);
       this.byId.set(tx.id, tx);
@@ -135,12 +139,25 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
   });
 }
 
-function handleClaim(store: MockStore, id: string, send: Send) {
+// Real paykit accepts the customer's screenshot as a multipart `proof` file
+// on the claim and stores it before the claim commits. The mock reads no
+// bytes: a multipart body counts as a screenshot, any other body as none.
+function handleClaim(
+  store: MockStore,
+  id: string,
+  contentType: string,
+  send: Send,
+) {
   const tx = store.getById(id);
   if (!tx) {
     send(404, { error: "Not found" });
     return;
   }
+  if (
+    contentType.toLowerCase().startsWith("multipart/form-data") &&
+    tx.status !== "confirmed"
+  )
+    tx.hasProof = true;
   const changed = tx.status === "pending";
   if (changed) {
     tx.status = "claimed";
@@ -172,6 +189,21 @@ function handleStatus(store: MockStore, id: string, send: Send) {
     return;
   }
   send(200, statusBody(tx));
+}
+
+// `GET /api/v1/checkout/{id}/evidence`. The link points back at this mock
+// and serves nothing; no e2e spec loads it. The mock reports no duplicate
+// and, like real paykit today, does not check the amount.
+function handleEvidence(store: MockStore, id: string, send: Send) {
+  const tx = store.getById(id);
+  if (!tx) {
+    send(404, { error: "Not found" });
+    return;
+  }
+  send(200, {
+    proof_url: tx.hasProof ? `${PAYKIT_MOCK_URL}/mock-proof/${tx.id}` : null,
+    signals: { duplicate_of: null, amount_match: null },
+  });
 }
 
 function handleLookup(store: MockStore, orderRef: string | null, send: Send) {
@@ -219,10 +251,22 @@ export function startPaykitMock(): {
       const confirmMatch = /^\/api\/v1\/checkout\/([^/]+)\/confirm$/.exec(
         url.pathname,
       );
+      const evidenceMatch = /^\/api\/v1\/checkout\/([^/]+)\/evidence$/.exec(
+        url.pathname,
+      );
       const statusMatch = /^\/api\/v1\/checkout\/([^/]+)$/.exec(url.pathname);
 
       if (req.method === "POST" && claimMatch) {
-        handleClaim(store, claimMatch[1], send);
+        handleClaim(
+          store,
+          claimMatch[1],
+          req.headers["content-type"] ?? "",
+          send,
+        );
+        return;
+      }
+      if (req.method === "GET" && evidenceMatch) {
+        handleEvidence(store, evidenceMatch[1], send);
         return;
       }
       if (req.method === "POST" && confirmMatch) {

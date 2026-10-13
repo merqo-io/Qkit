@@ -36,9 +36,9 @@ landing route. `order-card.tsx` and
 `@merqo/ui`'s `MoneyInput`, not a local component; `ticket.tsx`/`ticket-section.tsx` are the shared card
 shell used by both the dashboard and the ordering flow. `feedback-form.tsx` posts
 to a server action under `src/app/actions/`. `payment-proof-viewer.tsx`
-(dynamically imported by `order-card.tsx`) calls `src/app/dashboard/
-proof-actions.ts` for its signed photo URL and duplicate-hash lookup, and
-loads its self-hosted `tesseract.js` assets from `/public/tesseract`.
+(dynamically imported by `order-card.tsx`) calls `getOrderPaymentProof` in
+`src/app/dashboard/payment-evidence-actions.ts` for the photo link and
+paykit's signals, and loads its self-hosted `tesseract.js` assets from `/public/tesseract`.
 
 ## Shared package note
 

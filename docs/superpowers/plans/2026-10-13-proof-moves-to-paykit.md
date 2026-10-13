@@ -48,7 +48,21 @@
 
 ## Spike outcome (Decision 3A)
 
-To be filled in by Task 1.
+Run 2026-10-13. **Not settled: the result on Vercel could not be read.** Both PRs are therefore built so that either answer works, and qkit's Tesseract is not deleted yet.
+
+What was established:
+
+- `tesseract.js@5.1.1` in plain Node read the synthetic screenshot correctly ("SGD 12.50" among the text) in about 0.5 seconds, start-up included.
+- A preview-only route, `GET /api/spike-ocr-7f3a` on paykit branch `spike/server-ocr`, built locally and on Vercel. Getting the build to carry the files took three tries: the worker thread loads `bmp-js`, `zlibjs`, `wasm-feature-detect` and `tesseract.js-core` by name at run time, which the build's file trace does not see, so they had to become direct dependencies imported by the helper, plus `outputFileTracingIncludes` for the worker script, the wasm core and the language file. A glob that matched pnpm's linked folders crashed the Windows build ("Access is denied"), so the includes name real package folders only. The final trace lists every file the worker needs.
+- The deployed route was never called. paykit previews are behind Vercel's login, and the Chrome profile available to the agent is signed in to an account that is not on the team ("You Need Access"). The agent did not request access or switch accounts.
+
+What this means for the two PRs:
+
+- paykit returns `amount_match: null` (not checked). The evidence row has a `detail` JSON the check can write to later with no migration.
+- qkit's viewer shows paykit's `amount_match` when it is not null and only otherwise runs its own browser OCR, on the photo paykit links to. So today it behaves as 3B, and it needs no change if 3A lands.
+- Task 9 (deleting Tesseract from qkit) is deferred until the spike is read.
+
+To settle it, the owner opens `https://paykit-f3pbzat7d-merqo-io.vercel.app/api/spike-ocr-7f3a` while signed in to Vercel. `"ok": true` with `12.50` in `text` means 3A works: a follow-up paykit PR runs the check after the claim's response and writes `detail.amount_match`, and a follow-up qkit PR deletes Tesseract. Anything else means 3B stays and the spike branch can be deleted. Cost to weigh if it works: paykit gains five dependencies and a 3 MB language file in its repo.
 
 ## Review Focus
 
@@ -106,11 +120,11 @@ qkit (this worktree, branch `claude/musing-noyce-17bfb8`):
 
 Time box: one local run in Node, then at most two preview deployments. Paykit previews sit behind Vercel's login, so the route is opened through the owner's signed-in Chrome.
 
-- [ ] Branch `spike/server-ocr` from `origin/main` in the paykit worktree. Add `tesseract.js@5.1.1` (the version qkit pins), a `recognizeText(buffer)` helper, and a throwaway `GET /api/spike-ocr-7f3a` that answers 404 outside a preview deployment and otherwise reads a synthetic screenshot (drawn for the spike, "SGD 12.50", no real data) and returns the text and the time taken.
-- [ ] Run the same OCR locally in Node. Expected: the text contains `12.50`.
-- [ ] `pnpm build` locally with CI's dummy Supabase values; read the route's `.nft.json` and confirm the worker script, the wasm core, the language file and the worker's own dependencies are listed.
-- [ ] Push the branch, wait for the preview, open the route. Success means: `ok: true`, text contains `12.50`, well under the 5 seconds qkit waits for a claim or, failing that, short enough to run after the response.
-- [ ] Record the result under "Spike outcome". The spike branch is never merged.
+- [x] Branch `spike/server-ocr` from `origin/main` in the paykit worktree. Add `tesseract.js@5.1.1` (the version qkit pins), a `recognizeText(buffer)` helper, and a throwaway `GET /api/spike-ocr-7f3a` that answers 404 outside a preview deployment and otherwise reads a synthetic screenshot (drawn for the spike, "SGD 12.50", no real data) and returns the text and the time taken.
+- [x] Run the same OCR locally in Node. Expected: the text contains `12.50`.
+- [x] `pnpm build` locally with CI's dummy Supabase values; read the route's `.nft.json` and confirm the worker script, the wasm core, the language file and the worker's own dependencies are listed.
+- [x] Push the branch, wait for the preview, open the route. Success means: `ok: true`, text contains `12.50`, well under the 5 seconds qkit waits for a claim or, failing that, short enough to run after the response.
+- [x] Record the result under "Spike outcome". The spike branch is never merged.
 
 If it works (3A): Task 3 also runs the amount check after the response and stores `amount_match` in the evidence row's `detail`; Task 9 deletes Tesseract from qkit.
 If it fails (3B): `amount_match` is always `null`; qkit's viewer keeps its browser OCR, reading the photo from paykit's link.
@@ -216,11 +230,11 @@ grant select, insert, update on paykit.payment_evidence to service_role;
 
 Steps (each: failing test, run, implement, run, commit):
 
-- [ ] `proof-file.test.ts`: `sniffImageType` for JPEG, PNG, WebP headers, a GIF header, an empty array, a truncated header; `readProofFromRequest` for no content type, JSON, multipart with one valid file, with no `proof` field, with two, with a text field named `proof`, an empty file, a file over the limit (413), a `Content-Length` over the limit (413 before parsing), a PNG declared as JPEG (accepted, stored as PNG: the bytes decide), bytes that are no image (400), a body that fails to parse (400).
-- [ ] `payment-evidence.test.ts` with a fake client: `storeScreenshotEvidence` uploads to `paykit-payment-proofs` at `{vendor}/{tx}` with `upsert: true` and the sniffed content type, then upserts the row on `transaction_id,kind` with the sha256 hex; returns false and writes no row when the upload fails; returns false when the row write fails; returns false when the client throws. `loadCheckoutEvidence`: no row gives `proof_url: null` and both signals null; a row gives a signed link asked for with 300 seconds; a signing failure gives `proof_url: null` but still the signals; duplicate found on the same vendor; same hash on another vendor only gives null; the transaction's own row is excluded; `amount_match` read from `detail` only when it is a boolean; a failed evidence read gives null.
-- [ ] pgTAP file (runs in CI's `db` job, not locally): RLS enabled; vendor A reads its own evidence row and not B's; anon reads none; an authenticated insert is refused; service role can insert and update; the bucket is private with the size and type limits; vendor A sees its own object in `storage.objects` for the bucket and not B's.
-- [ ] `test/db/payment-evidence-schema.test.ts`: text guards for the bucket name, the table, RLS, the unique constraint and the grants.
-- [ ] `types.ts`: `PaymentEvidence` row; table entry with `Insert` and `Update`.
+- [x] `proof-file.test.ts`: `sniffImageType` for JPEG, PNG, WebP headers, a GIF header, an empty array, a truncated header; `readProofFromRequest` for no content type, JSON, multipart with one valid file, with no `proof` field, with two, with a text field named `proof`, an empty file, a file over the limit (413), a `Content-Length` over the limit (413 before parsing), a PNG declared as JPEG (accepted, stored as PNG: the bytes decide), bytes that are no image (400), a body that fails to parse (400).
+- [x] `payment-evidence.test.ts` with a fake client: `storeScreenshotEvidence` uploads to `paykit-payment-proofs` at `{vendor}/{tx}` with `upsert: true` and the sniffed content type, then upserts the row on `transaction_id,kind` with the sha256 hex; returns false and writes no row when the upload fails; returns false when the row write fails; returns false when the client throws. `loadCheckoutEvidence`: no row gives `proof_url: null` and both signals null; a row gives a signed link asked for with 300 seconds; a signing failure gives `proof_url: null` but still the signals; duplicate found on the same vendor; same hash on another vendor only gives null; the transaction's own row is excluded; `amount_match` read from `detail` only when it is a boolean; a failed evidence read gives null.
+- [x] pgTAP file (runs in CI's `db` job, not locally): RLS enabled; vendor A reads its own evidence row and not B's; anon reads none; an authenticated insert is refused; service role can insert and update; the bucket is private with the size and type limits; vendor A sees its own object in `storage.objects` for the bucket and not B's.
+- [x] `test/db/payment-evidence-schema.test.ts`: text guards for the bucket name, the table, RLS, the unique constraint and the grants.
+- [x] `types.ts`: `PaymentEvidence` row; table entry with `Insert` and `Update`.
 
 ### Task 3: The claim accepts a screenshot
 
@@ -228,8 +242,8 @@ Steps (each: failing test, run, implement, run, commit):
 
 Order inside the route: auth, rate limit, id check, `readProofFromRequest` (400 or 413 stop here), read the transaction (404), then if a screenshot came and the status is `pending` or `claimed`, `storeScreenshotEvidence` (false means 503 and stop), then today's transition unchanged.
 
-- [ ] Tests first. Every existing test stays green untouched (they send no body). New: a multipart claim stores then claims; store is called before the update; a failed store answers 503 with no update, no audit row and no callback; a bad file answers 400 without reading the transaction; an oversized one 413; a screenshot on a `claimed` transaction is stored and the answer is the idempotent echo; on a `confirmed` one it is not stored; a JSON body behaves as no body.
-- [ ] Implement, update the README, commit.
+- [x] Tests first. Every existing test stays green untouched (they send no body). New: a multipart claim stores then claims; store is called before the update; a failed store answers 503 with no update, no audit row and no callback; a bad file answers 400 without reading the transaction; an oversized one 413; a screenshot on a `claimed` transaction is stored and the answer is the idempotent echo; on a `confirmed` one it is not stored; a JSON body behaves as no body.
+- [x] Implement, update the README, commit.
 
 ### Task 4: The evidence endpoint
 
@@ -237,15 +251,15 @@ Order inside the route: auth, rate limit, id check, `readProofFromRequest` (400 
 
 `GET /api/v1/checkout/{id}/evidence`: `verifyKitAuth` (401), rate limit `evidence:{kit}:{ip}` (429), id check (400), read `id, vendor_id` where `id` and `kit_slug` match (503 on error, 404 when absent), `loadCheckoutEvidence` (503 on null), 200 with the body, `Cache-Control: no-store`.
 
-- [ ] Tests first: 401, 429 without a read, 400, 503 on read error, 404 for another kit's transaction (assert the `kit_slug` filter is applied), 503 when the loader fails, 200 body parsed by `checkoutEvidenceResponseSchema`, the no-store header.
-- [ ] Contract sample and its schema test.
-- [ ] Implement, README, commit.
+- [x] Tests first: 401, 429 without a read, 400, 503 on read error, 404 for another kit's transaction (assert the `kit_slug` filter is applied), 503 when the loader fails, 200 body parsed by `checkoutEvidenceResponseSchema`, the no-store header.
+- [x] Contract sample and its schema test.
+- [x] Implement, README, commit.
 
 ### Task 5: paykit docs, gate, PR
 
-- [ ] READMEs for every folder touched (root, `src/lib`, `supabase/migrations`, `supabase/tests`, `test/contract`, `test/db`, `src/app/api/v1/checkout`, the two route folders). `CHANGELOG.md` under `[Unreleased]`.
-- [ ] `pnpm check && pnpm test` in the worktree, nothing else running.
-- [ ] Push in the background, open the PR, wait for CI including the `db` job (the first real run of the migration and the pgTAP file).
+- [x] READMEs for every folder touched (root, `src/lib`, `supabase/migrations`, `supabase/tests`, `test/contract`, `test/db`, `src/app/api/v1/checkout`, the two route folders). `CHANGELOG.md` under `[Unreleased]`.
+- [x] `pnpm check && pnpm test` in the worktree, nothing else running.
+- [x] Push in the background, open the PR, wait for CI including the `db` job (the first real run of the migration and the pgTAP file).
 - [ ] Give the owner: the PR link, the full migration SQL, the spike result, and suggested `AGENTS.md` lines. Stop until they merge, apply the migration and the deploy is live.
 
 ---
@@ -274,15 +288,15 @@ export async function getCheckoutEvidence(
 
 `paykitRequest` stops forcing `Content-Type: application/json` when the body is a `FormData` (fetch must write the multipart boundary itself).
 
-- [ ] Tests first: a claim with a file sends a `FormData` body with one `proof` part and no JSON content type, with the longer timeout; a claim without one is byte-for-byte today's request; `getCheckoutEvidence` maps the body, and fails on a malformed one.
-- [ ] Implement, commit.
+- [x] Tests first: a claim with a file sends a `FormData` body with one `proof` part and no JSON content type, with the longer timeout; a claim without one is byte-for-byte today's request; `getCheckoutEvidence` maps the body, and fails on a malformed one.
+- [x] Implement, commit.
 
 ### Task 7: `claimPayment` forwards the file
 
 **Files:** `payment-actions.ts`, `finalize-paid-order.ts`, their tests.
 
-- [ ] Tests first: the action never calls `supabase.storage`; `claimCheckout` receives the validated file; `finalizePaidOrder` is called with no `proof`; a failed lookup or a failed claim returns "Could not record payment. Try again." with no `assign_order_number`, no notification and no order update; a `claimed` order with no number may retry, a `claimed` order with a number may not; `writePaidMirror` never writes `payment_proof_path` or `payment_proof_hash`.
-- [ ] Implement: remove the hash, the upload, `PAYMENT_PROOF_EXTENSIONS` use and the `proof` option. Commit.
+- [x] Tests first: the action never calls `supabase.storage`; `claimCheckout` receives the validated file; `finalizePaidOrder` is called with no `proof`; a failed lookup or a failed claim returns "Could not record payment. Try again." with no `assign_order_number`, no notification and no order update; a `claimed` order with no number may retry, a `claimed` order with a number may not; `writePaidMirror` never writes `payment_proof_path` or `payment_proof_hash`.
+- [x] Implement: remove the hash, the upload, `PAYMENT_PROOF_EXTENSIONS` use and the `proof` option. Commit.
 
 ### Task 8: The viewer reads through one action
 
@@ -302,10 +316,10 @@ export async function getOrderPaymentProof(
 
 Flow: validate the id; read the signed-in user; read the order and its booth's `vendor_id` with the session client; refuse unless the booth's vendor is the user; if the order has `payment_proof_path`, answer from `getProofPhotoUrl` and `findDuplicateProofOrder`; otherwise `getCheckoutByOrderRef(order.id)`, refuse a transaction of another vendor, `getCheckoutEvidence`, and resolve a `qkit` duplicate's `order_ref` to an order number with the session client.
 
-- [ ] Action tests first: invalid id; no session; an order RLS does not return; an admin's view of another vendor's order; the legacy path (path present: old functions called, paykit not called); the paykit path; paykit lookup 404; lookup of another vendor's transaction; evidence call failing; a duplicate in `qkit` the vendor can read; a duplicate in `qkit` they cannot; a duplicate in another kit.
-- [ ] Viewer dom tests: renders the photo from the one action; duplicate copy for a numbered order and for "another payment"; paykit's `amountMatch` shown without starting OCR; no photo shows "No payment screenshot on file."; per the spike outcome, either OCR still runs when `amountMatch` is null, or no OCR code remains.
-- [ ] `order-card-parts.tsx`: the trigger shows for a claimed, non-cancelled order whether or not it has a path. Dom test for both.
-- [ ] Commit.
+- [x] Action tests first: invalid id; no session; an order RLS does not return; an admin's view of another vendor's order; the legacy path (path present: old functions called, paykit not called); the paykit path; paykit lookup 404; lookup of another vendor's transaction; evidence call failing; a duplicate in `qkit` the vendor can read; a duplicate in `qkit` they cannot; a duplicate in another kit.
+- [x] Viewer dom tests: renders the photo from the one action; duplicate copy for a numbered order and for "another payment"; paykit's `amountMatch` shown without starting OCR; no photo shows "No payment screenshot on file."; per the spike outcome, either OCR still runs when `amountMatch` is null, or no OCR code remains.
+- [x] `order-card-parts.tsx`: the trigger shows for a claimed, non-cancelled order whether or not it has a path. Dom test for both.
+- [x] Commit.
 
 ### Task 9: Tesseract, per the spike
 
@@ -313,7 +327,7 @@ Flow: validate the id; read the signed-in user; read the order and its booth's `
 
 ### Task 10: Mock, docs, gate, PR
 
-- [ ] `e2e/paykit-mock.ts`: the claim reads and discards a multipart body and remembers that a proof came; `GET /api/v1/checkout/{id}/evidence` answers the contract shape.
-- [ ] READMEs for touched folders, `CHANGELOG.md`, this plan's checkboxes, `docs/superpowers/plans/README.md`.
+- [x] `e2e/paykit-mock.ts`: the claim reads and discards a multipart body and remembers that a proof came; `GET /api/v1/checkout/{id}/evidence` answers the contract shape.
+- [x] READMEs for touched folders, `CHANGELOG.md`, this plan's checkboxes, `docs/superpowers/plans/README.md`.
 - [ ] `pnpm check && pnpm test`. Push in the background. Open the PR against the live endpoint, wait for green including `e2e (order lifecycle)`.
 - [ ] Hand the owner the manual check: on a preview with "TEST · PayNow", upload a screenshot, open it on the board, upload the same file on a second order and see the duplicate warning. No QR order on "TEST · Printing".

@@ -25,7 +25,7 @@ const PaymentProofViewer = dynamic(() =>
 
 // Tap-to-expand proof-photo review, factored out of OrderCard's own render to
 // keep its cognitive complexity down. Renders only when the caller has
-// already established there's a claimed, un-reviewed proof photo to show.
+// already established the order is claimed and not yet reviewed.
 function ProofPhotoTrigger({
   order,
   expanded,
@@ -229,16 +229,15 @@ export function TicketActions({
           actually claimed payment (a proof photo only exists then). Covers
           both payment-review button shapes below (the plain confirm button
           and the merged "Mark paid & start" one), since both require
-          payStatus === "claimed". */}
-      {status !== "cancelled" &&
-        payStatus === "claimed" &&
-        order.payment_proof_path && (
-          <ProofPhotoTrigger
-            order={order}
-            expanded={proofExpanded}
-            onToggle={() => setProofExpanded((v) => !v)}
-          />
-        )}
+          payStatus === "claimed". The order row no longer says whether a
+          photo exists: paykit holds it, so the viewer finds out when opened. */}
+      {status !== "cancelled" && payStatus === "claimed" && (
+        <ProofPhotoTrigger
+          order={order}
+          expanded={proofExpanded}
+          onToggle={() => setProofExpanded((v) => !v)}
+        />
+      )}
 
       {/* Completed unpaid orders retain settlement; cancelled orders never prompt for payment. */}
       {status !== "cancelled" &&

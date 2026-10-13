@@ -136,17 +136,22 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   — keeps qkit's own `STATUS_CONFIG` label/colour map, passed through as the
   `config` prop; same rendered markup as before.
 - `payment-proof-viewer.dom.test.tsx` — RTL tests for `PaymentProofViewer`'s
-  no-photo (renders nothing), duplicate-order-flag, and OCR amount-match/
-  mismatch/failure branches, with `tesseract.js` and the two `proof-actions.ts`
-  reads mocked.
+  no-photo ("No payment screenshot on file"), duplicate (a numbered order,
+  or "another payment"), paykit's own amount reading (no OCR started), and
+  OCR amount-match/mismatch/failure branches, with `tesseract.js` and
+  `getOrderPaymentProof` mocked.
 - `payment-proof-viewer.tsx` — `PaymentProofViewer({ orderId,
 expectedAmountCents })`: `"use client"`, always dynamically imported
   (`order-card.tsx`'s `ProofPhotoTrigger`) so `tesseract.js` never loads for a
-  card the vendor hasn't opened. On mount, fetches the signed proof-photo URL
-  and any duplicate-hash match (`@/app/dashboard/proof-actions`) in parallel,
-  renders nothing until a photo URL resolves, then shows the photo plus a
-  duplicate-photo warning ("This photo was already used for order #N") when
-  one exists. Separately spins up a self-hosted (`/public/tesseract`, not the
+  card the vendor hasn't opened. On mount, makes one call,
+  `getOrderPaymentProof` (`@/app/dashboard/payment-evidence-actions`), which
+  answers from paykit, or from qkit's own bucket for an order claimed before
+  screenshots moved. Renders nothing until it answers, then the photo plus a
+  duplicate warning ("This photo was already used for order #N", or "for
+  another payment" when paykit names one this board cannot), or "No payment
+  screenshot on file" when there is none. When paykit supplies its own
+  amount reading that is shown and no OCR runs; paykit does not check the
+  amount yet, so today it always spins up a self-hosted (`/public/tesseract`, not the
   default jsDelivr CDN — keeps every asset same-origin under this app's CSP,
   which has no third-party `script-src`/`connect-src` allowance) `tesseract.js`
   worker (`workerBlobURL: false`, since this app's CSP has no `worker-src`/
@@ -160,3 +165,5 @@ expectedAmountCents })`: `"use client"`, always dynamically imported
 ## Parent
 
 [components](../README.md)
+
+`order-card-parts.tsx` shows "View payment proof" for every claimed, non-cancelled order. It no longer looks at `order.payment_proof_path`: paykit holds the screenshot, so the order row cannot say whether one exists and the viewer finds out when opened.

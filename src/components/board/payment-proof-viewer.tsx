@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getProofPhotoUrl,
-  findDuplicateProofOrder,
-} from "@/app/dashboard/proof-actions";
+import { getOrderPaymentProof } from "@/app/dashboard/payment-evidence-actions";
 
 interface Props {
   orderId: string;
   expectedAmountCents: number;
-}
-
-interface OcrHint {
-  amountMatch: boolean | null;
 }
 
 type ProofView = {
@@ -20,7 +13,9 @@ type ProofView = {
   expectedAmountCents: number;
   url: string | null;
   duplicateOrderNumber: string | null;
-  ocrHint: OcrHint | null;
+  duplicateElsewhere: boolean;
+  // null until something has checked the amount: paykit, or the OCR below.
+  amountMatch: boolean | null;
 };
 
 // Self-hosted under /public/tesseract (see that folder's own note) — never
@@ -45,20 +40,20 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
     };
     void (async () => {
       try {
-        const [photoUrl, duplicate] = await Promise.all([
-          getProofPhotoUrl(orderId),
-          findDuplicateProofOrder(orderId),
-        ]);
+        const found = await getOrderPaymentProof(orderId);
         if (cancelled) return;
         const view: ProofView = {
           orderId,
           expectedAmountCents,
-          url: photoUrl,
-          duplicateOrderNumber: duplicate,
-          ocrHint: null,
+          url: found?.url ?? null,
+          duplicateOrderNumber: found?.duplicateOrderNumber ?? null,
+          duplicateElsewhere: found?.duplicateElsewhere ?? false,
+          amountMatch: found?.amountMatch ?? null,
         };
         setProof(view);
-        if (!photoUrl) return;
+        // paykit's own reading of the amount, when it has one, stands: the
+        // photo is not read a second time here.
+        if (!view.url || view.amountMatch !== null) return;
 
         // OCR failure leaves the photo available for manual review.
         const { createWorker } = await import("tesseract.js");
@@ -71,7 +66,7 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
           workerBlobURL: false,
         });
         if (cancelled) return;
-        const { data } = await worker.recognize(photoUrl);
+        const { data } = await worker.recognize(view.url);
         if (cancelled) return;
         // OCR is an amount hint, never proof that a transfer settled.
         // No lookbehind: Safari before 16.4 fails to parse the whole chunk.
@@ -85,7 +80,7 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
         const amountMatch = amounts.some(
           (amount) => amount.replaceAll(",", "") === expected,
         );
-        setProof({ ...view, ocrHint: { amountMatch } });
+        setProof({ ...view, amountMatch });
       } catch (error) {
         if (!cancelled) console.error("Payment proof OCR failed", error);
       } finally {
@@ -101,11 +96,17 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
   if (
     !proof ||
     proof.orderId !== orderId ||
-    proof.expectedAmountCents !== expectedAmountCents ||
-    !proof.url
+    proof.expectedAmountCents !== expectedAmountCents
   )
     return null;
-  const { url, duplicateOrderNumber, ocrHint } = proof;
+  const { url, duplicateOrderNumber, duplicateElsewhere, amountMatch } = proof;
+
+  if (!url)
+    return (
+      <p className="text-sm text-muted-foreground">
+        No payment screenshot on file. Check your payment app before confirming.
+      </p>
+    );
 
   return (
     <div className="space-y-2">
@@ -116,9 +117,14 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
           This photo was already used for order #{duplicateOrderNumber}
         </p>
       )}
-      {ocrHint && (
+      {!duplicateOrderNumber && duplicateElsewhere && (
+        <p className="text-sm font-semibold text-destructive">
+          This photo was already used for another payment
+        </p>
+      )}
+      {amountMatch !== null && (
         <p className="text-sm text-muted-foreground">
-          {ocrHint.amountMatch
+          {amountMatch
             ? `Amount matches $${(expectedAmountCents / 100).toFixed(2)}. Verify payment in your payment app.`
             : "Couldn't confirm the amount, check manually"}
         </p>

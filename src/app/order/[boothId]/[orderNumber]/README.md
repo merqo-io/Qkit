@@ -230,16 +230,19 @@ payment)` moves the mirror forward only (`claimed` never overwrites
   **requires an uploaded payment screenshot** — the photo upload IS the claim
   and is also what finally assigns the order's number, deferred at
   `place_order` time for any payment-required order; rate-limited 10/60s per
-  IP+booth). Order of operations is load-bearing: uploads the photo to the
-  private `payment-proofs` bucket and hashes it (`@/lib/hash`'s `hashBuffer`)
-  first, **then** finds the paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) and calls `claimCheckout`, **then**
-  hands the order to `finalizePaidOrder` (`./finalize-paid-order.ts`), which
-  assigns the number, fires the notifications and writes the
-  `orders.payment_status`/`payment_proof_path`/`payment_proof_hash` mirror
-  last — a failed upload never touches payment state at all, a failed paykit
-  claim leaves only a harmless orphaned photo, and a failed mirror write
-  still reports success (paykit + the assigned number are already real by
-  then). `unclaimPayment` is unchanged (still `(boothId, orderNumber,
+  IP+booth). Order of operations is load-bearing: it finds the paykit
+  transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id), **then** sends the claim and
+  the screenshot to paykit in one request (`claimCheckout(id, file)`; paykit
+  stores the file before its claim commits), **then** hands the order to
+  `finalizePaidOrder` (`./finalize-paid-order.ts`), which assigns the number,
+  fires the notifications and writes the `orders.payment_status` mirror last.
+  qkit keeps no copy of the screenshot: nothing here touches a storage bucket
+  or the `orders.payment_proof_path`/`payment_proof_hash` columns, which stay
+  only on orders claimed before the screenshot moved to paykit. A failure up
+  to and including paykit's answer leaves the order exactly as it was, and a
+  failed mirror write still reports success (paykit + the assigned number are
+  already real by then). A retry is allowed while the order is `claimed` and
+  has no number yet. `unclaimPayment` is unchanged (still `(boothId, orderNumber,
 token)`, only ever runs post-claim when a number already exists): the
   "Tapped by mistake? Undo" companion, same rate-limit/lookup shape;
   finds the same paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) — there's no
@@ -251,8 +254,9 @@ token)`, only ever runs post-claim when a number already exists): the
 - `payment-actions.test.ts` — unit tests for the claim/unclaim guards,
   rate-limiting, paykit-call mocking, and idempotency, including the new
   photo-required/deferred-numbering `claimPayment` (no-photo rejection,
-  upload-failure-never-touches-payment-state, the full upload→claim→assign→
-  notify→mirror happy path with a real `hashBuffer` digest assertion) and
+  the file forwarded to paykit unchanged, no qkit bucket or proof column
+  ever written, every paykit failure leaving the order untouched, the full
+  lookup→claim→assign→notify→mirror happy path) and
   `loadPreClaimContext`'s valid/invalid/non-pending branches, and the new
   rate-limit denials on `loadPreClaimContext`/`getPaymentStatus` (never
   reaches the DB/paykit when limited).
