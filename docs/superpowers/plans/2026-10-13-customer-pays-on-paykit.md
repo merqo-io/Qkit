@@ -70,7 +70,7 @@ paykit (worktree `paykit/.claude/worktrees/customer-pay-page`, branch `feat/cust
 
 | File                                                       | Responsibility                                                          |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `supabase/migrations/0023_hosted_pay_page.sql` (create)    | Three columns on `transactions`, one on `kit_api_keys`                  |
+| `supabase/migrations/0024_hosted_pay_page.sql` (create)    | Three columns on `transactions`, one on `kit_api_keys`                  |
 | `test/db/hosted-pay-page-schema.test.ts` (create)          | Text guard on the migration                                             |
 | `src/lib/types.ts` (modify)                                | The four columns                                                        |
 | `src/lib/pay-token.ts`, `.test.ts` (create)                | Mint, hash, shape, constant-time match, rate-limit key part             |
@@ -110,7 +110,7 @@ qkit (this worktree, branch `claude/serene-feistel-23a30a`):
 
 ### Task 1: Migration and types
 
-**Files:** `supabase/migrations/0023_hosted_pay_page.sql`, `test/db/hosted-pay-page-schema.test.ts`, `src/lib/types.ts`, `supabase/migrations/README.md`.
+**Files:** `supabase/migrations/0024_hosted_pay_page.sql`, `test/db/hosted-pay-page-schema.test.ts`, `src/lib/types.ts`, `supabase/migrations/README.md`.
 
 ```sql
 alter table paykit.transactions
@@ -306,3 +306,9 @@ Set `kit_api_keys.return_origin` for `qkit` to the preview's origin first, and b
 3. Open the first order's pay link again from history. It goes straight back to the numbered order.
 
 No QR order on "TEST · Printing": it sends a real print job.
+
+## As built
+
+- The paykit migration is numbered `0024`: paykit's `0023` is `transactions.expires_at` (paykit#135), merged while this was being built. Where the plan says `0023_hosted_pay_page.sql`, read `0024`.
+- The origin helper from the order status page moved to `src/lib/request-origin.ts` so the pay step and that page share one allowlist.
+- `claimCheckout` was deleted along with `claimPayment`: nothing in qkit claims any more.

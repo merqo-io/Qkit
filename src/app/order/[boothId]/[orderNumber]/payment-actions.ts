@@ -3,18 +3,8 @@
 import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import {
-  parseOrderItems,
-  parseOrderRef,
-  parsePreClaimRef,
-  paymentProofSchema,
-} from "@/lib/schemas";
-import {
-  createCheckout,
-  claimCheckout,
-  unclaimCheckout,
-  type CheckoutView,
-} from "@/lib/paykit/client";
+import { parseOrderRef, parsePreClaimRef } from "@/lib/schemas";
+import { createCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { isAbandonedPayment } from "@/lib/orders";
 import { finalizePaidOrder } from "./finalize-paid-order";
@@ -29,7 +19,7 @@ import type { PaymentStatus } from "@/lib/types";
  *
  * Reads qkit's local `orders.payment_status` mirror rather than paykit
  * directly — paykit is the source of truth for whether a claim/confirm
- * *succeeded* (see claimPayment below and dashboard/order-actions.ts's
+ * *succeeded* (see dashboard/order-actions.ts's
  * confirmOrderPayment), but this mirror is kept in sync on every successful
  * write, so a poll every few seconds can stay a cheap local read instead of
  * round-tripping paykit's HTTP API each tick.
@@ -97,40 +87,87 @@ async function loadCheckoutContext(
 }
 
 /**
- * Read what the pre-claim pay panel needs for a payment-required order that
- * has no order_number yet (numbering is deferred to a successful claim — see
- * claimPayment below). Same two-read + createCheckout shape as page.tsx's own
- * loadCheckoutView, just keyed on (boothId, token) instead of a numbered
- * order route.
+ * What the pay step needs for a payment-required order that has no
+ * order_number yet (numbering is deferred to a successful claim). The
+ * customer pays on paykit's page, so the only thing to hand back for a
+ * pending order is where that page is.
  */
 type PreClaimContext =
-  | {
-      state: "pending";
-      orderId: string;
-      amountCents: number;
-      // What the customer is paying for and to whom, so the pay page is not
-      // an amount and a QR with nothing to check them against.
-      boothName: string;
-      items: { name: string; quantity: number }[];
-      checkout: CheckoutView | null;
-    }
+  | { state: "pay"; payUrl: string }
   | { state: "placed"; orderNumber: string }
   | { state: "cancelled" }
   // Unpaid past the abandoned-payment window: no longer payable.
-  | { state: "expired" };
+  | { state: "expired" }
+  // paykit could not be reached, or did not answer with a pay page.
+  | { state: "unavailable" };
 
+// paykit shows this above the amount; its own limit is 120 characters.
+const PAY_TITLE_MAX = 120;
+
+type PayStepInput = {
+  vendorId: string;
+  boothName: string;
+  order: { id: string; total_cents: number };
+  boothId: string;
+  token: string;
+  origin: string;
+};
+
+// Ask paykit for the order's checkout, then either send the customer to its
+// pay page or, when paykit already holds the payment, finish the order.
+async function payStep(input: PayStepInput): Promise<PreClaimContext> {
+  const { order, boothId, token } = input;
+  const checkout = await createCheckout({
+    vendorId: input.vendorId,
+    amountCents: order.total_cents,
+    orderRef: order.id,
+    returnUrl: `${input.origin}/order/${boothId}/pay?t=${token}`,
+    title: input.boothName.slice(0, PAY_TITLE_MAX),
+  });
+  if (!checkout.ok) return { state: "unavailable" };
+
+  if (checkout.data.status && checkout.data.status !== "pending") {
+    const finalized = await finalizePaidOrder(
+      { id: order.id, boothId },
+      { status: checkout.data.status },
+    );
+    return finalized.ok
+      ? { state: "placed", orderNumber: finalized.orderNumber }
+      : { state: "unavailable" };
+  }
+  return checkout.data.payUrl
+    ? { state: "pay", payUrl: checkout.data.payUrl }
+    : { state: "unavailable" };
+}
+
+/**
+ * Decide what the pay step does for one order: send the customer to
+ * paykit's pay page, or, when the customer has already paid and is coming
+ * back from it, give the order its number.
+ *
+ * `origin` is this app's own origin, which paykit compares with the one
+ * registered for qkit before it will send a customer back to it. The pay link
+ * is minted on every call (paykit retires the previous one), so the caller
+ * redirects to it at once.
+ *
+ * Coming back, paykit may have claimed the payment before its callback
+ * reached `/api/paykit/payment-status`. The answer to `createCheckout` says
+ * where the payment stands, so this finalizes the order itself in that case;
+ * `finalizePaidOrder` repeats safely when the callback arrives as well.
+ */
 export async function loadPreClaimContext(
   boothId: string,
   token: string,
+  origin: string,
 ): Promise<PreClaimContext | null> {
   const parsed = parsePreClaimRef(boothId, token);
   if (!parsed.ok) return null;
 
   const supabase = await createServiceClient();
 
-  // Unlike the polling reads above, this one makes a real outbound call to
-  // paykit (createCheckout) on every invocation — cap page-reload-style
-  // abuse tighter than a cheap local-only read.
+  // This one makes a real outbound call to paykit (createCheckout) on every
+  // invocation, so page-reload-style abuse is capped tighter than a cheap
+  // local read.
   const allowed = await rateLimit(
     `pre-claim-context:${boothId}:${token}`,
     20,
@@ -140,21 +177,28 @@ export async function loadPreClaimContext(
 
   const { data: order } = await supabase
     .from("orders")
-    .select(
-      "id, total_cents, payment_status, status, order_number, created_at, items",
-    )
+    .select("id, total_cents, payment_status, status, order_number, created_at")
     .eq("booth_id", boothId)
     .eq("access_token", token)
     .maybeSingle();
   if (!order) return null;
   if (order.status === "cancelled") return { state: "cancelled" };
-  if (order.payment_status !== "pending") {
+
+  // A claimed or confirmed order with no number is one whose finalizing did
+  // not finish: it goes on to the checkout below, which finishes it.
+  const paidWithoutNumber =
+    !order.order_number &&
+    (order.payment_status === "claimed" ||
+      order.payment_status === "confirmed");
+  if (order.payment_status !== "pending" && !paidWithoutNumber)
     return order.order_number
       ? { state: "placed", orderNumber: order.order_number }
       : null;
-  }
-  // Checked before createCheckout, so an expired order mints no payment QR.
-  if (isAbandonedPayment(order.created_at, Date.now()))
+  // Checked before createCheckout, so an expired order mints no pay link.
+  if (
+    order.payment_status === "pending" &&
+    isAbandonedPayment(order.created_at, Date.now())
+  )
     return { state: "expired" };
 
   const { data: booth } = await supabase
@@ -164,170 +208,21 @@ export async function loadPreClaimContext(
     .maybeSingle();
   if (!booth?.vendor_id) return null;
 
-  const checkout = await createCheckout({
+  return payStep({
     vendorId: booth.vendor_id,
-    amountCents: order.total_cents,
-    orderRef: order.id,
-  });
-
-  return {
-    state: "pending",
-    orderId: order.id,
-    amountCents: order.total_cents,
     boothName: booth.name,
-    items: parseOrderItems(order.items).map(({ name, quantity }) => ({
-      name,
-      quantity,
-    })),
-    checkout: checkout.ok ? checkout.data : null,
-  };
-}
-
-function validatePaymentProof(
-  photo: File | null,
-): ActionResult<{ data: File }> {
-  if (!photo)
-    return { success: false, error: "A payment screenshot is required." };
-  const proof = paymentProofSchema.safeParse(photo);
-  if (!proof.success)
-    return {
-      success: false,
-      error: proof.error.issues[0]?.message ?? "Invalid payment screenshot.",
-    };
-  return { success: true, data: proof.data };
-}
-
-/**
- * Why an order cannot take a payment claim right now, or null when it can.
- * The pay page already refuses an expired order; the expiry check here covers
- * a page left open past the window, and a direct call.
- */
-function claimRefusal(order: {
-  status: string;
-  payment_status: string;
-  order_number: string | null;
-  created_at: string;
-}): string | null {
-  if (order.status === "cancelled") return "This order was cancelled.";
-  // An order can be claimed and still have no number: an earlier attempt
-  // got as far as paykit's claim and then failed to finalize. Let the retry
-  // through. paykit's claim and finalizePaidOrder both repeat safely, and
-  // paykit replaces the screenshot of a transaction that is only claimed.
-  if (order.payment_status === "claimed" && !order.order_number) return null;
-  if (order.payment_status !== "pending")
-    return "This order isn't awaiting payment.";
-  if (isAbandonedPayment(order.created_at, Date.now()))
-    return "This order expired before it was paid. Please place a new one.";
-  return null;
-}
-
-// Customer is anonymous, so this uses the service-role client (same pattern as
-// the order status page read). Requires an uploaded payment screenshot: the
-// photo upload IS the claim, not a follow-on step, and doubles as the
-// mechanism that finally assigns this order's number (deferred at place_order
-// time for any payment-required order, see migration 0087). Payment is
-// trust-based: a claim is only a hint, and the vendor confirms real receipt on
-// the board.
-//
-// The screenshot goes to paykit with the claim. paykit stores it with the
-// transaction before the claim commits, and qkit keeps no copy: nothing here
-// touches a storage bucket or the orders.payment_proof_* columns.
-//
-// Order of operations is load-bearing: find the transaction, THEN send the
-// claim and the screenshot to paykit in one request, THEN hand the order to
-// finalizePaidOrder, which assigns the order number, fires the vendor
-// notifications, and writes the local payment_status mirror last. Anything
-// that fails up to and including paykit's answer leaves the order exactly as
-// it was (no number, no notification, mirror still pending), so the customer
-// can try again; a failed mirror write doesn't undo an already-successful
-// paykit claim + already-assigned number, so it still reports success.
-//
-// paykit calls qkit back as soon as its claim commits, so the callback route
-// (src/app/api/paykit/payment-status/route.ts) usually runs
-// finalizePaidOrder for this same order while this action is still inside
-// it. That function is built for it: one number, one vendor alert, one
-// label.
-export async function claimPayment(
-  boothId: string,
-  token: string,
-  photo: File | null,
-): Promise<ActionResult<{ orderNumber: string }>> {
-  const proof = validatePaymentProof(photo);
-  if (!proof.success) return proof;
-
-  const parsed = parsePreClaimRef(boothId, token);
-  if (!parsed.ok)
-    return {
-      success: false,
-      error: parsed.field === "booth" ? "Invalid booth" : "Invalid order",
-    };
-
-  const supabase = await createServiceClient();
-
-  // Throttle per IP+booth so a script can't enumerate the small sequential
-  // order numbers and mass-flip a booth's orders to 'claimed'. Fails open on
-  // limiter errors (don't block a real customer on infra hiccups).
-  const ip = clientIp(await headers());
-  const allowed = await rateLimit(`claim:${boothId}:${ip}`, 10, 60);
-  if (!allowed)
-    return { success: false, error: "Too many attempts. Wait a moment." };
-
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id, total_cents, payment_status, order_number, status, created_at")
-    .eq("booth_id", boothId)
-    .eq("access_token", token)
-    .maybeSingle();
-  if (!order) return { success: false, error: "Invalid order" };
-  const refusal = claimRefusal(order);
-  if (refusal) return { success: false, error: refusal };
-
-  const { data: booth } = await supabase
-    .from("booths")
-    .select("vendor_id, print_enabled")
-    .eq("id", boothId)
-    .maybeSingle();
-  if (!booth?.vendor_id) return { success: false, error: "Invalid order" };
-
-  const transaction = await transactionIdForOrder({
-    vendorId: booth.vendor_id,
-    amountCents: order.total_cents,
-    orderRef: order.id,
+    order,
+    boothId,
+    token,
+    origin,
   });
-  if (!transaction.ok) {
-    console.error(
-      "claimPayment: paykit transaction lookup failed",
-      transaction.error,
-    );
-    return { success: false, error: "Could not record payment. Try again." };
-  }
-  // No resize here. pay-form.tsx already resized to <=1600px WebP/JPEG in
-  // the browser, and a server action has no <canvas>. paymentProofSchema
-  // above bounds the size and type; paykit checks both again.
-  const claim = await claimCheckout(transaction.data, proof.data);
-  if (!claim.ok) {
-    console.error("claimPayment: paykit claim failed", claim.error);
-    return { success: false, error: "Could not record payment. Try again." };
-  }
-  if (claim.data.status === "pending")
-    return { success: false, error: "Could not record payment. Try again." };
-
-  const finalized = await finalizePaidOrder(
-    { id: order.id, boothId },
-    { status: claim.data.status, confirmedAt: claim.data.confirmedAt },
-  );
-  if (!finalized.ok)
-    return { success: false, error: "Could not finalize order. Try again." };
-
-  return { success: true, orderNumber: finalized.orderNumber };
 }
 
 // Undo an accidental "I've paid" tap: revert a still-unverified 'claimed'
-// order back to 'pending'. Mirror of claimPayment, same idempotency shape.
+// order back to 'pending'. Same idempotency shape as the claim on paykit's page.
 //
 // There's no stored paykit transaction id for an order, so it is looked up
-// by the order's id (transactionIdForOrder), the same way claimPayment above
-// and confirmOrderPayment (dashboard/order-actions.ts) reach it.
+// by the order's id (transactionIdForOrder), the same way confirmOrderPayment (dashboard/order-actions.ts) reaches it.
 // `unclaimCheckout` is paykit's own authority on whether a revert is still
 // allowed — it refuses to revert a 'confirmed' transaction and just echoes
 // that status back, so the pre-check below (against the local mirror) is a

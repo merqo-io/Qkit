@@ -74,7 +74,7 @@ const { createServiceClientMock, fromMock, rateLimitMockRef } = vi.hoisted(
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: createServiceClientMock,
 }));
-// confirmArrival is rate-limited like claimPayment (payment-actions.ts) — a
+// confirmArrival is rate-limited like unclaimPayment (payment-actions.ts) — a
 // single shared mock ref since a module path can only be mocked once per file.
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: (...args: unknown[]) => rateLimitMockRef(...args),
@@ -425,7 +425,7 @@ describe("getWaitEstimate", () => {
 // still runs first each test (outer beforeEach before inner), and this
 // describe is the last one in the file so it never leaks into the
 // getOrderStatus/getWaitEstimate tests above. Mirrors payment-actions.test.ts's
-// claimPayment mock shape exactly.
+// unclaimPayment mock shape exactly.
 describe("confirmArrival", () => {
   const writeSelect2 = vi.fn();
   const reread2 = vi.fn();

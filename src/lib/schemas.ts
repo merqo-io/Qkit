@@ -303,35 +303,6 @@ export function parsePreClaimRef(
   return { ok: true, ref: { boothId, token } };
 }
 
-// ── Payment proof upload ─────────────────────────────────────────────────────
-// The customer's payment screenshot, as claimPayment receives it. The client
-// (pay-form.tsx) has already resized it to <=1600px WebP or JPEG, so a real
-// upload is typically a few hundred KB. These bounds are the server-side
-// guarantee for a caller that skipped that step, and mirror the
-// payment-proofs bucket's own limits (migration 0093), which enforce them
-// again at the storage layer.
-export const PAYMENT_PROOF_MAX_BYTES = 1024 * 1024;
-
-export const PAYMENT_PROOF_EXTENSIONS = {
-  "image/webp": "webp",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-} as const;
-
-export type PaymentProofType = keyof typeof PAYMENT_PROOF_EXTENSIONS;
-
-export const paymentProofSchema = z
-  .instanceof(File)
-  .refine((file) => file.size > 0, "The payment screenshot is empty.")
-  .refine(
-    (file) => file.size <= PAYMENT_PROOF_MAX_BYTES,
-    "That image is too large. Try a screenshot instead of a photo.",
-  )
-  .refine(
-    (file) => file.type in PAYMENT_PROOF_EXTENSIONS,
-    "Upload a screenshot or photo (JPEG, PNG or WebP).",
-  );
-
 // ── Social/website links ─────────────────────────────────────────────────────
 // Vendor profile (vendors.social_links) and per-booth (booths.social_links).
 // All fields optional; an absent/empty object means "nothing set".

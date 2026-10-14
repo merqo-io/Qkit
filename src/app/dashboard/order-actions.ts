@@ -235,7 +235,7 @@ export async function revertOrderAdvance(
  * starting it, so this does both in one write instead of two separate taps.
  * Rejects an order that isn't pending, or whose payment is already settled
  * (confirmed/not_required) — those cases keep using the plain advance button.
- * Confirms via paykit first, same as confirmOrderPayment, so a claimPayment
+ * Confirms via paykit first, same as confirmOrderPayment, so a customer claim
  * transaction doesn't stay stuck at "claimed" on paykit's side.
  */
 export async function confirmPaymentAndStart(
@@ -452,7 +452,7 @@ export async function restoreAutoCompleted(
  * looked up by that reference (see transactionIdForOrder) rather than
  * re-created, so this still works after the vendor edits payment details.
  * `orders.payment_status` is then updated as a local mirror, same rationale
- * as claimPayment (payment-actions.ts): the rest of qkit's order-lifecycle
+ * as the customer's claim: the rest of qkit's order-lifecycle
  * logic (cancel-blocking, payment displays, board realtime) still
  * reads it directly.
  */

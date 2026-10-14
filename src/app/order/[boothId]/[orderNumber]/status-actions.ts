@@ -62,7 +62,7 @@ export async function getOrderStatus(
 /**
  * Customer-triggered arrival confirmation: flips a booth-gated order from
  * 'pending' (see migration 0064's place_order branch) to 'preparing',
- * starting prep. Token-gated and rate-limited exactly like claimPayment
+ * starting prep. Token-gated and rate-limited exactly like unclaimPayment
  * (payment-actions.ts) — both are unauthenticated, customer-initiated state
  * flips on the same order row.
  */
@@ -80,7 +80,7 @@ export async function confirmArrival(
 
   const supabase = await createServiceClient();
 
-  // Throttle per IP+booth for the same reason as claimPayment's guard — small
+  // Throttle per IP+booth for the same reason as unclaimPayment's guard — small
   // sequential order numbers are easy to enumerate.
   const ip = clientIp(await headers());
   const allowed = await rateLimit(`arrival:${boothId}:${ip}`, 10, 60);

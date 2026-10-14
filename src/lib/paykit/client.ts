@@ -40,26 +40,37 @@ const vendorConfigFullResponseSchema = z.object({
   qr_image_url: z.string().nullable(),
 });
 
-export type CheckoutView =
+/** `status` is where the payment stands in paykit. `payUrl` is the address of
+ *  paykit's own pay page, non-null only when the checkout was created with a
+ *  `returnUrl`. `createCheckout` always sets both; they are optional so a
+ *  view built by hand, for a render, need not. */
+export type CheckoutView = (
   | { type: "qr"; transactionId: string; payload: string }
   | { type: "link"; transactionId: string; url: string; label: string }
-  | { type: "image"; transactionId: string; url: string };
+  | { type: "image"; transactionId: string; url: string }
+) & { status?: "pending" | "claimed" | "confirmed"; payUrl?: string | null };
+
+const checkoutCommon = {
+  transaction_id: z.string(),
+  status: z.enum(["pending", "claimed", "confirmed"]),
+  pay_url: z.string().url().optional(),
+};
 
 const checkoutResponseSchema = z.discriminatedUnion("type", [
   z.object({
+    ...checkoutCommon,
     type: z.literal("qr"),
-    transaction_id: z.string(),
     payload: z.string().min(1),
   }),
   z.object({
+    ...checkoutCommon,
     type: z.literal("link"),
-    transaction_id: z.string(),
     url: z.string().url(),
     label: z.string(),
   }),
   z.object({
+    ...checkoutCommon,
     type: z.literal("image"),
-    transaction_id: z.string(),
     url: z.string().url(),
   }),
 ]);
@@ -135,10 +146,6 @@ const checkoutEvidenceResponseSchema = z.object({
   }),
 });
 
-// A claim that carries the screenshot uploads up to 1 MB through paykit to
-// its storage, so it gets longer than the default before qkit gives up.
-const PROOF_CLAIM_TIMEOUT_MS = 15_000;
-
 const errorBodySchema = z.object({ error: z.string() });
 
 /**
@@ -179,14 +186,10 @@ async function paykitRequest<T>(
       ...init,
       cache: "no-store",
       signal: controller.signal,
-      // fetch writes the multipart boundary itself for a FormData body, so
-      // the JSON content type is set for every other request only.
       headers: {
         ...init.headers,
         Authorization: `Bearer ${KIT_SLUG}:${secret}`,
-        ...(init.body instanceof FormData
-          ? {}
-          : { "Content-Type": "application/json" }),
+        "Content-Type": "application/json",
       },
     });
 
@@ -298,11 +301,19 @@ export async function getBookingStatus(
  *  repeatedly for the same `orderRef` — paykit dedupes on (kit_slug,
  *  order_ref) and returns the transaction it already created. 422 (no vendor
  *  config, or an incomplete one) surfaces as a normal `ok:false` — callers
- *  treat that as "no payment expected", not a hard error. */
+ *  treat that as "no payment expected", not a hard error.
+ *
+ *  With `returnUrl` (an address on qkit's origin registered in paykit) the
+ *  answer carries a `payUrl`: paykit's own page, where the customer pays and
+ *  from which paykit sends them back to `returnUrl`. `title` is the one line
+ *  that page shows above the amount. Each such call gives the order a fresh
+ *  pay link and retires the previous one. */
 export async function createCheckout(args: {
   vendorId: string;
   amountCents: number;
   orderRef: string;
+  returnUrl?: string;
+  title?: string;
 }): Promise<PaykitResult<CheckoutView>> {
   const result = await paykitRequest(
     "/api/v1/checkout",
@@ -313,30 +324,27 @@ export async function createCheckout(args: {
         vendor_id: args.vendorId,
         amount_cents: args.amountCents,
         order_ref: args.orderRef,
+        ...(args.returnUrl === undefined
+          ? {}
+          : { return_url: args.returnUrl, title: args.title }),
       }),
     },
   );
   if (!result.ok) return result;
   const d = result.data;
+  const common = {
+    transactionId: d.transaction_id,
+    status: d.status,
+    payUrl: d.pay_url ?? null,
+  };
   if (d.type === "qr")
-    return {
-      ok: true,
-      data: { type: "qr", transactionId: d.transaction_id, payload: d.payload },
-    };
+    return { ok: true, data: { ...common, type: "qr", payload: d.payload } };
   if (d.type === "link")
     return {
       ok: true,
-      data: {
-        type: "link",
-        transactionId: d.transaction_id,
-        url: d.url,
-        label: d.label,
-      },
+      data: { ...common, type: "link", url: d.url, label: d.label },
     };
-  return {
-    ok: true,
-    data: { type: "image", transactionId: d.transaction_id, url: d.url },
-  };
+  return { ok: true, data: { ...common, type: "image", url: d.url } };
 }
 
 function toTransactionStatus(
@@ -350,32 +358,6 @@ function toTransactionStatus(
     claimedAt: d.claimed_at,
     confirmedAt: d.confirmed_at,
   };
-}
-
-/** Customer "I've paid" tap. Idempotent on paykit's side — already
- *  claimed/confirmed is a no-op success, never reverts a confirmed payment.
- *
- *  With `proof`, the customer's payment screenshot travels with the claim and
- *  paykit stores it before the claim commits: if it cannot be stored, paykit
- *  answers an error and the transaction is not claimed. qkit keeps no copy. */
-export async function claimCheckout(
-  transactionId: string,
-  proof?: Blob,
-): Promise<PaykitResult<TransactionStatus>> {
-  let body: FormData | undefined;
-  if (proof) {
-    body = new FormData();
-    body.append("proof", proof, "proof");
-  }
-  const result = await paykitRequest(
-    `/api/v1/checkout/${encodeURIComponent(transactionId)}/claim`,
-    transactionStatusResponseSchema,
-    { method: "POST", body },
-    proof ? PROOF_CLAIM_TIMEOUT_MS : undefined,
-  );
-  return result.ok
-    ? { ok: true, data: toTransactionStatus(result.data) }
-    : result;
 }
 
 /** Customer "Tapped by mistake? Undo" tap — reverts a `claimed` transaction

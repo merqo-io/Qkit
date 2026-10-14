@@ -22,10 +22,9 @@ Legacy booth-id entry point; redirects to the current short-code route
   Bluetooth HID scanner reads the customer's own order-status QR to
   complete their order), reached only by whoever sets up the kiosk tablet,
   not linked to from anywhere else in the app. See its own README.
-- `pay/` — the payment-first gate shown before a payment-required order has
-  a number: amount, checkout, and the required proof-photo upload that
-  finally assigns the order its number via `claimPayment`. See its own
-  README.
+- `pay/` — the pay step for a payment-required order that has no number
+  yet: it sends the customer to paykit's hosted pay page and, when they come
+  back, numbers the order. See its own README.
 
 ## Connectivity
 
@@ -41,7 +40,8 @@ until claim), in which case `OrderForm` redirects to `pay/` instead.
 "Open the customer queue display" button, not from anything in the customer order flow.
 `pickup/` is set up once per booth at the physical pickup shelf, out of
 band, and calls into `[orderNumber]/collect-actions.ts`. `pay/` redirects to
-`[orderNumber]/` itself, once `claimPayment` succeeds and assigns a number.
+paykit's pay page, and on the customer's return to `[orderNumber]/` once the
+order has its number.
 
 ## Parent
 

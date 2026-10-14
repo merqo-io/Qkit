@@ -1,6 +1,6 @@
 // Deliberately NOT a "use server" file, for the reason at the top of
 // src/app/o/[code]/notify.ts: every export of one is a client-callable Server
-// Action. Called only by claimPayment (./payment-actions.ts) and the paykit
+// Action. Called only by loadPreClaimContext (./payment-actions.ts) and the paykit
 // callback route (src/app/api/paykit/payment-status/route.ts), each of which
 // has already established that paykit holds the payment being recorded.
 

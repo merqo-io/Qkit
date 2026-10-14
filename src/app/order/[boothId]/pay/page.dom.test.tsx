@@ -1,26 +1,27 @@
 // @vitest-environment jsdom
 //
-// PayForm has its own dedicated test file, so it's stubbed here to keep this
-// test focused on page.tsx's own validation/notFound gating — same pattern
-// as ../pickup/page.dom.test.tsx.
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PayPage from "./page";
 
-const { notFoundMock, redirectMock, loadPreClaimContextMock } = vi.hoisted(
-  () => ({
-    // Real notFound() throws to abort rendering — mirror that so a test
-    // hitting the notFound branch doesn't fall through into the rest of the
-    // function body, same as it never would in production.
-    notFoundMock: vi.fn(() => {
-      throw new Error("NEXT_NOT_FOUND");
-    }),
-    loadPreClaimContextMock: vi.fn(),
-    redirectMock: vi.fn(() => {
-      throw new Error("NEXT_REDIRECT");
-    }),
+const {
+  notFoundMock,
+  redirectMock,
+  loadPreClaimContextMock,
+  requestOriginMock,
+} = vi.hoisted(() => ({
+  requestOriginMock: vi.fn(),
+  // Real notFound() throws to abort rendering — mirror that so a test
+  // hitting the notFound branch doesn't fall through into the rest of the
+  // function body, same as it never would in production.
+  notFoundMock: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
   }),
-);
+  loadPreClaimContextMock: vi.fn(),
+  redirectMock: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
+}));
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -29,32 +30,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("../[orderNumber]/payment-actions", () => ({
   loadPreClaimContext: loadPreClaimContextMock,
 }));
-vi.mock("./pay-form", () => ({
-  PayForm: ({
-    boothId,
-    token,
-    boothName,
-    items,
-    amountCents,
-    checkout,
-  }: {
-    boothId: string;
-    token: string;
-    boothName: string;
-    items: unknown;
-    amountCents: number;
-    checkout: unknown;
-  }) => (
-    <div
-      data-testid="pay-form"
-      data-booth-id={boothId}
-      data-token={token}
-      data-booth-name={boothName}
-      data-items={JSON.stringify(items)}
-      data-amount-cents={amountCents}
-      data-checkout={JSON.stringify(checkout)}
-    />
-  ),
+vi.mock("@/lib/request-origin", () => ({
+  requestOrigin: requestOriginMock,
 }));
 
 const BOOTH_ID = "00000000-0000-4000-8000-000000000001";
@@ -65,6 +42,7 @@ beforeEach(() => {
     throw new Error("NEXT_NOT_FOUND");
   });
   loadPreClaimContextMock.mockReset();
+  requestOriginMock.mockReset().mockResolvedValue("https://qkit.merqo.io");
   redirectMock.mockClear();
 });
 
@@ -94,7 +72,6 @@ describe("PayPage", () => {
       }),
     );
     expect(screen.getByText(/this order was cancelled/i)).toBeInTheDocument();
-    expect(screen.queryByTestId("pay-form")).not.toBeInTheDocument();
   });
   it("shows an expired state, with no payment form, for an order unpaid too long", async () => {
     loadPreClaimContextMock.mockResolvedValue({ state: "expired" });
@@ -109,7 +86,6 @@ describe("PayPage", () => {
     expect(
       screen.getByRole("link", { name: "Order again from this stall" }),
     ).toHaveAttribute("href", `/order/${BOOTH_ID}`);
-    expect(screen.queryByTestId("pay-form")).not.toBeInTheDocument();
   });
 
   it("calls notFound for an invalid booth id", async () => {
@@ -145,36 +121,54 @@ describe("PayPage", () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it("renders PayForm with the order's booth, items, amount, and checkout when valid", async () => {
+  it("sends a pending order to paykit's pay page", async () => {
     loadPreClaimContextMock.mockResolvedValue({
-      state: "pending",
-      orderId: "order-1",
-      amountCents: 550,
-      boothName: "Kopi Cart",
-      items: [{ name: "Kopi O", quantity: 2 }],
-      checkout: { type: "qr", transactionId: "tx-1", payload: "p" },
+      state: "pay",
+      payUrl: "https://paykit.example/pay/tx-1?k=abc",
     });
+    await expect(
+      PayPage({
+        params: Promise.resolve({ boothId: BOOTH_ID }),
+        searchParams: Promise.resolve({ t: TOKEN }),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirectMock).toHaveBeenCalledWith(
+      "https://paykit.example/pay/tx-1?k=abc",
+    );
+    expect(loadPreClaimContextMock).toHaveBeenCalledWith(
+      BOOTH_ID,
+      TOKEN,
+      "https://qkit.merqo.io",
+    );
+  });
 
+  it("offers a retry, and says nothing was charged, when paykit is unavailable", async () => {
+    loadPreClaimContextMock.mockResolvedValue({ state: "unavailable" });
     render(
       await PayPage({
         params: Promise.resolve({ boothId: BOOTH_ID }),
         searchParams: Promise.resolve({ t: TOKEN }),
       }),
     );
+    expect(
+      screen.getByText("Could not open the payment page"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Try again" })).toHaveAttribute(
+      "href",
+      `/order/${BOOTH_ID}/pay?t=${TOKEN}`,
+    );
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
 
-    const form = screen.getByTestId("pay-form");
-    expect(form).toHaveAttribute("data-booth-id", BOOTH_ID);
-    expect(form).toHaveAttribute("data-token", TOKEN);
-    expect(form).toHaveAttribute("data-amount-cents", "550");
-    expect(form).toHaveAttribute("data-booth-name", "Kopi Cart");
-    expect(form).toHaveAttribute(
-      "data-items",
-      JSON.stringify([{ name: "Kopi O", quantity: 2 }]),
-    );
-    expect(form).toHaveAttribute(
-      "data-checkout",
-      JSON.stringify({ type: "qr", transactionId: "tx-1", payload: "p" }),
-    );
-    expect(notFoundMock).not.toHaveBeenCalled();
+  it("calls notFound when the request names no host of ours", async () => {
+    requestOriginMock.mockResolvedValue(null);
+    await expect(
+      PayPage({
+        params: Promise.resolve({ boothId: BOOTH_ID }),
+        searchParams: Promise.resolve({ t: TOKEN }),
+      }),
+    ).rejects.toThrow();
+    expect(notFoundMock).toHaveBeenCalled();
+    expect(loadPreClaimContextMock).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-// Real Supabase checkout, payment claim and initial tracking; requires the coffee-cart seed.
+// Real Supabase checkout, the redirect to paykit's pay page (a stub), the
+// return and initial tracking; requires the coffee-cart seed.
 const BOOTH = "c0ffee01-0000-4000-8000-000000000001";
 
 // Must match the fixed test-only short code in the coffee-cart seed.
@@ -23,21 +24,15 @@ test("customer places an order and reaches the live status page", async ({
   await checkout.getByLabel("Your name").fill("Ada");
   await checkout.getByRole("button", { name: /Place order/ }).click();
 
-  // Payment-required orders have no number until payment is claimed.
-  await expect(page).toHaveURL(new RegExp(`/order/${BOOTH}/pay\\?t=`));
+  // Payment-required orders have no number until payment is claimed. The
+  // pay step sends the customer to paykit's page (the mock stands in for it).
+  await page.waitForURL(/\/pay\/mock-tx-\d+\?k=mock/);
   await expect(
-    page.getByRole("heading", { name: /scan with your paynow/i }),
+    page.getByRole("heading", { name: /pay on paykit/i }),
   ).toBeVisible();
 
-  // A valid PNG exercises the required proof upload and browser resize.
-  await page.locator("#payment-proof").setInputFiles({
-    name: "proof.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQI12P4DwABAQEAG7buVgAAAABJRU5ErkJggg==",
-      "base64",
-    ),
-  });
+  // paykit claims the payment and sends the customer back to qkit, whose pay
+  // step gives the order its number and moves on to the status page.
   await page.getByRole("button", { name: /i've paid/i }).click();
 
   // The seed has no printer, so the claimed order still awaits vendor acceptance.

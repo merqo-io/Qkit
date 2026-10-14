@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { orderBoothIdSchema, orderTokenSchema } from "@/lib/schemas";
 import { loadPreClaimContext } from "../[orderNumber]/payment-actions";
-import { PayForm } from "./pay-form";
+import { requestOrigin } from "@/lib/request-origin";
 
 interface Props {
   params: Promise<{ boothId: string }>;
@@ -38,10 +38,12 @@ function ClosedOrder({
 }
 
 /**
- * Payment-first gate shown while a payment-required order still has no
- * order_number (deferred until a successful claim — see claimPayment in
- * ../[orderNumber]/payment-actions.ts). Reached from OrderForm's redirect
- * when placeOrder returns a null orderNumber.
+ * The pay step for an order that has no order_number yet (numbering is
+ * deferred until the payment is claimed). Reached from OrderForm's redirect
+ * when placeOrder returns a null orderNumber. The customer pays on paykit's
+ * own page, so a pending order is only sent there; paykit sends them back
+ * here, and an order that is by then claimed gets its number in
+ * loadPreClaimContext and goes on to the numbered status page.
  */
 export default async function PayPage({ params, searchParams }: Props) {
   const { boothId } = await params;
@@ -54,10 +56,14 @@ export default async function PayPage({ params, searchParams }: Props) {
   )
     notFound();
 
-  const context = await loadPreClaimContext(boothId, token);
+  const origin = await requestOrigin();
+  if (!origin) notFound();
+
+  const context = await loadPreClaimContext(boothId, token, origin);
   if (!context) notFound();
   if (context.state === "placed")
     redirect(`/order/${boothId}/${context.orderNumber}?t=${token}`);
+  if (context.state === "pay") redirect(context.payUrl);
   if (context.state === "cancelled")
     return (
       <ClosedOrder
@@ -76,15 +82,19 @@ export default async function PayPage({ params, searchParams }: Props) {
     );
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col px-5 py-10">
-      <PayForm
-        boothId={boothId}
-        token={token}
-        boothName={context.boothName}
-        items={context.items}
-        amountCents={context.amountCents}
-        checkout={context.checkout}
-      />
+    <div className="mx-auto max-w-sm space-y-4 px-5 py-10 text-center">
+      <h1 className="font-display text-2xl font-semibold">
+        Could not open the payment page
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Nothing has been charged. Try again in a moment.
+      </p>
+      <Link
+        href={`/order/${boothId}/pay?t=${token}`}
+        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline"
+      >
+        Try again
+      </Link>
     </div>
   );
 }

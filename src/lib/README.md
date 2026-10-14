@@ -276,6 +276,7 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `qkit-paykit-auth.test.ts` — tests the unset, empty, missing-header,
   wrong-scheme, mismatched, different-length and matching cases, and that the
   printkit callback secret is not accepted.
+- `request-origin.ts` — `requestOrigin()`: this app's own origin from the request's `host` header (or `x-forwarded-host`, only when it also passes the allowlist of localhost, `.merqo.io` and `.vercel.app`), `null` when neither does. Used for the order status page's QR address and as the `return_url` origin sent to paykit.
 - `rate-limit.ts` — `clientIp(headers)` (best-effort, spoofable fairness key —
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
@@ -328,8 +329,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   `parseRealtimeOrderEvent`'s dependency, `parseOrderRef` (validates the
   boothId/orderNumber/token triple every customer order action receives),
   `parsePreClaimRef` (same shape minus `orderNumber`, for the pre-claim flow
-  where a payment-required order has no number yet — `loadPreClaimContext`/
-  `claimPayment` in `order/[boothId]/[orderNumber]/payment-actions.ts`),
+  where a payment-required order has no number yet — `loadPreClaimContext`
+  in `order/[boothId]/[orderNumber]/payment-actions.ts`),
   `feedbackSchema`, `supportMessageSchema`, `profileNameSchema`/
   `displayNameSchema`/`passwordChangeSchema`, `boardSettingsSchema` (now also
   `daily_order_number_reset: boolean` and `default_prep_minutes:
@@ -482,10 +483,6 @@ contract) and the admin/vendor stats dashboards. `stuck-orders.ts` feeds the
 `/admin` overview's "Stuck orders" stat + `StuckOrdersSection` list. `plan.ts`'s `Entitlement`
 feeds `booth-access.ts`'s serveability calculation, mirroring the
 `booth_servable` SQL function in `supabase/migrations/`.
-
-## Payment proof schema
-
-`schemas.ts` exports `paymentProofSchema`, `PAYMENT_PROOF_MAX_BYTES` (1 MB) and `PAYMENT_PROOF_EXTENSIONS` (MIME type to file extension, JPEG/PNG/WebP). `claimPayment` and `pay-form.tsx` both validate against it. `claimPayment` then forwards the file to paykit, which checks the same limits again (by the file's bytes) and stores it in its own bucket. qkit's `payment-proofs` bucket (migration `0093`) holds only screenshots from orders claimed before that moved. Keep qkit's schema and paykit's limits in step.
 
 ## Shared package note
 

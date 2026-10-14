@@ -14,8 +14,11 @@ tracks payment state locally end-to-end; this is the seam that replaced
   config as paykit holds it; qkit never writes it, the vendor enters it in
   paykit's own dashboard. `ok:false` means paykit did not say, which is not
   the same as nothing on file), `createCheckout({vendorId,
-amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
-  the same order and get back the same transaction), `claimCheckout(id)` (customer "I've paid"),
+amountCents, orderRef, returnUrl?, title?})` (idempotent on `orderRef` — safe to call again for
+  the same order and get back the same transaction; with `returnUrl` the
+  answer carries `payUrl`, paykit's hosted pay page, and each such call
+  retires the previous pay link; `status` is where the payment stands in
+  paykit),
   `unclaimCheckout(id)` (customer "Tapped by mistake? Undo" — reverts `claimed` back to `pending`;
   idempotent on `pending`, and paykit itself refuses to revert a `confirmed`
   transaction, echoing that status back unchanged), `confirmCheckout(id)`
@@ -72,7 +75,7 @@ Called from: `src/app/dashboard/booths/actions.ts` (`saveBooth`, via
 calls `getBookingStatus`,
 prefilling `BookingStatusSection`), `src/app/order/[boothId]/
 [orderNumber]/page.tsx` and `payment-actions.ts`
-(`createCheckout` on the pay page; `transactionIdForOrder` then `claimCheckout`/`unclaimCheckout` in the actions, customer side), and
+(`createCheckout` on the pay page; `transactionIdForOrder` then `unclaimCheckout` in the actions, customer side), and
 `src/app/dashboard/order-actions.ts` (`confirmOrderPayment` and `confirmPaymentAndStart`, through `transactionIdForOrder`, vendor side).
 `PAYKIT_KIT_SECRET` / `NEXT_PUBLIC_PAYKIT_URL` are the two env vars this
 module reads — see `.env.example` for what they must equal on paykit's side.
@@ -83,6 +86,6 @@ module reads — see `.env.example` for what they must equal on paykit's side.
 
 ## Payment screenshots
 
-`claimCheckout(id, proof?)` sends the customer's screenshot with the claim as one `multipart/form-data` `proof` part when `proof` is given, and no body otherwise. The JSON content type is left off a `FormData` request so `fetch` can write the boundary, and that one request gets 15 seconds instead of 5. paykit stores the file before the claim commits; a failure to store it comes back as `ok: false` and the transaction is not claimed.
+The customer's screenshot and "I've paid" tap happen on paykit's hosted pay page, not through this client: there is no `claimCheckout`. `createCheckout` with `returnUrl` is how a customer reaches it; paykit checks `returnUrl` against the origin registered for qkit (`kit_api_keys.return_origin`) and answers 400 when it is not on it.
 
 `getCheckoutEvidence(id)` reads `GET /api/v1/checkout/{id}/evidence`: `proofUrl` (signed by paykit, valid 300 seconds), `duplicateOf` (`{ orderRef, kitSlug }` of another transaction of the same vendor carrying the same file) and `amountMatch` (`null` when paykit did not check). paykit trusts the calling kit, so the caller must first establish that the signed-in vendor owns the order; `getOrderPaymentProof` in `src/app/dashboard/payment-evidence-actions.ts` is the only caller.

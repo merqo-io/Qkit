@@ -16,7 +16,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
 
 - `collect-actions.ts` — `confirmCollection(boothId, orderNumber, token)`:
   the self-checkout pickup kiosk's server action (`../pickup/`). Token-gated
-  and rate-limited exactly like `claimPayment` (20/60s per IP+booth — a
+  and rate-limited like the other customer actions (20/60s per IP+booth — a
   busier limit than the payment actions since a kiosk can legitimately fire
   many scans in a shift). Distinguishes three non-error outcomes a `ready`
   order can already be in: `"Not ready yet."` (still `preparing`/etc.),
@@ -194,17 +194,16 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   nothing, `confirmed` → a persistent "Payment confirmed" state, `claimed` →
   "Payment sent. The stall is checking it." with a "Tapped by
   mistake? Undo" button (`unclaimPayment`) — any other status renders
-  nothing rather than throwing, defensively. The actual claim UI (photo
-  capture, QR/link/image checkout) lives on `../pay` (`pay-form.tsx`) now,
-  not here.
+  nothing rather than throwing, defensively. The customer pays on
+  paykit's own page, reached through `../pay`; nothing here claims.
 - `pay-panel.dom.test.tsx` — RTL tests for the claimed/undo/confirmed/
   not-required states.
 - `finalize-paid-order.ts` — **not** a `"use server"` file (same reason as
   `src/app/o/[code]/notify.ts`). `finalizePaidOrder(order, payment)` is the
   order half of a payment: assign the number (`qkit.assign_order_number`,
   which returns an existing one), alert the vendor, send the print job, write
-  the `orders.payment_status` mirror last. Called by `claimPayment` here and
-  by the paykit callback route (`src/app/api/paykit/payment-status/route.ts`),
+  the `orders.payment_status` mirror last. Called by `loadPreClaimContext` here (the customer's return from
+  paykit's pay page) and by the paykit callback route (`src/app/api/paykit/payment-status/route.ts`),
   usually for the same order at the same moment, so it is built to run twice:
   the vendor alert is sent only by the run the limiter allows
   (`paid-order-alert:<orderId>`, once per clock hour, the longest window the
@@ -221,28 +220,22 @@ payment)` moves the mirror forward only (`claimed` never overwrites
   round-tripping paykit every 5s; rate-limited per token, 30/60s — a holder
   of a valid token can't be brute-forced but could script polling past the
   page's own 5s cadence to amplify DB load), `loadPreClaimContext(boothId,
-  token)` (pre-claim pay-panel data for a payment-required order that has no
-  `order_number` yet — same order id/amount/checkout shape as `page.tsx`'s
-  own `loadCheckoutView`, keyed on the token-only route instead of a numbered
-  one; rate-limited per `boothId:token`, 20/60s — this one makes a real
-  outbound `createCheckout` call to paykit on every invocation, so it's
-  capped tighter than the cheap local-only polling reads), `claimPayment(boothId, token, photo)` (customer self-report, now
-  **requires an uploaded payment screenshot** — the photo upload IS the claim
-  and is also what finally assigns the order's number, deferred at
-  `place_order` time for any payment-required order; rate-limited 10/60s per
-  IP+booth). Order of operations is load-bearing: it finds the paykit
-  transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id), **then** sends the claim and
-  the screenshot to paykit in one request (`claimCheckout(id, file)`; paykit
-  stores the file before its claim commits), **then** hands the order to
-  `finalizePaidOrder` (`./finalize-paid-order.ts`), which assigns the number,
-  fires the notifications and writes the `orders.payment_status` mirror last.
-  qkit keeps no copy of the screenshot: nothing here touches a storage bucket
-  or the `orders.payment_proof_path`/`payment_proof_hash` columns, which stay
-  only on orders claimed before the screenshot moved to paykit. A failure up
-  to and including paykit's answer leaves the order exactly as it was, and a
-  failed mirror write still reports success (paykit + the assigned number are
-  already real by then). A retry is allowed while the order is `claimed` and
-  has no number yet. `unclaimPayment` is unchanged (still `(boothId, orderNumber,
+  token, origin)` (the pay step for a payment-required order that has no
+  `order_number` yet; rate-limited per `boothId:token`, 20/60s, because it
+  makes a real outbound `createCheckout` call to paykit on every invocation).
+  It asks paykit for a checkout with `returnUrl` (`<origin>/order/<booth>/
+  pay?t=<token>`) and the booth name as `title`, and answers `pay` (with
+  paykit's `pay_url`), `placed` (the order already has a number, or paykit
+  says the payment is claimed or confirmed, in which case it runs
+  `finalizePaidOrder` itself so a customer who returns before paykit's
+  callback still gets a number), `cancelled`, `expired` (checked before any
+  checkout is created, so an expired order mints no pay link) or
+  `unavailable` (paykit unreachable, refused the return address, gave no pay
+  page, or numbering failed). A claimed order that never got its number is
+  finished the same way. `origin` comes from `@/lib/request-origin`; paykit
+  compares it with the origin registered for qkit, so a spoofed host gets a
+  refusal, not a redirect. The claim itself (screenshot and "I've paid") now
+  happens on paykit's page, so there is no `claimPayment`. `unclaimPayment` is unchanged (still `(boothId, orderNumber,
 token)`, only ever runs post-claim when a number already exists): the
   "Tapped by mistake? Undo" companion, same rate-limit/lookup shape;
   finds the same paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) — there's no
@@ -251,15 +244,12 @@ token)`, only ever runs post-claim when a number already exists): the
   paykit enforces itself and this mirrors with a fast local pre-check).
   paykit is authoritative for whether the claim/unclaim itself succeeded; a
   failed local mirror write still reports success to the customer.
-- `payment-actions.test.ts` — unit tests for the claim/unclaim guards,
-  rate-limiting, paykit-call mocking, and idempotency, including the new
-  photo-required/deferred-numbering `claimPayment` (no-photo rejection,
-  the file forwarded to paykit unchanged, no qkit bucket or proof column
-  ever written, every paykit failure leaving the order untouched, the full
-  lookup→claim→assign→notify→mirror happy path) and
-  `loadPreClaimContext`'s valid/invalid/non-pending branches, and the new
-  rate-limit denials on `loadPreClaimContext`/`getPaymentStatus` (never
-  reaches the DB/paykit when limited).
+- `payment-actions.test.ts` — unit tests for `loadPreClaimContext` (the
+  return address and title sent to paykit, a long booth name cut to 120, each
+  `unavailable` cause, a payment claimed or confirmed on paykit numbering the
+  order with one vendor alert, a failed numbering changing nothing, the
+  numbered, cancelled, expired and rate-limited branches), `unclaimPayment`
+  and `getPaymentStatus`.
 - `status-actions.ts` — `getOrderStatus(boothId, orderNumber, token)`:
   service-client read of just the `status` column, token-gated, used by the
   poller; rate-limited per token (30/60s, same load-amplification rationale
@@ -272,7 +262,7 @@ token)`, only ever runs post-claim when a number already exists): the
   and only the vendor's own board "Start now" tap may move it on; the
   customer can't self-accept an order the vendor didn't opt to let them.
   Token-gated and rate-limited exactly like
-  `claimPayment` in `payment-actions.ts` (10/60s per IP+booth — small
+  `unclaimPayment` in `payment-actions.ts` (10/60s per IP+booth — small
   sequential order numbers are easy to enumerate); on a 0-row update it
   re-reads the order to distinguish a harmless double-tap (already started,
   e.g. the vendor hit "Start now" first — reported as success) from a real
@@ -302,7 +292,7 @@ Reached at `/order/{boothId}/{orderNumber}?t=<accessToken>` — the URL
 `placeOrder` (in `src/app/o/[code]/actions.ts`) returns on success, and the
 link `RecentOrders`/`ReorderButton` construct for a past order. A
 payment-required order still `"pending"` is redirected to `../pay?t=
-<accessToken>` instead (that route's own `page.tsx` owns the claim UI).
+<accessToken>` instead (that route sends the customer on to paykit's pay page).
 Past that gate, `page.tsx` composes `OrderStatusPoller` (polls
 `status-actions.ts`) and `PayPanel` (polls/mutates via `payment-actions.ts`)
 — both bypass RLS via the service client since the customer is anonymous and
@@ -318,44 +308,10 @@ called from `../pickup/pickup-scanner.tsx`, the self-checkout pickup kiosk
 
 ## Shared package note
 
-`claimPayment` no longer resizes. It used to call `@merqo/ui`'s
-`resizeToWebp`, which needs `createImageBitmap` and a `<canvas>`, so in
-this `"use server"` module it only ever threw internally and fell back to
-the original file — a silent no-op. The real resize is the browser one in
-`../pay/pay-form.tsx`, the only caller, which shrinks to <=1600px WebP (or
-JPEG where WebP encoding is unsupported, since `@merqo/ui` v0.31.3).
-
-What bounds storage server-side is validation, not resizing.
-`claimPayment` checks the file against `paymentProofSchema`
-(`@/lib/schemas`: non-empty, <=1 MB, JPEG/PNG/WebP) before creating a
-client, and stores it under an extension and content type derived from its
-real MIME type. The `payment-proofs` bucket enforces the same limits again
-at the storage layer (migration `0093`), so they hold even for a caller that
-bypasses this action.
-
-(Importing `resizeToWebp` into a server module was only possible at all
-because `@merqo/ui` v0.31.0 dropped its package-wide `"use client"`
-banner; under the banner it resolved to a client-reference stub.)
-
-The header's sub-line says what the page will do ("Keep this page open. It turns
-to Ready when your order is up.") rather than only what to remember. At NCS
-customers queued back up at the counter to ask whether theirs was ready,
-because nothing told them the page changes by itself, and the chime, desktop
-notification and title flash `OrderStatusPoller` already fires only help
-someone who knows to leave it open.
-
-`OrderStatusPoller` draws the order's four stages (`StageTrack`, from
-`ORDER_STAGES` in `@/lib/orders`) with every stage visible from the start, the
-reached ones filled and the current one pulsing (`.stage-pulse` in
-`globals.css`, off under reduced motion), then a headline and one line of what
-to do (`statusCopy`). The wait estimate (`WaitEstimate`) and the alert opt-in
-(`ReadyAlerts`) are their own small components.
-
-`page.tsx` treats an order as past when it is terminal or a stale view
-(`isStaleOrderView`). `OrderHeader` then strikes the number through and
-`PastOrderStamp` prints how it ended and the full date and time, so the page
-cannot be shown at the counter as a live order; a stale view also gets no
-tracker and no payment prompt.
+The payment screenshot no longer passes through qkit. paykit's pay page
+resizes it in the browser, checks type and size, and stores it with the
+transaction; qkit has no `resizeToWebp` call, no proof schema and no upload
+action.
 
 ## Parent
 
