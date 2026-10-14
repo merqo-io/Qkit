@@ -56,7 +56,8 @@ import { boothFormSchema } from "@/lib/schemas";
 import type { Entitlement } from "@/lib/plan";
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { BoothHours } from "@/lib/hours";
-import type { PaymentConfig, SocialLinks } from "@/lib/types";
+import type { SocialLinks } from "@/lib/types";
+import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 import type { BookingStatus } from "@/lib/paykit/client";
 
 interface Props {
@@ -68,10 +69,9 @@ interface Props {
   // page.tsx, ?mode=event) — never applies once `initial` is set, an
   // existing booth's own saved value always wins.
   eventMode?: boolean;
-  // The vendor's payment details from paykit, whatever this booth is set to
-  // (and for a booth not created yet): picking a payment method starts from
-  // them instead of blanks.
-  savedPayment?: PaymentConfig | null;
+  // What the vendor has on file in paykit, read when the page rendered. It is
+  // vendor-wide: the same for every booth, and for one not created yet.
+  paymentSetup: PaymentSetup;
   initial?: {
     boothId: string;
     name: string;
@@ -80,7 +80,8 @@ interface Props {
     hours: BoothHours;
     // Display-only; items are edited on the dedicated menu-manager page.
     menuItemCount: number;
-    payment: PaymentConfig | null;
+    // Whether this booth's stored marker says it takes payment.
+    takes_payment: boolean;
     social_links: SocialLinks | null;
     requires_arrival_confirm: boolean;
     walkup_default: boolean;
@@ -178,18 +179,6 @@ function LockedDailyLimit({
   );
 }
 
-function qrImageOf(payment: PaymentConfig | null): string | null {
-  return payment?.kind === "pointer" ? (payment.qr_image_url ?? null) : null;
-}
-
-function withQrImage(
-  payment: PaymentConfig | null,
-  qrImageUrl: string | null,
-): PaymentConfig | null {
-  if (payment?.kind !== "pointer") return payment;
-  return { ...payment, qr_image_url: qrImageUrl ?? undefined };
-}
-
 /**
  * Uploads the form's pending images. On an upload failure, deletes whatever
  * did upload, tells the vendor, and returns null so the save stops.
@@ -210,7 +199,7 @@ export function BoothForm({
   entitlement,
   vendorSocialLinks,
   eventMode = false,
-  savedPayment = null,
+  paymentSetup,
   initial,
 }: Props) {
   const router = useRouter();
@@ -220,8 +209,8 @@ export function BoothForm({
   );
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
   const [hours, setHours] = useState<BoothHours>(initial?.hours ?? null);
-  const [payment, setPayment] = useState<PaymentConfig | null>(
-    initial?.payment ?? null,
+  const [takesPayment, setTakesPayment] = useState(
+    initial?.takes_payment ?? false,
   );
   const [socialLinks, setSocialLinks] = useState<SocialLinks | null>(
     initial?.social_links ?? null,
@@ -259,7 +248,7 @@ export function BoothForm({
     imageUrl,
     initial?.boothId ? null : isActive,
     hours,
-    payment,
+    takesPayment,
     socialLinks,
     requiresArrivalConfirm,
     walkupDefault,
@@ -293,18 +282,18 @@ export function BoothForm({
     const isCreate = !initial?.boothId;
 
     return runSave(async () => {
-      // The banner and QR uploaders defer their uploads, so a vendor who
-      // picks an image and leaves without saving leaves nothing in storage.
-      const committed = await commitImages([imageUrl, qrImageOf(payment)]);
+      // The banner uploader defers its upload, so a vendor who picks an
+      // image and leaves without saving leaves nothing in storage.
+      const committed = await commitImages([imageUrl]);
       if (!committed) return;
-      const [committedBanner, committedQr] = committed.urls;
+      const [committedBanner] = committed.urls;
       const candidate = {
         boothId: initial?.boothId,
         name,
         image_url: committedBanner ?? null,
         is_active: isActive,
         hours,
-        payment: withQrImage(payment, committedQr ?? null),
+        takes_payment: takesPayment,
         social_links: socialLinks,
         requires_arrival_confirm: requiresArrivalConfirm,
         walkup_default: walkupDefault,
@@ -569,10 +558,9 @@ export function BoothForm({
             description="Optional, but skip it and customers have no way to pay through qkit. You'd collect payment in person instead."
           >
             <PaymentSection
-              vendorId={vendorId}
-              value={payment}
-              saved={savedPayment}
-              onChange={setPayment}
+              setup={paymentSetup}
+              value={takesPayment}
+              onChange={setTakesPayment}
             />
           </Section>
 

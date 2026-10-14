@@ -66,14 +66,13 @@ describe("orphanedImagePaths", () => {
 });
 
 describe("failedSaveUploadPaths", () => {
-  it("returns the vendor's own uploads that nothing persisted, deduped", () => {
+  it("returns the vendor's own uploads, deduped", () => {
     expect(
       failedSaveUploadPaths(
         [`${BASE}v1/a.webp`, `${BASE}v1/b.webp`, `${BASE}v1/a.webp`],
         "v1",
-        new Set([`${BASE}v1/b.webp`]),
       ),
-    ).toEqual(["v1/a.webp"]);
+    ).toEqual(["v1/a.webp", "v1/b.webp"]);
   });
 
   it("drops another vendor's folder, other buckets and external URLs", () => {
@@ -85,7 +84,6 @@ describe("failedSaveUploadPaths", () => {
           "https://example.com/x.png",
         ],
         "v1",
-        new Set(),
       ),
     ).toEqual([]);
   });

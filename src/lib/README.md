@@ -234,11 +234,12 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   combinations and the `canAdd*`/`canHaveOptionGroups` gates.
 - `payment-marker.ts` — everything that reads or writes the `{kind}` marker
   on `booths.payment`: `paymentKindOf(data)` (the stored kind, or null),
-  `expectsPayment(kind)` (false for null and for the reserved `stripe`), and
-  `paymentMarker(kind)` (what to store for a booth saved with that kind).
-  Three files each parsed the marker their own way before.
+  `expectsPayment(kind)` (false for null), and `paymentMarker(kind)` (what to
+  store for a booth of that kind). It parses with `paymentMarkerSchema`.
+  `stripe`, which SQL's check still allows and nothing ever stored, reads as
+  no payment.
 - `payment-marker.test.ts` — each kind read from a marker and from a full
-  config, null for anything else, the stripe rule, and a round trip.
+  config, null for anything else (`stripe` included), and a round trip.
 - `plan.ts` — `Entitlement`/`Tier` model (`FREE`/`PASS`/`PRO` presets),
   `getEntitlement` (resolves a vendor's effective entitlement from
   `plan`+license expiry), `normalizePlan`, `canAddBooth`, `canAddMenuItem`,
@@ -319,11 +320,11 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `schemas.ts` — the Zod schema library for every form/action/JSONB boundary:
   `loginSchema`, `vendorSchema`, `menuItemFormSchema`/`menuItemSchema`,
   `optionGroupSchema`/`sanitizeOptionGroups`, `boothHoursSchema`/
-  `parseBoothHours`, `paymentConfigSchema` (discriminated union over
-  pointer/paynow/stripe with cross-field `.superRefine` rules — validates the
-  vendor-submitted config before `dashboard/booths/actions.ts` forwards it to
-  paykit; `booths.payment` itself now stores only a `{kind}` marker, so
-  there's no longer a `parsePaymentConfig` DB-read counterpart), `placeOrderSchema`, `orderRowSchema`/
+  `parseBoothHours`, `paymentMarkerSchema` (the `{kind}` marker `booths.payment`
+  stores: `pointer` or `paynow`. qkit keeps no rule about payee names, UENs,
+  mobile numbers, links or QR images; paykit validates those, in the one form
+  that edits them. `boothFormSchema` carries the form's switch as
+  `takes_payment`), `placeOrderSchema`, `orderRowSchema`/
   `parseRealtimeOrderEvent`'s dependency, `parseOrderRef` (validates the
   boothId/orderNumber/token triple every customer order action receives),
   `parsePreClaimRef` (same shape minus `orderNumber`, for the pre-claim flow
@@ -397,7 +398,7 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   role) plus entitlement/user/vendor read helpers; see its own README.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration
-  0060 — `Plan`, `PaymentConfig`, `MenuItem`, `CartItem`,
+  0060 — `Plan`, `PaymentKind`, `MenuItem`, `CartItem`,
   `OrderItem`, `BoardSettings`/`DEFAULT_BOARD_SETTINGS` — now also
   `daily_order_number_reset`/`default_prep_minutes`, migration 0062), and the
   full `Database["qkit"]` `Tables`/`Functions`/`Enums` shape (vendors, admins,
@@ -464,8 +465,9 @@ boolean`, migration 0080 — orders, booth_item_sold —
 `createServiceClient`) that every Server Action, Route Handler, and Server
 Component in `src/app/` depends on for data access; `paykit/` provides the
 HTTP client the customer checkout flow (order-status `page.tsx`,
-`payment-actions.ts`) and the vendor "quick add PayNow" form
-(`dashboard/booths/actions.ts`) both call through. Pure helpers are unit-tested directly. Browser and server adapters use mocked
+`payment-actions.ts`) and the booth form (`dashboard/booths/actions.ts`,
+which only reads which kind of payment the vendor has on file) both call
+through. Pure helpers are unit-tested directly. Browser and server adapters use mocked
 platform-boundary tests; Stryker covers its configured subset of `src/lib`, not
 every module listed here.
 `types.ts` is the DB type mirror imported almost everywhere for row shapes;
@@ -495,15 +497,15 @@ feeds `booth-access.ts`'s serveability calculation, mirroring the
 
 ## Deferred-upload cleanup
 
-The booth banner, menu photo and payment QR uploaders run in `@merqo/ui`'s
+The booth banner and menu photo uploaders run in `@merqo/ui`'s
 `deferUpload` mode, so an image reaches storage only when its form saves.
 Two helpers delete what a failed save uploaded:
 `removeUnsavedImages(urls)` in `image-upload-adapter.ts` is the browser-side,
 best-effort delete for failures before anything is written, and
-`failedSaveUploadPaths(urls, vendorId, persisted)` in `booth-images.ts` is the
+`failedSaveUploadPaths(urls, vendorId)` in `booth-images.ts` is the
 pure filter `saveBooth` uses server-side. The filter only ever returns
 booth-images objects in the vendor's own folder, since the list comes from
-the client, and skips anything in `persisted`.
+the client. A payment QR image is uploaded in paykit, not here.
 
 ## Parent
 

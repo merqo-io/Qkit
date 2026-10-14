@@ -1,268 +1,142 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import { useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PaymentSection } from "./payment-section";
-import type { PaymentConfig } from "@/lib/types";
+import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 
-// PaymentSection is controlled, so drive it through a stateful host that feeds
-// the latest value back — mirroring how booth-form wires it. No local
-// TooltipProvider needed: each radio option's InfoTooltip comes from
-// @merqo/ui, which wraps itself in its own internal TooltipProvider (a
-// separate module instance from qkit's local radix-ui umbrella entirely).
-function Host({
-  initial,
-  saved,
-  onChange,
-}: {
-  initial: PaymentConfig | null;
-  saved?: PaymentConfig | null;
-  onChange: (v: PaymentConfig | null) => void;
-}) {
-  const [value, setValue] = useState<PaymentConfig | null>(initial);
-  return (
-    <PaymentSection
-      vendorId="v1"
-      value={value}
-      saved={saved}
-      onChange={(next) => {
-        setValue(next);
-        onChange(next);
-      }}
-    />
-  );
+const SWITCH = "Take payment for orders at this booth";
+const originalUrl = process.env.NEXT_PUBLIC_PAYKIT_URL;
+
+afterEach(() => {
+  if (originalUrl === undefined) delete process.env.NEXT_PUBLIC_PAYKIT_URL;
+  else process.env.NEXT_PUBLIC_PAYKIT_URL = originalUrl;
+  window.history.replaceState(null, "", "/");
+});
+
+function renderSection(setup: PaymentSetup, value = false, onChange = vi.fn()) {
+  render(<PaymentSection setup={setup} value={value} onChange={onChange} />);
+  return onChange;
 }
 
 describe("PaymentSection", () => {
-  it("opens an option's hint on a tap without selecting that option", async () => {
-    const onChange = vi.fn();
-    render(<Host initial={null} onChange={onChange} />);
+  it.each([
+    [
+      "PayNow",
+      { state: "paynow", name: "Kopitiam Cart" },
+      "On file in paykit: PayNow QR, paid to Kopitiam Cart",
+    ],
+    [
+      "a payment link",
+      { state: "link", name: "Pay with PayLah" },
+      "On file in paykit: payment link, “Pay with PayLah”",
+    ],
+    [
+      "a QR image",
+      { state: "image", name: "GrabPay" },
+      "On file in paykit: your own QR image, “GrabPay”",
+    ],
+    [
+      "PayNow with no payee name",
+      { state: "paynow", name: "" },
+      "On file in paykit: PayNow QR",
+    ],
+  ] as const)(
+    "summarises %s and lets the booth be switched",
+    (_, setup, summary) => {
+      const onChange = renderSection(setup);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "More about PayNow QR" }),
-    );
+      expect(screen.getByText(summary)).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", {
+          name: "Change payment details in paykit →",
+        }),
+      ).toBeInTheDocument();
 
+      fireEvent.click(screen.getByRole("switch", { name: SWITCH }));
+      expect(onChange).toHaveBeenCalledWith(true);
+    },
+  );
+
+  it("shows the switch on for a booth that takes payment, and turns it off", () => {
+    const onChange = renderSection({ state: "paynow", name: "Cart" }, true);
+
+    const toggle = screen.getByRole("switch", { name: SWITCH });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledWith(false);
+  });
+
+  it("with nothing on file, keeps the switch off and points to paykit to set up", () => {
+    const onChange = renderSection({ state: "none" }, true);
+
+    const toggle = screen.getByRole("switch", { name: SWITCH });
+    expect(toggle).not.toBeChecked();
+    expect(toggle).toBeDisabled();
     expect(
-      await screen.findByText(/order amount already filled in/i),
+      screen.getByText("No payment details on file yet."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Set up payments in paykit →" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(toggle);
     expect(onChange).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("radio", { name: "No online payment" }),
-    ).toBeChecked();
   });
 
-  it("opens on no online payment even when the vendor has details on file", () => {
-    render(
-      <Host
-        initial={null}
-        saved={{ kind: "paynow", payee_name: "Cart", uen: "53312345A" }}
-        onChange={vi.fn()}
-      />,
+  it.each([true, false])(
+    "when paykit cannot be reached, shows the stored setting (%s) and locks it",
+    (stored) => {
+      const onChange = renderSection({ state: "unreachable" }, stored);
+
+      const toggle = screen.getByRole("switch", { name: SWITCH });
+      expect(toggle).toBeDisabled();
+      expect(toggle.getAttribute("aria-checked")).toBe(String(stored));
+      expect(
+        screen.getByText(
+          "Can't reach paykit right now. This booth keeps its current payment setting.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "Open payment setup in paykit →" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(toggle);
+      expect(onChange).not.toHaveBeenCalled();
+    },
+  );
+
+  it("links to paykit's setup page in the same tab, carrying this page as the way back", () => {
+    process.env.NEXT_PUBLIC_PAYKIT_URL = "https://paykit.test";
+    window.history.replaceState(null, "", "/dashboard/booths/new?mode=event");
+    renderSection({ state: "none" });
+
+    const link = screen.getByRole("link", {
+      name: "Set up payments in paykit →",
+    });
+    const href = new URL(link.getAttribute("href") ?? "");
+    expect(href.origin + href.pathname).toBe(
+      "https://paykit.test/dashboard/config",
     );
-    expect(
-      screen.getByRole("radio", { name: "No online payment" }),
-    ).toBeChecked();
-    expect(screen.queryByLabelText(/Payee name/i)).not.toBeInTheDocument();
-  });
-
-  it("restores the details on file when that method is picked", () => {
-    const onChange = vi.fn();
-    const saved: PaymentConfig = {
-      kind: "paynow",
-      payee_name: "Cart",
-      mobile: "+6591234567",
-    };
-    render(<Host initial={null} saved={saved} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: /PayNow/i }));
-    expect(onChange).toHaveBeenLastCalledWith(saved);
-    expect(screen.getByLabelText(/Payee name/i)).toHaveValue("Cart");
-    expect(screen.getByLabelText("Mobile number")).toHaveValue("91234567");
-  });
-
-  it("starts blank when the details on file are for another method", () => {
-    const onChange = vi.fn();
-    render(
-      <Host
-        initial={null}
-        saved={{ kind: "pointer", label: "Pay", url: "https://pay.example" }}
-        onChange={onChange}
-      />,
+    expect(href.searchParams.get("return_to")).toBe(
+      `${window.location.origin}/dashboard/booths/new?mode=event`,
     );
-    fireEvent.click(screen.getByRole("radio", { name: /PayNow/i }));
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "",
-      uen: "",
-    });
+    expect(link).not.toHaveAttribute("target");
   });
 
-  it("emits a paynow config when UEN is filled", () => {
-    const onChange = vi.fn();
-    render(<Host initial={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: /PayNow/i }));
-    fireEvent.change(screen.getByLabelText(/Payee name/i), {
-      target: { value: "Cart" },
-    });
-    fireEvent.change(screen.getByLabelText("UEN"), {
-      target: { value: "53312345A" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "Cart",
-      uen: "53312345A",
-    });
-  });
-
-  it("emits a paynow config with a +65 mobile number when the Mobile number toggle is picked", () => {
-    const onChange = vi.fn();
-    render(<Host initial={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: /PayNow/i }));
-    fireEvent.change(screen.getByLabelText(/Payee name/i), {
-      target: { value: "Cart" },
-    });
-    fireEvent.click(screen.getByRole("radio", { name: "Mobile number" }));
-    fireEvent.change(screen.getByLabelText("Mobile number"), {
-      target: { value: "91234567" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "Cart",
-      mobile: "+6591234567",
-    });
-  });
-
-  it("strips non-digits and caps the mobile field at 8 digits", () => {
-    const onChange = vi.fn();
-    render(<Host initial={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: /PayNow/i }));
-    fireEvent.click(screen.getByRole("radio", { name: "Mobile number" }));
-    fireEvent.change(screen.getByLabelText("Mobile number"), {
-      target: { value: "9123-4567extra" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "",
-      mobile: "+6591234567",
-    });
-  });
-
-  it("clears uen when switching from UEN to Mobile number", () => {
-    const onChange = vi.fn();
-    render(
-      <Host
-        initial={{ kind: "paynow", payee_name: "Cart", uen: "53312345A" }}
-        onChange={onChange}
-      />,
+  it.each([
+    { state: "none" },
+    { state: "paynow", name: "Cart" },
+    { state: "link", name: "Pay" },
+    { state: "image", name: "Pay" },
+    { state: "unreachable" },
+  ] as const)("has no field for a payment detail (%j)", (setup) => {
+    const { container } = render(
+      <PaymentSection setup={setup} value={true} onChange={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Mobile number" }));
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "Cart",
-      uen: undefined,
-      mobile: undefined,
-    });
-    fireEvent.change(screen.getByLabelText("Mobile number"), {
-      target: { value: "91234567" },
-    });
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "paynow",
-      payee_name: "Cart",
-      mobile: "+6591234567",
-    });
-  });
 
-  it("starts on the Mobile number toggle when the existing config has a mobile", () => {
-    render(
-      <Host
-        initial={{
-          kind: "paynow",
-          payee_name: "Cart",
-          mobile: "+6591234567",
-        }}
-        onChange={vi.fn()}
-      />,
-    );
-    expect(screen.getByLabelText("Mobile number")).toHaveValue("91234567");
-  });
-
-  it("emits null when 'No online payment' is selected", () => {
-    const onChange = vi.fn();
-    render(
-      <Host
-        initial={{ kind: "paynow", payee_name: "x", uen: "53312345A" }}
-        onChange={onChange}
-      />,
-    );
-    fireEvent.click(screen.getByRole("radio", { name: /No online payment/i }));
-    expect(onChange).toHaveBeenLastCalledWith(null);
-  });
-
-  it("defaults 'pointer' to the payment-link field, not the QR uploader", () => {
-    const onChange = vi.fn();
-    render(<Host initial={null} onChange={onChange} />);
-    fireEvent.click(
-      screen.getByRole("radio", { name: /Payment link or QR image/i }),
-    );
-    expect(screen.getByLabelText("Payment link")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /add photo/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("switches to the QR uploader and clears the link when that sub-option is picked", () => {
-    const onChange = vi.fn();
-    render(
-      <Host
-        initial={{ kind: "pointer", label: "Pay", url: "https://pay.me/x" }}
-        onChange={onChange}
-      />,
-    );
-    fireEvent.click(screen.getByRole("radio", { name: "QR image" }));
-    expect(screen.queryByLabelText("Payment link")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /add photo/i }),
-    ).toBeInTheDocument();
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "pointer",
-      label: "Pay",
-      url: undefined,
-      qr_image_url: undefined,
-    });
-  });
-
-  it("switches back to the link field and clears qr_image_url", () => {
-    const onChange = vi.fn();
-    render(
-      <Host
-        initial={{
-          kind: "pointer",
-          label: "Scan to pay",
-          qr_image_url: "https://example.com/qr.webp",
-        }}
-        onChange={onChange}
-      />,
-    );
-    // No url and a qr_image_url set → starts in QR mode.
-    expect(screen.queryByLabelText("Payment link")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("radio", { name: "Payment link" }));
-    expect(screen.getByLabelText("Payment link")).toBeInTheDocument();
-    expect(onChange).toHaveBeenLastCalledWith({
-      kind: "pointer",
-      label: "Scan to pay",
-      url: undefined,
-      qr_image_url: undefined,
-    });
-  });
-
-  it("links out to paykit's vendor dashboard", () => {
-    render(<Host initial={null} onChange={vi.fn()} />);
-    const link = screen.getByRole("link", { name: /manage payments.*paykit/i });
-    expect(link).toHaveAttribute(
-      "href",
-      "https://paykit-sg.vercel.app/dashboard",
-    );
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(container.querySelector("input")).toBeNull();
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

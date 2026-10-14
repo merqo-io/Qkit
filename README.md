@@ -99,7 +99,10 @@ function.
 ## Payments and notifications
 
 Paykit owns payment configuration and transactions. qkit stores a minimal booth
-payment marker and an order payment-status mirror. Customer collection, vendor
+payment marker and an order payment-status mirror. A vendor enters payment
+details in Paykit only: the booth form has a switch for whether that booth
+takes payment, names what Paykit has on file, and links to Paykit's setup
+page. qkit reads that configuration and never writes it. Customer collection, vendor
 pickup and fulfillment undo never confirm or reverse payment. Completed unpaid
 orders retain an explicit payment-confirmation action. Payment actions inspect Paykit's returned
 state before updating that mirror; a successful HTTP response alone does not

@@ -7,39 +7,9 @@ import {
   parseSocialLinks,
 } from "@/lib/schemas";
 import { getBookingStatus, type BookingStatus } from "@/lib/paykit/client";
-import { savedVendorPayment } from "@/lib/paykit/saved-vendor-payment";
+import { vendorPaymentSetup } from "@/lib/paykit/payment-setup";
 import { BoothForm } from "../booth-form";
-import type { PaymentConfig } from "@/lib/types";
-import { paymentKindOf } from "@/lib/payment-marker";
-
-/**
- * The booth's payment method with every detail blank, from its `{kind}`
- * marker alone (see `@/lib/payment-marker`). Used when paykit's
- * `getVendorConfig` call fails or reports nothing (e.g. `PAYKIT_KIT_SECRET`
- * unset in this environment): it can only re-select the right radio option.
- */
-function initialPaymentFromMarker(data: unknown): PaymentConfig | null {
-  const kind = paymentKindOf(data);
-  if (kind === "paynow") return { kind: "paynow", payee_name: "" };
-  if (kind === "pointer") return { kind: "pointer", label: "" };
-  return null;
-}
-
-/**
- * What the Payment section opens on. The booth's own marker decides whether
- * this booth takes payment at all; paykit's details only fill the fields in.
- * Those details are vendor-wide, so reading them alone opened every booth as
- * "PayNow", including one saved with no online payment, and the next save of
- * anything on the page then switched payment on for it.
- */
-function initialPayment(
-  boothPayment: unknown,
-  saved: PaymentConfig | null,
-): PaymentConfig | null {
-  const marker = initialPaymentFromMarker(boothPayment);
-  if (!marker) return null;
-  return saved ?? marker;
-}
+import { expectsPayment, paymentKindOf } from "@/lib/payment-marker";
 
 /**
  * Read-only booking-status prefill for `BookingStatusSection`. `null` when
@@ -80,11 +50,14 @@ export default async function EditBoothPage({ params }: Props) {
 
   const menuItemCount = parseMenuItems(booth.menu_items).length;
 
-  const [savedPayment, bookingStatus] = await Promise.all([
-    savedVendorPayment(vendor.id),
+  const [paymentSetup, bookingStatus] = await Promise.all([
+    vendorPaymentSetup(vendor.id),
     initialBookingStatus(booth.paykit_booking_id),
   ]);
-  const payment = initialPayment(booth.payment, savedPayment);
+  // The booth's own marker decides whether this booth takes payment. What
+  // paykit holds is vendor-wide, so it never switches a booth on by itself:
+  // a booth saved with no payment stays that way whatever is on file.
+  const takesPayment = expectsPayment(paymentKindOf(booth.payment));
 
   return (
     <div className="mx-auto max-w-lg md:max-w-4xl">
@@ -93,7 +66,7 @@ export default async function EditBoothPage({ params }: Props) {
         vendorId={vendor.id}
         entitlement={entitlement}
         vendorSocialLinks={vendor.social_links}
-        savedPayment={savedPayment}
+        paymentSetup={paymentSetup}
         initial={{
           boothId: booth.id,
           name: booth.name,
@@ -101,7 +74,7 @@ export default async function EditBoothPage({ params }: Props) {
           is_active: booth.is_active,
           hours: parseBoothHours(booth.hours),
           menuItemCount,
-          payment,
+          takes_payment: takesPayment,
           social_links: booth.social_links
             ? parseSocialLinks(booth.social_links)
             : null,

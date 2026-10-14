@@ -23,11 +23,14 @@ vi.mock("./sweep-unsaved-uploads", () => ({
   sweepUnsavedUploads: sweepUnsavedUploadsMock,
 }));
 
-const { upsertVendorConfigMock } = vi.hoisted(() => ({
-  upsertVendorConfigMock: vi.fn(),
+// Only paykit's answer is faked: `setupKind` is the real mapping from it to
+// the marker's kind.
+const { vendorPaymentSetupMock } = vi.hoisted(() => ({
+  vendorPaymentSetupMock: vi.fn(),
 }));
-vi.mock("@/lib/paykit/client", () => ({
-  upsertVendorConfig: upsertVendorConfigMock,
+vi.mock("@/lib/paykit/payment-setup", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/paykit/payment-setup")>()),
+  vendorPaymentSetup: vendorPaymentSetupMock,
 }));
 
 const { registerPrintLocationMock } = vi.hoisted(() => ({
@@ -173,7 +176,7 @@ function makeBooth(over: Partial<BoothFormInput> = {}): BoothFormInput {
     is_active: false,
     hours: null,
     menu_categories: [],
-    payment: null,
+    takes_payment: false,
     social_links: null,
     requires_arrival_confirm: false,
     walkup_default: false,
@@ -201,10 +204,9 @@ beforeEach(() => {
   h.state.prevResult = { data: null };
   h.state.deleteResult = { count: 1, error: null };
   h.state.authUser = { id: "v1" };
-  upsertVendorConfigMock.mockReset().mockResolvedValue({
-    ok: true,
-    data: { hasConfig: true, displayName: "Cart" },
-  });
+  vendorPaymentSetupMock
+    .mockReset()
+    .mockResolvedValue({ state: "paynow", name: "Cart" });
   registerPrintLocationMock.mockReset().mockResolvedValue({
     ok: true,
     data: { id: "loc-1" },
@@ -466,94 +468,110 @@ describe("saveMenuCategories", () => {
   });
 });
 
-describe("saveBooth — payment (paykit cutover)", () => {
-  it("writes the full config to paykit and only a {kind} marker to booths.payment", async () => {
-    const payment = {
-      kind: "paynow" as const,
-      payee_name: "Cart",
-      uen: "53312345A",
-    };
-    const res = await saveBooth(makeBooth({ payment }));
+describe("saveBooth — payment marker", () => {
+  const EDIT = "00000000-0000-4000-8000-000000000009";
 
-    expect(res).toEqual({ success: true, boothId: "b-new" });
-    expect(upsertVendorConfigMock).toHaveBeenCalledWith("v1", payment);
-    const row = h.insertSpy.mock.calls[0][0] as { payment: unknown };
-    expect(row.payment).toEqual({ kind: "paynow" });
+  function insertedRow() {
+    return h.insertSpy.mock.calls[0][0] as Record<string, unknown>;
+  }
+  function updatedRow() {
+    return h.updateSpy.mock.calls[0][0] as Record<string, unknown>;
+  }
+
+  it.each([
+    ["PayNow", { state: "paynow", name: "Cart" }, { kind: "paynow" }],
+    ["a payment link", { state: "link", name: "Pay" }, { kind: "pointer" }],
+    ["a QR image", { state: "image", name: "Pay" }, { kind: "pointer" }],
+  ] as const)(
+    "with the switch on, stores the kind paykit holds for %s",
+    async (_, setup, marker) => {
+      vendorPaymentSetupMock.mockResolvedValue(setup);
+
+      const res = await saveBooth(makeBooth({ takes_payment: true }));
+
+      expect(res).toEqual({ success: true, boothId: "b-new" });
+      expect(vendorPaymentSetupMock).toHaveBeenCalledWith("v1");
+      expect(insertedRow().payment).toEqual(marker);
+    },
+  );
+
+  it("with the switch off, stores no payment and does not ask paykit", async () => {
+    const res = await saveBooth(makeBooth({ takes_payment: false }));
+
+    expect(res.success).toBe(true);
+    expect(vendorPaymentSetupMock).not.toHaveBeenCalled();
+    expect(insertedRow().payment).toBeNull();
   });
 
-  it("clears the local marker and never calls paykit when payment is null", async () => {
-    const res = await saveBooth(makeBooth({ payment: null }));
+  it("with the switch on and nothing on file in paykit, stores no payment", async () => {
+    vendorPaymentSetupMock.mockResolvedValue({ state: "none" });
 
-    expect(res).toEqual({ success: true, boothId: "b-new" });
-    expect(upsertVendorConfigMock).not.toHaveBeenCalled();
-    const row = h.insertSpy.mock.calls[0][0] as { payment: unknown };
-    expect(row.payment).toBeNull();
+    await saveBooth(makeBooth({ boothId: EDIT, takes_payment: true }));
+
+    expect(updatedRow().payment).toBeNull();
   });
 
-  it("fails the whole save when paykit rejects the config, without writing the booth", async () => {
-    upsertVendorConfigMock.mockResolvedValue({
-      ok: false,
-      status: 400,
-      error: "Provide either a UEN or a mobile number, not both",
-    });
+  it("replaces a stored kind that paykit no longer holds", async () => {
+    h.state.prevResult = { data: { image_url: null, menu_items: [] } };
+    vendorPaymentSetupMock.mockResolvedValue({ state: "link", name: "Pay" });
+
+    await saveBooth(makeBooth({ boothId: EDIT, takes_payment: true }));
+
+    expect(updatedRow().payment).toEqual({ kind: "pointer" });
+  });
+
+  it("keeps the stored marker and still saves the booth when paykit cannot be reached", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vendorPaymentSetupMock.mockResolvedValue({ state: "unreachable" });
+
     const res = await saveBooth(
-      makeBooth({
-        payment: { kind: "paynow", payee_name: "Cart", uen: "53312345A" },
-      }),
+      makeBooth({ boothId: EDIT, name: "Renamed", takes_payment: true }),
     );
 
-    expect(res).toEqual({
-      success: false,
-      error:
-        "Could not save payment settings: Provide either a UEN or a mobile number, not both",
-    });
-    expect(h.insertSpy).not.toHaveBeenCalled();
-    expect(h.updateSpy).not.toHaveBeenCalled();
+    expect(res).toEqual({ success: true, boothId: "b-edit" });
+    const row = updatedRow();
+    expect(row.name).toBe("Renamed");
+    expect(row).not.toHaveProperty("payment");
+    logged.mockRestore();
+  });
+
+  it("creates a booth with no marker of its own when paykit cannot be reached", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vendorPaymentSetupMock.mockResolvedValue({ state: "unreachable" });
+
+    const res = await saveBooth(makeBooth({ takes_payment: true }));
+
+    expect(res).toEqual({ success: true, boothId: "b-new" });
+    expect(insertedRow()).not.toHaveProperty("payment");
+    logged.mockRestore();
+  });
+
+  it("stores nothing a caller sends in place of the switch", async () => {
+    const forged = {
+      ...makeBooth(),
+      payment: { kind: "paynow", payee_name: "Someone else" },
+    } as BoothFormInput;
+
+    await saveBooth(forged);
+
+    expect(vendorPaymentSetupMock).not.toHaveBeenCalled();
+    expect(insertedRow().payment).toBeNull();
   });
 });
 
 describe("saveBooth — unsaved upload cleanup", () => {
   const PUBLIC = "https://abc.supabase.co/storage/v1/object/public";
   const BANNER = `${PUBLIC}/booth-images/v1/banner.webp`;
-  const QR = `${PUBLIC}/booth-images/v1/qr.webp`;
-  const pointer = {
-    kind: "pointer" as const,
-    label: "PayLah",
-    qr_image_url: QR,
-  };
 
   it("deletes nothing when the save succeeds", async () => {
-    const res = await saveBooth(
-      makeBooth({ image_url: BANNER, payment: pointer }),
-      [BANNER, QR],
-    );
+    const res = await saveBooth(makeBooth({ image_url: BANNER }), [BANNER]);
     expect(res.success).toBe(true);
     expect(h.removeSpy).not.toHaveBeenCalled();
   });
 
-  it("deletes every fresh upload when paykit rejects the config", async () => {
-    upsertVendorConfigMock.mockResolvedValue({
-      ok: false,
-      status: 503,
-      error: "Upstream unavailable",
-    });
-    const res = await saveBooth(
-      makeBooth({ image_url: BANNER, payment: pointer }),
-      [BANNER, QR],
-    );
-    expect(res.success).toBe(false);
-    expect(h.removeSpy).toHaveBeenCalledWith("booth-images", [
-      "v1/banner.webp",
-      "v1/qr.webp",
-    ]);
-  });
-
-  it("keeps the QR paykit already stored when the booth write fails after it", async () => {
+  it("deletes the fresh upload when the booth write fails", async () => {
     h.state.insertResult = { data: null, error: { message: "boom" } };
-    const res = await saveBooth(
-      makeBooth({ image_url: BANNER, payment: pointer }),
-      [BANNER, QR],
-    );
+    const res = await saveBooth(makeBooth({ image_url: BANNER }), [BANNER]);
     expect(res.success).toBe(false);
     expect(h.removeSpy).toHaveBeenCalledWith("booth-images", [
       "v1/banner.webp",

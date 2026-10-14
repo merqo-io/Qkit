@@ -29,6 +29,10 @@ per-booth colours and image paths.
   booth deletion. URL-to-path parsing is `@merqo/ui`'s shared
   `storagePathFromPublicUrl` (this file carried its own copy until
   2026-09-22); the shared one also rejects a path with an empty segment.
+  `failedSaveUploadPaths(urls, vendorId)` is the filter `saveBooth` uses to
+  delete what a failed save uploaded: only objects in the vendor's own
+  folder. It takes no "already persisted" set any more, because a booth save
+  no longer writes a payment QR to paykit before the booth row.
   `uploadedPaths(urls)` maps any other URLs (avatar, paykit QR) to paths the
   same way, and `unsavedUploadPaths(folder, objects, referenced, nowMs,
 graceMs)` picks the objects in a vendor folder that nothing references and

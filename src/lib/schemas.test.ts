@@ -11,7 +11,7 @@ import {
   parseBoothHours,
   parseMenuItems,
   parseOrderItems,
-  paymentConfigSchema,
+  paymentMarkerSchema,
   profileNameSchema,
   displayNameSchema,
   passwordChangeSchema,
@@ -751,62 +751,45 @@ describe("parseOrderItems", () => {
   });
 });
 
-describe("paymentConfigSchema", () => {
-  it("accepts a pointer with a url", () => {
-    expect(
-      paymentConfigSchema.safeParse({
-        kind: "pointer",
-        label: "PayLah",
-        url: "https://pay.example/abc",
-      }).success,
-    ).toBe(true);
+describe("paymentMarkerSchema", () => {
+  it.each(["paynow", "pointer"])("accepts the %s kind", (kind) => {
+    expect(paymentMarkerSchema.safeParse({ kind }).success).toBe(true);
   });
 
-  it("rejects a pointer with neither url nor qr_image_url", () => {
+  it("keeps only the kind of a value that carries more", () => {
     expect(
-      paymentConfigSchema.safeParse({ kind: "pointer", label: "x" }).success,
-    ).toBe(false);
+      paymentMarkerSchema.parse({ kind: "paynow", payee_name: "Cart" }),
+    ).toEqual({ kind: "paynow" });
   });
 
-  it("accepts a paynow with exactly a uen", () => {
-    expect(
-      paymentConfigSchema.safeParse({
-        kind: "paynow",
-        payee_name: "Kopitiam Cart",
-        uen: "53312345A",
-      }).success,
-    ).toBe(true);
+  it.each([{ kind: "stripe" }, { kind: "cash" }, {}, null, "paynow"])(
+    "rejects %j",
+    (value) => {
+      expect(paymentMarkerSchema.safeParse(value).success).toBe(false);
+    },
+  );
+});
+
+describe("boothFormSchema takes_payment", () => {
+  const base = { name: "Cart", image_url: null, is_active: true };
+
+  it("defaults to a booth that takes no payment", () => {
+    expect(boothFormSchema.parse(base).takes_payment).toBe(false);
   });
 
-  it("rejects a paynow with both uen and mobile", () => {
-    expect(
-      paymentConfigSchema.safeParse({
-        kind: "paynow",
-        payee_name: "x",
-        uen: "53312345A",
-        mobile: "+6591234567",
-      }).success,
-    ).toBe(false);
+  it("carries the switch, and no payment detail", () => {
+    const parsed = boothFormSchema.parse({
+      ...base,
+      takes_payment: true,
+      payment: { kind: "paynow", payee_name: "Cart", uen: "53312345A" },
+    });
+    expect(parsed.takes_payment).toBe(true);
+    expect(parsed).not.toHaveProperty("payment");
   });
 
-  it("rejects a paynow with neither uen nor mobile", () => {
+  it("rejects a switch that is not a boolean", () => {
     expect(
-      paymentConfigSchema.safeParse({ kind: "paynow", payee_name: "x" })
-        .success,
-    ).toBe(false);
-  });
-
-  it("rejects a bare 8-digit local mobile number typed into the uen field", () => {
-    // Real bug: a vendor typing their mobile number without the leading "+65"
-    // (e.g. "91234567" instead of "+6591234567") gets it silently filed under
-    // uen by the dashboard form's startsWith("+") heuristic — every real UEN
-    // ends in a letter check digit, so this must not validate as one.
-    expect(
-      paymentConfigSchema.safeParse({
-        kind: "paynow",
-        payee_name: "x",
-        uen: "91234567",
-      }).success,
+      boothFormSchema.safeParse({ ...base, takes_payment: "yes" }).success,
     ).toBe(false);
   });
 });

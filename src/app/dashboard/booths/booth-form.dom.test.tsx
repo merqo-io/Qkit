@@ -15,7 +15,28 @@ vi.mock("./actions", () => ({ saveBooth, deleteBooth }));
 // this file is isolated to booth-form's own state wiring (in particular the
 // walk-up-default toggle), not their internals.
 vi.mock("./working-hours-editor", () => ({ WorkingHoursEditor: () => null }));
-vi.mock("./payment-section", () => ({ PaymentSection: () => null }));
+// Stands in for the Payment section's switch: shows what the form handed it
+// and flips the value when pressed.
+vi.mock("./payment-section", () => ({
+  PaymentSection: ({
+    setup,
+    value,
+    onChange,
+  }: {
+    setup: { state: string };
+    value: boolean;
+    onChange: (next: boolean) => void;
+  }) => (
+    <button
+      type="button"
+      data-setup={setup.state}
+      aria-pressed={value}
+      onClick={() => onChange(!value)}
+    >
+      takes payment
+    </button>
+  ),
+}));
 vi.mock("./social-links-section", () => ({ SocialLinksSection: () => null }));
 vi.mock("./close-booth-control", () => ({ CloseBoothControl: () => null }));
 vi.mock("@merqo/ui", async (importOriginal) => ({
@@ -44,6 +65,8 @@ const ENTITLEMENT: Entitlement = {
 };
 
 const TOGGLE_LABEL = "Default to walk-up order entry";
+const NO_SETUP = { state: "none" } as const;
+const PAYNOW_SETUP = { state: "paynow", name: "Cart" } as const;
 const BOOTH_ID = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
@@ -60,6 +83,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -80,6 +104,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     const toggle = screen.getByRole("switch", { name: TOGGLE_LABEL });
@@ -101,6 +126,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -119,6 +145,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         eventMode
       />,
     );
@@ -132,6 +159,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -139,7 +167,7 @@ describe("BoothForm walk-up-default toggle", () => {
           is_active: true,
           hours: null,
           menuItemCount: 0,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: true,
@@ -162,6 +190,7 @@ describe("BoothForm walk-up-default toggle", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -169,7 +198,7 @@ describe("BoothForm walk-up-default toggle", () => {
           is_active: true,
           hours: null,
           menuItemCount: 0,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: true,
@@ -190,6 +219,78 @@ describe("BoothForm walk-up-default toggle", () => {
   });
 });
 
+describe("BoothForm payment switch", () => {
+  function paymentButton() {
+    return screen.getByRole("button", { name: "takes payment" });
+  }
+
+  it("hands the Payment section what paykit holds and opens a new booth off", () => {
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={PAYNOW_SETUP}
+      />,
+    );
+
+    expect(paymentButton()).toHaveAttribute("data-setup", "paynow");
+    expect(paymentButton()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it.each([
+    ["left off", false],
+    ["switched on", true],
+  ])("submits the switch %s, and no payment detail", async (_, on) => {
+    const user = userEvent.setup();
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={PAYNOW_SETUP}
+      />,
+    );
+    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    if (on) await user.click(paymentButton());
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+
+    expect(saveBooth).toHaveBeenCalledWith(
+      expect.objectContaining({ takes_payment: on }),
+      [],
+    );
+    expect(saveBooth.mock.calls[0][0]).not.toHaveProperty("payment");
+  });
+
+  it("opens an existing booth on its stored setting", () => {
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={PAYNOW_SETUP}
+        initial={{
+          boothId: BOOTH_ID,
+          name: "Ice Cream Cart",
+          image_url: null,
+          is_active: true,
+          hours: null,
+          menuItemCount: 0,
+          takes_payment: true,
+          social_links: null,
+          requires_arrival_confirm: false,
+          walkup_default: false,
+          print_enabled: false,
+          paykit_booking_id: null,
+          daily_cup_cap: null,
+        }}
+      />,
+    );
+
+    expect(paymentButton()).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
 describe("BoothForm paykit booking id", () => {
   it("is hidden while walk-up default is off, and appears once toggled on", async () => {
     const user = userEvent.setup();
@@ -198,6 +299,7 @@ describe("BoothForm paykit booking id", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     expect(
@@ -215,6 +317,7 @@ describe("BoothForm paykit booking id", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -234,6 +337,7 @@ describe("BoothForm paykit booking id", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -241,7 +345,7 @@ describe("BoothForm paykit booking id", () => {
           is_active: true,
           hours: null,
           menuItemCount: 0,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: true,
@@ -275,6 +379,7 @@ describe("BoothForm menu section", () => {
         vendorId="v1"
         entitlement={{ ...ENTITLEMENT, stockCaps: true }}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     expect(
@@ -291,6 +396,7 @@ describe("BoothForm menu section", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -311,6 +417,7 @@ describe("BoothForm menu section", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -318,7 +425,7 @@ describe("BoothForm menu section", () => {
           is_active: true,
           hours: null,
           menuItemCount: 3,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: false,
@@ -341,6 +448,7 @@ describe("BoothForm menu section", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -348,7 +456,7 @@ describe("BoothForm menu section", () => {
           is_active: true,
           hours: null,
           menuItemCount: 4,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: false,
@@ -373,6 +481,7 @@ describe("BoothForm per-order item limit", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -391,6 +500,7 @@ describe("BoothForm per-order item limit", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -409,6 +519,7 @@ describe("BoothForm per-order item limit", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     expect(
@@ -428,7 +539,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
     is_active: true,
     hours: null,
     menuItemCount: 0,
-    payment: null,
+    takes_payment: false,
     social_links: null,
     requires_arrival_confirm: false,
     walkup_default: false,
@@ -444,6 +555,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={initial}
       />,
     );
@@ -463,6 +575,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={initial}
       />,
     );
@@ -491,6 +604,7 @@ describe("BoothForm daily cup cap", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT_WITH_CAPS}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -509,6 +623,7 @@ describe("BoothForm daily cup cap", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT_WITH_CAPS}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
       />,
     );
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
@@ -527,6 +642,7 @@ describe("BoothForm daily cup cap", () => {
         vendorId="v1"
         entitlement={ENTITLEMENT_WITH_CAPS}
         vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
         initial={{
           boothId: BOOTH_ID,
           name: "Ice Cream Cart",
@@ -534,7 +650,7 @@ describe("BoothForm daily cup cap", () => {
           is_active: true,
           hours: null,
           menuItemCount: 0,
-          payment: null,
+          takes_payment: false,
           social_links: null,
           requires_arrival_confirm: false,
           walkup_default: false,

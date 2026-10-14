@@ -222,73 +222,13 @@ export const boothHoursSchema = z
   ])
   .nullable();
 
-// ── Payment seam ─────────────────────────────────────────────────────────────
-// booths.payment discriminated union. No secrets here — pointer URLs, static QR
-// images, and PayNow identifiers are all shown to the paying customer.
-
-const pointerConfigSchema = z.object({
-  kind: z.literal("pointer"),
-  label: z.string().min(1, "Label is required").max(60),
-  // Rendered as an <a href> on the public status page — restrict to http(s) so
-  // a vendor can't store a javascript:/data: link (stored XSS on the qkit origin).
-  url: z
-    .string()
-    .url()
-    .refine((u) => /^https?:\/\//i.test(u), "Must be an http(s) link")
-    .optional(),
-  qr_image_url: imageUrlString.optional(),
+// ── Payment marker ───────────────────────────────────────────────────────────
+// booths.payment holds only which kind of payment a booth takes. The details
+// (payee, UEN, mobile number, link, QR image) are entered and validated in
+// paykit, vendor-wide; qkit keeps no rule about them. See @/lib/payment-marker.
+export const paymentMarkerSchema = z.object({
+  kind: z.enum(["pointer", "paynow"]),
 });
-
-const paynowConfigSchema = z.object({
-  kind: z.literal("paynow"),
-  payee_name: z.string().min(1, "Payee name is required").max(100),
-  // SG UEN: 9-10 alphanumeric chars, always ending in a letter check digit
-  // (business: 8 digits + letter; local company: 4-digit year + 5 digits +
-  // letter; other 2009+ entities: letter + 2 digits + 2 letters + 4 digits +
-  // letter — every real UEN format ends in a letter, never purely numeric).
-  // A bare 8-digit local mobile number (e.g. a vendor typing "91234567"
-  // without the "+65" the mobile field requires) would otherwise pass this
-  // as a "valid" 8-char alphanumeric UEN and silently generate a broken
-  // PayNow QR — the trailing-letter requirement rejects that case outright.
-  uen: z
-    .string()
-    .regex(/^[0-9A-Za-z]{8,9}[A-Za-z]$/, "Invalid UEN")
-    .optional(),
-  mobile: z
-    .string()
-    .regex(/^\+65\d{8}$/, "Use +65XXXXXXXX")
-    .optional(),
-});
-
-const stripeConfigSchema = z.object({
-  kind: z.literal("stripe"),
-  account_id: z.string().min(1),
-});
-
-// Discriminated union over plain objects, then cross-field rules applied to the
-// union (zod v3 discriminatedUnion rejects .refine()-wrapped members).
-export const paymentConfigSchema = z
-  .discriminatedUnion("kind", [
-    pointerConfigSchema,
-    paynowConfigSchema,
-    stripeConfigSchema,
-  ])
-  .superRefine((c, ctx) => {
-    if (c.kind === "pointer" && !c.url && !c.qr_image_url)
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Add a payment link or a QR image",
-        path: ["url"],
-      });
-    // PayNow targets exactly one of UEN or mobile (xor).
-    if (c.kind === "paynow" && Boolean(c.uen) === Boolean(c.mobile))
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Provide either a UEN or a mobile number, not both",
-        path: ["uen"],
-      });
-  });
-export type PaymentConfigInput = z.infer<typeof paymentConfigSchema>;
 
 export const paymentStatusSchema = z.enum([
   "not_required",
@@ -438,8 +378,9 @@ export const boothFormSchema = z.object({
   hours: boothHoursSchema.default(null),
   // Not menu_items — saveMenuItems owns that column exclusively now.
   menu_categories: menuCategoriesSchema.default([]),
-  // Optional BYO payment method; null = queue-only. Reuses paymentConfigSchema.
-  payment: paymentConfigSchema.nullable().default(null),
+  // The form's "Take payment for orders at this booth" switch. saveBooth
+  // turns it into the stored marker using the kind paykit reports.
+  takes_payment: z.boolean().default(false),
   // null = inherit the vendor's profile-level defaults; non-null = a
   // complete per-booth override. See resolveSocialLinks.
   social_links: socialLinksSchema.nullable().default(null),
@@ -707,7 +648,7 @@ export const orderRowSchema = z.object({
   total_cents: z.number().int().nonnegative(),
   payment_status: paymentStatusSchema,
   payment_method_kind: z
-    .enum(["pointer", "paynow", "stripe"])
+    .enum(["pointer", "paynow"])
     .nullable()
     // Tolerant read: an unknown kind from an old/foreign row degrades to null
     // rather than dropping the whole realtime order.

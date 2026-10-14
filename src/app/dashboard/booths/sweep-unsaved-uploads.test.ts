@@ -110,6 +110,22 @@ describe("sweepUnsavedUploads", () => {
     expect(remove).toHaveBeenCalledWith(["v1/abandoned.webp"]);
   });
 
+  it("keeps a payment QR uploaded here before payment setup moved to paykit", async () => {
+    paykitOk(`${PUBLIC}/v1/legacy-qr.webp`);
+    const { supabase, remove } = makeSupabase({
+      pages: [
+        [
+          { name: "legacy-qr.webp", created_at: OLD },
+          { name: "abandoned.webp", created_at: OLD },
+        ],
+      ],
+    });
+
+    await sweepUnsavedUploads(supabase, USER, NOW);
+
+    expect(remove).toHaveBeenCalledWith(["v1/abandoned.webp"]);
+  });
+
   it("does nothing when paykit is unreachable, so a live QR is never deleted", async () => {
     getVendorConfig.mockResolvedValue({ ok: false, status: 503, error: "x" });
     const { supabase, list, remove } = makeSupabase({

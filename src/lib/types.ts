@@ -110,15 +110,9 @@ export type PrintStatus =
   | "printed"
   | "failed";
 
-export type PaymentKind = "pointer" | "paynow" | "stripe";
-
-// Discriminated union stored in booths.payment (JSONB). No secrets in any
-// active kind — a PayNow UEN/mobile, a payment link, and a static QR are all
-// public-by-design. `stripe` is reserved but dark (adapter throws).
-export type PaymentConfig =
-  | { kind: "pointer"; label: string; url?: string; qr_image_url?: string }
-  | { kind: "paynow"; payee_name: string; uen?: string; mobile?: string }
-  | { kind: "stripe"; account_id: string };
+// The kind stored in booths.payment (JSONB, a `{kind}` marker) and mirrored
+// on orders.payment_method_kind. The payment details live in paykit.
+export type PaymentKind = "pointer" | "paynow";
 
 // Vendor/booth social + website links (qkit.vendors.social_links,
 // qkit.booths.social_links jsonb). All fields optional; an absent/empty
