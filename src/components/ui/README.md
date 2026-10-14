@@ -20,8 +20,8 @@ where noted below.
   `InputGroupText`/`InputGroupInput`/`InputGroupTextarea`: a bordered wrapper
   giving `Input`/`Textarea` a fixed leading/trailing addon (icon, text, or
   button) inside the same field, instead of a separate element beside it.
-  Used by `payment-section.tsx`'s Mobile number field for a fixed,
-  non-editable `+65` prefix.
+  Nothing uses it at present: its one user, the booth form's PayNow mobile
+  field, went when payment details moved to paykit.
 - `label.tsx` — Radix `Label` wrapper.
 - `popover.tsx` — `Popover`/`PopoverTrigger`/`PopoverContent`/`PopoverAnchor`,
   used by `stat-breakdown.tsx`'s hover/tap breakdown tile.

@@ -16,8 +16,8 @@ const MAX_PAGES = 10;
 type Supabase = Awaited<ReturnType<typeof createServerClient>>;
 
 /**
- * Deletes images a vendor uploaded into a booth, menu or payment form they
- * never saved. Every upload lands at a fresh path in `booth-images/{vendorId}/`
+ * Deletes images a vendor uploaded into a booth or menu form they never
+ * saved. Every upload lands at a fresh path in `booth-images/{vendorId}/`
  * the moment it's picked, so an abandoned form leaves an object nothing points
  * at. Save-time cleanup (orphanedImagePaths) only sees images that were once
  * saved, so it can't catch these.
@@ -25,10 +25,17 @@ type Supabase = Awaited<ReturnType<typeof createServerClient>>;
  * An object is deleted only when it is older than the grace window and is not
  * referenced by any of the vendor's booths (banner, menu photos), their avatar
  * (auth user_metadata.avatar_url, which qkit's profile page also uploads into
- * this bucket) or their paykit payment QR. If any of those can't be read the
- * sweep does nothing: the paykit QR lives outside qkit's database, and deleting
- * a live QR would break checkout. Best-effort and never throws; RLS limits the
- * delete to the vendor's own folder.
+ * this bucket) or their paykit payment QR.
+ *
+ * The booth form no longer uploads a payment QR: that is done in paykit, into
+ * paykit's bucket. The paykit read stays because a vendor who uploaded one
+ * here earlier still has it in this bucket, and paykit's config still names
+ * it until they replace it. It is the only record of that reference, so if
+ * paykit can't be read the sweep does nothing: deleting a live QR would break
+ * checkout. The read can go once no paykit config names a booth-images URL.
+ *
+ * Best-effort and never throws; RLS limits the delete to the vendor's own
+ * folder.
  */
 export async function sweepUnsavedUploads(
   supabase: Supabase,

@@ -10,12 +10,10 @@ tracks payment state locally end-to-end; this is the seam that replaced
 
 ## Contents
 
-- `client.ts` — `upsertVendorConfig(vendorId, config)` (the "quick add
-  PayNow" write path — booth-form's payment section calls this instead of
-  writing the full config to `booths.payment`), `getVendorConfig(vendorId)`
-  (the read-back path — returns the full `paynow`/`pointer` fields, the
-  prefill source for `dashboard/booths/[boothId]/page.tsx` re-opening an
-  existing booth's Payment section), `createCheckout({vendorId,
+- `client.ts` — `getVendorConfig(vendorId)` (reads the vendor's payment
+  config as paykit holds it; qkit never writes it, the vendor enters it in
+  paykit's own dashboard. `ok:false` means paykit did not say, which is not
+  the same as nothing on file), `createCheckout({vendorId,
 amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
   the same order and get back the same transaction), `claimCheckout(id)` (customer "I've paid"),
   `unclaimCheckout(id)` (customer "Tapped by mistake? Undo" — reverts `claimed` back to `pending`;
@@ -39,14 +37,15 @@ amountCents, orderRef})` (idempotent on `orderRef` — safe to call again for
   interpolated into a request path is `encodeURIComponent`'d, so a value
   containing `/`, `?`, or `#` can't add extra path segments or query params
   to the request paykit actually receives.
-- `saved-vendor-payment.ts` — `savedVendorPayment(vendorId)`: the vendor's
-  payment details from `getVendorConfig`, mapped to qkit's `PaymentConfig`
-  (`paynow` with whichever of UEN/mobile is set, or `pointer` with its link
-  or QR image), or `null` when nothing is saved or paykit cannot be reached.
-  Vendor-wide, not per booth: both booth pages pass it to the Payment section
-  so that picking a method already set up starts from these details.
-- `saved-vendor-payment.test.ts` — each mapping above, plus the three `null`
-  cases (nothing saved, a config of no known kind, paykit unreachable).
+- `payment-setup.ts` — `vendorPaymentSetup(vendorId)`: what the vendor has
+  on file in paykit, as one of five states the booth form can show:
+  `unreachable`, `none`, `paynow`, `link` or `image`, the last three with the
+  vendor's own name for it (payee name or label). No UEN, mobile number, link
+  or image address is carried, so none reaches the browser. `setupKind(setup)`
+  is the kind a booth's `{kind}` marker takes from it (`paynow`, `pointer` or
+  null). Vendor-wide, not per booth.
+- `payment-setup.test.ts` — each state, the three causes of `none`, that no
+  identifier is carried, and `setupKind`.
 - `transaction-for-order.ts` — `transactionIdForOrder({vendorId, amountCents,
 orderRef})`: the paykit transaction id for an order. qkit stores none, so
   every action that claims, undoes or confirms a payment gets it here. It
@@ -67,8 +66,10 @@ orderRef})`: the paykit transaction id for an order. qkit stores none, so
 ## Connectivity
 
 Called from: `src/app/dashboard/booths/actions.ts` (`saveBooth`, via
-`upsertVendorConfig`), `src/app/dashboard/booths/[boothId]/page.tsx` (via
-`getVendorConfig`, prefilling the edit form, and `getBookingStatus`,
+`vendorPaymentSetup`, for the kind the booth's marker should carry),
+`src/app/dashboard/booths/[boothId]/page.tsx` and `new/page.tsx` (via
+`vendorPaymentSetup`, for the Payment section's summary; the edit page also
+calls `getBookingStatus`,
 prefilling `BookingStatusSection`), `src/app/order/[boothId]/
 [orderNumber]/page.tsx` and `payment-actions.ts`
 (`createCheckout` on the pay page; `transactionIdForOrder` then `claimCheckout`/`unclaimCheckout` in the actions, customer side), and
