@@ -31,9 +31,16 @@ export async function getProofPhotoUrl(
   return data.signedUrl;
 }
 
-export async function findDuplicateProofOrder(
-  orderId: string,
-): Promise<string | null> {
+/**
+ * Another order of this vendor's claimed with the same screenshot file. It
+ * returns the row, not a number: the vendor knows that order by the number on
+ * its board card, which can be the day's rank rather than `order_number`.
+ */
+export async function findDuplicateProofOrder(orderId: string): Promise<{
+  booth_id: string;
+  order_number: string | null;
+  created_at: string;
+} | null> {
   if (!uuidSchema.safeParse(orderId).success) return null;
   const supabase = await createServerClient();
 
@@ -46,11 +53,11 @@ export async function findDuplicateProofOrder(
 
   const { data: match } = await supabase
     .from("orders")
-    .select("order_number")
+    .select("booth_id, order_number, created_at")
     .eq("payment_proof_hash", order.payment_proof_hash)
     .neq("id", orderId)
     .limit(1)
     .maybeSingle();
 
-  return match?.order_number ?? null;
+  return match ?? null;
 }

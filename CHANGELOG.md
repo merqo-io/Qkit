@@ -18,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The payment proof's duplicate warning names the other order by the number on its board card. With daily numbering on it said "order #0024" (the permanent number) for an order the board and the customer knew as #001. Today's orders now go through `vendorFacingOrderNumber`, the same setting and day baseline as the ticket; an order from an earlier day keeps its permanent number, as on the board, and adds its day ("order #0024 on 1 Oct"). Applies to orders whose screenshot is in paykit and to older ones still in qkit's bucket.
 - The `mutation (changed lib)` CI job no longer fails with `no merge base`
   when main moves while a pull request is open. Its step fetched the base
   branch with `--depth=1`, which made a full-history checkout shallow at

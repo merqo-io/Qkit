@@ -104,19 +104,21 @@ describe("getProofPhotoUrl", () => {
 });
 
 describe("findDuplicateProofOrder", () => {
-  it("returns the other order's number when the hash matches", async () => {
+  it("returns the other order, with what names it on the board, when the hash matches", async () => {
+    const match = {
+      booth_id: "booth-1",
+      order_number: "0031",
+      created_at: "2026-10-14T02:00:00.000Z",
+    };
     orderSingle.mockResolvedValueOnce({
       data: { payment_proof_hash: "abc123" },
       error: null,
     });
-    duplicateSingle.mockResolvedValueOnce({
-      data: { order_number: "0031" },
-      error: null,
-    });
+    duplicateSingle.mockResolvedValueOnce({ data: match, error: null });
     const other = await findDuplicateProofOrder(
       "11111111-1111-1111-1111-111111111111",
     );
-    expect(other).toBe("0031");
+    expect(other).toEqual(match);
     expect(queryStep).toHaveBeenCalledWith(
       "eq",
       "payment_proof_hash",

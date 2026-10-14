@@ -2,6 +2,8 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 import { uuidSchema } from "@/lib/schemas";
+import { vendorFacingOrderNumber } from "@/lib/daily-order-number";
+import { sgtStartOfDayIso, shortDay } from "@/lib/tz";
 import {
   getCheckoutByOrderRef,
   getCheckoutEvidence,
@@ -11,8 +13,13 @@ import { getProofPhotoUrl, findDuplicateProofOrder } from "./proof-actions";
 export type OrderPaymentProof = {
   /** A link to the screenshot that expires after 300 seconds, or null. */
   url: string | null;
-  /** The number of another of this vendor's orders that used the same file. */
+  /**
+   * Another of this vendor's orders that used the same file, by the number
+   * its board card shows: the day's rank when daily numbering is on.
+   */
   duplicateOrderNumber: string | null;
+  /** That order's day ("1 Oct") when it is not from today, else null. */
+  duplicateOrderDay: string | null;
   /** The same file was used for a payment this board cannot name. */
   duplicateElsewhere: boolean;
   /** paykit's own reading of the amount; null when it did not check. */
@@ -24,21 +31,71 @@ type SessionClient = Awaited<ReturnType<typeof createServerClient>>;
 const NOTHING: OrderPaymentProof = {
   url: null,
   duplicateOrderNumber: null,
+  duplicateOrderDay: null,
   duplicateElsewhere: false,
   amountMatch: null,
 };
+
+type DuplicateNaming = Pick<
+  OrderPaymentProof,
+  "duplicateOrderNumber" | "duplicateOrderDay" | "duplicateElsewhere"
+>;
+
+/**
+ * Names a duplicate order the way the board names it. Today's order goes
+ * through vendorFacingOrderNumber, the same daily-reset setting and baseline
+ * as its ticket. An earlier day's order shows its permanent number on the
+ * board (the day's rank would be non-positive, see displayOrderNumber), and
+ * the day is added so it is not taken for one of today's tickets.
+ */
+async function nameDuplicate(
+  supabase: SessionClient,
+  vendorId: string,
+  other: { booth_id: string; order_number: string; created_at: string },
+): Promise<DuplicateNaming> {
+  const placed = Date.parse(other.created_at);
+  if (placed < Date.parse(sgtStartOfDayIso()))
+    return {
+      duplicateOrderNumber: other.order_number,
+      duplicateOrderDay: shortDay(placed),
+      duplicateElsewhere: false,
+    };
+  return {
+    duplicateOrderNumber: await vendorFacingOrderNumber(
+      supabase,
+      vendorId,
+      other.booth_id,
+      other.order_number,
+    ),
+    duplicateOrderDay: null,
+    duplicateElsewhere: false,
+  };
+}
 
 /**
  * An order claimed before screenshots moved to paykit: the file is in qkit's
  * own `payment-proofs` bucket and its hash on the order row. Both reads are
  * scoped by RLS and by the bucket's own-folder policy.
  */
-async function legacyProof(orderId: string): Promise<OrderPaymentProof> {
-  const [url, duplicateOrderNumber] = await Promise.all([
+async function legacyProof(
+  supabase: SessionClient,
+  vendorId: string,
+  orderId: string,
+): Promise<OrderPaymentProof> {
+  const [url, duplicate] = await Promise.all([
     getProofPhotoUrl(orderId),
     findDuplicateProofOrder(orderId),
   ]);
-  return { ...NOTHING, url, duplicateOrderNumber };
+  const order_number = duplicate?.order_number;
+  if (!duplicate || !order_number) return { ...NOTHING, url };
+  return {
+    ...NOTHING,
+    url,
+    ...(await nameDuplicate(supabase, vendorId, {
+      ...duplicate,
+      order_number,
+    })),
+  };
 }
 
 /**
@@ -49,28 +106,25 @@ async function legacyProof(orderId: string): Promise<OrderPaymentProof> {
  */
 async function resolveDuplicate(
   supabase: SessionClient,
+  vendorId: string,
   duplicate: { orderRef: string; kitSlug: string } | null,
-): Promise<
-  Pick<OrderPaymentProof, "duplicateOrderNumber" | "duplicateElsewhere">
-> {
-  if (!duplicate)
-    return { duplicateOrderNumber: null, duplicateElsewhere: false };
+): Promise<DuplicateNaming> {
+  const none = { duplicateOrderNumber: null, duplicateOrderDay: null };
+  if (!duplicate) return { ...none, duplicateElsewhere: false };
   if (
     duplicate.kitSlug === "qkit" &&
     uuidSchema.safeParse(duplicate.orderRef).success
   ) {
     const { data: other } = await supabase
       .from("orders")
-      .select("order_number")
+      .select("booth_id, order_number, created_at")
       .eq("id", duplicate.orderRef)
       .maybeSingle();
-    if (other?.order_number)
-      return {
-        duplicateOrderNumber: other.order_number,
-        duplicateElsewhere: false,
-      };
+    const order_number = other?.order_number;
+    if (other && order_number)
+      return nameDuplicate(supabase, vendorId, { ...other, order_number });
   }
-  return { duplicateOrderNumber: null, duplicateElsewhere: true };
+  return { ...none, duplicateElsewhere: true };
 }
 
 /**
@@ -113,7 +167,7 @@ export async function getOrderPaymentProof(
     .maybeSingle();
   if (!booth || booth.vendor_id !== user.id) return null;
 
-  if (order.payment_proof_path) return legacyProof(order.id);
+  if (order.payment_proof_path) return legacyProof(supabase, user.id, order.id);
 
   const transaction = await getCheckoutByOrderRef(order.id);
   if (!transaction.ok) {
@@ -141,6 +195,6 @@ export async function getOrderPaymentProof(
   return {
     url: evidence.data.proofUrl,
     amountMatch: evidence.data.amountMatch,
-    ...(await resolveDuplicate(supabase, evidence.data.duplicateOf)),
+    ...(await resolveDuplicate(supabase, user.id, evidence.data.duplicateOf)),
   };
 }

@@ -137,8 +137,9 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   `config` prop; same rendered markup as before.
 - `payment-proof-viewer.dom.test.tsx` — RTL tests for `PaymentProofViewer`:
   the photo, no hint when paykit reports none, the amount-match and
-  could-not-confirm hints, both duplicate warnings (a numbered order, or
-  "another payment"), "No payment screenshot on file", a failing action, and
+  could-not-confirm hints, both duplicate warnings (a numbered order, with
+  its day when it is from an earlier day, or "another payment"), "No payment
+  screenshot on file", a failing action, and
   that one order's photo is never shown under another. `getOrderPaymentProof`
   is mocked.
 - `payment-proof-viewer.tsx` — `PaymentProofViewer({ orderId,
@@ -148,8 +149,10 @@ expectedAmountCents })`: `"use client"`, dynamically imported
   (`@/app/dashboard/payment-evidence-actions`), which answers from paykit, or
   from qkit's own bucket for an order claimed before screenshots moved.
   Renders nothing until it answers, then the photo plus a duplicate warning
-  ("This photo was already used for order #N", or "for another payment" when
-  paykit names one this board cannot), or "No payment screenshot on file"
+  ("This photo was already used for order #N", where N is the number on that
+  order's board card, plus "on 1 Oct" when the order is from an earlier day;
+  or "for another payment" when paykit names one this board cannot), or "No
+  payment screenshot on file"
   when there is none. The amount hint ("Amount matches $X.XX. Verify payment
   in your payment app." or "Couldn't confirm the amount, check manually") is
   paykit's reading: paykit reads the photo on its server just after the
