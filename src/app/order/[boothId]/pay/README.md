@@ -2,84 +2,45 @@
 
 ## Purpose
 
-Payment-first gate shown before an order has a number: `placeOrder`
+The pay step for an order that has no number yet. `placeOrder`
 (`src/app/o/[code]/actions.ts`) defers assigning `order_number` for any
 payment-required order (see migration 0087), so `OrderForm` redirects here
-(`/order/{boothId}/pay?t={token}`) instead of to the usual numbered
-`[orderNumber]/` status page when `placeOrder` returns a null
-`orderNumber`. The customer only reaches a real order number once they
-upload proof of payment here, via `claimPayment`
-(`../[orderNumber]/payment-actions.ts`, Task 3), which now both requires a
-photo and does the deferred numbering.
+(`/order/{boothId}/pay?t={token}`) instead of to the numbered `[orderNumber]/`
+status page when `placeOrder` returns a null `orderNumber`.
+
+The customer does not pay on this route. It sends them to a page paykit
+hosts, where they see the payment code, attach a screenshot and tap "I've
+paid"; paykit then sends them back here. On that return the order is claimed
+on paykit's side, so `loadPreClaimContext` gives it its number and this page
+redirects to the numbered status page. If the customer closes the tab on
+paykit's page instead, paykit's callback (`/api/paykit/payment-status`)
+gives the order its number anyway.
 
 ## Contents
 
 - `page.tsx` — `PayPage` (route entry, `revalidate=0`): validates `boothId`
   as a UUID and `t` (the access token) as present and well-formed
-  (`notFound()` otherwise), then calls `loadPreClaimContext(boothId, token)`
-  — `notFound()` again on a null result (bad token, an order that's already
-  claimed/confirmed, or one that never required payment). Renders `PayForm`
-  with the amount and checkout view `loadPreClaimContext` returned.
-- `page.dom.test.tsx` — RTL test rendering `PayPage` directly, with
-  `PayForm` stubbed (own dedicated test file): the `notFound()` branch for
-  an invalid booth id, a missing token, and a null `loadPreClaimContext`
-  result, plus that a valid context renders `PayForm` with the right
-  amount/token/checkout props.
-- `pay-form.tsx` — `PayForm({ boothId, token, boothName, items,
-amountCents, checkout })` client component: opens with an `h1` naming how
-  to pay, the booth, the amount and the items, so the customer can check
-  what they are paying for. Renders the same QR/image/link checkout markup as
-  `../[orderNumber]/pay-panel.tsx` (amount echo, `react-qr-code` +
-  "Save QR image" share/download button for a `qr` checkout via
-  `renderSvgToPngBlob`, `../[orderNumber]/qr-image.ts`, an `<img>` with a
-  load-failure fallback for `image`, a link button for `link`), plus a
-  null-`checkout` branch ("Couldn't load payment right now" with a
-  `router.refresh()` button) that `pay-panel.tsx` itself doesn't yet have.
-  Below the checkout, a line states the payment window (from
-  `ABANDONED_PAYMENT_MS`), then a file input (`accept="image/*"`, visually
-  hidden and reached through its button-styled label) downscales the selected
-  photo via `resizeToWebp` (`@merqo/ui`) before holding it in state. The
-  input has no `capture` attribute on purpose: with it, phones open the
-  camera and skip the photo library, and a payment made on the same phone is
-  a saved screenshot. Once a file is attached the form shows its thumbnail
-  and name. Only one button is filled at a time, on the step the customer is
-  up to (pay link, then upload, then "I've paid"). "I've paid" shows an
-  inline "A payment screenshot is required." error, tied to the input with
-  `aria-describedby`, and never calls the
-  action if no photo was selected; otherwise it calls
-  `claimPayment(boothId, token, photo)` and, on success, `router.push`es to
-  the newly-numbered `../{orderNumber}?t={token}` status page — the moment
-  this order first gets a number. A failure shows `res.error` via
-  `toast.error` (`sonner`), same convention as `pay-panel.tsx`.
-- `pay-form.dom.test.tsx` — RTL tests: the null-checkout load-failure state
-  (and its refresh button), the required-photo inline error, a successful
-  upload+claim+redirect, a failed claim's toast, QR/link checkout
-  rendering, the "Save QR image" button's Web Share / download-link /
-  rasterize-failure paths (same coverage shape as
-  `../[orderNumber]/pay-panel.dom.test.tsx`), that the input carries no
-  `capture`, the order context and payment window, the way back to the menu,
-  the error's link to the field, and the attached-screenshot state.
-
-Deliberately **not** used here: `unclaimPayment`/`getPaymentStatus`
-(`../[orderNumber]/payment-actions.ts`). Both operate on an
-already-numbered order (`orderNumber` in their signature) — this page's
-whole reason to exist is that the order doesn't have one yet. Once
-`claimPayment` succeeds and the customer lands on the numbered
-order-status page, `pay-panel.tsx` there is what polls status and offers
-the "Tapped by mistake? Undo" unclaim affordance.
+  (`notFound()` otherwise), reads this app's own origin (`requestOrigin`,
+  `notFound()` when the request names no host of ours) and calls
+  `loadPreClaimContext(boothId, token, origin)` (`notFound()` on null: a bad
+  token, or an order that never required payment). Then, by state: `placed`
+  redirects to the numbered page, `pay` redirects to paykit's `pay_url`,
+  `cancelled` and `expired` render a closed-order notice that says not to pay,
+  and `unavailable` renders "Could not open the payment page" with a "Try
+  again" link back to this route.
+- `page.dom.test.tsx` — RTL test rendering `PayPage` directly: the
+  `notFound()` branches (invalid booth, missing token, null context, no host),
+  each redirect, and the closed and unavailable notices.
 
 ## Connectivity
 
 Reached only via `OrderForm`'s redirect (`src/components/order/
-order-form.tsx`) when `placeOrder` returns `orderNumber: null`. On a
-successful claim, `pay-form.tsx` navigates to `../{orderNumber}/page.tsx`
-(the live order-status page), which is where all further payment/order
-polling and actions happen — nothing links back to this page once an
-order has its number.
-
-## Shared package note
-
-The payment-proof upload's resize step calls `@merqo/ui`'s `resizeToWebp`, and it is the only resize a proof gets — `claimPayment` is a server action and cannot run a canvas. After resizing, `pay-form.tsx` checks the result against `paymentProofSchema` (the same schema `claimPayment` enforces), so a file the browser could not shrink or re-encode — an oversized image, or a type such as HEIC — is rejected on selection rather than after the upload round trip.
+order-form.tsx`) when `placeOrder` returns `orderNumber: null`, and as the
+`return_url` paykit sends the customer back to. It calls `loadPreClaimContext`
+(`../[orderNumber]/payment-actions.ts`), which calls paykit's checkout API.
+`return_url` must be on the origin paykit has registered for qkit
+(`kit_api_keys.return_origin`), so a deployment on a new origin cannot use
+this step until that is set.
 
 ## Parent
 

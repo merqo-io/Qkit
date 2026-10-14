@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { requestOrigin } from "@/lib/request-origin";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import QRCode from "react-qr-code";
@@ -279,39 +279,8 @@ async function resolveOrderDisplay(
   }
 }
 
-// host/x-forwarded-host are client-spoofable (same caution clientIp's own
-// doc comment gives in @/lib/rate-limit, "NOT trusted... a coarse fairness
-// key, not an authz signal") — this allowlist is a basic check, not full
-// trusted-proxy IP-range validation (that's a separate, bigger task).
-const ALLOWED_HOST_SUFFIXES = [".merqo.io", ".vercel.app"];
-
-function isAllowedHost(host: string): boolean {
-  const hostname = host.split(":")[0];
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    ALLOWED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix))
-  );
-}
-
-// Host-header-derived origin, not an env var — booth-qr-poster.tsx's design
-// doc found NEXT_PUBLIC_BASE_URL unreliable, and this URL must resolve on a
-// separate scanning device, not just this render. Prefers the plain `host`
-// header; `x-forwarded-host` is only used as a fallback, and only once it
-// also passes the allowlist above.
 async function resolveOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("host");
-  const forwardedHost = h.get("x-forwarded-host");
-
-  let trustedHost: string | null = null;
-  if (host && isAllowedHost(host)) trustedHost = host;
-  else if (forwardedHost && isAllowedHost(forwardedHost))
-    trustedHost = forwardedHost;
-
-  if (!trustedHost) return "https://qkit.example";
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return `${proto}://${trustedHost}`;
+  return (await requestOrigin()) ?? "https://qkit.example";
 }
 
 export default async function OrderStatusPage({ params, searchParams }: Props) {

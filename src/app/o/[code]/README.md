@@ -68,7 +68,7 @@ the current (non-legacy) customer ordering entry point.
   — so the column doesn't lie about a job that's genuinely in progress for
   the whole window before that callback lands. Logs (doesn't discard) an
   update failure too. Both functions are `export`ed so
-  `order/[boothId]/[orderNumber]/payment-actions.ts`'s `claimPayment` can
+  `order/[boothId]/[orderNumber]/finalize-paid-order.ts`'s `finalizePaidOrder` can
   fire the same two calls at claim time for a payment-required order
   (numbering + vendor notification are deferred to a successful claim
   there, not `placeOrder` time) without duplicating either function's logic.

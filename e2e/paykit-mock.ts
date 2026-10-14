@@ -26,9 +26,9 @@ interface MockTransaction {
   status: MockStatus;
   claimedAt: string | null;
   confirmedAt: string | null;
-  // Whether the last claim carried a payment screenshot. The mock keeps no
-  // file: qkit's e2e only needs to know paykit was given one.
-  hasProof: boolean;
+  // Where the stub pay page sends the customer once they have paid, as the
+  // calling kit gave it. Null for a checkout created without one.
+  returnUrl: string | null;
 }
 
 // Real paykit calls qkit back after a claim or confirm commits (see
@@ -88,6 +88,7 @@ class MockStore {
     orderRef: string,
     vendorId: string,
     amountCents: number,
+    returnUrl: string | null,
   ): MockTransaction {
     let tx = this.byOrderRef.get(orderRef);
     if (!tx) {
@@ -99,17 +100,22 @@ class MockStore {
         status: "pending",
         claimedAt: null,
         confirmedAt: null,
-        hasProof: false,
+        returnUrl,
       };
       this.byOrderRef.set(orderRef, tx);
       this.byId.set(tx.id, tx);
-    }
+    } else if (returnUrl) tx.returnUrl = returnUrl;
     return tx;
   }
 }
 
 function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
-  let parsed: { order_ref?: string; vendor_id?: string; amount_cents?: number };
+  let parsed: {
+    order_ref?: string;
+    vendor_id?: string;
+    amount_cents?: number;
+    return_url?: string;
+  };
   try {
     parsed = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
   } catch {
@@ -129,42 +135,33 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     orderRef,
     parsed.vendor_id,
     parsed.amount_cents ?? 0,
+    parsed.return_url ?? null,
   );
   // PayNow QR payload — any non-empty string satisfies the client's schema;
   // content isn't asserted on by the e2e specs.
   send(200, {
     type: "qr",
     transaction_id: tx.id,
+    status: tx.status,
     payload: `MOCKPAYNOW:${tx.id}`,
+    ...(tx.returnUrl
+      ? { pay_url: `${PAYKIT_MOCK_URL}/pay/${tx.id}?k=mock` }
+      : {}),
   });
 }
 
-// Real paykit accepts the customer's screenshot as a multipart `proof` file
-// on the claim and stores it before the claim commits. The mock reads no
-// bytes: a multipart body counts as a screenshot, any other body as none.
-function handleClaim(
-  store: MockStore,
-  id: string,
-  contentType: string,
-  send: Send,
-) {
-  const tx = store.getById(id);
-  if (!tx) {
-    send(404, { error: "Not found" });
-    return;
-  }
-  if (
-    contentType.toLowerCase().startsWith("multipart/form-data") &&
-    tx.status !== "confirmed"
-  )
-    tx.hasProof = true;
-  const changed = tx.status === "pending";
-  if (changed) {
-    tx.status = "claimed";
-    tx.claimedAt = new Date().toISOString();
-  }
-  send(200, statusBody(tx));
-  if (changed) fireCallback(tx);
+// What the customer's "I've paid" does on paykit's page: claim the
+// transaction, tell the calling kit, and send the customer back to it. The
+// mock takes no screenshot and keeps no file.
+function claimTransaction(tx: MockTransaction) {
+  if (tx.status !== "pending") return;
+  tx.status = "claimed";
+  tx.claimedAt = new Date().toISOString();
+  fireCallback(tx);
+}
+
+function payPageHtml(tx: MockTransaction): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pay</title></head><body><main><h1>Pay on paykit</h1><p>Amount: ${(tx.amountCents / 100).toFixed(2)}</p><form method="post" action="/pay/${tx.id}/claim?k=mock"><button type="submit">I've paid</button></form></main></body></html>`;
 }
 
 function handleConfirm(store: MockStore, id: string, send: Send) {
@@ -191,17 +188,15 @@ function handleStatus(store: MockStore, id: string, send: Send) {
   send(200, statusBody(tx));
 }
 
-// `GET /api/v1/checkout/{id}/evidence`. The link points back at this mock
-// and serves nothing; no e2e spec loads it. The mock reports no duplicate
-// and, like real paykit today, does not check the amount.
+// `GET /api/v1/checkout/{id}/evidence`. The mock holds no screenshot, reports
+// no duplicate and, like real paykit today, does not check the amount.
 function handleEvidence(store: MockStore, id: string, send: Send) {
-  const tx = store.getById(id);
-  if (!tx) {
+  if (!store.getById(id)) {
     send(404, { error: "Not found" });
     return;
   }
   send(200, {
-    proof_url: tx.hasProof ? `${PAYKIT_MOCK_URL}/mock-proof/${tx.id}` : null,
+    proof_url: null,
     signals: { duplicate_of: null, amount_match: null },
   });
 }
@@ -245,9 +240,8 @@ export function startPaykitMock(): {
         return;
       }
 
-      const claimMatch = /^\/api\/v1\/checkout\/([^/]+)\/claim$/.exec(
-        url.pathname,
-      );
+      const payMatch = /^\/pay\/([^/]+)$/.exec(url.pathname);
+      const payClaimMatch = /^\/pay\/([^/]+)\/claim$/.exec(url.pathname);
       const confirmMatch = /^\/api\/v1\/checkout\/([^/]+)\/confirm$/.exec(
         url.pathname,
       );
@@ -256,13 +250,16 @@ export function startPaykitMock(): {
       );
       const statusMatch = /^\/api\/v1\/checkout\/([^/]+)$/.exec(url.pathname);
 
-      if (req.method === "POST" && claimMatch) {
-        handleClaim(
-          store,
-          claimMatch[1],
-          req.headers["content-type"] ?? "",
-          send,
-        );
+      const payTx = store.getById((payMatch ?? payClaimMatch)?.[1] ?? "");
+      if (req.method === "GET" && payMatch && payTx) {
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(payPageHtml(payTx));
+        return;
+      }
+      if (req.method === "POST" && payClaimMatch && payTx) {
+        claimTransaction(payTx);
+        res.writeHead(303, { Location: payTx.returnUrl ?? "/" });
+        res.end();
         return;
       }
       if (req.method === "GET" && evidenceMatch) {
