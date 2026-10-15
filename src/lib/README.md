@@ -209,6 +209,11 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   order was placed, which is how a browser-restored URL from a repeat
   customer's earlier visit shows up; 12 hours rather than the SGT day boundary
   so a late-night order checked after midnight is not called stale),
+  `ABANDONED_PAYMENT_MS` + `isAbandonedPayment(createdAt, nowMs)` (whether an
+  unpaid QR order has waited past its 30-minute payment window),
+  `paymentDeadline(createdAt)` (the end of that window as ISO 8601 UTC, taken
+  from `created_at` so every call for one order agrees; sent to paykit as a
+  checkout's `expires_at`; null for an unreadable date),
   `needsPaymentReview(status, paymentStatus)` (pure: whether a
   still-`pending` order with an outstanding payment claim needs
   `OrderCard`'s merged "Mark paid & start" review action instead of separate

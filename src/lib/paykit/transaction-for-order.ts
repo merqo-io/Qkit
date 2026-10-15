@@ -17,12 +17,13 @@ const FALL_BACK_TO_CREATE = new Set<number | null>([404, 405]);
  * Looking up first matters: creating re-renders from the vendor's current
  * payment config and is refused once that config has changed, which would
  * leave an order already awaiting payment impossible to confirm, claim or
- * undo.
+ * undo. `expiresAt` is used only when a checkout is created.
  */
 export async function transactionIdForOrder(args: {
   vendorId: string;
   amountCents: number;
   orderRef: string;
+  expiresAt: string | null;
 }): Promise<PaykitResult<string>> {
   const found = await getCheckoutByOrderRef(args.orderRef);
   if (found.ok) {

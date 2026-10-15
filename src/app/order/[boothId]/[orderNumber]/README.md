@@ -227,7 +227,9 @@ payment)` moves the mirror forward only (`claimed` never overwrites
   `order_number` yet; rate-limited per `boothId:token`, 20/60s, because it
   makes a real outbound `createCheckout` call to paykit on every invocation).
   It asks paykit for a checkout with `returnUrl` (`<origin>/order/<booth>/
-  pay?t=<token>`) and the booth name as `title`, and answers `pay` (with
+  pay?t=<token>`), the booth name as `title` and `expiresAt` from
+  `paymentDeadline(order.created_at)` (so every reload sends the same
+  time), and answers `pay` (with
   paykit's `pay_url`), `placed` (the order already has a number, or paykit
   says the payment is claimed or confirmed, in which case it runs
   `finalizePaidOrder` itself so a customer who returns before paykit's
@@ -241,7 +243,7 @@ payment)` moves the mirror forward only (`claimed` never overwrites
   happens on paykit's page, so there is no `claimPayment`. `unclaimPayment` is unchanged (still `(boothId, orderNumber,
 token)`, only ever runs post-claim when a number already exists): the
   "Tapped by mistake? Undo" companion, same rate-limit/lookup shape;
-  finds the same paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id) — there's no
+  finds the same paykit transaction through `transactionIdForOrder` (`@/lib/paykit/transaction-for-order`, which looks it up by the order's id, and passes `paymentDeadline(created_at)` in case it has to create) — there's no
   stored transaction id — then calls `unclaimCheckout`, idempotent on
   already-`pending` and refusing to revert a `confirmed` transaction, which
   paykit enforces itself and this mirrors with a fast local pre-check).

@@ -65,7 +65,12 @@ function placedOk() {
 }
 
 const PENDING_ORDER = {
-  data: { id: "order-1", total_cents: 550, payment_status: "pending" },
+  data: {
+    id: "order-1",
+    total_cents: 550,
+    payment_status: "pending",
+    created_at: "2026-10-14T01:15:00.000Z",
+  },
 };
 
 describe("placeWalkupOrder", () => {
@@ -129,6 +134,7 @@ describe("placeWalkupOrder", () => {
       vendorId: "vendor-1",
       amountCents: 550,
       orderRef: "order-1",
+      expiresAt: "2026-10-14T01:45:00.000Z",
     });
     expect(res).toMatchObject({
       success: true,

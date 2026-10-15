@@ -20,6 +20,7 @@ function proof(over: Record<string, unknown> = {}) {
   return {
     url: PHOTO,
     duplicateOrderNumber: null,
+    duplicateOrderDay: null,
     duplicateElsewhere: false,
     amountMatch: null,
     ...over,
@@ -73,6 +74,18 @@ describe("PaymentProofViewer", () => {
       await screen.findByText(/already used for order #0031/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/another payment/i)).not.toBeInTheDocument();
+  });
+
+  it("names an earlier day's order with its day, so it is not read as today's", async () => {
+    getOrderPaymentProofMock.mockResolvedValue(
+      proof({ duplicateOrderNumber: "0024", duplicateOrderDay: "1 Oct" }),
+    );
+    render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
+    expect(
+      await screen.findByText(
+        "This photo was already used for order #0024 on 1 Oct",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("warns without a number when the same photo was used for a payment it cannot name", async () => {

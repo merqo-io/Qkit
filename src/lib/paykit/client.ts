@@ -307,11 +307,16 @@ export async function getBookingStatus(
  *  answer carries a `payUrl`: paykit's own page, where the customer pays and
  *  from which paykit sends them back to `returnUrl`. `title` is the one line
  *  that page shows above the amount. Each such call gives the order a fresh
- *  pay link and retires the previous one. */
+ *  pay link and retires the previous one.
+ *
+ *  `expiresAt` is when qkit gives up on the order (`paymentDeadline` in
+ *  `@/lib/orders`). Required so no caller forgets it; paykit keeps the first
+ *  value it stored for an order and ignores it on a replay. */
 export async function createCheckout(args: {
   vendorId: string;
   amountCents: number;
   orderRef: string;
+  expiresAt: string | null;
   returnUrl?: string;
   title?: string;
 }): Promise<PaykitResult<CheckoutView>> {
@@ -324,6 +329,7 @@ export async function createCheckout(args: {
         vendor_id: args.vendorId,
         amount_cents: args.amountCents,
         order_ref: args.orderRef,
+        expires_at: args.expiresAt,
         ...(args.returnUrl === undefined
           ? {}
           : { return_url: args.returnUrl, title: args.title }),

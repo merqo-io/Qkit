@@ -203,6 +203,20 @@ export function isAbandonedPayment(createdAt: string, nowMs: number): boolean {
 }
 
 /**
+ * When qkit gives up on an order's payment: ABANDONED_PAYMENT_MS after it was
+ * placed, as ISO 8601 UTC. Sent to paykit as the checkout's `expires_at`, so a
+ * payment paykit detects later is never matched to an order qkit abandoned.
+ * Taken from `createdAt`, never from now, so every call for one order (a late
+ * reload, a confirm that re-creates the checkout) sends the same time. Null
+ * for a date it cannot read; paykit then stores no expiry.
+ */
+export function paymentDeadline(createdAt: string): string | null {
+  const placed = Date.parse(createdAt);
+  if (Number.isNaN(placed)) return null;
+  return new Date(placed + ABANDONED_PAYMENT_MS).toISOString();
+}
+
+/**
  * The DB patch for advancing an order to `next`: the new status plus the
  * transition timestamp it stamps — ready_at on entering "ready", completed_at on
  * "completed", neither otherwise. Pure: `nowIso` is passed in (no Date here).

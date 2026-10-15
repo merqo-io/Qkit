@@ -15,6 +15,7 @@ const {
   evidenceMock,
   legacyUrlMock,
   legacyDuplicateMock,
+  shownNumberMock,
 } = vi.hoisted(() => ({
   getUserMock: vi.fn(),
   orderRow: vi.fn(),
@@ -26,6 +27,7 @@ const {
   evidenceMock: vi.fn(),
   legacyUrlMock: vi.fn(),
   legacyDuplicateMock: vi.fn(),
+  shownNumberMock: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -34,6 +36,9 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/paykit/client", () => ({
   getCheckoutByOrderRef: lookupMock,
   getCheckoutEvidence: evidenceMock,
+}));
+vi.mock("@/lib/daily-order-number", () => ({
+  vendorFacingOrderNumber: shownNumberMock,
 }));
 vi.mock("./proof-actions", () => ({
   getProofPhotoUrl: legacyUrlMock,
@@ -45,6 +50,20 @@ const OTHER_VENDOR = "00000000-0000-4000-8000-00000000000b";
 const ORDER = "11111111-1111-4111-8111-111111111111";
 const OTHER_ORDER = "22222222-2222-4222-8222-222222222222";
 const BOOTH = "33333333-3333-4333-8333-333333333333";
+const OTHER_BOOTH = "44444444-4444-4444-8444-444444444444";
+
+// The first of two orders claimed with one screenshot, as found on
+// production: permanent number 0024, shown on the board as #001 because the
+// vendor has daily numbering on and it was the booth's first order today.
+function firstOrderToday() {
+  return {
+    id: OTHER_ORDER,
+    booth_id: OTHER_BOOTH,
+    order_number: "0024",
+    created_at: new Date().toISOString(),
+  };
+}
+const EARLIER_DAY = "2026-10-01T04:00:00.000Z";
 
 function sessionClient() {
   return {
@@ -98,6 +117,12 @@ beforeEach(() => {
   evidenceMock.mockReset().mockResolvedValue(evidence());
   legacyUrlMock.mockReset().mockResolvedValue("https://legacy.example/signed");
   legacyDuplicateMock.mockReset().mockResolvedValue(null);
+  shownNumberMock
+    .mockReset()
+    .mockImplementation(
+      (_client: unknown, _vendor: string, _booth: string, number: string) =>
+        Promise.resolve(number === "0024" ? "001" : number),
+    );
 });
 
 function expectPaykitNotAsked() {
@@ -181,16 +206,35 @@ describe("getOrderPaymentProof: an order claimed before screenshots moved", () =
   });
 
   it("reads the photo and the duplicate from qkit, and does not ask paykit", async () => {
-    legacyDuplicateMock.mockResolvedValue("0031");
+    legacyDuplicateMock.mockResolvedValue(firstOrderToday());
     expect(await getOrderPaymentProof(ORDER)).toEqual({
       url: "https://legacy.example/signed",
-      duplicateOrderNumber: "0031",
+      duplicateOrderNumber: "001",
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
       amountMatch: null,
     });
+    expect(shownNumberMock).toHaveBeenCalledWith(
+      expect.anything(),
+      VENDOR,
+      OTHER_BOOTH,
+      "0024",
+    );
     expect(legacyUrlMock).toHaveBeenCalledWith(ORDER);
     expect(legacyDuplicateMock).toHaveBeenCalledWith(ORDER);
     expectPaykitNotAsked();
+  });
+
+  it("names a duplicate from an earlier day by its permanent number and its day", async () => {
+    legacyDuplicateMock.mockResolvedValue({
+      ...firstOrderToday(),
+      created_at: EARLIER_DAY,
+    });
+    expect(await getOrderPaymentProof(ORDER)).toMatchObject({
+      duplicateOrderNumber: "0024",
+      duplicateOrderDay: "1 Oct",
+    });
+    expect(shownNumberMock).not.toHaveBeenCalled();
   });
 
   it("answers with no photo when the old bucket cannot sign it", async () => {
@@ -198,6 +242,7 @@ describe("getOrderPaymentProof: an order claimed before screenshots moved", () =
     expect(await getOrderPaymentProof(ORDER)).toEqual({
       url: null,
       duplicateOrderNumber: null,
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
       amountMatch: null,
     });
@@ -210,6 +255,7 @@ describe("getOrderPaymentProof: from paykit", () => {
     expect(await getOrderPaymentProof(ORDER)).toEqual({
       url: "https://storage.example/signed",
       duplicateOrderNumber: null,
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
       amountMatch: true,
     });
@@ -218,7 +264,7 @@ describe("getOrderPaymentProof: from paykit", () => {
     expect(legacyUrlMock).not.toHaveBeenCalled();
   });
 
-  it("names the other order when the duplicate is a qkit order this vendor can read", async () => {
+  function duplicateIs(other: Record<string, unknown>) {
     evidenceMock.mockResolvedValue(
       evidence({ duplicateOf: { orderRef: OTHER_ORDER, kitSlug: "qkit" } }),
     );
@@ -227,20 +273,40 @@ describe("getOrderPaymentProof: from paykit", () => {
         data:
           id === ORDER
             ? { id: ORDER, booth_id: BOOTH, payment_proof_path: null }
-            : { order_number: "0031" },
+            : other,
       }),
     );
-    const result = await getOrderPaymentProof(ORDER);
-    expect(result).toMatchObject({
-      duplicateOrderNumber: "0031",
+  }
+
+  it("names the other order by the number its board card shows, not its permanent number", async () => {
+    duplicateIs(firstOrderToday());
+    expect(await getOrderPaymentProof(ORDER)).toMatchObject({
+      duplicateOrderNumber: "001",
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
     });
     expect(readStep).toHaveBeenCalledWith(
       "orders",
-      "order_number",
+      "booth_id, order_number, created_at",
       "id",
       OTHER_ORDER,
     );
+    expect(shownNumberMock).toHaveBeenCalledWith(
+      expect.anything(),
+      VENDOR,
+      OTHER_BOOTH,
+      "0024",
+    );
+  });
+
+  it("names a duplicate from an earlier day by its permanent number and its day", async () => {
+    duplicateIs({ ...firstOrderToday(), created_at: EARLIER_DAY });
+    expect(await getOrderPaymentProof(ORDER)).toMatchObject({
+      duplicateOrderNumber: "0024",
+      duplicateOrderDay: "1 Oct",
+      duplicateElsewhere: false,
+    });
+    expect(shownNumberMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -272,7 +338,7 @@ describe("getOrderPaymentProof: from paykit", () => {
     await getOrderPaymentProof(ORDER);
     expect(readStep).not.toHaveBeenCalledWith(
       "orders",
-      "order_number",
+      "booth_id, order_number, created_at",
       "id",
       OTHER_ORDER,
     );
@@ -287,6 +353,7 @@ describe("getOrderPaymentProof: from paykit", () => {
     expect(await getOrderPaymentProof(ORDER)).toEqual({
       url: null,
       duplicateOrderNumber: null,
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
       amountMatch: null,
     });
@@ -298,6 +365,7 @@ describe("getOrderPaymentProof: from paykit", () => {
     expect(await getOrderPaymentProof(ORDER)).toEqual({
       url: null,
       duplicateOrderNumber: null,
+      duplicateOrderDay: null,
       duplicateElsewhere: false,
       amountMatch: null,
     });

@@ -10,7 +10,12 @@ vi.mock("./client", () => ({
   createCheckout: createCheckoutMock,
 }));
 
-const ARGS = { vendorId: "v1", amountCents: 800, orderRef: "o1" };
+const ARGS = {
+  vendorId: "v1",
+  amountCents: 800,
+  orderRef: "o1",
+  expiresAt: "2026-08-11T00:30:00.000Z",
+};
 
 function found(amountCents = 800) {
   return {
