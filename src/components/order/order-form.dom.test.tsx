@@ -676,7 +676,7 @@ describe("OrderForm cart", () => {
 
     expect(
       within(dialog).getByText(
-        /We use your phone number and name to identify your order and send you order updates\./,
+        /We use your name, and your phone number if you give one, to identify your order and send you order updates\./,
       ),
     ).toBeInTheDocument();
     const link = within(dialog).getByRole("link", { name: "Privacy Policy" });
