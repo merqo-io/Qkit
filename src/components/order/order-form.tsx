@@ -94,7 +94,7 @@ function StockNotice({
         <p className="mt-0.5 text-xs text-muted-foreground">
           {leftHeld > 0
             ? "Other baskets also contain these items. Stock is checked when you order."
-            : "Once they are gone this stall stops taking orders until tomorrow."}
+            : "Once they're gone, this stall stops taking orders."}
         </p>
       </div>
     );

@@ -142,7 +142,7 @@ function LimitField({
 const DAILY_LIMIT_LABEL = "Daily item limit";
 const DAILY_LIMIT_HINT_LABEL = "About the daily item limit";
 const DAILY_LIMIT_HINT =
-  "Ordering stops once the booth sells this many items in a day. Counts every item, so an order of four counts four. Leave blank for no limit. Resets at midnight.";
+  "Ordering stops once the booth sells this many items in a day. Counts every item, so an order of four counts four. Leave blank for no limit. It starts again from zero at midnight, so a booth open the next day is not still sold out.";
 
 // The daily limit on a plan without stock caps. With none set it is an
 // upgrade prompt. With one already set (from a pass that has since ended) it

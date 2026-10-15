@@ -74,7 +74,9 @@ function ScreenOptions({ booth }: { booth: Booth }) {
           Scan this with its camera. It needs no login, and works in any
           browser.
         </p>
-        <div className="flex justify-center">
+        {/* pb-2 on top of the section's space-y-3 puts 20px between the code
+            and its button, the same gap as between the dialog's sections. */}
+        <div className="flex justify-center pb-2">
           <div className="rounded-xl border border-border bg-white p-3">
             <QRCode
               value={url}

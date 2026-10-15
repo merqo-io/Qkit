@@ -30,7 +30,7 @@ function messageFor(raw: string): string {
   if (raw.includes("ORDER_SOLD_OUT") || raw.includes("ORDER_ITEM_UNAVAILABLE"))
     return "Sorry, an item just sold out. Please adjust your order.";
   if (raw.includes("ORDER_CAP_REACHED"))
-    return "This stall has served everything it had for today.";
+    return "This stall has served everything it had.";
   if (raw.includes("ORDER_TOO_LARGE"))
     return "That is more than this stall takes in one order. Remove a few items and try again.";
   if (raw.includes("ORDER_RATE_LIMITED"))

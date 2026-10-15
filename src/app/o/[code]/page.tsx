@@ -113,9 +113,9 @@ export default async function OrderEntryPage({ params }: Props) {
   let closedTitle = "Closed right now";
   let closedDetail = `${reopen ?? "Not taking orders at the moment."} You can browse the menu below.`;
   if (soldOutToday) {
-    closedTitle = "Sold out for today";
+    closedTitle = "Sold out";
     closedDetail =
-      "They have served everything they had for today. You can still browse the menu below.";
+      "They have served everything they had. You can still browse the menu below.";
   } else if (!booth.servable) {
     closedTitle = "Not taking orders";
     closedDetail = "This booth isn't accepting orders right now.";
