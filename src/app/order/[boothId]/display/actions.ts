@@ -22,10 +22,11 @@ type ActiveOrderRow = {
   status: OrderStatus;
   created_at: string;
   priority_bumped_at: string | null;
+  ready_at?: string | null;
 };
 
 /**
- * How long a number stays on the screen after it was marked collected.
+ * How long a number stays on the screen after it was auto-cleared.
  *
  * A customer who was not looking at their phone the moment it turned ready had
  * nothing to check: the number left the screen as soon as it was marked
@@ -34,8 +35,19 @@ type ActiveOrderRow = {
  * still sitting on the shelf. Staff then field "is mine ready?" all service.
  * The number stays up for this long afterwards, which is its honest state:
  * still on the shelf, come and take it.
+ *
+ * Only for auto_completed orders (set by the ready auto-clear sweep alone).
+ * "Mark Picked Up" or the customer's own pickup scan means the customer has
+ * the order, so that number leaves the screen at once.
  */
 const COLLECTED_GRACE_MS = 10 * 60_000;
+
+// Ready group: most recently readied first, holding that place as it ages.
+// Auto-clear keeps ready_at, so a grace-period number sorts the same way.
+function sortReadyForDisplay(orders: ActiveOrderRow[]): ActiveOrderRow[] {
+  const readyMs = (o: ActiveOrderRow) => Date.parse(o.ready_at ?? o.created_at);
+  return [...orders].sort((a, b) => readyMs(b) - readyMs(a));
+}
 
 // Same ordering as sortActiveOrders (@/lib/orders) — a bumped order first
 // (most-recently-bumped leading), then oldest-created first. Reimplemented
@@ -111,11 +123,11 @@ export async function getBoothQueueDisplay(
   const query = supabase
     .from("orders")
     .select(
-      "id, order_number, status, created_at, priority_bumped_at, completed_at",
+      "id, order_number, status, created_at, priority_bumped_at, ready_at, completed_at, auto_completed",
     )
     .eq("booth_id", boothId)
     .or(
-      `status.in.(pending,confirmed,preparing,ready),and(status.eq.completed,completed_at.gte.${cutoffIso})`,
+      `status.in.(pending,confirmed,preparing,ready),and(status.eq.completed,completed_at.gte.${cutoffIso},auto_completed.is.true)`,
     )
     .or("payment_status.neq.pending,source.neq.qr")
     .order("id");
@@ -133,10 +145,11 @@ export async function getBoothQueueDisplay(
     return null;
   }
 
-  // A collected order keeps its place on the screen for COLLECTED_GRACE_MS,
-  // shown as ready, which is what it still is from the customer's side: the cup
-  // is on the shelf. Past that it drops off, so the screen does not fill up
-  // with a whole service's numbers.
+  // An auto-cleared order keeps its place on the screen for
+  // COLLECTED_GRACE_MS, shown as ready, which is what it still is from the
+  // customer's side: the cup is on the shelf. Past that it drops off, so the
+  // screen does not fill up with a whole service's numbers. One marked picked
+  // up is gone at once: the customer has it.
   // An order left unfinished on the vendor's board from an earlier day is
   // still "preparing" as far as the row knows, and would sit on this public
   // screen as a number nobody is waiting for. Same age line the customer's
@@ -149,10 +162,17 @@ export async function getBoothQueueDisplay(
     .filter((o) => !isStaleOrderView(o.created_at, Date.now()))
     .filter((o) => {
       if (o.status !== "completed") return true;
+      if (o.auto_completed !== true) return false;
       const at = o.completed_at == null ? NaN : Date.parse(o.completed_at);
       return Number.isNaN(at) ? false : at >= cutoff;
     });
-  return sortForDisplay(nonNullOrders).map((o) => ({
+  const shownReady = (o: ActiveOrderRow) =>
+    o.status === "ready" || o.status === "completed";
+  const sorted = [
+    ...sortReadyForDisplay(nonNullOrders.filter(shownReady)),
+    ...sortForDisplay(nonNullOrders.filter((o) => !shownReady(o))),
+  ];
+  return sorted.map((o) => ({
     orderNumber: o.order_number,
     displayNumber: displayOrderNumber(o.order_number, baseline),
     status: o.status === "completed" ? "ready" : o.status,

@@ -25,6 +25,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- TV customer screen (`/order/{boothId}/display`): a number marked picked up, by staff tapping "Mark Picked Up" or by the customer's own pickup scan, now leaves the screen at once. The 10-minute grace period now applies only to an order the ready auto-clear timer cleared, read from the existing `orders.auto_completed` column. No migration.
+- TV customer screen: the Ready column is sorted by `ready_at`, most recently readied first, and a number keeps its place as it ages. The 5-minute fresh highlight is now only a visual cue; it no longer pulls a tile to the front, so tiles no longer jump back once they stop being fresh. The ready cap hides the longest-ready numbers first. Preparing keeps its order.
+
 - An order paid online now shows under "Your orders here" on the booth page.
   A payment-required order has no number when it is placed, so it was never
   recorded and a customer who closed the tab on paykit's page had no way

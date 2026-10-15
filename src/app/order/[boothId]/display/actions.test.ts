@@ -220,7 +220,7 @@ describe("getBoothQueueDisplay", () => {
     ]);
   });
 
-  it("keeps a just-collected number on the screen, shown as ready", async () => {
+  it("keeps a just-auto-cleared number on the screen, shown as ready", async () => {
     // ready_auto_clear_min marks an order collected whether or not anyone
     // picked it up, so dropping it immediately can blank a number while the cup
     // is still on the shelf.
@@ -231,6 +231,7 @@ describe("getBoothQueueDisplay", () => {
         created_at: PLACED_FIRST,
         priority_bumped_at: null,
         completed_at: new Date(Date.now() - 60_000).toISOString(),
+        auto_completed: true,
       },
     ];
     fromMock
@@ -244,7 +245,28 @@ describe("getBoothQueueDisplay", () => {
     ]);
   });
 
-  it("drops a collected number once its grace window has passed", async () => {
+  it("drops a number marked picked up at once, with no grace window", async () => {
+    // "Mark Picked Up" (or the customer's own pickup scan) means the customer
+    // has the order; only an auto-cleared one might still be on the shelf.
+    const active = [
+      {
+        order_number: "0001",
+        status: "completed",
+        created_at: PLACED_FIRST,
+        priority_bumped_at: null,
+        completed_at: new Date(Date.now() - 10_000).toISOString(),
+        auto_completed: false,
+      },
+    ];
+    fromMock
+      .mockReturnValueOnce(chain({ data: { vendor_id: VENDOR }, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: active, error: null }));
+
+    expect(await getBoothQueueDisplay(BOOTH)).toEqual([]);
+  });
+
+  it("drops an auto-cleared number once its grace window has passed", async () => {
     const active = [
       {
         order_number: "0001",
@@ -252,6 +274,7 @@ describe("getBoothQueueDisplay", () => {
         created_at: PLACED_FIRST,
         priority_bumped_at: null,
         completed_at: new Date(Date.now() - 20 * 60_000).toISOString(),
+        auto_completed: true,
       },
     ];
     fromMock
@@ -270,6 +293,7 @@ describe("getBoothQueueDisplay", () => {
         created_at: PLACED_FIRST,
         priority_bumped_at: null,
         completed_at: null,
+        auto_completed: true,
       },
     ];
     fromMock
@@ -302,6 +326,87 @@ describe("getBoothQueueDisplay", () => {
 
     const res = await getBoothQueueDisplay(BOOTH);
     expect(res?.map((o) => o.orderNumber)).toEqual(["0002", "0001"]);
+  });
+
+  it("orders the ready group by ready time, most recently readied first", async () => {
+    const minsAgo = (m: number) =>
+      new Date(Date.now() - m * 60_000).toISOString();
+    const active = [
+      {
+        order_number: "0001",
+        status: "ready",
+        created_at: minsAgo(30),
+        priority_bumped_at: null,
+        ready_at: minsAgo(2),
+      },
+      {
+        order_number: "0002",
+        status: "completed",
+        created_at: minsAgo(25),
+        priority_bumped_at: null,
+        ready_at: minsAgo(6),
+        completed_at: minsAgo(1),
+        auto_completed: true,
+      },
+      {
+        order_number: "0003",
+        status: "ready",
+        created_at: minsAgo(20),
+        priority_bumped_at: "2026-06-12T10:06:00Z",
+        ready_at: minsAgo(4),
+      },
+      {
+        order_number: "0004",
+        status: "ready",
+        created_at: minsAgo(15),
+        priority_bumped_at: null,
+        ready_at: minsAgo(1),
+      },
+      {
+        order_number: "0005",
+        status: "preparing",
+        created_at: minsAgo(10),
+        priority_bumped_at: null,
+      },
+    ];
+    fromMock
+      .mockReturnValueOnce(chain({ data: { vendor_id: VENDOR }, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: active, error: null }));
+
+    const res = await getBoothQueueDisplay(BOOTH);
+    expect(
+      res?.filter((o) => o.status === "ready").map((o) => o.orderNumber),
+    ).toEqual(["0004", "0001", "0003", "0002"]);
+  });
+
+  it("selects only the columns the screen needs, plus ready_at and auto_completed", async () => {
+    const selectSpy = vi.fn();
+    const query = chain({ data: [], error: null });
+    query.select = (cols: string) => {
+      selectSpy(cols);
+      return query;
+    };
+    fromMock
+      .mockReturnValueOnce(chain({ data: { vendor_id: VENDOR }, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(query);
+
+    await getBoothQueueDisplay(BOOTH);
+    const cols = String(selectSpy.mock.calls[0]?.[0])
+      .split(",")
+      .map((c) => c.trim())
+      .sort();
+    expect(cols).toEqual([
+      "auto_completed",
+      "completed_at",
+      "created_at",
+      "id",
+      "order_number",
+      "priority_bumped_at",
+      "ready_at",
+      "status",
+    ]);
   });
 
   it("returns null and logs on an orders read error", async () => {
@@ -363,6 +468,9 @@ describe("getBoothQueueDisplay", () => {
       expect.stringMatching(
         /^status\.in\.\(pending,confirmed,preparing,ready\),and\(status\.eq\.completed,completed_at\.gte\./,
       ),
+    );
+    expect(orSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/,auto_completed\.is\.true\)$/),
     );
     expect(res?.map((o) => o.orderNumber)).toEqual(["0001"]);
   });
