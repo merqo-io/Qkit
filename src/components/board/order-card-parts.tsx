@@ -182,9 +182,13 @@ export function TicketMenu({
           </DropdownMenuItem>
         )}
         {onCancel && (
+          // The destructive variant, not a text class: the item's own rule
+          // mutes any icon without a colour class, so only the variant turns
+          // the Trash2 red with the words.
           <DropdownMenuItem
+            variant="destructive"
             onSelect={onCancel}
-            className="py-2.5 text-destructive focus:text-destructive"
+            className="py-2.5"
           >
             <Trash2 className="size-4" aria-hidden="true" />
             Cancel order

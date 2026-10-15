@@ -53,7 +53,8 @@ import { SegmentedControl } from "@/components/widgets/segmented-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 import {
   BATCH_BUTTON,
-  BatchControls,
+  SelectButton,
+  SelectionBar,
   isBatchable,
   useBatchSelection,
 } from "./board-batch";
@@ -462,8 +463,39 @@ export function RealtimeOrderBoard({
     );
   }
 
+  function cancelSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  // The Accepted column's own controls: catch every order still being made up
+  // to ready in one tap (pick-up stays one at a time, or through Select, since
+  // customers collect one by one), and Select itself. Both step aside while
+  // Select is on; its bar has the controls then.
+  const acceptedAction = !selectMode && (
+    <div className="flex items-center gap-2">
+      {preparingIds.length > 1 && (
+        <Button
+          size="sm"
+          className={BATCH_BUTTON}
+          disabled={advancing}
+          onClick={() =>
+            advanceSelected(preparingIds, "preparing", paymentById)
+          }
+        >
+          Mark all {preparingIds.length} ready
+        </Button>
+      )}
+      {batchableIds.length > 0 && (
+        <SelectButton onStart={() => setSelectMode(true)} />
+      )}
+    </div>
+  );
+
   return (
-    <div>
+    // Room under the last ticket for the selection bar, which floats over the
+    // bottom of the board while Select is on.
+    <div className={cn(selectMode && "pb-28")}>
       {loadError && <LoadErrorBanner />}
       {liveStatus === "disconnected" && (
         <div
@@ -625,15 +657,7 @@ export function RealtimeOrderBoard({
         </DialogContent>
       </Dialog>
 
-      {/* Pinned while tickets are being ticked, so the action for a long
-          selection is still on screen at the bottom of the list. */}
-      <div
-        className={cn(
-          "mb-6 flex flex-wrap items-center gap-3",
-          selectMode &&
-            "sticky top-0 z-10 -mx-5 border-b border-border bg-background px-5 py-2",
-        )}
-      >
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         {/* A dropdown rather than a tab-per-booth row: a vendor running a
             large event (a dozen-plus booths) would otherwise get a wall of
             pills wrapping across several lines before a single order card is
@@ -684,30 +708,6 @@ export function RealtimeOrderBoard({
           value={sortOrder}
           onChange={setSortOrder}
         />
-        {batchableIds.length > 0 && (
-          <BatchControls
-            selectMode={selectMode}
-            readyCount={tickedPreparing.length}
-            pickupCount={tickedReady.length}
-            pickupByDefault={preparingIds.length === 0}
-            allSelected={allSelected}
-            busy={advancing}
-            onStart={() => setSelectMode(true)}
-            onCancel={() => {
-              setSelectMode(false);
-              setSelectedIds(new Set());
-            }}
-            onToggleAll={() =>
-              setSelectedIds(allSelected ? new Set() : new Set(batchableIds))
-            }
-            onMarkReady={() =>
-              advanceSelected(tickedPreparing, "preparing", paymentById)
-            }
-            onMarkPickedUp={() =>
-              advanceSelected(tickedReady, "ready", paymentById)
-            }
-          />
-        )}
       </div>
 
       {idle ? (
@@ -759,7 +759,8 @@ export function RealtimeOrderBoard({
                 label="Accepted"
                 orders={accepted}
                 solo={incoming.length === 0}
-                showHeader={incoming.length > 0}
+                showHeader
+                action={acceptedAction}
                 hiddenOnPhone={
                   incoming.length > 0 && phoneSection !== "accepted"
                 }
@@ -768,6 +769,25 @@ export function RealtimeOrderBoard({
             )}
           </div>
         </>
+      )}
+
+      {selectMode && (
+        <SelectionBar
+          readyCount={tickedPreparing.length}
+          pickupCount={tickedReady.length}
+          allSelected={allSelected}
+          busy={advancing}
+          onCancel={cancelSelect}
+          onToggleAll={() =>
+            setSelectedIds(allSelected ? new Set() : new Set(batchableIds))
+          }
+          onMarkReady={() =>
+            advanceSelected(tickedPreparing, "preparing", paymentById)
+          }
+          onMarkPickedUp={() =>
+            advanceSelected(tickedReady, "ready", paymentById)
+          }
+        />
       )}
 
       <WalkupOrderDialog

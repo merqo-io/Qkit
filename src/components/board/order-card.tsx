@@ -116,7 +116,13 @@ function TicketFooter({
       ) : (
         <span />
       )}
-      {showStatus && <OrderStatusBadge status={status} />}
+      {/* One line whatever the column width: a wrapped "Waiting for you"
+          would make an Incoming ticket taller than its neighbours. */}
+      {showStatus && (
+        <span className="shrink-0 whitespace-nowrap">
+          <OrderStatusBadge status={status} />
+        </span>
+      )}
     </div>
   );
 }

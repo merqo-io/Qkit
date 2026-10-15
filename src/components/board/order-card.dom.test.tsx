@@ -1121,6 +1121,16 @@ describe("OrderCard status placement", () => {
     );
   });
 
+  it("keeps the badge on one line, so an Incoming ticket is no taller than an Accepted one", () => {
+    render(<OrderCard order={makeOrder({ status: "pending" })} />, {
+      wrapper: TooltipProvider,
+    });
+    expect(screen.getByText("Waiting for you").parentElement).toHaveClass(
+      "shrink-0",
+      "whitespace-nowrap",
+    );
+  });
+
   it("says nothing for a preparing order", () => {
     render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
     expect(screen.queryByText("Preparing")).not.toBeInTheDocument();
@@ -1136,6 +1146,27 @@ describe("OrderCard more menu icons", () => {
     expect(
       menuItem(/bump to front/i)?.querySelector("svg"),
     ).toBeInTheDocument();
+  });
+
+  it("colours Cancel order, icon included, as destructive", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    await openMore(user);
+    expect(menuItem(/cancel order/i)).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+    expect(menuItem(/bump to front/i)).toHaveAttribute(
+      "data-variant",
+      "default",
+    );
+  });
+
+  it("does not bump when the number is tapped: bumping is in the menu only", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    await user.click(screen.getByRole("heading", { level: 3 }));
+    expect(bumpOrder).not.toHaveBeenCalled();
   });
 });
 
