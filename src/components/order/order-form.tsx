@@ -851,7 +851,10 @@ export function OrderForm({
               )}
             </section>
 
-            <DataCollectionNotice purpose="identify your order and send you order updates" />
+            <DataCollectionNotice
+              purpose="identify your order and send you order updates"
+              phoneOptional
+            />
 
             <SheetFooter className="gap-2 px-0 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {submitError && (
