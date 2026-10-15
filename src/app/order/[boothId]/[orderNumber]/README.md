@@ -35,9 +35,10 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   `NEXT_PUBLIC_LOOPKIT_URL` (bearer-authed with `MERQO_METRICS_SECRET`,
   3s timeout, fails closed to `{ enabled: false }` on any error/timeout) and
   renders an "Earn a stamp" link to `loopkit/earn?order=<id>` only when
-  enabled.
+  enabled. No fallback host: with `NEXT_PUBLIC_LOOPKIT_URL` unset it renders
+  nothing and makes no request.
 - `earn-link.dom.test.tsx` — RTL tests for `EarnLink`'s enabled/disabled/
-  fetch-failure branches.
+  fetch-failure branches, and the unset-URL case (no fetch, no link).
 - `telegram-connect.tsx` — `TelegramConnect({ orderId, vendorId })` (async
   server component, same shape as `EarnLink`): mints a single-order-scoped
   connect token from merqo (`mintCustomerConnectToken`,

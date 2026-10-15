@@ -177,7 +177,7 @@ async function paykitRequest<T>(
   // as a module constant for the same reason as the secret above — and so a
   // test can stub it per-case instead of it being frozen at first import.
   const paykitUrl =
-    process.env.NEXT_PUBLIC_PAYKIT_URL ?? "https://paykit-sg.vercel.app";
+    process.env.NEXT_PUBLIC_PAYKIT_URL ?? "https://paykit.merqo.io";
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
