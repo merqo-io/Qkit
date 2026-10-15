@@ -6,7 +6,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { parseOrderRef, parsePreClaimRef } from "@/lib/schemas";
 import { createCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
-import { isAbandonedPayment } from "@/lib/orders";
+import { isAbandonedPayment, paymentDeadline } from "@/lib/orders";
 import { finalizePaidOrder } from "./finalize-paid-order";
 import type { ActionResult } from "@/lib/action-result";
 import type { PaymentStatus } from "@/lib/types";
@@ -69,7 +69,7 @@ async function loadCheckoutContext(
   const [{ data: order }, { data: booth }] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, total_cents, payment_status, status")
+      .select("id, total_cents, payment_status, status, created_at")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .eq("access_token", token)
@@ -83,6 +83,7 @@ async function loadCheckoutContext(
     vendorId: booth.vendor_id as string,
     paymentStatus: order.payment_status as PaymentStatus,
     status: order.status as string,
+    createdAt: order.created_at as string,
   };
 }
 
@@ -107,7 +108,7 @@ const PAY_TITLE_MAX = 120;
 type PayStepInput = {
   vendorId: string;
   boothName: string;
-  order: { id: string; total_cents: number };
+  order: { id: string; total_cents: number; created_at: string };
   boothId: string;
   token: string;
   origin: string;
@@ -121,6 +122,7 @@ async function payStep(input: PayStepInput): Promise<PreClaimContext> {
     vendorId: input.vendorId,
     amountCents: order.total_cents,
     orderRef: order.id,
+    expiresAt: paymentDeadline(order.created_at),
     returnUrl: `${input.origin}/order/${boothId}/pay?t=${token}`,
     title: input.boothName.slice(0, PAY_TITLE_MAX),
   });
@@ -261,6 +263,7 @@ export async function unclaimPayment(
     vendorId: ctx.vendorId,
     amountCents: ctx.totalCents,
     orderRef: ctx.orderId,
+    expiresAt: paymentDeadline(ctx.createdAt),
   });
   if (!transaction.ok) {
     console.error(

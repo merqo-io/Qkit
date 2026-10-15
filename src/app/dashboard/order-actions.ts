@@ -13,6 +13,7 @@ import {
   ADVANCE,
   buildAdvancePatch,
   isTerminal,
+  paymentDeadline,
 } from "@/lib/orders";
 import { confirmCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
@@ -46,7 +47,9 @@ async function loadOwnOrder(orderId: string) {
   const supabase = await createServerClient();
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, status, payment_status, auto_completed, total_cents")
+    .select(
+      "id, status, payment_status, auto_completed, total_cents, created_at",
+    )
     .eq("id", orderId)
     .maybeSingle();
   // A read error (not a missing row) is otherwise indistinguishable from
@@ -263,6 +266,7 @@ export async function confirmPaymentAndStart(
     vendorId: userId,
     amountCents: order.total_cents,
     orderRef: order.id,
+    expiresAt: paymentDeadline(order.created_at),
   });
   if (!transaction.ok) {
     console.error(
@@ -476,6 +480,7 @@ export async function confirmOrderPayment(
     vendorId: userId,
     amountCents: order.total_cents,
     orderRef: order.id,
+    expiresAt: paymentDeadline(order.created_at),
   });
   if (!transaction.ok) {
     console.error(

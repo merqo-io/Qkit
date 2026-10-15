@@ -7,6 +7,7 @@ import {
   uuidSchema,
 } from "@/lib/schemas";
 import { createCheckout, type CheckoutView } from "@/lib/paykit/client";
+import { paymentDeadline } from "@/lib/orders";
 import type { ActionResult } from "@/lib/action-result";
 
 /**
@@ -45,7 +46,7 @@ async function pendingPayment(
     // RPC handed back a moment ago, so it names exactly this order.
     const { data: order } = await supabase
       .from("orders")
-      .select("id, total_cents, payment_status")
+      .select("id, total_cents, payment_status, created_at")
       .eq("booth_id", boothId)
       .eq("access_token", accessToken)
       .maybeSingle();
@@ -62,6 +63,7 @@ async function pendingPayment(
       vendorId: user.id,
       amountCents: order.total_cents,
       orderRef: order.id,
+      expiresAt: paymentDeadline(order.created_at),
     });
     return {
       orderId: order.id,

@@ -14,8 +14,11 @@ tracks payment state locally end-to-end; this is the seam that replaced
   config as paykit holds it; qkit never writes it, the vendor enters it in
   paykit's own dashboard. `ok:false` means paykit did not say, which is not
   the same as nothing on file), `createCheckout({vendorId,
-amountCents, orderRef, returnUrl?, title?})` (idempotent on `orderRef` — safe to call again for
-  the same order and get back the same transaction; with `returnUrl` the
+amountCents, orderRef, expiresAt, returnUrl?, title?})` (idempotent on `orderRef` — safe to call again for
+  the same order and get back the same transaction; `expiresAt` is sent as
+  `expires_at`, the time qkit gives up on the order (`paymentDeadline` in
+  `@/lib/orders`, `created_at` + 30 minutes), required so no caller leaves it
+  out, and paykit keeps the first value it stored on a replay; with `returnUrl` the
   answer carries `payUrl`, paykit's hosted pay page, and each such call
   retires the previous pay link; `status` is where the payment stands in
   paykit),
@@ -50,14 +53,15 @@ amountCents, orderRef, returnUrl?, title?})` (idempotent on `orderRef` — safe 
 - `payment-setup.test.ts` — each state, the three causes of `none`, that no
   identifier is carried, and `setupKind`.
 - `transaction-for-order.ts` — `transactionIdForOrder({vendorId, amountCents,
-orderRef})`: the paykit transaction id for an order. qkit stores none, so
+orderRef, expiresAt})`: the paykit transaction id for an order. qkit stores none, so
   every action that claims, undoes or confirms a payment gets it here. It
   looks the transaction up and creates a checkout only when paykit has none
   (404) or has no lookup route (405). Creating re-renders from the vendor's
   current payment config and is refused once that config changed, so calling
   create first left an order already awaiting payment impossible to settle.
   A found transaction is refused when its vendor or its amount differs from
-  the order's.
+  the order's. `expiresAt` is passed to `createCheckout` and used only when
+  it creates.
 - `transaction-for-order.test.ts` — found, vendor mismatch, amount mismatch, the two fallback
   statuses, a failed fallback, and that any other lookup failure creates
   nothing.
