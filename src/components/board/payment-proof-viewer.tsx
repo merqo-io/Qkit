@@ -16,6 +16,7 @@ type ProofView = OrderPaymentProof & { orderId: string };
 const NOTHING: OrderPaymentProof = {
   url: null,
   duplicateOrderNumber: null,
+  duplicateOrderDay: null,
   duplicateElsewhere: false,
   amountMatch: null,
 };
@@ -45,7 +46,13 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
   }, [orderId]);
 
   if (!proof || proof.orderId !== orderId) return null;
-  const { url, duplicateOrderNumber, duplicateElsewhere, amountMatch } = proof;
+  const {
+    url,
+    duplicateOrderNumber,
+    duplicateOrderDay,
+    duplicateElsewhere,
+    amountMatch,
+  } = proof;
 
   if (!url)
     return (
@@ -61,6 +68,7 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
       {duplicateOrderNumber && (
         <p className="text-sm font-semibold text-destructive">
           This photo was already used for order #{duplicateOrderNumber}
+          {duplicateOrderDay && ` on ${duplicateOrderDay}`}
         </p>
       )}
       {!duplicateOrderNumber && duplicateElsewhere && (
