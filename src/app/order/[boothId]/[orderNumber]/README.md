@@ -94,7 +94,10 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   flashes the tab title if backgrounded. The ready-state copy repeats the
   order number ("Order #N ready, please collect now") instead of a generic
   "please collect your order now" — same pickup-confusion mitigation as the
-  pending-state message above.
+  pending-state message above. It also tells the booth page's on-device
+  recent-orders list (`noteDisplayNumber`, with the page's token) the number
+  it is showing, which fills in the order number of an entry recorded before
+  payment.
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.
