@@ -14,8 +14,9 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.33.0`, which adds `DataCollectionNotice`, the PDPA
-point-of-collection line the customer order form shows above its submit button.
+commit tagged `v0.34.0`, which adds `DataCollectionNotice`, the PDPA
+point-of-collection line the customer order form shows above its submit button
+(`phoneOptional`, because the phone field can be left blank).
 Since `v0.32.3`, `Section` title tooltips and default-mode `InfoTooltip`s open
 on a tap as well as on hover and keyboard focus, and every info icon takes taps
 through a 44px touch area on touch devices. That area comes from `@merqo/ui`
