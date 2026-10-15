@@ -2,8 +2,26 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Banknote, ImageIcon, MoreHorizontal, Undo2, Zap } from "lucide-react";
+import {
+  Banknote,
+  Check,
+  ImageIcon,
+  MoreHorizontal,
+  Trash2,
+  Undo2,
+  X,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,37 +41,81 @@ const PaymentProofViewer = dynamic(() =>
   import("./payment-proof-viewer").then((m) => m.PaymentProofViewer),
 );
 
-// Tap-to-expand proof-photo review, factored out of OrderCard's own render to
-// keep its cognitive complexity down. Renders only when the caller has
-// already established the order is claimed and not yet reviewed.
-function ProofPhotoTrigger({
+// The proof photo opens in a modal so the ticket never grows, and the vendor
+// accepts or declines the claim from there. Factored out of OrderCard's own
+// render to keep its cognitive complexity down. Renders only when the caller
+// has already established the order is claimed and not yet reviewed.
+function ProofReview({
   order,
-  expanded,
-  onToggle,
+  amountDue,
+  startsOrder,
+  busy,
+  onAccept,
+  onDecline,
 }: {
   order: BoardOrder;
-  expanded: boolean;
-  onToggle: () => void;
+  amountDue: string | null;
+  startsOrder: boolean;
+  busy: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const decide = (action: () => void) => () => {
+    setOpen(false);
+    action();
+  };
   return (
     <div className="px-4 pb-3">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-muted-foreground/40 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
-      >
-        <ImageIcon className="size-3.5" aria-hidden="true" />
-        {expanded ? "Hide payment proof" : "View payment proof"}
-      </button>
-      {expanded && (
-        <div className="mt-2">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-muted-foreground/40 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <ImageIcon className="size-3.5" aria-hidden="true" />
+            View payment proof
+          </button>
+        </DialogTrigger>
+        {/* Portaled, but React still bubbles its clicks to the ticket, whose
+            tap handler would toggle the ticket's selection. */}
+        <DialogContent
+          className="max-h-[90dvh] overflow-y-auto sm:max-w-md"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle>Payment proof</DialogTitle>
+            <DialogDescription>
+              {order.customer_name}
+              {amountDue && ` · ${amountDue}`}
+            </DialogDescription>
+          </DialogHeader>
           <PaymentProofViewer
             orderId={order.id}
             expectedAmountCents={order.total_cents}
           />
-        </div>
-      )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 text-base font-semibold text-destructive hover:text-destructive"
+              onClick={decide(onDecline)}
+              disabled={busy}
+            >
+              <X className="size-4" aria-hidden="true" /> Decline
+            </Button>
+            <Button
+              type="button"
+              className="h-12 bg-status-payment-claimed text-base font-bold text-white hover:bg-status-payment-claimed/90"
+              onClick={decide(onAccept)}
+              disabled={busy}
+            >
+              <Check className="size-4" aria-hidden="true" />
+              {startsOrder ? "Accept & start" : "Accept payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -124,6 +186,7 @@ export function TicketMenu({
             onSelect={onCancel}
             className="py-2.5 text-destructive focus:text-destructive"
           >
+            <Trash2 className="size-4" aria-hidden="true" />
             Cancel order
           </DropdownMenuItem>
         )}
@@ -198,6 +261,7 @@ export function TicketActions({
   showDate,
   onConfirmPayment,
   onConfirmPaymentAndStart,
+  onDeclinePayment,
   onAdvance,
   onUndo,
   onRestore,
@@ -213,11 +277,11 @@ export function TicketActions({
   showDate: boolean;
   onConfirmPayment: () => void;
   onConfirmPaymentAndStart: () => void;
+  onDeclinePayment: () => void;
   onAdvance: () => void;
   onUndo: () => void;
   onRestore: () => void;
 }) {
-  const [proofExpanded, setProofExpanded] = useState(false);
   const closed = isTerminal(status);
   const advance = ADVANCE[status];
   const paymentReviewNeeded = needsPaymentReview(status, payStatus);
@@ -225,17 +289,24 @@ export function TicketActions({
 
   return (
     <div className="mt-auto">
-      {/* Tap-to-expand proof-photo review — only once a customer has
-          actually claimed payment (a proof photo only exists then). Covers
-          both payment-review button shapes below (the plain confirm button
-          and the merged "Mark paid & start" one), since both require
+      {/* Proof-photo review modal — only once a customer has actually
+          claimed payment (a proof photo only exists then). Covers both
+          payment-review button shapes below (the plain confirm button and
+          the merged "Mark paid & start" one), since both require
           payStatus === "claimed". The order row no longer says whether a
-          photo exists: paykit holds it, so the viewer finds out when opened. */}
+          photo exists: paykit holds it, so the viewer finds out when opened.
+          Accepting a still-pending order starts it, same as the merged
+          button. */}
       {status !== "cancelled" && payStatus === "claimed" && (
-        <ProofPhotoTrigger
+        <ProofReview
           order={order}
-          expanded={proofExpanded}
-          onToggle={() => setProofExpanded((v) => !v)}
+          amountDue={amountDue}
+          startsOrder={paymentReviewNeeded}
+          busy={updating}
+          onAccept={
+            paymentReviewNeeded ? onConfirmPaymentAndStart : onConfirmPayment
+          }
+          onDecline={onDeclinePayment}
         />
       )}
 

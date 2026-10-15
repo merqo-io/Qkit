@@ -15,7 +15,7 @@ import {
   isTerminal,
   paymentDeadline,
 } from "@/lib/orders";
-import { confirmCheckout } from "@/lib/paykit/client";
+import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
@@ -520,6 +520,75 @@ export async function confirmOrderPayment(
     action: "confirm_order_payment",
     target_id: orderId,
     detail: { from: order.payment_status, amount_cents: order.total_cents },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Vendor rejects a customer's "I've paid" claim (the payment proof modal's
+ * Decline). The claim goes back to unpaid in paykit, the same revert the
+ * customer's own "Tapped by mistake? Undo" uses, so the customer can pay again
+ * and the order stays on the board. Never touches a confirmed payment:
+ * paykit echoes `confirmed` unchanged and this reports it rather than
+ * mirroring a revert that did not happen.
+ */
+export async function declinePaymentClaim(
+  orderId: string,
+): Promise<ActionResult> {
+  if (!uuidSchema.safeParse(orderId).success)
+    return { success: false, error: "Invalid order" };
+
+  const { supabase, order, userId } = await loadOwnOrder(orderId);
+  if (!supabase || !order || !userId)
+    return { success: false, error: "Order not found" };
+
+  if (order.payment_status === "pending") return { success: true };
+  if (order.payment_status !== "claimed")
+    return { success: false, error: "No payment claim to decline" };
+  if (order.status === "cancelled")
+    return { success: false, error: "This order was cancelled" };
+
+  const transaction = await transactionIdForOrder({
+    vendorId: userId,
+    amountCents: order.total_cents,
+    orderRef: order.id,
+    expiresAt: paymentDeadline(order.created_at),
+  });
+  if (!transaction.ok) {
+    console.error(
+      "declinePaymentClaim: paykit transaction lookup failed",
+      transaction.error,
+    );
+    return { success: false, error: "Failed to decline payment" };
+  }
+  const unclaim = await unclaimCheckout(transaction.data);
+  if (!unclaim.ok) {
+    console.error("declinePaymentClaim: paykit unclaim failed", unclaim.error);
+    return { success: false, error: "Failed to decline payment" };
+  }
+  if (unclaim.data.status === "confirmed")
+    return { success: false, error: "This payment was already confirmed" };
+  if (unclaim.data.status !== "pending")
+    return { success: false, error: "Failed to decline payment" };
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ payment_status: "pending" })
+    .eq("id", orderId)
+    .eq("payment_status", "claimed")
+    .select("id");
+  if (error)
+    console.error(
+      "declinePaymentClaim: local mirror update failed",
+      error.message,
+    );
+
+  await recordAudit({
+    admin_id: userId,
+    action: "decline_order_payment",
+    target_id: orderId,
+    detail: { from: "claimed", amount_cents: order.total_cents },
   });
 
   return { success: true };
