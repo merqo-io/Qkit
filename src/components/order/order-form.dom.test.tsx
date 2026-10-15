@@ -289,7 +289,7 @@ describe("OrderForm cart", () => {
     expect(push).toHaveBeenCalledWith("/order/b1/0042?t=tok42");
   });
 
-  it("redirects to the payment page, without saving a recent order, when order_number is null", async () => {
+  it("redirects to the payment page, saving the order without a number, when order_number is null", async () => {
     placeOrder.mockResolvedValueOnce({
       success: true,
       orderNumber: null,
@@ -317,7 +317,12 @@ describe("OrderForm cart", () => {
         expect.stringMatching(/^[0-9a-f-]{36}$/),
       ),
     );
-    expect(addRecentOrder).not.toHaveBeenCalled();
+    expect(addRecentOrder).toHaveBeenCalledWith({
+      boothId: "b1",
+      customerName: "Ada",
+      token: "tok42",
+      items: [expect.objectContaining({ menuItemId: "kopi", quantity: 1 })],
+    });
     expect(push).toHaveBeenCalledWith("/order/b1/pay?t=tok42");
   });
 

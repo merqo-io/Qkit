@@ -297,11 +297,16 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `recent-orders.ts` — `getRecentOrders`/`getRecentOrdersForBooth`/
   `addRecentOrder`: customer order history in `localStorage`
   (`qkit:recent-orders`, capped at 10), since unauthenticated customers have no
-  server-side link between a device and its orders. `noteDisplayNumber`
-  records the number the status page showed for an order (the day's rank under
-  daily numbering), so the list names it the way the customer last saw it.
-- `recent-orders.test.ts` — tests read/write validation, dedup-by-order, and
-  the MAX-10 cap.
+  server-side link between a device and its orders. A payment-required order
+  is recorded at placement with its access token and no `orderNumber` (it is
+  numbered after payment); entries match on booth plus number or token, so
+  recording one order twice keeps one entry. `noteDisplayNumber` records the
+  number the status page showed for an order (the day's rank under daily
+  numbering), so the list names it the way the customer last saw it; given
+  the page's token it also fills in the `orderNumber` of an entry recorded
+  before payment.
+- `recent-orders.test.ts` — tests read/write validation, dedup-by-order (and
+  by token for an order not yet numbered), and the MAX-10 cap.
 - `reorder-handoff.ts` — `stashReorder`/`takeReorder`/`isValidLine`: one-shot
   `sessionStorage` handoff (`qkit:reorder:{boothId}`) from the status page or
   recent-orders list back into the booth menu; read-once (cleared immediately

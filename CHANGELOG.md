@@ -19,6 +19,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - The payment proof's duplicate warning names the other order by the number on its board card. With daily numbering on it said "order #0024" (the permanent number) for an order the board and the customer knew as #001. Today's orders now go through `vendorFacingOrderNumber`, the same setting and day baseline as the ticket; an order from an earlier day keeps its permanent number, as on the board, and adds its day ("order #0024 on 1 Oct"). Applies to orders whose screenshot is in paykit and to older ones still in qkit's bucket.
 - The `mutation (changed lib)` CI job no longer fails with `no merge base`
   when main moves while a pull request is open. Its step fetched the base
@@ -435,6 +443,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Keep distinct cart selections separate for separator characters and Unicode labels; safely open the intended notification destination and contain audio-unlock failures.
 
 - Improve small brand-link and form-boundary contrast in both themes while preserving primary button fills and allowing utility styles to override base resets.
@@ -481,6 +497,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - The board's own daily-number baseline now counts only orders placed today,
   the same SGT window the server-side query uses. An order still in progress
   from an earlier day became the baseline and rebased itself to `#001`, while
@@ -543,6 +567,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - A customer whose phone reopens an old order-status URL now sees that it is an
   older order, with the date it was placed and a link to order again, instead of
   a page that looks live. A repeat customer's browser can restore an earlier
@@ -589,6 +621,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Images uploaded into a booth, menu or payment form that the vendor never
   saved are now deleted instead of staying in storage forever. Each upload is
   written the moment it's picked, so an abandoned form left an object nothing
@@ -631,6 +671,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Payment-proof storage is now bounded at every layer. The
   `payment-proofs` bucket had no `file_size_limit` or `allowed_mime_types`
   (unlike `booth-images`, hardened in `0037`), so nothing in storage capped
@@ -685,6 +733,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - `resizeToWebp` on a filename with no dot returned the whole name as the
   extension (a file called `photo` gave `ext: "photo"`). stockkit's copy had
   guarded this and qkit's had not; fixed upstream in v0.31.1.
@@ -725,6 +781,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - `/legal/terms` now shows only qkit's own Annex schedule, not every
   sibling kit's, via `@merqo/ui`'s new per-kit `getLegalDocSource`/
   `LegalDocument` scoping. `legal/accept/actions.ts`'s recorded
@@ -814,6 +878,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - A printed order label showed the raw, permanent order number, not the
   vendor-facing daily-reset number the board/TV display/customer status
   page all show when `board_settings.daily_order_number_reset` is on —
@@ -1116,6 +1188,14 @@ available`, matching each item by exact name to update in place rather
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Dragging a menu item toward a different section snapped it back to its
   original slot mid-drag (the drop itself still worked, but it looked
   broken) — `useSortable`'s own transform only repositions within its own
@@ -1218,6 +1298,14 @@ available`, matching each item by exact name to update in place rather
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - `/admin` (the admin overview) returned a 500 for every admin: `page.tsx`
   is a Server Component and passed `formatAction={humanizeAction}` — a
   function — straight to `@merqo/ui`'s `AuditLogTable`, which is a Client
@@ -1326,6 +1414,14 @@ available`, matching each item by exact name to update in place rather
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Cards were visually indistinguishable from the page background in light
   mode — the Market Ochre rebrand set `--card`/`--popover` to the exact
   same OKLCH value as `--background`. Restored a distinct, lighter card
@@ -1534,6 +1630,14 @@ available`, matching each item by exact name to update in place rather
 
 ### Fixed
 
+- An order paid online now shows under "Your orders here" on the booth page.
+  A payment-required order has no number when it is placed, so it was never
+  recorded and a customer who closed the tab on paykit's page had no way
+  back to it. It is now recorded at placement with its access token; until it
+  has a number the list shows it as "New order" and links to its pay step,
+  which forwards a paid order to its status page. The status page fills the
+  number in the first time it opens. Recording the same order twice keeps one
+  entry.
 - Browser-tab title now uses the cross-kit "Name | Tagline" Title Case
   format: "Qkit | Live Queueing" (was "qkit: live queueing"). PWA-chrome
   title updated to match.
