@@ -6,7 +6,7 @@ import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 
 // Mirrors src/lib/paykit/client.ts's fallback — duplicated since this is a
 // client component reading NEXT_PUBLIC_* directly.
-const PAYKIT_FALLBACK_URL = "https://paykit-sg.vercel.app";
+const PAYKIT_FALLBACK_URL = "https://paykit.merqo.io";
 
 function neverChanges() {
   return () => {};

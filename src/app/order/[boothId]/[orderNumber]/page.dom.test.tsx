@@ -298,11 +298,11 @@ describe("OrderStatusPage — pickup QR origin allowlist", () => {
   });
 
   it("trusts a plain vercel.app host", async () => {
-    headersMock.mockResolvedValue(new Headers({ host: "qkit-sg.vercel.app" }));
+    headersMock.mockResolvedValue(new Headers({ host: "qkit.merqo.io" }));
     await renderPage("ready");
     expect(screen.getByTestId("pickup-qr")).toHaveAttribute(
       "data-value",
-      `https://qkit-sg.vercel.app/order/${BOOTH_ID}/${ORDER_NUMBER}?t=${TOKEN}`,
+      `https://qkit.merqo.io/order/${BOOTH_ID}/${ORDER_NUMBER}?t=${TOKEN}`,
     );
   });
 
