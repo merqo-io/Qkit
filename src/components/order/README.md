@@ -51,7 +51,8 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   until confirmation; an initial order remains available.
   Success then
   clears the cart, stashes an `addRecentOrder` entry, and navigates to the
-  order-status page. The phone field is a genuinely optional convenience
+  order-status page (or, for a payment-required order, to `../pay`; that
+  entry has the access token but no order number yet). The phone field is a genuinely optional convenience
   (cross-kit customer identity, migration `0075`), never required to
   submit, passed through `placeOrder`'s `customerPhone` input. Menu items
   render grouped under `menuCategories` (`@/lib/menu-sections`'s
@@ -95,7 +96,9 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   `getRecentOrdersForBooth` from localStorage post-mount (avoids an SSR
   hydration mismatch — there's no server-side customer identity), rendering
   a collapsed-then-"Show all" list of `Link`s to each past order's status
-  page.
+  page. An entry with no order number yet (a payment-required order) reads
+  "New order" and links to `/order/{boothId}/pay?t=…`, which sends a numbered
+  order on to its status page and says when an unpaid one has expired.
 - `menu-item-card.tsx` — `MenuItemCard`: one item on the customer's menu
   (photo, name, price, allergens, stock note) with "Add" then a stepper for a
   plain item, or the customizer button and an "N in your order" line for an

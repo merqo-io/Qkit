@@ -458,27 +458,29 @@ export function OrderForm({
     // returning to this booth starts fresh rather than restoring a placed cart.
     clearCart(boothId);
 
+    // Remember on-device so the customer can find this order again after
+    // closing the tab (no server-side customer identity exists). The compact
+    // items snapshot powers one-tap reorder from the list. A payment-required
+    // order has no number yet; the list reaches it through its token's pay
+    // step until the status page fills the number in.
+    addRecentOrder({
+      boothId,
+      ...(result.orderNumber ? { orderNumber: result.orderNumber } : {}),
+      customerName: formData.customerName,
+      // The per-order token gates the status page + its polling reads; store it
+      // so a "track your recent order" link can reopen the page later.
+      token: result.accessToken,
+      items: cartItems.map((it) => ({
+        menuItemId: it.menuItemId,
+        quantity: it.quantity,
+        options: it.options,
+      })),
+    });
+
     // Payment-required orders return no order_number yet (Task 1) — they route
     // to payment before getting a number. Non-payment orders flow to the
     // customer's live status page.
     if (result.orderNumber) {
-      // Remember on-device so the customer can find this order again after
-      // closing the tab (no server-side customer identity exists). The compact
-      // items snapshot powers one-tap reorder from the list.
-      addRecentOrder({
-        boothId,
-        orderNumber: result.orderNumber,
-        customerName: formData.customerName,
-        // The per-order token gates the status page + its polling reads; store it
-        // so a "track your recent order" link can reopen the page later.
-        token: result.accessToken,
-        items: cartItems.map((it) => ({
-          menuItemId: it.menuItemId,
-          quantity: it.quantity,
-          options: it.options,
-        })),
-      });
-
       router.push(
         `/order/${result.boothId}/${result.orderNumber}?t=${result.accessToken}`,
       );

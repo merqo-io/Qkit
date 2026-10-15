@@ -46,6 +46,37 @@ describe("recent customer orders", () => {
       screen.getByRole("link", { name: /#3 for Customer 0/ }),
     ).toHaveAttribute("href", "/order/booth-a/0001?t=access-token");
   });
+  it("links an order still waiting for its number to its pay step", () => {
+    read.mockReturnValue([
+      {
+        boothId: "booth-a",
+        customerName: "Ada",
+        token: "pay-token",
+        placedAt: Date.now(),
+      },
+    ]);
+    render(<RecentOrders boothId="booth-a" />);
+    expect(
+      screen.getByRole("link", { name: /New order for Ada/ }),
+    ).toHaveAttribute("href", "/order/booth-a/pay?t=pay-token");
+  });
+  it("links a paid order to its status page once it has its number", () => {
+    read.mockReturnValue([
+      {
+        boothId: "booth-a",
+        orderNumber: "0024",
+        displayNumber: "1",
+        customerName: "Ada",
+        token: "pay-token",
+        placedAt: Date.now(),
+      },
+    ]);
+    render(<RecentOrders boothId="booth-a" />);
+    expect(screen.getByRole("link", { name: /#1 for Ada/ })).toHaveAttribute(
+      "href",
+      "/order/booth-a/0024?t=pay-token",
+    );
+  });
   it("reloads history for a new booth and omits the toggle for short histories", () => {
     const { rerender } = render(<RecentOrders boothId="booth-a" />);
     read.mockReturnValue([orders[0]]);

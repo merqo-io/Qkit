@@ -372,10 +372,11 @@ export function OrderStatusPoller({
   }, [status, boothName, displayNumber]);
 
   // The recent-orders list on the menu page is written before this page knows
-  // the number it will show, so tell it once the number is on screen.
+  // the number it will show, so tell it once the number is on screen. The
+  // token lets it number an order that was recorded before it was paid.
   useEffect(() => {
-    noteDisplayNumber(boothId, orderNumber, displayNumber);
-  }, [boothId, orderNumber, displayNumber]);
+    noteDisplayNumber(boothId, orderNumber, displayNumber, token);
+  }, [boothId, orderNumber, displayNumber, token]);
 
   const cancelled = status === "cancelled";
   const ready = status === "ready";

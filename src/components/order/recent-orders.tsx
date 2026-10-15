@@ -40,16 +40,29 @@ export function RecentOrders({ boothId }: Props) {
       <ul className="space-y-1.5">
         {visible.map((o) => {
           const tokenQuery = o.token ? `?t=${o.token}` : "";
+          // An order that pays first has no number until it is paid. Its pay
+          // step sends a numbered order on to its status page and says when an
+          // unpaid one has expired.
+          const href = o.orderNumber
+            ? `/order/${boothId}/${o.orderNumber}${tokenQuery}`
+            : `/order/${boothId}/pay${tokenQuery}`;
+          const label = o.displayNumber ?? o.orderNumber;
           return (
-            <li key={o.orderNumber}>
+            <li key={o.orderNumber ?? o.token}>
               <Link
-                href={`/order/${boothId}/${o.orderNumber}${tokenQuery}`}
+                href={href}
                 className="group flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm transition-colors hover:border-primary/50"
               >
                 <span className="truncate">
-                  <span className="font-mono font-semibold text-primary">
-                    #{o.displayNumber ?? o.orderNumber}
-                  </span>{" "}
+                  {label ? (
+                    <span className="font-mono font-semibold text-primary">
+                      #{label}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-primary">
+                      New order
+                    </span>
+                  )}{" "}
                   <span className="text-muted-foreground">
                     for {o.customerName}
                   </span>

@@ -201,6 +201,93 @@ describe("recent-orders", () => {
     noteDisplayNumber("b1", "0041", "3");
     expect(getRecentOrders()).toEqual([]);
   });
+
+  describe("an order that pays before it is numbered", () => {
+    it("is listed before it has a number, keyed by its token", () => {
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      const [entry] = getRecentOrdersForBooth("b1");
+      expect(entry).toMatchObject({ customerName: "Ada", token: "tok-a" });
+      expect(entry.orderNumber).toBeUndefined();
+    });
+
+    it("drops a stored entry that has neither a number nor a token", () => {
+      localStorage.setItem(
+        "qkit:recent-orders",
+        JSON.stringify([
+          { boothId: "b1", customerName: "A", placedAt: 1 },
+          { boothId: "b1", customerName: "A", token: "", placedAt: 2 },
+          {
+            boothId: "b1",
+            orderNumber: null,
+            customerName: "A",
+            token: "t",
+            placedAt: 3,
+          },
+        ]),
+      );
+      expect(getRecentOrders()).toEqual([]);
+    });
+
+    it("gains its number when the status page opens with its token", () => {
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      addRecentOrder({ boothId: "b1", customerName: "Bo", token: "tok-b" });
+
+      noteDisplayNumber("b1", "0024", "1", "tok-a");
+
+      const byToken = Object.fromEntries(
+        getRecentOrders().map((o) => [o.token, o]),
+      );
+      expect(byToken["tok-a"]).toMatchObject({
+        orderNumber: "0024",
+        displayNumber: "1",
+      });
+      expect(byToken["tok-b"].orderNumber).toBeUndefined();
+    });
+
+    it("does not take a number from another booth's status page", () => {
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      noteDisplayNumber("b2", "0024", "1", "tok-a");
+      expect(getRecentOrders()[0].orderNumber).toBeUndefined();
+    });
+
+    it("is stored once when recorded twice with the same token", () => {
+      vi.spyOn(Date, "now").mockReturnValue(1000);
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      vi.spyOn(Date, "now").mockReturnValue(2000);
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+
+      const all = getRecentOrders();
+      expect(all).toHaveLength(1);
+      expect(all[0].placedAt).toBe(2000);
+    });
+
+    it("is stored once when recorded again after it got its number", () => {
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      noteDisplayNumber("b1", "0024", "1", "tok-a");
+      addRecentOrder({
+        boothId: "b1",
+        orderNumber: "0024",
+        customerName: "Ada",
+        token: "tok-a",
+      });
+
+      const all = getRecentOrders();
+      expect(all).toHaveLength(1);
+      expect(all[0].orderNumber).toBe("0024");
+    });
+
+    it("keeps two unnumbered orders apart", () => {
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-a" });
+      addRecentOrder({ boothId: "b1", customerName: "Ada", token: "tok-b" });
+      expect(getRecentOrders()).toHaveLength(2);
+    });
+
+    it("keeps two tokenless numbered orders apart", () => {
+      addRecentOrder({ boothId: "b1", orderNumber: "0001", customerName: "A" });
+      addRecentOrder({ boothId: "b1", orderNumber: "0002", customerName: "A" });
+      expect(getRecentOrders()).toHaveLength(2);
+    });
+  });
 });
 
 afterEach(() => {

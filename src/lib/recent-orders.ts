@@ -8,7 +8,10 @@ import type { ReorderLine } from "@/lib/reorder";
 
 export interface RecentOrder {
   boothId: string;
-  orderNumber: string;
+  // Absent while an order that pays first waits for its number (numbering is
+  // deferred until payment). Such an entry is reached through its token's pay
+  // step, and gains its number when the status page opens with that token.
+  orderNumber?: string;
   // The number the status page shows the customer: the day's rank when the
   // stall numbers from 1 each day, else the same as orderNumber. Learned on
   // the status page, so an entry that page never opened has none.
@@ -28,6 +31,22 @@ export interface RecentOrder {
 const KEY = "qkit:recent-orders";
 const MAX = 10;
 
+// An entry the list can link to: by its number, or by its token while it
+// has no number yet.
+function reachable(o: RecentOrder): boolean {
+  if (o.orderNumber !== undefined) return typeof o.orderNumber === "string";
+  return typeof o.token === "string" && o.token.length > 0;
+}
+
+// Same order: same booth, and the same number or the same token. The token
+// matters while one side has no number yet.
+function sameOrder(a: RecentOrder, b: Omit<RecentOrder, "placedAt">): boolean {
+  if (a.boothId !== b.boothId) return false;
+  if (a.orderNumber !== undefined && a.orderNumber === b.orderNumber)
+    return true;
+  return a.token !== undefined && a.token === b.token;
+}
+
 function read(): RecentOrder[] {
   if (typeof window === "undefined") return [];
   try {
@@ -40,7 +59,7 @@ function read(): RecentOrder[] {
         !!o &&
         typeof o === "object" &&
         typeof (o as RecentOrder).boothId === "string" &&
-        typeof (o as RecentOrder).orderNumber === "string" &&
+        reachable(o as RecentOrder) &&
         typeof (o as RecentOrder).customerName === "string" &&
         typeof (o as RecentOrder).placedAt === "number",
     );
@@ -61,10 +80,7 @@ export function getRecentOrdersForBooth(boothId: string): RecentOrder[] {
 export function addRecentOrder(order: Omit<RecentOrder, "placedAt">): void {
   if (typeof window === "undefined") return;
   try {
-    const deduped = read().filter(
-      (o) =>
-        !(o.boothId === order.boothId && o.orderNumber === order.orderNumber),
-    );
+    const deduped = read().filter((o) => !sameOrder(o, order));
     // Stamp the time here (in a plain module) rather than in the calling
     // component, where Date.now() trips react-hooks/purity.
     const next = [{ ...order, placedAt: Date.now() }, ...deduped].slice(0, MAX);
@@ -76,20 +92,29 @@ export function addRecentOrder(order: Omit<RecentOrder, "placedAt">): void {
 
 /**
  * Records the number the status page is showing for an order already in the
- * list, so the list names the order the way the customer last saw it.
+ * list, so the list names the order the way the customer last saw it. With the
+ * page's token it also numbers an entry recorded before payment, which the
+ * list knew only by that token.
  */
 export function noteDisplayNumber(
   boothId: string,
   orderNumber: string,
   displayNumber: string,
+  token?: string,
 ): void {
   if (typeof window === "undefined") return;
   try {
     const all = read();
-    const entry = all.find(
-      (o) => o.boothId === boothId && o.orderNumber === orderNumber,
+    const entry = all.find((o) =>
+      sameOrder(o, { boothId, orderNumber, token, customerName: "" }),
     );
-    if (!entry || entry.displayNumber === displayNumber) return;
+    if (
+      !entry ||
+      (entry.orderNumber === orderNumber &&
+        entry.displayNumber === displayNumber)
+    )
+      return;
+    entry.orderNumber = orderNumber;
     entry.displayNumber = displayNumber;
     window.localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
