@@ -82,3 +82,5 @@ fixtures with separate Paykit checkout prerequisites.
 - 0098_order_sweep_indexes.sql indexes the in-flight orders used by that sweep.
 
 The audit additions follow these deployed versions as 0100 through 0103. Local database and isolation-runner validation remain outstanding.
+
+- 0104_booth_pickup_scan_enabled.sql moves self-checkout pickup from the vendor-wide `board_settings.pickup_scan_enabled` key to a per-booth `booths.pickup_scan_enabled` column, backfilled from each vendor's current value and granted to vendors. Apply it before deploying the app that reads it.

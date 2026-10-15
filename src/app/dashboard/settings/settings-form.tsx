@@ -62,9 +62,9 @@ function BackupPrepHelpText({
   if (prepEstimate.avgMinutes !== null) {
     return (
       <p className="text-xs text-muted-foreground">
-        Live right now: ~{Math.round(prepEstimate.avgMinutes)} min per order
-        from your last {prepEstimate.sampleCount} orders. This backup isn&apos;t
-        in use.
+        Live right now: about {Math.round(prepEstimate.avgMinutes)} min per
+        order, the typical time across your last {prepEstimate.sampleCount}{" "}
+        orders. This backup isn&apos;t in use.
       </p>
     );
   }
@@ -196,7 +196,10 @@ function useDesktopNotifySection(
   };
 }
 
-/** The "Notifications" section's toggle + browser-permission sub-affordance. */
+/**
+ * The "Notifications" section's toggle + browser-permission sub-affordance.
+ * `children` are the card's other notification switches.
+ */
 function DesktopNotifySection({
   desktopNotify,
   permission,
@@ -204,6 +207,7 @@ function DesktopNotifySection({
   savingNotify,
   toggleDesktopNotify,
   enableInBrowser,
+  children,
 }: {
   desktopNotify: boolean;
   permission: NotificationPermission | null;
@@ -211,7 +215,14 @@ function DesktopNotifySection({
   savingNotify: boolean;
   toggleDesktopNotify: () => void;
   enableInBrowser: () => void;
+  children?: React.ReactNode;
 }) {
+  // The setting is account-wide and syncs across devices, so it stays on
+  // here; the label says this device is the one not getting popups.
+  const blockedHere = onClient && desktopNotify && permission !== "granted";
+  let statusLabel = "Off";
+  if (blockedHere) statusLabel = "On, but not on this device";
+  else if (desktopNotify) statusLabel = "On";
   return (
     <Section
       icon={<Bell className="size-5" />}
@@ -224,14 +235,17 @@ function DesktopNotifySection({
           onCheckedChange={toggleDesktopNotify}
           disabled={savingNotify}
           aria-label="Desktop notifications"
+          className={cn(blockedHere && "data-[state=checked]:bg-warning")}
         />
         <span
           className={cn(
             "text-sm font-semibold",
-            desktopNotify ? "text-success" : "text-muted-foreground",
+            blockedHere && "text-warning",
+            !blockedHere && desktopNotify && "text-success",
+            !desktopNotify && "text-muted-foreground",
           )}
         >
-          {desktopNotify ? "On" : "Off"}
+          {statusLabel}
         </span>
         {/* A tap-to-open hint beside the switch, not the section title's
             hover tooltip: this one is written for iPhone and iPad, where a
@@ -241,7 +255,7 @@ function DesktopNotifySection({
           your Home Screen first. A regular Safari tab cannot show these.
         </Hint>
       </div>
-      {onClient && desktopNotify && permission !== "granted" && (
+      {blockedHere && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs text-muted-foreground">
             {isNotifySupported()
@@ -262,6 +276,7 @@ function DesktopNotifySection({
           )}
         </div>
       )}
+      {children}
     </Section>
   );
 }
@@ -289,9 +304,6 @@ export function SettingsForm({
   // rationale one layer down.
   const [customerNotify, setCustomerNotify] = useState(
     initial.customer_telegram_notify_enabled ?? true,
-  );
-  const [pickupScanEnabled, setPickupScanEnabled] = useState(
-    initial.pickup_scan_enabled ?? false,
   );
   const [thresholdError, setThresholdError] = useState<string | null>(null);
   const { pending: savingThresholds, run: runThresholds } = useAsyncAction(
@@ -339,7 +351,6 @@ export function SettingsForm({
   function saveSwitch(
     key:
       | "customer_telegram_notify_enabled"
-      | "pickup_scan_enabled"
       | "daily_order_number_reset"
       | "show_wait_estimate",
     value: boolean,
@@ -378,7 +389,6 @@ export function SettingsForm({
       ready_auto_clear_min:
         readyAutoClearMin.trim() === "" ? null : Number(readyAutoClearMin),
       customer_telegram_notify_enabled: customerNotify,
-      pickup_scan_enabled: pickupScanEnabled,
     };
   }
 
@@ -602,52 +612,6 @@ export function SettingsForm({
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3 border-t border-border pt-4">
-                <Switch
-                  checked={customerNotify}
-                  onCheckedChange={(checked) =>
-                    saveSwitch(
-                      "customer_telegram_notify_enabled",
-                      checked,
-                      setCustomerNotify,
-                    )
-                  }
-                  disabled={savingSwitch}
-                  aria-label="Notify customers on Telegram when their order is ready"
-                />
-                <span className="flex items-center gap-1.5 text-sm font-medium">
-                  Notify customers on Telegram when their order is ready
-                  <InfoTooltip
-                    content="Fires the same Telegram ping a customer opted into on the order-status page. Turning this off doesn't touch their connection, it just stops this booth from using it."
-                    ariaLabel="About notifying customers on Telegram"
-                    trigger="tap"
-                  />
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 border-t border-border pt-4">
-                <Switch
-                  checked={pickupScanEnabled}
-                  onCheckedChange={(checked) =>
-                    saveSwitch(
-                      "pickup_scan_enabled",
-                      checked,
-                      setPickupScanEnabled,
-                    )
-                  }
-                  disabled={savingSwitch}
-                  aria-label="Self-checkout pickup"
-                />
-                <span className="flex items-center gap-1.5 text-sm font-medium">
-                  Self-checkout pickup
-                  <InfoTooltip
-                    content="Customers scan their own order-status QR at a pickup kiosk instead of staff marking pickup manually."
-                    ariaLabel="About self-checkout pickup"
-                    trigger="tap"
-                  />
-                </span>
-              </div>
             </div>
             {thresholdError && (
               <p id="threshold-error" className={FORM_ERROR_CLASS}>
@@ -673,7 +637,30 @@ export function SettingsForm({
             savingNotify={savingNotify}
             toggleDesktopNotify={toggleDesktopNotify}
             enableInBrowser={enableInBrowser}
-          />
+          >
+            <div className="flex items-center gap-3 border-t border-border pt-4">
+              <Switch
+                checked={customerNotify}
+                onCheckedChange={(checked) =>
+                  saveSwitch(
+                    "customer_telegram_notify_enabled",
+                    checked,
+                    setCustomerNotify,
+                  )
+                }
+                disabled={savingSwitch}
+                aria-label="Notify customers on Telegram when their order is ready"
+              />
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                Notify customers on Telegram when their order is ready
+                <InfoTooltip
+                  content="Fires the same Telegram ping a customer opted into on the order-status page. Turning this off doesn't touch their connection, it just stops this booth from using it."
+                  ariaLabel="About notifying customers on Telegram"
+                  trigger="tap"
+                />
+              </span>
+            </div>
+          </DesktopNotifySection>
         </>
       }
       columnTwo={

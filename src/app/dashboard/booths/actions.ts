@@ -375,6 +375,7 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
     requires_arrival_confirm: data.requires_arrival_confirm,
     walkup_default: data.walkup_default,
     print_enabled: data.print_enabled,
+    pickup_scan_enabled: data.pickup_scan_enabled,
     paykit_booking_id: data.paykit_booking_id,
     max_items_per_order: data.max_items_per_order,
     ...dailyCapPatch(entitlement, data.daily_cup_cap, !data.boothId),

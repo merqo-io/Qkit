@@ -222,14 +222,6 @@ async function loadVendorProfile(
 }
 
 /**
- * board_settings-derived page state: the daily-reset heading number (see
- * displayOrderNumber in @/lib/orders) and whether the vendor has turned on
- * the pickup QR (pickup_scan_enabled) — one vendor-row read serves both, so
- * the pickup toggle doesn't cost a second query. Decorative, so any failure
- * here degrades to the real order_number / QR-off rather than breaking the
- * page — same philosophy as loadVendorProfile above.
- */
-/**
  * A repeat customer's browser can restore an earlier visit's status URL, so
  * this page can be a live-looking view of an order served weeks ago (see
  * isStaleOrderView in @/lib/orders). The number shown is then that old order's
@@ -244,12 +236,18 @@ function resolveStaleView(createdAt: string): boolean {
   return isStaleOrderView(createdAt, Date.now());
 }
 
+/**
+ * board_settings-derived heading number: the daily-reset number (see
+ * displayOrderNumber in @/lib/orders) when the vendor turned that on.
+ * Decorative, so any failure here degrades to the real order_number rather
+ * than breaking the page — same philosophy as loadVendorProfile above.
+ */
 async function resolveOrderDisplay(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   boothId: string,
   vendorId: string,
   orderNumber: string,
-): Promise<{ headingNumber: string; pickupScanEnabled: boolean }> {
+): Promise<string> {
   try {
     const { data: vendorRow } = await supabase
       .from("vendors")
@@ -257,25 +255,19 @@ async function resolveOrderDisplay(
       .eq("id", vendorId)
       .maybeSingle();
     const settings = boardSettingsSchema.safeParse(vendorRow?.board_settings);
-    const pickupScanEnabled =
-      settings.success && settings.data.pickup_scan_enabled;
-
     if (!settings.success || !settings.data.daily_order_number_reset)
-      return { headingNumber: orderNumber, pickupScanEnabled };
+      return orderNumber;
 
     const firstToday = await firstOrderNumberToday(supabase, boothId);
-    return {
-      headingNumber: firstToday
-        ? displayOrderNumber(orderNumber, firstToday)
-        : orderNumber,
-      pickupScanEnabled,
-    };
+    return firstToday
+      ? displayOrderNumber(orderNumber, firstToday)
+      : orderNumber;
   } catch (err) {
     console.error(
       "order-status: daily display-number read failed",
       err instanceof Error ? err.message : err,
     );
-    return { headingNumber: orderNumber, pickupScanEnabled: false };
+    return orderNumber;
   }
 }
 
@@ -317,7 +309,9 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
         .maybeSingle(),
       supabase
         .from("booths")
-        .select("name, vendor_id, social_links, requires_arrival_confirm")
+        .select(
+          "name, vendor_id, social_links, requires_arrival_confirm, pickup_scan_enabled",
+        )
         .eq("id", boothId)
         .single(),
     ]);
@@ -346,17 +340,18 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
     parseSocialLinks(vendorProfile?.social_links ?? null),
   );
 
-  const { headingNumber, pickupScanEnabled } = booth?.vendor_id
+  const headingNumber = booth?.vendor_id
     ? await resolveOrderDisplay(
         supabase,
         boothId,
         booth.vendor_id,
         order.order_number,
       )
-    : { headingNumber: order.order_number, pickupScanEnabled: false };
+    : order.order_number;
 
+  // Self-checkout pickup is set per booth (migration 0104).
   const pickupUrl =
-    order.status === "ready" && pickupScanEnabled
+    order.status === "ready" && booth?.pickup_scan_enabled === true
       ? `${await resolveOrigin()}/order/${boothId}/${orderNumber}?t=${token}`
       : null;
 

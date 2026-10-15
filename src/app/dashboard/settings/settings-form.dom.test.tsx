@@ -40,7 +40,6 @@ const DEFAULTS: BoardSettings = {
   default_prep_minutes: null,
   ready_auto_clear_min: 3,
   customer_telegram_notify_enabled: true,
-  pickup_scan_enabled: false,
 };
 
 const PREP_ESTIMATE = { avgMinutes: null, sampleCount: 0, minSample: 10 };
@@ -78,8 +77,8 @@ describe("SettingsForm hints", () => {
     const names = screen
       .getAllByRole("button", { name: /^About / })
       .map((b) => b.getAttribute("aria-label"));
-    expect(names).toHaveLength(10);
-    expect(new Set(names).size).toBe(10);
+    expect(names).toHaveLength(9);
+    expect(new Set(names).size).toBe(9);
   });
 });
 
@@ -183,7 +182,7 @@ describe("SettingsForm thresholds", () => {
 });
 
 describe("SettingsForm customer notify toggle", () => {
-  it("renders next to Auto-clear after, defaults checked, and saves the moment it is flipped", async () => {
+  it("sits in the Notifications card, defaults checked, and saves the moment it is flipped", async () => {
     updateBoardSettings.mockResolvedValue({ success: true });
     const user = userEvent.setup();
     render(<SettingsForm initial={DEFAULTS} prepEstimate={PREP_ESTIMATE} />);
@@ -192,6 +191,7 @@ describe("SettingsForm customer notify toggle", () => {
       name: /notify customers on telegram when their order is ready/i,
     });
     expect(toggle).toBeChecked();
+    expect(toggle.closest("section")).toHaveTextContent(/^Notifications/);
 
     await user.click(toggle);
 
@@ -200,6 +200,14 @@ describe("SettingsForm customer notify toggle", () => {
         customer_telegram_notify_enabled: false,
       }),
     );
+  });
+
+  it("is not part of Board timing", () => {
+    render(<SettingsForm initial={DEFAULTS} prepEstimate={PREP_ESTIMATE} />);
+    const timing = screen
+      .getByRole("button", { name: /save timing/i })
+      .closest("section");
+    expect(timing).not.toHaveTextContent(/telegram/i);
   });
 
   it("flips back and says so when the save is refused", async () => {
@@ -234,21 +242,12 @@ describe("SettingsForm customer notify toggle", () => {
   });
 });
 
-describe("SettingsForm pickup-scan toggle", () => {
-  it("saves pickup_scan_enabled when the switch is toggled", async () => {
-    updateBoardSettings.mockResolvedValue({ success: true });
-    const user = userEvent.setup();
+describe("SettingsForm self-checkout pickup", () => {
+  it("is set per booth now, so Board settings has no switch for it", () => {
     render(<SettingsForm initial={DEFAULTS} prepEstimate={PREP_ESTIMATE} />);
-
-    await user.click(
-      screen.getByRole("switch", { name: /self-checkout pickup/i }),
-    );
-
-    await waitFor(() =>
-      expect(updateBoardSettings).toHaveBeenCalledWith({
-        pickup_scan_enabled: true,
-      }),
-    );
+    expect(
+      screen.queryByRole("switch", { name: /self-checkout pickup/i }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -357,6 +356,37 @@ describe("SettingsForm desktop notifications", () => {
     expect(updateBoardSettings).not.toHaveBeenCalled();
     expect(
       screen.queryByText(/not allowed in this browser yet/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows on, in a warning colour, when on for the account but not allowed on this device", () => {
+    notifyPermission.mockReturnValue("default");
+    render(
+      <SettingsForm
+        initial={{ ...DEFAULTS, desktop_notify: true }}
+        prepEstimate={PREP_ESTIMATE}
+      />,
+    );
+
+    const toggle = screen.getByRole("switch", {
+      name: "Desktop notifications",
+    });
+    expect(toggle).toBeChecked();
+    const status = screen.getByText("On, but not on this device");
+    expect(status).toHaveClass("text-warning");
+    expect(screen.queryByText(/^On$/)).not.toBeInTheDocument();
+  });
+
+  it("shows a plain on once this device has allowed notifications", () => {
+    render(
+      <SettingsForm
+        initial={{ ...DEFAULTS, desktop_notify: true }}
+        prepEstimate={PREP_ESTIMATE}
+      />,
+    );
+    expect(screen.getByText(/^On$/)).toHaveClass("text-success");
+    expect(
+      screen.queryByText("On, but not on this device"),
     ).not.toBeInTheDocument();
   });
 
