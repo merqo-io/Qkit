@@ -14,11 +14,12 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.32.3`: `Section` title tooltips and default-mode
-`InfoTooltip`s open on a tap as well as on hover and keyboard focus, and every
-info icon takes taps through a 44px touch area on touch devices. That area
-comes from `@merqo/ui` itself, not from this app's CSS. A long tooltip wraps
-inside the viewport.
+commit tagged `v0.33.0`, which adds `DataCollectionNotice`, the PDPA
+point-of-collection line the customer order form shows above its submit button.
+Since `v0.32.3`, `Section` title tooltips and default-mode `InfoTooltip`s open
+on a tap as well as on hover and keyboard focus, and every info icon takes taps
+through a 44px touch area on touch devices. That area comes from `@merqo/ui`
+itself, not from this app's CSS. A long tooltip wraps inside the viewport.
 
 qkit uses Supabase, **not** templateCentral's better-auth/Drizzle data layer.
 Database authorization is enforced through RLS and SQL privileges. Service-role

@@ -667,6 +667,26 @@ describe("OrderForm cart", () => {
     expect(push).toHaveBeenCalledWith("/order/b1/0042?t=tok42");
   });
 
+  it("tells the customer why their details are collected, with a privacy link, before the submit button", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).getByText(
+        /We use your phone number and name to identify your order and send you order updates\./,
+      ),
+    ).toBeInTheDocument();
+    const link = within(dialog).getByRole("link", { name: "Privacy Policy" });
+    expect(link).toHaveAttribute("href", "/legal/privacy");
+    const submit = within(dialog).getByRole("button", { name: /Place order/ });
+    expect(
+      link.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("passes the phone value through to placeOrder when filled", async () => {
     const user = userEvent.setup();
     renderForm();

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { DataCollectionNotice } from "@merqo/ui";
 import { ChevronDown, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -849,6 +850,8 @@ export function OrderForm({
                 </p>
               )}
             </section>
+
+            <DataCollectionNotice purpose="identify your order and send you order updates" />
 
             <SheetFooter className="gap-2 px-0 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {submitError && (
