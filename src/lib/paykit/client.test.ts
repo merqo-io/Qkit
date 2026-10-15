@@ -9,6 +9,7 @@ import {
   getCheckoutEvidence,
   getBookingStatus,
 } from "./client";
+import { paymentDeadline } from "@/lib/orders";
 
 const VENDOR = "00000000-0000-4000-8000-000000000001";
 const TX = "00000000-0000-4000-8000-000000000002";
@@ -249,7 +250,12 @@ describe("getBookingStatus", () => {
 });
 
 describe("createCheckout", () => {
-  const args = { vendorId: VENDOR, amountCents: 800, orderRef: "order-1" };
+  const args = {
+    vendorId: VENDOR,
+    amountCents: 800,
+    orderRef: "order-1",
+    expiresAt: "2026-10-14T01:45:00.000Z",
+  };
 
   it("maps a qr response", async () => {
     fetchMock.mockResolvedValue(
@@ -319,6 +325,49 @@ describe("createCheckout", () => {
     });
   });
 
+  it("sends the order's payment deadline, created_at + 30 min, as expires_at", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        type: "qr",
+        transaction_id: TX,
+        status: "pending",
+        payload: "0002",
+      }),
+    );
+    await createCheckout({
+      ...args,
+      expiresAt: paymentDeadline("2026-10-14T09:15:00+08:00"),
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.expires_at).toBe("2026-10-14T01:45:00.000Z");
+  });
+
+  it("sends the same expires_at when the checkout is asked for again later", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        type: "qr",
+        transaction_id: TX,
+        status: "pending",
+        payload: "0002",
+      }),
+    );
+    const createdAt = "2026-10-14T01:15:00Z";
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-14T01:16:00Z"));
+      await createCheckout({ ...args, expiresAt: paymentDeadline(createdAt) });
+      vi.setSystemTime(new Date("2026-10-14T01:40:00Z"));
+      await createCheckout({ ...args, expiresAt: paymentDeadline(createdAt) });
+    } finally {
+      vi.useRealTimers();
+    }
+    const [first, second] = fetchMock.mock.calls.map(
+      (c) => JSON.parse(c[1].body).expires_at,
+    );
+    expect(first).toBe("2026-10-14T01:45:00.000Z");
+    expect(second).toBe(first);
+  });
+
   it("sends no return address unless asked to", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {
@@ -334,6 +383,7 @@ describe("createCheckout", () => {
       vendor_id: VENDOR,
       amount_cents: 800,
       order_ref: "order-1",
+      expires_at: "2026-10-14T01:45:00.000Z",
     });
   });
 
@@ -357,6 +407,7 @@ describe("createCheckout", () => {
       vendor_id: VENDOR,
       amount_cents: 800,
       order_ref: "order-1",
+      expires_at: "2026-10-14T01:45:00.000Z",
       return_url: "https://qkit.merqo.io/order/b/pay?t=t",
       title: "Kopi Cart",
     });

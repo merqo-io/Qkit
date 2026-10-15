@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ABANDONED_PAYMENT_MS,
   isAbandonedPayment,
+  paymentDeadline,
   isTerminal,
   sortActiveOrders,
   orderAgeTone,
@@ -603,5 +604,30 @@ describe("isAbandonedPayment", () => {
 
   it("uses the same window the sweep cancels on", () => {
     expect(ABANDONED_PAYMENT_MS).toBe(30 * 60_000);
+  });
+});
+
+describe("paymentDeadline", () => {
+  it("is 30 minutes after the order was placed, in UTC with a Z", () => {
+    expect(paymentDeadline("2026-10-14T09:15:00+08:00")).toBe(
+      "2026-10-14T01:45:00.000Z",
+    );
+  });
+
+  it("depends only on created_at, so every call for one order agrees", () => {
+    const placed = "2026-10-14T01:15:00.123456+00:00";
+    expect(paymentDeadline(placed)).toBe(paymentDeadline(placed));
+    expect(paymentDeadline(placed)).toBe("2026-10-14T01:45:00.123Z");
+  });
+
+  it("matches the window isAbandonedPayment refuses after", () => {
+    const placed = "2026-10-14T01:15:00Z";
+    const deadline = Date.parse(paymentDeadline(placed) ?? "");
+    expect(isAbandonedPayment(placed, deadline)).toBe(false);
+    expect(isAbandonedPayment(placed, deadline + 1)).toBe(true);
+  });
+
+  it("is null for a date it cannot read", () => {
+    expect(paymentDeadline("not a date")).toBeNull();
   });
 });

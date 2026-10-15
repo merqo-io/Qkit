@@ -29,6 +29,9 @@ interface MockTransaction {
   // Where the stub pay page sends the customer once they have paid, as the
   // calling kit gave it. Null for a checkout created without one.
   returnUrl: string | null;
+  // When the calling kit gives up on the order. Like paykit, the first value
+  // stored for an order is kept on a replay.
+  expiresAt: string | null;
 }
 
 // Real paykit calls qkit back after a claim or confirm commits (see
@@ -62,6 +65,7 @@ function statusBody(tx: MockTransaction) {
     vendor_id: tx.vendorId,
     claimed_at: tx.claimedAt,
     confirmed_at: tx.confirmedAt,
+    expires_at: tx.expiresAt,
   };
 }
 
@@ -89,6 +93,7 @@ class MockStore {
     vendorId: string,
     amountCents: number,
     returnUrl: string | null,
+    expiresAt: string | null,
   ): MockTransaction {
     let tx = this.byOrderRef.get(orderRef);
     if (!tx) {
@@ -101,6 +106,7 @@ class MockStore {
         claimedAt: null,
         confirmedAt: null,
         returnUrl,
+        expiresAt,
       };
       this.byOrderRef.set(orderRef, tx);
       this.byId.set(tx.id, tx);
@@ -115,6 +121,7 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     vendor_id?: string;
     amount_cents?: number;
     return_url?: string;
+    expires_at?: string | null;
   };
   try {
     parsed = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
@@ -136,6 +143,7 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     parsed.vendor_id,
     parsed.amount_cents ?? 0,
     parsed.return_url ?? null,
+    parsed.expires_at ?? null,
   );
   // PayNow QR payload — any non-empty string satisfies the client's schema;
   // content isn't asserted on by the e2e specs.
@@ -144,6 +152,7 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     transaction_id: tx.id,
     status: tx.status,
     payload: `MOCKPAYNOW:${tx.id}`,
+    expires_at: tx.expiresAt,
     ...(tx.returnUrl
       ? { pay_url: `${PAYKIT_MOCK_URL}/pay/${tx.id}?k=mock` }
       : {}),

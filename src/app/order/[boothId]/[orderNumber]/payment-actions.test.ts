@@ -222,6 +222,8 @@ describe("loadPreClaimContext", () => {
   });
 
   it("asks paykit for a pay page that returns here and answers its address", async () => {
+    const placed = new Date(Date.now() - 5 * 60_000).toISOString();
+    ordersMaybeSingle.mockResolvedValue(pendingOrder({ created_at: placed }));
     createCheckoutMock.mockResolvedValueOnce(
       checkoutAnswer("pending", "https://paykit.example/pay/tx-1?k=abc"),
     );
@@ -238,10 +240,33 @@ describe("loadPreClaimContext", () => {
       vendorId: "vendor-1",
       amountCents: 550,
       orderRef: "order-1",
+      expiresAt: new Date(Date.parse(placed) + 30 * 60_000).toISOString(),
       returnUrl: RETURN_URL,
       title: "Kopi Cart",
     });
     expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("gives paykit the same expiry on a later reload, taken from created_at", async () => {
+    const placed = "2026-10-14T01:15:00.000Z";
+    ordersMaybeSingle.mockResolvedValue(pendingOrder({ created_at: placed }));
+    createCheckoutMock.mockResolvedValue(
+      checkoutAnswer("pending", "https://paykit.example/pay/tx-1?k=abc"),
+    );
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-14T01:16:00Z"));
+      await loadPreClaimContext(BOOTH, TOKEN, ORIGIN);
+      vi.setSystemTime(new Date("2026-10-14T01:40:00Z"));
+      await loadPreClaimContext(BOOTH, TOKEN, ORIGIN);
+    } finally {
+      vi.useRealTimers();
+    }
+    const sent = createCheckoutMock.mock.calls.map((c) => c[0].expiresAt);
+    expect(sent).toEqual([
+      "2026-10-14T01:45:00.000Z",
+      "2026-10-14T01:45:00.000Z",
+    ]);
   });
 
   it("cuts a long booth name to what paykit allows as a title", async () => {

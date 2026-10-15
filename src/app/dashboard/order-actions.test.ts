@@ -763,6 +763,7 @@ describe("confirmOrderPayment", () => {
         status: "ready",
         payment_status: "pending",
         total_cents: 800,
+        created_at: "2026-10-14T01:15:00.000Z",
       },
     });
     getCheckoutByOrderRefMock.mockResolvedValue({
@@ -775,6 +776,7 @@ describe("confirmOrderPayment", () => {
       vendorId: "v1",
       amountCents: 800,
       orderRef: ID,
+      expiresAt: "2026-10-14T01:45:00.000Z",
     });
     expect(confirmCheckoutMock).toHaveBeenCalledWith("tx1");
   });
