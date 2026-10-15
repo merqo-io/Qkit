@@ -27,6 +27,8 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
   only restores fulfillment status, preserving payment. `confirmOrderPayment`
   logs a local mirror failure but reports Paykit's confirmation as successful;
   reliable reconciliation after that failure remains outstanding.
+  `declinePaymentClaim` sends a claimed payment back to unpaid through Paykit's
+  unclaim, then mirrors `pending`; it never reverts a confirmed payment.
   Cancellation rejects confirmed payments and manually closed orders, while
   allowing unpaid auto-completed orders. `bumpOrder` changes queue priority;
   ready/abandoned sweeps affect only eligible orders in the vendor's RLS scope.
