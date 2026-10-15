@@ -15,7 +15,9 @@ const {
   evidenceMock,
   legacyUrlMock,
   legacyDuplicateMock,
+  vendorFacingMock,
 } = vi.hoisted(() => ({
+  vendorFacingMock: vi.fn(),
   getUserMock: vi.fn(),
   orderRow: vi.fn(),
   boothRow: vi.fn(),
@@ -34,6 +36,9 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/paykit/client", () => ({
   getCheckoutByOrderRef: lookupMock,
   getCheckoutEvidence: evidenceMock,
+}));
+vi.mock("@/lib/daily-order-number", () => ({
+  vendorFacingOrderNumber: vendorFacingMock,
 }));
 vi.mock("./proof-actions", () => ({
   getProofPhotoUrl: legacyUrlMock,
@@ -96,6 +101,11 @@ beforeEach(() => {
     data: { transactionId: "tx1", vendorId: VENDOR, status: "claimed" },
   });
   evidenceMock.mockReset().mockResolvedValue(evidence());
+  vendorFacingMock
+    .mockReset()
+    .mockImplementation((_c, _v, _b, orderNumber: string) =>
+      Promise.resolve(orderNumber),
+    );
   legacyUrlMock.mockReset().mockResolvedValue("https://legacy.example/signed");
   legacyDuplicateMock.mockReset().mockResolvedValue(null);
 });
@@ -227,7 +237,7 @@ describe("getOrderPaymentProof: from paykit", () => {
         data:
           id === ORDER
             ? { id: ORDER, booth_id: BOOTH, payment_proof_path: null }
-            : { order_number: "0031" },
+            : { order_number: "0031", booth_id: BOOTH },
       }),
     );
     const result = await getOrderPaymentProof(ORDER);
@@ -237,9 +247,35 @@ describe("getOrderPaymentProof: from paykit", () => {
     });
     expect(readStep).toHaveBeenCalledWith(
       "orders",
-      "order_number",
+      "order_number, booth_id",
       "id",
       OTHER_ORDER,
+    );
+  });
+
+  it("names the other order by the number the board shows, not the permanent one", async () => {
+    evidenceMock.mockResolvedValue(
+      evidence({ duplicateOf: { orderRef: OTHER_ORDER, kitSlug: "qkit" } }),
+    );
+    orderRow.mockImplementation((id: string) =>
+      Promise.resolve({
+        data:
+          id === ORDER
+            ? { id: ORDER, booth_id: BOOTH, payment_proof_path: null }
+            : { order_number: "0024", booth_id: BOOTH },
+      }),
+    );
+    vendorFacingMock.mockResolvedValue("001");
+    const result = await getOrderPaymentProof(ORDER);
+    expect(result).toMatchObject({
+      duplicateOrderNumber: "001",
+      duplicateElsewhere: false,
+    });
+    expect(vendorFacingMock).toHaveBeenCalledWith(
+      expect.anything(),
+      VENDOR,
+      BOOTH,
+      "0024",
     );
   });
 

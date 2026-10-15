@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 import { uuidSchema } from "@/lib/schemas";
+import { vendorFacingOrderNumber } from "@/lib/daily-order-number";
 import {
   getCheckoutByOrderRef,
   getCheckoutEvidence,
@@ -11,7 +12,8 @@ import { getProofPhotoUrl, findDuplicateProofOrder } from "./proof-actions";
 export type OrderPaymentProof = {
   /** A link to the screenshot that expires after 300 seconds, or null. */
   url: string | null;
-  /** The number of another of this vendor's orders that used the same file. */
+  /** The number the board shows for another of this vendor's orders that
+   *  used the same file (the daily rank when daily numbering is on). */
   duplicateOrderNumber: string | null;
   /** The same file was used for a payment this board cannot name. */
   duplicateElsewhere: boolean;
@@ -49,6 +51,7 @@ async function legacyProof(orderId: string): Promise<OrderPaymentProof> {
  */
 async function resolveDuplicate(
   supabase: SessionClient,
+  vendorId: string,
   duplicate: { orderRef: string; kitSlug: string } | null,
 ): Promise<
   Pick<OrderPaymentProof, "duplicateOrderNumber" | "duplicateElsewhere">
@@ -61,12 +64,17 @@ async function resolveDuplicate(
   ) {
     const { data: other } = await supabase
       .from("orders")
-      .select("order_number")
+      .select("order_number, booth_id")
       .eq("id", duplicate.orderRef)
       .maybeSingle();
     if (other?.order_number)
       return {
-        duplicateOrderNumber: other.order_number,
+        duplicateOrderNumber: await vendorFacingOrderNumber(
+          supabase,
+          vendorId,
+          other.booth_id,
+          other.order_number,
+        ),
         duplicateElsewhere: false,
       };
   }
@@ -141,6 +149,6 @@ export async function getOrderPaymentProof(
   return {
     url: evidence.data.proofUrl,
     amountMatch: evidence.data.amountMatch,
-    ...(await resolveDuplicate(supabase, evidence.data.duplicateOf)),
+    ...(await resolveDuplicate(supabase, user.id, evidence.data.duplicateOf)),
   };
 }
