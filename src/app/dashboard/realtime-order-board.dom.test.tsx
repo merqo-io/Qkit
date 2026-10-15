@@ -1526,3 +1526,33 @@ describe("RealtimeOrderBoard payment filter", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("RealtimeOrderBoard booth colours", () => {
+  // "a" and "i" landed on the same hue under the old id hash.
+  const TWO_BOOTHS = [
+    { id: "a", name: "Kopi Corner", is_active: true, open: true },
+    { id: "i", name: "Teh Stand", is_active: true, open: true },
+  ];
+
+  it("gives each booth's tickets a different dot, labelled with the booth", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={TWO_BOOTHS}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", booth_id: "a" }),
+          order({ id: "o2", order_number: "0002", booth_id: "i" }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    const kopi = screen.getByTitle(
+      "Kopi Corner's colour, the same on its tickets and in the booth filter",
+    );
+    const teh = screen.getByTitle(
+      "Teh Stand's colour, the same on its tickets and in the booth filter",
+    );
+    expect(kopi.style.backgroundColor).not.toBe("");
+    expect(kopi.style.backgroundColor).not.toBe(teh.style.backgroundColor);
+  });
+});

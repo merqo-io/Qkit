@@ -44,7 +44,7 @@ import {
   sortActiveOrders,
   type AgeSortOrder,
 } from "@/lib/orders";
-import { boothColor } from "@/lib/booth/color";
+import { boothColors, boothDotTitle } from "@/lib/booth/color";
 import { fireNewOrderNotification, playSound } from "@/lib/order-alerts";
 import { toggleBoothActive } from "./booths/actions";
 import { sweepReadyOrders, sweepAbandonedPayments } from "./order-actions";
@@ -143,6 +143,9 @@ export function RealtimeOrderBoard({
   const router = useRouter();
   const boothIds = booths.map((b) => b.id);
   const boothName = new Map(booths.map((b) => [b.id, b.name]));
+  // By place in the full booth list (oldest first), not the filtered one, so
+  // a booth keeps its colour whatever the filter shows.
+  const boothColor = boothColors(booths.map((b) => b.id));
   const [filter, setFilter] = useState<BoothFilter>("all");
   const [sortOrder, setSortOrder] = useState<AgeSortOrder>("earliest");
   const [phoneSection, setPhoneSection] = useState<PhoneSection>("incoming");
@@ -447,6 +450,7 @@ export function RealtimeOrderBoard({
         overtaken={overtaken.has(order.id)}
         optionCodes={optionCodes[order.booth_id]}
         boothName={multiBooth ? boothName.get(order.booth_id) : undefined}
+        boothColor={boothColor.get(order.booth_id)}
         agingMin={boardSettings.aging_min}
         overdueMin={boardSettings.overdue_min}
         undoMs={boardSettings.undo_seconds * 1000}
@@ -621,6 +625,7 @@ export function RealtimeOrderBoard({
         <div className="mb-6 max-w-sm">
           <BoothRow
             b={soleBooth}
+            color={boothColor.get(soleBooth.id)}
             showDot={false}
             active={boothIsActive(soleBooth)}
             onToggle={(checked) => setBoothActive(soleBooth, checked)}
@@ -635,6 +640,8 @@ export function RealtimeOrderBoard({
             <DialogDescription>
               Pause a booth to stop new orders landing without closing it for
               the day. Handy for clearing a rush-hour backlog. Resume anytime.
+              Each booth&apos;s coloured dot also marks its tickets and its
+              place in the booth filter.
             </DialogDescription>
           </DialogHeader>
           {/* Deliberately keyed on the full `booths` list, not visibleBooths,
@@ -648,6 +655,7 @@ export function RealtimeOrderBoard({
               <BoothRow
                 key={b.id}
                 b={b}
+                color={boothColor.get(b.id)}
                 showDot
                 active={boothIsActive(b)}
                 onToggle={(checked) => setBoothActive(b, checked)}
@@ -687,7 +695,8 @@ export function RealtimeOrderBoard({
                 <SelectItem key={b.id} value={b.id}>
                   <span
                     className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: boothColor(b.id) }}
+                    style={{ backgroundColor: boothColor.get(b.id) }}
+                    title={boothDotTitle(b.name)}
                   />
                   <span className="truncate">
                     {b.name} ({activeCountFor(b.id)}){!b.open && " · closed"}

@@ -24,7 +24,7 @@ import { OrderStatusBadge } from "@/components/board/order-status-badge";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
 import { cn, formatPrice, orderHasPricing } from "@/lib/utils";
-import { boothColor } from "@/lib/booth/color";
+import { boothDotTitle } from "@/lib/booth/color";
 import {
   ADVANCE,
   ageLabel,
@@ -235,6 +235,7 @@ function OrderCardInner({
   overtaken = false,
   optionCodes,
   boothName,
+  boothColor,
   agingMin,
   overdueMin,
   onUndoWindowChange,
@@ -259,6 +260,9 @@ function OrderCardInner({
   // @/lib/ticket). A choice with no code prints in full, so this is optional.
   optionCodes?: OptionCodes;
   boothName?: string;
+  // The booth's dot colour, from the board's boothColors(), so it matches the
+  // dot in the booth filter.
+  boothColor?: string;
   // Vendor-configurable board_settings thresholds (see /dashboard/settings).
   // Fall through to orderAgeTone's own defaults when not supplied.
   agingMin?: number;
@@ -572,14 +576,15 @@ function OrderCardInner({
           </label>
         )}
         <div className="min-w-0 flex-1">
-          {/* Only in multi-booth view. Same boothColor() hash as the board's
+          {/* Only in multi-booth view. Same boothColors() colour as the board's
               filter, so the colour still carries onto the ticket, but as one
               quiet line: the number below is what gets called out. */}
           {boothName && (
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               <span
                 className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: boothColor(order.booth_id) }}
+                style={{ backgroundColor: boothColor }}
+                title={boothDotTitle(boothName)}
                 aria-hidden="true"
               />
               <span className="truncate">{boothName}</span>
