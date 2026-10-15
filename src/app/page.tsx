@@ -371,6 +371,7 @@ export default async function LandingPage() {
               <LandingCta
                 href={primaryHref}
                 event={user ? undefined : "landing_cta"}
+                className="h-12 rounded-xl px-7 text-base font-semibold"
               >
                 {primaryLabel}
               </LandingCta>
