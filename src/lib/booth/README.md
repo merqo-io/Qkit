@@ -16,10 +16,12 @@ per-booth colours and image paths.
 - `code.test.ts` — tests URL encoding of the order path.
 - `code.ts` — `orderPath(code)`: builds the `/o/{code}` customer entry
   URL from a booth's short code.
-- `color.test.ts` — tests hash stability/distribution.
-- `color.ts` — `boothColor(boothId)`: deterministic hash into an 8-color
-  oklch palette (`BOOTH_COLORS`) so a booth's accent dot is stable without a DB
-  column.
+- `color.test.ts` — tests that eight booths get eight colours, that colours
+  follow list position and survive a newer booth being added.
+- `color.ts` — `boothColors(boothIds)`: a map from each booth id to the next
+  colour of an 8-colour oklch palette (`BOOTH_COLORS`) by its place in the
+  vendor's booth list (oldest first), so up to eight booths never share a dot
+  and no DB column is needed. `boothDotTitle(name)` is the dot's hover title.
 - `images.test.ts` — tests path extraction, orphan-path diffing, and the
   unsaved-upload selection (grace boundary, referenced objects kept, folders
   and bad timestamps skipped).

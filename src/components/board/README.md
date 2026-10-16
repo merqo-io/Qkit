@@ -18,7 +18,7 @@ completed-orders history.
 - `order-card-parts.tsx` — the pieces `OrderCard` is assembled from, moved
   out of `order-card.tsx` unchanged: `TicketMenu` (the "more" menu),
   `TicketItems`, `TicketActions` (the action row and its Undo), the
-  proof-photo trigger and the `PendingUndo` type.
+  proof review modal (`ProofReview`) and the `PendingUndo` type.
 - `order-card.tsx` — `OrderCard`, the vendor's order ticket, laid out for
   reading at a counter: the number (largest, last digit in the accent colour)
   and the customer's name, one line of always-visible options per item (the
@@ -123,11 +123,14 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   mode is on) renders a `Checkbox` (`selected`, `onToggleSelect(order.id)`)
   next to the name/number block — selection state and the bulk `advanceOrder`
   call itself live on `RealtimeOrderBoard`, not here. A non-cancelled order
-  with `payment_status === "claimed"` and an uploaded proof photo also shows
-  a dashed "View payment proof" toggle (`ProofPhotoTrigger`, local to this
-  file) that lazily mounts `PaymentProofViewer` (`./payment-proof-viewer.tsx`,
-  `next/dynamic`) only once expanded, so the OCR worker never loads for a
-  card the vendor hasn't opened.
+  with `payment_status === "claimed"` also shows a dashed "View payment
+  proof" button (`ProofReview`, local to `order-card-parts.tsx`) that opens a
+  modal holding `PaymentProofViewer` (`./payment-proof-viewer.tsx`,
+  `next/dynamic`), so the ticket never grows. The modal has Accept (confirm
+  payment, and start the order when it is still pending) and Decline
+  (`declinePaymentClaim`: the claim goes back to unpaid so the customer can
+  pay again). A live ticket's status badge sits bottom-right of its bottom
+  strip, opposite the waiting time; "Preparing" goes unsaid.
 - `order-status-badge.tsx` — `OrderStatusBadge({ status })`: a colour-coded
   pill for each `OrderStatus` (pending/confirmed/preparing/ready/completed/
   cancelled), shared by the dashboard board and the customer status page.
@@ -144,7 +147,7 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   is mocked.
 - `payment-proof-viewer.tsx` — `PaymentProofViewer({ orderId,
 expectedAmountCents })`: `"use client"`, dynamically imported
-  (`order-card-parts.tsx`'s `ProofPhotoTrigger`) so it loads only for a card
+  (`order-card-parts.tsx`'s `ProofReview`) so it loads only for a card
   the vendor opens. On mount it makes one call, `getOrderPaymentProof`
   (`@/app/dashboard/payment-evidence-actions`), which answers from paykit, or
   from qkit's own bucket for an order claimed before screenshots moved.

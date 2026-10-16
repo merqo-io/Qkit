@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -991,10 +991,8 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /^select$/i }));
-    // With nothing ticked the stand-in button is the one that applies here.
-    expect(
-      screen.getByRole("button", { name: "Mark 0 Picked Up" }),
-    ).toBeDisabled();
+    // With nothing ticked the bar asks for a pick, not "Mark 0".
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
     expect(
       screen.queryByRole("button", { name: /mark \d+ ready/i }),
     ).not.toBeInTheDocument();
@@ -1075,9 +1073,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       { wrapper: TooltipProvider },
     );
     await user.click(screen.getByRole("button", { name: /^select$/i }));
-    expect(
-      screen.getByRole("button", { name: "Mark 0 Picked Up" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
 
     await user.click(screen.getByText("Mei Ling"));
     expect(
@@ -1105,9 +1101,10 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await user.click(screen.getByRole("button", { name: "Select all" }));
     await user.click(screen.getByRole("button", { name: "Clear all" }));
 
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /mark 0 ready/i }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: /mark \d+/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Select all" }),
     ).toBeInTheDocument();
@@ -1194,24 +1191,136 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     },
   );
 
-  it("has no separate mark-all button on the board", () => {
+  it("floats the selection bar over the board instead of pushing it down", async () => {
+    const user = userEvent.setup();
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
         initialOrders={[
-          order({ id: "o1", order_number: "0001", status: "preparing" }),
-          order({ id: "o2", order_number: "0002", status: "preparing" }),
+          order({ id: "o1", order_number: "0001", status: "ready" }),
         ]}
         boardSettings={DEFAULT_BOARD_SETTINGS}
       />,
       { wrapper: TooltipProvider },
     );
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+
+    const bar = screen.getByRole("toolbar", { name: "Selected orders" });
+    expect(bar).toHaveClass("fixed", "bottom-0");
+    expect(bar.className).toMatch(/safe-area-inset-bottom/);
     expect(
-      screen.queryByRole("button", { name: "Mark all ready" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "About Select" }),
+      within(bar).getByRole("button", { name: "Cancel" }),
     ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole("button", { name: "Select all" }),
+    ).toBeInTheDocument();
+    // Select mode is on, so its own button is gone from the header.
+    expect(
+      screen.queryByRole("button", { name: /^select$/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(within(bar).getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.queryByRole("toolbar", { name: "Selected orders" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("RealtimeOrderBoard Accepted header", () => {
+  function renderBoard(orders: BoardOrder[]) {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={orders}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+  }
+  const acceptedHeader = () =>
+    screen.getByRole("heading", { name: /^Accepted \(\d+\)$/ })
+      .parentElement as HTMLElement;
+
+  it("puts Select in the Accepted header, the only section it acts on", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+    ]);
+    expect(
+      within(acceptedHeader()).getByRole("button", { name: /^select$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(acceptedHeader()).getByRole("button", { name: "About Select" }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks every preparing order ready in one tap and can undo it", async () => {
+    vi.mocked(revertOrderAdvance).mockResolvedValue({
+      success: true,
+      status: "preparing",
+    });
+    const user = userEvent.setup();
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+      order({ id: "o3", order_number: "0003", status: "ready" }),
+    ]);
+
+    await user.click(
+      within(acceptedHeader()).getByRole("button", {
+        name: "Mark all 2 ready",
+      }),
+    );
+
+    await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
+    expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
+    expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
+    const batchToast = vi
+      .mocked(toast.success)
+      .mock.calls.find(([message]) => message === "Marked 2 orders ready");
+    const options = batchToast?.[1] as {
+      action: { label: string; onClick: () => Promise<void> };
+    };
+    expect(options.action.label).toBe("Undo");
+    await options.action.onClick();
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o1",
+      "preparing",
+      "ready",
+      "not_required",
+    );
+  });
+
+  it("is not offered for a single preparing order, which has its own button", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "ready" }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: /^mark all/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("never offers a bulk pick-up outside Select: customers collect one at a time", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "ready" }),
+      order({ id: "o2", order_number: "0002", status: "ready" }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: /^mark (all )?\d+ picked up/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("steps aside while Select is on", async () => {
+    const user = userEvent.setup();
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+    ]);
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+    expect(
+      screen.queryByRole("button", { name: "Mark all 2 ready" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -1242,7 +1351,7 @@ describe("RealtimeOrderBoard incoming/accepted split", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows no section headers when every order is already accepted", () => {
+  it("keeps the Accepted header when every order is accepted, since Select lives there", () => {
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
@@ -1253,7 +1362,9 @@ describe("RealtimeOrderBoard incoming/accepted split", () => {
     );
 
     expect(screen.queryByText(/^Incoming/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Accepted/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Accepted (1)" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -1413,5 +1524,35 @@ describe("RealtimeOrderBoard payment filter", () => {
     expect(
       screen.getByText(byOrderNumber(/#0001/), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
+  });
+});
+
+describe("RealtimeOrderBoard booth colours", () => {
+  // "a" and "i" landed on the same hue under the old id hash.
+  const TWO_BOOTHS = [
+    { id: "a", name: "Kopi Corner", is_active: true, open: true },
+    { id: "i", name: "Teh Stand", is_active: true, open: true },
+  ];
+
+  it("gives each booth's tickets a different dot, labelled with the booth", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={TWO_BOOTHS}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", booth_id: "a" }),
+          order({ id: "o2", order_number: "0002", booth_id: "i" }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    const kopi = screen.getByTitle(
+      "Kopi Corner's colour, the same on its tickets and in the booth filter",
+    );
+    const teh = screen.getByTitle(
+      "Teh Stand's colour, the same on its tickets and in the booth filter",
+    );
+    expect(kopi.style.backgroundColor).not.toBe("");
+    expect(kopi.style.backgroundColor).not.toBe(teh.style.backgroundColor);
   });
 });

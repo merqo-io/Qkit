@@ -75,7 +75,7 @@ describe("OrderStatusPoller", () => {
     expect(getOrderStatus).toHaveBeenCalledWith("b1", "0007", "tok");
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(
-      screen.getByText("Show order #7 at the counter to collect it."),
+      screen.getByText("Come to the counter to collect it."),
     ).toBeInTheDocument();
   });
 
@@ -255,7 +255,7 @@ describe("OrderStatusPoller — payment sent, stall still checking it", () => {
     await waitFor(() =>
       expect(
         screen.getByText(
-          "Show order #7 at the counter. The stall will check your payment there.",
+          "Come to the counter. The stall will check your payment there.",
         ),
       ).toBeInTheDocument(),
     );

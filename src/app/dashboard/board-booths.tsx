@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { boothColor } from "@/lib/booth/color";
+import { boothDotTitle } from "@/lib/booth/color";
 import { cn } from "@/lib/utils";
 
 export type BoothView = {
@@ -117,11 +117,14 @@ function CupCount({ cap, used }: { cap?: number | null; used?: number }) {
 // button would be a border around a border for no reason.
 export function BoothRow({
   b,
+  color,
   showDot,
   active,
   onToggle,
 }: {
   b: BoothView;
+  // From the board's boothColors(), so it matches the tickets and the filter.
+  color?: string;
   showDot: boolean;
   active: boolean;
   onToggle: (checked: boolean) => void;
@@ -131,7 +134,8 @@ export function BoothRow({
       {showDot && (
         <span
           className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: boothColor(b.id) }}
+          style={{ backgroundColor: color }}
+          title={boothDotTitle(b.name)}
         />
       )}
       <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
