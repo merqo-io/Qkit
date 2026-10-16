@@ -150,10 +150,12 @@ function OrderLines({
   items,
   priced,
   totalCents,
+  payAtCounter,
 }: {
   items: ReturnType<typeof parseOrderItems>;
   priced: boolean;
   totalCents: number;
+  payAtCounter: boolean;
 }) {
   return (
     <section className="space-y-1.5 px-6 py-5">
@@ -186,6 +188,11 @@ function OrderLines({
           <span>Total</span>
           <span className="font-mono">{formatPrice(totalCents)}</span>
         </div>
+      )}
+      {payAtCounter && (
+        <p className="pt-1 text-sm text-muted-foreground">
+          Pay at the counter when you collect.
+        </p>
       )}
     </section>
   );
@@ -368,6 +375,10 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   // isTerminal: a completed order still shows PayPanel's "confirmed" state).
   const showPay =
     order.payment_status !== "not_required" && order.status !== "cancelled";
+  // A priced order at a booth that takes no payment through qkit: the stall
+  // collects in person, and nothing else on the page says so.
+  const payAtCounter =
+    order.payment_status === "not_required" && order.total_cents > 0 && !past;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col px-5 py-10">
@@ -462,6 +473,7 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
           items={items}
           priced={priced}
           totalCents={order.total_cents}
+          payAtCounter={payAtCounter}
         />
 
         {pickupUrl && (

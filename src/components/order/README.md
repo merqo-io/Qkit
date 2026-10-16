@@ -56,6 +56,9 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   (cross-kit customer identity, migration `0075`), never required to
   submit, passed through `placeOrder`'s `customerPhone` input. Between the
   fields and the submit button the sheet renders `@merqo/ui`'s
+  `DataCollectionNotice`. Under the sheet's Total, a `paysInPerson` prop (the
+  booth takes no payment through qkit) adds "Pay at the counter when you
+  collect." for a basket that costs anything. Before that notice comes
   `DataCollectionNotice` ("We use your name, and your phone number if you give one, to identify your
   order and send you order updates. See our Privacy Policy.", linking to
   `/legal/privacy`), the PDPA notification at the point of collection. Display
