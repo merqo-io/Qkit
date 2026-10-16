@@ -12,6 +12,7 @@ import {
   Wallet,
   Share2,
   Printer,
+  ScanLine,
   ClipboardList,
   ArrowRight,
   Gauge,
@@ -577,8 +578,8 @@ export function BoothForm({
           <Section
             icon={<Printer className="size-5" />}
             eyebrow="At your counter"
-            title="Printing & pickup"
-            description="Optional. Auto-printed order labels, and a kiosk where customers mark their own pickup."
+            title="Printing"
+            description="Optional. Auto-printed order labels."
           >
             <PrintingSection
               value={printEnabled}
@@ -586,6 +587,14 @@ export function BoothForm({
               boothId={initial?.boothId}
               savedEnabled={initial?.print_enabled ?? false}
             />
+          </Section>
+
+          <Section
+            icon={<ScanLine className="size-5" />}
+            eyebrow="At your counter"
+            title="Pickup"
+            description="Optional. A kiosk where customers mark their own pickup."
+          >
             <SettingRow
               label="Self-checkout pickup"
               hint="A ready order's status page shows a QR. The customer scans it at this booth's pickup kiosk and the order is marked picked up, without staff tapping it."
