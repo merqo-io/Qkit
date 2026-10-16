@@ -109,7 +109,10 @@ the current (non-legacy) customer ordering entry point.
   resolves booth-override-vs-vendor-default, migration `0053`), and
   `OrderForm`. Also parses `menu_categories` (migration `0066`, previously
   fetched by the RPC but dropped by this page's own Zod schema) via
-  `parseMenuCategories` and passes it through to `OrderForm`. The outer
+  `parseMenuCategories` and passes it through to `OrderForm`.
+  `loadPaysInPerson` reads the booth's `booths.payment` marker server-side
+  (the public RPC does not expose it) through `@/lib/payment-marker`, and
+  passes `paysInPerson` to `OrderForm`; any failure answers false. The outer
   container widens to `md:max-w-2xl` (2026-09-15) so `OrderForm`'s
   two-pane sidebar layout has room beside the item list on tablet/desktop;
   the header/hero-image/closed-banner block stays wrapped in its own

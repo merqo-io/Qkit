@@ -1,10 +1,16 @@
 "use client";
 
+import type { ReactElement } from "react";
 import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
 import { Copy, Pencil, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Ticket } from "@/components/widgets/ticket";
 import { CustomerScreenButton } from "../customer-screen-dialog";
 
@@ -30,6 +36,23 @@ function boothStatus(booth: Pick<BoothRow, "paused" | "is_active">) {
     return { label: "Over plan limit", className: "text-status-aging" };
   if (booth.is_active) return { label: "Open", className: "text-status-ready" };
   return { label: "Paused", className: "text-muted-foreground" };
+}
+
+// Names an icon-only button on hover, since the icon alone does not say what it
+// does.
+function IconTip({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function BoothList({ booths }: { booths: BoothRow[] }) {
@@ -97,31 +120,36 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
                     <Pencil className="size-3.5" /> Edit
                   </Link>
                 </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="rounded-lg"
-                  aria-label="Booth QR code"
-                >
-                  <Link href={`/dashboard/booths/${booth.id}/qr`}>
-                    <QrCode className="size-3.5" />
-                  </Link>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-lg"
-                  onClick={() => copyLink(booth.shortCode)}
-                  aria-label="Copy order link"
-                >
-                  <Copy className="size-3.5" />
-                </Button>
+                <IconTip label="Booth QR code">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="rounded-lg"
+                    aria-label="Booth QR code"
+                  >
+                    <Link href={`/dashboard/booths/${booth.id}/qr`}>
+                      <QrCode className="size-3.5" />
+                    </Link>
+                  </Button>
+                </IconTip>
+                <IconTip label="Copy order link">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-lg"
+                    onClick={() => copyLink(booth.shortCode)}
+                    aria-label="Copy order link"
+                  >
+                    <Copy className="size-3.5" />
+                  </Button>
+                </IconTip>
                 {/* The board header's own button and dialog, so the two
                     open the customer screen the same way. */}
                 <CustomerScreenButton
                   booths={[{ id: booth.id, name: booth.name }]}
                   size="sm"
+                  iconOnly
                 />
               </div>
             </div>

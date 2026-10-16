@@ -101,7 +101,9 @@ surfaces a loyalty "earn a stamp" link once the order completes.
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.
-- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). `resolveStaleView`
+- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). A priced,
+  live order with `payment_status = not_required` (the booth takes no payment
+  through qkit) shows "Pay at the counter when you collect." under its total. `resolveStaleView`
   (wrapping `isStaleOrderView` in `@/lib/orders`, kept out of the component body
   because reading the clock during render trips `react-hooks/purity`) flags a
   view of an order placed more than `STALE_ORDER_VIEW_HOURS` ago: a repeat

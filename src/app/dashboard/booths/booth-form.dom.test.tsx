@@ -714,10 +714,13 @@ describe("BoothForm layout", () => {
 describe("BoothForm self-checkout pickup", () => {
   const SWITCH = "Self-checkout pickup";
 
-  it("sits with printing at the counter and starts off for a new booth", async () => {
+  it("has its own Pickup card and starts off for a new booth", async () => {
     const user = userEvent.setup();
     renderNewBooth();
-    const counter = sectionTitled("Printing & pickup");
+    const counter = sectionTitled("Pickup");
+    expect(
+      within(sectionTitled("Printing")).queryByRole("switch", { name: SWITCH }),
+    ).not.toBeInTheDocument();
     const toggle = within(counter).getByRole("switch", { name: SWITCH });
     expect(toggle).not.toBeChecked();
 

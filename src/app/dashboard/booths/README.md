@@ -9,8 +9,9 @@ free-plan total-booth cap under concurrent writes.
 
 - `page.tsx` lists booths; `booth-list.tsx` supplies edit, QR, copy-link and
   a per-booth "Customer screen" button, the board header's own
-  `CustomerScreenButton` (`../customer-screen-dialog.tsx`), so both open the
-  queue display the same way.
+  `CustomerScreenButton` (`../customer-screen-dialog.tsx`, `iconOnly` here), so
+  both open the queue display the same way. The card's icon-only buttons name
+  themselves in a hover tooltip.
 - `new/page.tsx` renders `BoothForm` after the plan gate. `?mode=event`
   seeds walk-up mode for a new booth.
 - `[boothId]/page.tsx` loads an owned booth, what the vendor has on file in
@@ -25,8 +26,8 @@ free-plan total-booth cap under concurrent writes.
 booking and social link editors. Each setting is a `SettingRow`
 (`setting-row.tsx`): a short label with a tap-to-open hint on the left, its
 control in one right-hand column. Order flow holds arrival hold and walk-up
-default; Limits holds the daily item limit and the per-order limit; "Printing &
-pickup" holds printing and the booth's own self-checkout pickup switch
+default; Limits holds the daily item limit and the per-order limit; Printing
+holds printkit printing; Pickup holds the booth's own self-checkout pickup switch
 (`booths.pickup_scan_enabled`, migration 0104, which gates the pickup QR on the
 order-status page). It saves booth metadata through `saveBooth`; a successful new
 booth proceeds to menu setup, whose first save proceeds to the QR poster.

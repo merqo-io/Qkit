@@ -164,6 +164,46 @@ describe("OrderStatusPage — TelegramConnect gating", () => {
   );
 });
 
+describe("OrderStatusPage — paying in person", () => {
+  const NOTE = "Pay at the counter when you collect.";
+
+  async function renderPriced(paymentStatus: string, status: OrderStatus) {
+    maybeSingle.mockResolvedValue({
+      data: {
+        ...makeOrder(status),
+        payment_status: paymentStatus,
+        total_cents: 350,
+      },
+      error: null,
+    });
+    const jsx = await OrderStatusPage({
+      params: Promise.resolve({ boothId: BOOTH_ID, orderNumber: ORDER_NUMBER }),
+      searchParams: Promise.resolve({ t: TOKEN }),
+    });
+    return render(jsx);
+  }
+
+  it("tells the customer to pay at the counter for a priced order the booth takes no payment for", async () => {
+    await renderPriced("not_required", "preparing");
+    expect(screen.getByText(NOTE)).toBeInTheDocument();
+  });
+
+  it("says nothing on a free order", async () => {
+    await renderPage("preparing");
+    expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+  });
+
+  it("says nothing once the order is collected", async () => {
+    await renderPriced("not_required", "completed");
+    expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+  });
+
+  it("says nothing when the order was paid through qkit", async () => {
+    await renderPriced("confirmed", "preparing");
+    expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+  });
+});
+
 describe("OrderStatusPage — reopened older order", () => {
   // A repeat customer's browser restores an earlier visit's status URL, which
   // otherwise renders as a live order: a big number the stall is not calling,

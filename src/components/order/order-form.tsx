@@ -70,6 +70,9 @@ interface Props {
   left?: number | null;
   // Most items one order may carry; null = the booth sets no limit.
   maxPerOrder?: number | null;
+  // The booth takes no payment through qkit, so a priced basket is paid in
+  // person and the sheet says so.
+  paysInPerson?: boolean;
 }
 
 // Below this many items left, the menu says how many. Above it the number is
@@ -145,6 +148,7 @@ export function OrderForm({
   remaining = {},
   left = null,
   maxPerOrder = null,
+  paysInPerson = false,
 }: Props) {
   const router = useRouter();
   const {
@@ -786,6 +790,11 @@ export function OrderForm({
                       {formatPrice(total)}
                     </span>
                   </div>
+                  {paysInPerson && total > 0 && (
+                    <p className="shrink-0 px-4 pb-2.5 text-sm text-muted-foreground">
+                      Pay at the counter when you collect.
+                    </p>
+                  )}
                 </>
               )}
             </>

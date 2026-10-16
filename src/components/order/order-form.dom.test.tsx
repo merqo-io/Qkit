@@ -243,6 +243,50 @@ describe("OrderForm cart", () => {
     expect(within(dialog).getByLabelText("Your name")).not.toHaveFocus();
   });
 
+  it.each([
+    [true, true],
+    [false, false],
+  ])(
+    "says to pay at the counter in the sheet when the booth takes no payment (%s)",
+    async (paysInPerson, shown) => {
+      const user = userEvent.setup();
+      render(
+        <OrderForm
+          code="code123"
+          boothId="b1"
+          menuItems={[KOPI]}
+          paysInPerson={paysInPerson}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Add" }));
+      await user.click(screen.getByRole("button", { name: /Continue/ }));
+      const dialog = await screen.findByRole("dialog");
+      const note = within(dialog).queryByText(
+        "Pay at the counter when you collect.",
+      );
+      if (shown) expect(note).toBeInTheDocument();
+      else expect(note).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not ask for payment at the counter on a free basket", async () => {
+    const user = userEvent.setup();
+    render(
+      <OrderForm
+        code="code123"
+        boothId="b1"
+        menuItems={[{ ...KOPI, price_cents: undefined }]}
+        paysInPerson
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByText("Pay at the counter when you collect."),
+    ).not.toBeInTheDocument();
+  });
+
   it("lists what's being ordered inside the checkout sheet", async () => {
     const user = userEvent.setup();
     renderForm();
