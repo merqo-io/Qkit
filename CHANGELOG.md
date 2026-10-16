@@ -30,6 +30,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- With Select on, a phone could not scroll the last ticket clear of the floating selection bar when the bar wrapped to two rows; the board now leaves room for both rows.
 - TV customer screen (`/order/{boothId}/display`): a number marked picked up, by staff tapping "Mark Picked Up" or by the customer's own pickup scan, now leaves the screen at once. The 10-minute grace period now applies only to an order the ready auto-clear timer cleared, read from the existing `orders.auto_completed` column. No migration.
 - TV customer screen: the Ready column is sorted by `ready_at`, most recently readied first, and a number keeps its place as it ages. The 5-minute fresh highlight is now only a visual cue; it no longer pulls a tile to the front, so tiles no longer jump back once they stop being fresh. The ready cap hides the longest-ready numbers first. Preparing keeps its order.
 
