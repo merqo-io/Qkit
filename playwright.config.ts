@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import {
+  E2E_BASE_URL,
+  E2E_PORT,
   PAYKIT_MOCK_CALLBACK_SECRET,
   PAYKIT_MOCK_SECRET,
   PAYKIT_MOCK_URL,
@@ -22,7 +24,7 @@ export default defineConfig({
   // run has an uploadable artifact (see .github/workflows/ci.yml).
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: E2E_BASE_URL,
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
@@ -34,8 +36,8 @@ export default defineConfig({
   // need this to reach the "payment sent" / rendered-booth states.
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
+    command: `pnpm dev --port ${E2E_PORT}`,
+    url: E2E_BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {

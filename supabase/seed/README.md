@@ -26,13 +26,23 @@ vendors with existing booths and never delete their orders.
   configure Paykit's vendor payment record; a working checkout also needs the
   separate local Paykit setup. `print_enabled = true` represents an opted-in
   booth, but payment-required QR orders still start `pending` under `0087`.
-  The current customer smoke covers checkout, claim and initial tracking;
-  it does not simulate vendor fulfillment. Kopi/Teh's milk-style choices
+  `e2e/customer-order.spec.ts` covers checkout, claim and initial tracking;
+  `e2e/vendor-fulfillment.spec.ts` carries the order on through the board
+  (start, ready, picked up) as this booth's vendor. Kopi/Teh's milk-style choices
   demonstrate the price/cost-delta and allergen tagging
   features (2026-07-18): "C"/"Normal" are tagged `dairy`, an added "Oat Milk"
   choice carries `price_delta_cents:100`/`cost_delta_cents:40`; Milo is
   tagged `dairy`/`soy` at the item level (no milk-style group to vary it —
   the fixed-ingredient half of the allergen model).
+- `e2e-merqo-stub.sql` — local/CI only: the slice of merqo's schema the
+  vendor dashboard reads on every render (`merqo.vendor_profile` and
+  `merqo.get_or_create_vendor_profile`, copied from merqo migrations 0009 and
+  0033). qkit's own migrations never create the `merqo` schema, so without
+  this `/dashboard` errors on a local stack. It also adds `merqo` to
+  PostgREST's exposed schemas through the in-database `pgrst.db_schemas`
+  setting on the `authenticator` role, leaving `config.toml` alone. Idempotent.
+  Needed by `e2e/vendor-fulfillment.spec.ts`; never run it against a hosted
+  project, where merqo's real migrations own the schema.
 - `coffee-cart-prod.sql` — the same Kopitiam Cart booth, parameterized for a
   hosted (production) Supabase project: the operator replaces
   `__VENDOR_ID__` with their own auth-user UID and runs it in the Supabase
@@ -64,8 +74,10 @@ after `supabase/migrations/` has been applied — e.g.
 `ci-auth-bootstrap.sql` runs first in CI (before `coffee-cart.sql`) since the
 latter's booth insert has a FK dependency on the vendor it creates. The
 `coffee-cart.sql` seed's "Kopitiam Cart" booth and its `e2eKopitiam01` short
-code are a hard dependency of `e2e/customer-order.spec.ts` (see the root
-`AGENTS.md` E2E instructions). The `/seed/*.svg` banner images referenced by
+code are a hard dependency of `e2e/customer-order.spec.ts`,
+`e2e/order-code.spec.ts` and `e2e/vendor-fulfillment.spec.ts`; the last also
+needs `e2e-merqo-stub.sql`, which CI applies third (see the root `AGENTS.md`
+E2E instructions). The `/seed/*.svg` banner images referenced by
 these scripts ship with the app under `public/`, so they resolve without any
 upload step, including on a deployed prod site.
 
