@@ -419,8 +419,9 @@ export default async function LandingPage() {
         </p>
       </section>
 
-      {/* How it works */}
-      <section id="how" className="mx-auto max-w-5xl px-5 py-14">
+      {/* How it works. scroll-mt-20 clears the sticky nav (about 69px) so
+          "See how" does not land the heading under it. */}
+      <section id="how" className="mx-auto max-w-5xl scroll-mt-20 px-5 py-14">
         <h2 className="font-display mb-10 text-center text-3xl font-semibold">
           Up and running in three steps
         </h2>
