@@ -24,7 +24,9 @@ notice.
   display number the same way `../[orderNumber]/page.tsx`'s
   `resolveHeadingNumber` does (one extra query for the booth's first order
   of the SGT day, only when `board_settings.daily_order_number_reset` is
-  on), and sorts with the same priority-bump-then-oldest-first rule as
+  on). The Ready group comes first, sorted by `ready_at`, most recently
+  readied first, so a number keeps its place as it ages. Preparing follows,
+  sorted with the same priority-bump-then-oldest-first rule as
   `sortActiveOrders` (`@/lib/orders`), reimplemented locally against this
   query's narrower row shape rather than imported. Returns `null` (not `[]`)
   on a real read failure, so the poller can tell "booth has no active
@@ -32,7 +34,9 @@ notice.
   either way.
 - `actions.test.ts` — unit tests (mocked Supabase chains) for the booth-
   not-found/booth-read-error/orders-read-error null returns, the
-  priority-bump sort, and the daily-reset display-number computation.
+  priority-bump sort, the ready-time sort of the Ready group, the
+  least-privilege column list, the auto-clear-only grace window, and the
+  daily-reset display-number computation.
 - `page.tsx` — `BoothQueueDisplayPage` (route entry, `revalidate=0`):
   validates `boothId` as a UUID (`notFound()` otherwise, same as
   `../page.tsx`), confirms the booth exists (service client — anon can't
@@ -87,10 +91,11 @@ notice.
   (`order-status-poller.tsx`'s `status === "ready"` block) — layered on
   top of, not instead of, the freshness fill. Preparing tiles stay a
   quiet, uncolored card throughout — the Ready/Preparing contrast is the
-  entire point, so only Ready ever carries color. A still-fresh order
-  also sorts to the front of the Ready grid (ahead of the cap-visibility
-  logic below), landing in the same first/most-noticeable slot a physical
-  "now serving" board gives its latest number. Sound is opt-in and
+  entire point, so only Ready ever carries color. Freshness never
+  reorders the grid: tiles render in the server's order (most recently
+  readied first), so the newest number already sits in the first slot and
+  stays in order as it ages instead of jumping back once it stops being
+  fresh. Sound is opt-in and
   separate from the visual cue on purpose: `playReadyChime`
   (`@/lib/order-alerts`) uses the Web Audio API, which browsers keep
   suspended until a user gesture unlocks it — a TV tab nobody touches
@@ -107,12 +112,10 @@ notice.
   also caps how many tiles it ever renders
   (`MAX_VISIBLE_PREPARING`/`MAX_VISIBLE_READY`, fixed numbers tuned for a
   landscape screen rather than measured against the real viewport) and
-  shows a "+N more" line for whatever's hidden past the cap, dropping the
-  newest orders first (the ones a customer's been waiting on longest stay
-  visible). A still-fresh order is never one of the hidden ones, even
-  past the cap — freshness is the entire point of this screen, so it
-  always gets a guaranteed slot ahead of older, already-aged ready orders
-  competing for the same limited space.
+  shows a "+N more" line for whatever's hidden past the cap. Preparing
+  drops the newest orders first (the ones a customer's been waiting on
+  longest stay visible); Ready drops the longest-ready, so a just-called
+  number is never one of the hidden ones.
 
 - `queue-display.dom.test.tsx` — RTL tests for the Preparing/Ready
   grouping, each group's own empty state, that a poll updates the
@@ -123,8 +126,7 @@ notice.
   effect, a transient poll failure (`getBoothQueueDisplay` returning
   `null`) keeping the last good state instead of clearing the screen,
   each column's own render cap plus its "+N more" line, and that a
-  still-fresh order still renders even when the ready count is already
-  past the cap.
+  fresh tile keeps its server position rather than moving to the front.
 
 ## Connectivity
 
@@ -135,8 +137,10 @@ reachable from anything in the customer order flow, and carries no token.
 service-client-bypasses-RLS pattern `../[orderNumber]/status-actions.ts`
 uses, just without a per-order secret gating it.
 
-A collected order keeps its place on the screen for `COLLECTED_GRACE_MS` (10
-minutes), still shown as ready. `board_settings.ready_auto_clear_min` marks an
+An auto-cleared order (`auto_completed`, set only by the ready auto-clear
+sweep) keeps its place on the screen for `COLLECTED_GRACE_MS` (10 minutes),
+still shown as ready. One marked picked up, by staff or by the customer's own
+pickup scan, leaves the screen at once: the customer has it. `board_settings.ready_auto_clear_min` marks an
 order collected whether or not anyone picked it up, so dropping it the moment
 it goes terminal could blank a number while the cup was still on the shelf, and
 a customer who was not watching their phone at that moment had nothing left to

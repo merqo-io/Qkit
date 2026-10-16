@@ -115,15 +115,10 @@ export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
     return at === undefined || nowMs === null ? Infinity : nowMs - at;
   }
 
-  // A still-fresh order must never be capped out — freshness is the entire
-  // point of this screen. Give every fresh order a guaranteed slot, then
-  // fill the rest of the cap from the normal sorted order.
-  const freshReady = ready.filter((o) => ageMs(o.orderNumber) < FRESH_MS);
-  const agedReady = ready.filter((o) => ageMs(o.orderNumber) >= FRESH_MS);
-  const visibleReady = [...freshReady, ...agedReady].slice(
-    0,
-    MAX_VISIBLE_READY,
-  );
+  // Server order, most recently readied first (./actions.ts), so the cap
+  // only ever drops the oldest. Freshness is a look, never a reorder: a tile
+  // pulled forward while fresh would jump back once it aged.
+  const visibleReady = ready.slice(0, MAX_VISIBLE_READY);
   const hiddenReadyCount = ready.length - visibleReady.length;
 
   return (

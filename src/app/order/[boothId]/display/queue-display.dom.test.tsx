@@ -160,23 +160,55 @@ describe("QueueDisplay", () => {
     expect(section).toHaveTextContent("+2 more ready");
   });
 
-  it("never caps out a currently-flashing tile, even past the ready limit", async () => {
-    const stale = Array.from({ length: 8 }, (_, i) => ({
-      orderNumber: `stale-${i}`,
-      displayNumber: String(i + 101).padStart(3, "0"),
-      status: "ready" as const,
-    }));
+  it("keeps ready tiles in the order the server sends, a fresh one is not pulled forward", async () => {
+    // The server already sorts the Ready group most-recently-readied first;
+    // freshness is a visual cue only, so a tile never jumps to the front and
+    // later drops back.
+    const aged: QueueDisplayOrder = {
+      orderNumber: "0009",
+      displayNumber: "009",
+      status: "ready",
+    };
     getBoothQueueDisplay.mockResolvedValue([
-      ...stale,
+      aged,
       { ...PREPARING, status: "ready" },
     ]);
-    renderDisplay(stale);
+    renderDisplay([aged, PREPARING]);
 
-    await waitFor(() => {
-      const section = screen.getByText("Ready for pickup").closest("section")!;
+    const section = screen.getByText("Ready for pickup").closest("section")!;
+    await waitFor(() =>
       expect(
         within(section).getByText(byOrderNumber("001"), READY_TILE_OPTS),
-      ).toHaveClass("fade-rise");
-    });
+      ).toHaveClass("bg-primary"),
+    );
+    const tiles = [...section.querySelectorAll('[class*="size-32"]')].map(
+      (t) => t.textContent,
+    );
+    expect(tiles).toEqual(["009", "001"]);
+  });
+
+  it("caps the ready column from the front of the server order and counts the rest", () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({
+      orderNumber: String(i + 1).padStart(4, "0"),
+      displayNumber: String(i + 1).padStart(3, "0"),
+      status: "ready" as const,
+    }));
+    renderDisplay(many);
+
+    const section = screen.getByText("Ready for pickup").closest("section")!;
+    const tiles = [...section.querySelectorAll('[class*="size-32"]')].map(
+      (t) => t.textContent,
+    );
+    expect(tiles).toEqual([
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+    ]);
+    expect(section).toHaveTextContent("+3 more ready");
   });
 });
