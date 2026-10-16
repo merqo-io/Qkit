@@ -33,6 +33,17 @@ vi.mock("./status-actions", () => ({
 }));
 vi.mock("@/lib/order-alerts", () => alerts);
 
+const { subscribeToPush, savePushSubscription } = vi.hoisted(() => ({
+  subscribeToPush: vi.fn(),
+  savePushSubscription: vi.fn(),
+}));
+vi.mock("@/lib/push/client", () => ({ subscribeToPush }));
+vi.mock("./push-actions", () => ({ savePushSubscription }));
+const PUSH_SUB = {
+  endpoint: "https://fcm.googleapis.com/fcm/send/abc",
+  keys: { p256dh: "p", auth: "a" },
+};
+
 function renderPoller(
   initialStatus: OrderStatus = "preparing",
   awaitingPayment = false,
@@ -62,6 +73,8 @@ beforeEach(() => {
   alerts.notifyPermission.mockReturnValue("default");
   getWaitEstimate.mockResolvedValue({ seconds: null, ordersAhead: 0 });
   confirmArrival.mockResolvedValue({ success: true });
+  subscribeToPush.mockResolvedValue(PUSH_SUB);
+  savePushSubscription.mockResolvedValue({ success: true });
 });
 
 describe("OrderStatusPoller", () => {
@@ -391,5 +404,97 @@ describe("OrderStatusPoller: lost connection", () => {
 
     await vi.advanceTimersByTimeAsync(5200);
     expect(await screen.findByText(/no connection/i)).toBeInTheDocument();
+  });
+});
+
+describe("OrderStatusPoller: web push", () => {
+  it("subscribes and saves push after the customer allows notifications", async () => {
+    getOrderStatus.mockResolvedValue("preparing");
+    const user = userEvent.setup();
+    renderPoller("preparing");
+
+    await user.click(
+      await screen.findByRole("button", { name: /Alert me when it's ready/ }),
+    );
+
+    await waitFor(() =>
+      expect(savePushSubscription).toHaveBeenCalledWith(
+        "b1",
+        "0007",
+        "tok",
+        PUSH_SUB,
+      ),
+    );
+  });
+
+  it("does not subscribe when the customer declines notifications", async () => {
+    getOrderStatus.mockResolvedValue("preparing");
+    alerts.requestNotifyPermission.mockResolvedValueOnce("denied");
+    const user = userEvent.setup();
+    renderPoller("preparing");
+
+    await user.click(
+      await screen.findByRole("button", { name: /Alert me when it's ready/ }),
+    );
+
+    await waitFor(() => expect(alerts.playReadyChime).toHaveBeenCalled());
+    expect(subscribeToPush).not.toHaveBeenCalled();
+    expect(savePushSubscription).not.toHaveBeenCalled();
+  });
+
+  it("subscribes on load when permission was granted on an earlier visit", async () => {
+    alerts.notifyPermission.mockReturnValue("granted");
+    getOrderStatus.mockResolvedValue("preparing");
+    renderPoller("preparing");
+
+    await waitFor(() =>
+      expect(savePushSubscription).toHaveBeenCalledWith(
+        "b1",
+        "0007",
+        "tok",
+        PUSH_SUB,
+      ),
+    );
+  });
+
+  it("does not subscribe on load once the order is ready", async () => {
+    alerts.notifyPermission.mockReturnValue("granted");
+    getOrderStatus.mockResolvedValue("ready");
+    renderPoller("ready");
+
+    await screen.findByText("It's ready");
+    expect(subscribeToPush).not.toHaveBeenCalled();
+  });
+
+  it("saves nothing where push is unavailable, and the opt-in still arms", async () => {
+    subscribeToPush.mockResolvedValue(null);
+    getOrderStatus.mockResolvedValue("preparing");
+    const user = userEvent.setup();
+    renderPoller("preparing");
+
+    await user.click(
+      await screen.findByRole("button", { name: /Alert me when it's ready/ }),
+    );
+
+    expect(
+      await screen.findByText(/We'll alert you the moment it's ready/),
+    ).toBeInTheDocument();
+    expect(subscribeToPush).toHaveBeenCalled();
+    expect(savePushSubscription).not.toHaveBeenCalled();
+  });
+
+  it("keeps the opt-in working when saving the subscription fails", async () => {
+    savePushSubscription.mockRejectedValue(new Error("offline"));
+    getOrderStatus.mockResolvedValue("preparing");
+    const user = userEvent.setup();
+    renderPoller("preparing");
+
+    await user.click(
+      await screen.findByRole("button", { name: /Alert me when it's ready/ }),
+    );
+
+    expect(
+      await screen.findByText(/We'll alert you the moment it's ready/),
+    ).toBeInTheDocument();
   });
 });

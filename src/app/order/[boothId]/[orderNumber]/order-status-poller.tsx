@@ -25,6 +25,8 @@ import {
   unlockAudio,
 } from "@/lib/order-alerts";
 import { noteDisplayNumber } from "@/lib/recent-orders";
+import { subscribeToPush } from "@/lib/push/client";
+import { savePushSubscription } from "./push-actions";
 import {
   getOrderStatus,
   getWaitEstimate,
@@ -285,6 +287,24 @@ export function OrderStatusPoller({
     const id = setInterval(() => setNowMs(Date.now()), 30_000);
     return () => clearInterval(id);
   }, [status]);
+
+  // Web push reaches the customer with the phone locked, where the poll and
+  // the page's own popup cannot. Best-effort and silent: without it the page
+  // still chimes and pops up while open.
+  const enablePush = useCallback(async () => {
+    try {
+      const sub = await subscribeToPush();
+      if (sub) await savePushSubscription(boothId, orderNumber, token, sub);
+    } catch {
+      // Push is an extra; the opt-in has already armed the page's own alerts.
+    }
+  }, [boothId, orderNumber, token]);
+
+  // Permission granted on an earlier visit hides the opt-in, so subscribe here.
+  const waitingForReady = status !== "ready" && !isTerminal(status);
+  useEffect(() => {
+    if (permission === "granted" && waitingForReady) void enablePush();
+  }, [permission, waitingForReady, enablePush]);
 
   async function onEnableAlerts() {
     setRequesting(true);

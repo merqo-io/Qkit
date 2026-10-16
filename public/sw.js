@@ -1,7 +1,9 @@
 // Minimal service worker for qkit. It does NOT cache anything (no offline /
 // stale-asset risk) — its only jobs are to (a) control open pages so the order
 // page can call registration.showNotification (the only notification form
-// Android Chrome allows), and (b) focus/open the order on notification click.
+// Android Chrome allows), (b) show the server's "order ready" web push while
+// the page is suspended (src/lib/push/send.ts), and (c) focus/open the order
+// on notification click.
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -11,6 +13,30 @@ self.addEventListener("activate", (event) => {
   // Claim already-open tabs so navigator.serviceWorker.controller is set without
   // a reload — fireReadyNotification gates on that.
   event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("push", (event) => {
+  let payload;
+  try {
+    payload = event.data ? event.data.json() : null;
+  } catch {
+    return;
+  }
+  if (
+    !payload ||
+    typeof payload.title !== "string" ||
+    typeof payload.body !== "string"
+  ) {
+    return;
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      // Same tag as the page's own popup, so an open tab shows one, not two.
+      tag: typeof payload.tag === "string" ? payload.tag : undefined,
+      data: { url: typeof payload.url === "string" ? payload.url : "/" },
+    }),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

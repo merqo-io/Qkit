@@ -703,6 +703,53 @@ export interface Database {
           },
         ];
       };
+      // Service-role only (migration 0105): no anon/authenticated grant.
+      order_push_subscriptions: {
+        Row: {
+          id: string;
+          order_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          title: string;
+          body: string;
+          url: string;
+          tag: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          title: string;
+          body: string;
+          url: string;
+          tag: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          title?: string;
+          body?: string;
+          url?: string;
+          tag?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_push_subscriptions_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

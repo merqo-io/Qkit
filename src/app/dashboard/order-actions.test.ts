@@ -117,6 +117,18 @@ vi.mock("@/lib/merqo/customer-notify", () => ({
   notifyCustomer: notifyCustomerMock,
 }));
 
+const { sendOrderReadyPushMock, afterMock } = vi.hoisted(() => ({
+  sendOrderReadyPushMock: vi.fn(),
+  // Runs the deferred callback at once; a test may queue it instead.
+  afterMock: vi.fn((task: () => unknown) => {
+    void task();
+  }),
+}));
+vi.mock("@/lib/push/send", () => ({
+  sendOrderReadyPush: sendOrderReadyPushMock,
+}));
+vi.mock("next/server", () => ({ after: afterMock }));
+
 const { recordAuditMock, recordOrderStatusEventMock } = vi.hoisted(() => ({
   recordAuditMock: vi.fn(),
   recordOrderStatusEventMock: vi.fn(),
@@ -188,6 +200,8 @@ beforeEach(() => {
     },
   });
   notifyCustomerMock.mockReset().mockResolvedValue(undefined);
+  sendOrderReadyPushMock.mockReset().mockResolvedValue(undefined);
+  afterMock.mockClear();
 });
 
 describe("advanceOrder", () => {
@@ -261,6 +275,60 @@ describe("advanceOrder", () => {
       `qkit:${ID}`,
       "Your order is ready for pickup!",
     );
+  });
+
+  it("sends the web push after responding when advancing to ready", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    await advanceOrder(ID);
+    expect(afterMock).toHaveBeenCalledTimes(1);
+    expect(sendOrderReadyPushMock).toHaveBeenCalledWith(ID);
+  });
+
+  it("does not wait for the web push before returning", async () => {
+    let deferred: (() => unknown) | null = null;
+    afterMock.mockImplementationOnce((task: () => unknown) => {
+      deferred = task;
+    });
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({ success: true, status: "ready" });
+    expect(sendOrderReadyPushMock).not.toHaveBeenCalled();
+    expect(deferred).not.toBeNull();
+  });
+
+  it("still returns success when scheduling the web push throws", async () => {
+    afterMock.mockImplementationOnce(() => {
+      throw new Error("no request scope");
+    });
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({ success: true, status: "ready" });
+    expect(notifyCustomerMock).toHaveBeenCalled();
+  });
+
+  it("sends the web push even when the vendor turned off the Telegram ping", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    vendorSingle.mockResolvedValue({
+      data: { board_settings: { customer_telegram_notify_enabled: false } },
+    });
+    await advanceOrder(ID);
+    expect(sendOrderReadyPushMock).toHaveBeenCalledWith(ID);
+  });
+
+  it("does not send the web push for other transitions", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "ready", payment_status: "claimed" },
+    });
+    await advanceOrder(ID);
+    expect(sendOrderReadyPushMock).not.toHaveBeenCalled();
   });
 
   it("still returns success when notifyCustomer rejects", async () => {
