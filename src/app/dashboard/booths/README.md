@@ -43,8 +43,9 @@ write paths for menu columns; a booth-metadata save does not overwrite them.
 Item and category writes are separate operations, so callers handle partial
 success and retain retry availability.
 
-`actions.ts` also exposes `toggleBoothActive`, `regenerateShortCode` and
-`deleteBooth`. Deleting a booth cascades to its orders; the editor requires an
+`actions.ts` also exposes `toggleBoothActive`, `regenerateShortCode`,
+`startNewService` (resets the daily item count through the
+`start_new_service` RPC, migration 0106) and `deleteBooth`. Deleting a booth cascades to its orders; the editor requires an
 explicit confirmation. `CloseBoothControl` uses a confirmation and three-second
 hold to close an existing booth, with a reversible undo; reopening is immediate.
 

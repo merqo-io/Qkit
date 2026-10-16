@@ -410,6 +410,9 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       { wrapper: TooltipProvider },
     );
     expect(screen.getByText("132/200 items")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /start a new service for/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows nothing for a booth with no cap", () => {
@@ -422,6 +425,9 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       { wrapper: TooltipProvider },
     );
     expect(screen.queryByText(/\d items$/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /start a new service for/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("warns inside the last tenth of the cap, so staff can tell the queue", () => {

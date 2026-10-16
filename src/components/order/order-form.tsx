@@ -91,9 +91,7 @@ function StockNotice({
   if (left > 0)
     return (
       <div className="rounded-xl border border-status-aging/40 bg-status-aging/10 px-4 py-3 text-center">
-        <p className="text-sm font-semibold">
-          Only {count(left, "item")} left today
-        </p>
+        <p className="text-sm font-semibold">Only {count(left, "item")} left</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {leftHeld > 0
             ? "Other baskets also contain these items. Stock is checked when you order."

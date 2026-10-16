@@ -155,7 +155,7 @@ describe("addBlockMessage", () => {
       "This stall takes up to 1 item per order.",
     );
     expect(addBlockMessage({ kind: "booth_left", left: 2 })).toBe(
-      "This stall has only 2 items left today.",
+      "This stall has only 2 items left.",
     );
   });
 

@@ -657,6 +657,18 @@ describe("BoothForm daily cup cap", () => {
       />,
     );
     expect(screen.getByLabelText(CAP_LABEL)).toHaveValue(200);
+    expect(
+      within(sectionTitled("Limits")).getByRole("button", {
+        name: "Start new service",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no new service for a booth with no saved limit", () => {
+    renderNewBooth(ENTITLEMENT_WITH_CAPS);
+    expect(
+      screen.queryByRole("button", { name: "Start new service" }),
+    ).not.toBeInTheDocument();
   });
 });
 
