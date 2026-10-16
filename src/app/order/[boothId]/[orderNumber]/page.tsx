@@ -17,7 +17,6 @@ import {
   EYEBROW_CLASS,
 } from "@/lib/utils";
 import {
-  boardSettingsSchema,
   orderBoothIdSchema,
   orderNumberSchema,
   orderTokenSchema,
@@ -25,9 +24,9 @@ import {
   parseSocialLinks,
   resolveSocialLinks,
 } from "@/lib/schemas";
-import { displayOrderNumber, isStaleOrderView, isTerminal } from "@/lib/orders";
+import { isStaleOrderView, isTerminal } from "@/lib/orders";
+import { resolveOrderDisplay } from "@/lib/order-display";
 import { shortDateTime } from "@/lib/tz";
-import { firstOrderNumberToday } from "@/lib/daily-order-number";
 import { FeedbackForm } from "@/components/widgets/feedback-form";
 import { ReorderButton } from "@/components/order/reorder-button";
 import { OrderStatusPoller } from "./order-status-poller";
@@ -241,41 +240,6 @@ async function loadVendorProfile(
  */
 function resolveStaleView(createdAt: string): boolean {
   return isStaleOrderView(createdAt, Date.now());
-}
-
-/**
- * board_settings-derived heading number: the daily-reset number (see
- * displayOrderNumber in @/lib/orders) when the vendor turned that on.
- * Decorative, so any failure here degrades to the real order_number rather
- * than breaking the page — same philosophy as loadVendorProfile above.
- */
-async function resolveOrderDisplay(
-  supabase: Awaited<ReturnType<typeof createServiceClient>>,
-  boothId: string,
-  vendorId: string,
-  orderNumber: string,
-): Promise<string> {
-  try {
-    const { data: vendorRow } = await supabase
-      .from("vendors")
-      .select("board_settings")
-      .eq("id", vendorId)
-      .maybeSingle();
-    const settings = boardSettingsSchema.safeParse(vendorRow?.board_settings);
-    if (!settings.success || !settings.data.daily_order_number_reset)
-      return orderNumber;
-
-    const firstToday = await firstOrderNumberToday(supabase, boothId);
-    return firstToday
-      ? displayOrderNumber(orderNumber, firstToday)
-      : orderNumber;
-  } catch (err) {
-    console.error(
-      "order-status: daily display-number read failed",
-      err instanceof Error ? err.message : err,
-    );
-    return orderNumber;
-  }
 }
 
 async function resolveOrigin(): Promise<string> {
