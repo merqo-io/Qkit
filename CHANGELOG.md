@@ -42,6 +42,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Board: on a phone the floating "?" tour replay button no longer covers the selection bar's right-hand action ("Pick orders", "Mark N Ready", "Mark N Picked Up"). It is hidden while the bar is open and comes back on Cancel. A `body:has([data-selection-bar])` rule in `globals.css`; the bar carries the new `data-selection-bar` attribute.
 - Board: an Incoming ticket was 4px taller than an Accepted one with the same content. The "Waiting for you" pill made its footer 44px against the timer-only 40px. The footer row is now a fixed `h-10` with no vertical padding, so both are 40px. The pill stays bottom-right.
 - Landing page: "See how" scrolled the "Up and running in three steps" heading under the sticky nav. The `#how` section now has `scroll-mt-20`.
 - With Select on, a phone could not scroll the last ticket clear of the floating selection bar when the bar wrapped to two rows; the board now leaves room for both rows.
