@@ -319,8 +319,28 @@ describe("PrintingSection", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("shows no link while printing is off", async () => {
-    const fetchMock = respondsWith(ONLINE);
+  it("links to printkit itself, not the booth's printer page, while printing is off", async () => {
+    respondsWith(ONLINE);
+    render(
+      <PrintingSection
+        savedEnabled
+        value={false}
+        onChange={vi.fn()}
+        boothId="booth-42"
+      />,
+    );
+
+    const link = await screen.findByRole("link", { name: "Open printkit →" });
+    expect(link).toHaveAttribute("href", "https://printkit.test/");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(
+      screen.queryByRole("link", { name: /this booth's printer/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows no link while printing is off and printkit names no page", async () => {
+    const fetchMock = respondsWith({ reachable: true, printer: null });
     render(
       <PrintingSection
         savedEnabled

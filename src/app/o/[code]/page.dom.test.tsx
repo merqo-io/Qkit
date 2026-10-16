@@ -139,7 +139,7 @@ describe("public QR entry", () => {
   it.each([
     [{ ...booth, is_active: false }, null, "Closed right now"],
     [{ ...booth, servable: false }, null, "Not taking orders"],
-    [{ ...booth, servable: false }, 0, "Sold out for today"],
+    [{ ...booth, servable: false }, 0, "Sold out"],
   ])(
     "prioritizes the precise closure reason",
     async (data, itemsLeft, title) => {
@@ -158,6 +158,7 @@ describe("public QR entry", () => {
         });
       render(await entry());
       expect(screen.getByText(title)).toBeInTheDocument();
+      expect(screen.queryByText(/today|tomorrow/)).not.toBeInTheDocument();
       expect(form).toHaveBeenCalledWith(
         expect.objectContaining({ closed: true }),
       );
@@ -181,7 +182,7 @@ describe("public QR entry", () => {
     expect(form).toHaveBeenCalledWith(
       expect.objectContaining({ left: 3, maxPerOrder: 4, closed: false }),
     );
-    expect(screen.queryByText("Sold out for today")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sold out")).not.toBeInTheDocument();
   });
   it("shows the vendor's image and contact links when paused", async () => {
     rpc

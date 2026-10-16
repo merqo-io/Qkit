@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
-import { Copy, Pencil, QrCode, Tv } from "lucide-react";
+import { Copy, Pencil, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Ticket } from "@/components/widgets/ticket";
+import { CustomerScreenButton } from "../customer-screen-dialog";
 
 interface BoothRow {
   id: string;
@@ -116,22 +117,12 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
                 >
                   <Copy className="size-3.5" />
                 </Button>
-                <Button
-                  asChild
+                {/* The board header's own button and dialog, so the two
+                    open the customer screen the same way. */}
+                <CustomerScreenButton
+                  booths={[{ id: booth.id, name: booth.name }]}
                   size="sm"
-                  variant="outline"
-                  className="rounded-lg"
-                  aria-label="Open the customer queue display"
-                  title="Open the customer queue display. It is a normal web page, so a spare phone or tablet works as the second screen when a monitor will not extend."
-                >
-                  <Link
-                    href={`/order/${booth.id}/display`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Tv className="size-3.5" />
-                  </Link>
-                </Button>
+                />
               </div>
             </div>
           </Ticket>

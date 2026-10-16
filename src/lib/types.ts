@@ -74,9 +74,6 @@ export type BoardSettings = {
   // customer's own consent (merqo's, untouched by this). Default true: the
   // customer already asked for this by connecting.
   customer_telegram_notify_enabled: boolean;
-  // Opt-in for pickup-scan QR checkout flow (self-service pickup validation).
-  // Default false: disabled until explicitly enabled by the vendor.
-  pickup_scan_enabled: boolean;
 };
 
 // Falls back to this until migration 0050 (board_settings column) has been
@@ -94,7 +91,6 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = {
   undo_seconds: 4,
   ready_auto_clear_min: 3,
   customer_telegram_notify_enabled: true,
-  pickup_scan_enabled: false,
 };
 
 export type PaymentStatus =
@@ -525,6 +521,7 @@ export interface Database {
           printkit_location_id: string | null;
           daily_cup_cap: number | null;
           max_items_per_order: number | null;
+          pickup_scan_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -547,6 +544,7 @@ export interface Database {
           printkit_location_id?: string | null;
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
+          pickup_scan_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -569,6 +567,7 @@ export interface Database {
           printkit_location_id?: string | null;
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
+          pickup_scan_enabled?: boolean;
         };
         Relationships: [
           {

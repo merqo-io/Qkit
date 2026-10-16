@@ -363,6 +363,9 @@ export const boothFormSchema = z.object({
   walkup_default: z.boolean().default(false),
   // Per-booth opt-in for printkit label printing. See migration 0082.
   print_enabled: z.boolean().default(false),
+  // Per-booth self-checkout pickup: a ready order's status page shows a QR
+  // for this booth's pickup kiosk. See migration 0104.
+  pickup_scan_enabled: z.boolean().default(false),
   // Vendor-pasted paykit booking id, event-mode booths only. Unvalidated
   // against paykit at write time — just stored. See migration 0083.
   paykit_booking_id: z.string().trim().max(200).nullable().default(null),
@@ -526,7 +529,6 @@ const boardSettingsFields = z.object({
   // postdates the column) keeps notifying exactly as before this shipped —
   // only an explicit `false` (a vendor who finds it off-brand) turns it off.
   customer_telegram_notify_enabled: z.boolean().default(true),
-  pickup_scan_enabled: z.boolean().default(false),
 });
 
 export const boardSettingsSchema = boardSettingsFields.refine(
@@ -541,7 +543,6 @@ export const boardSettingsPatchSchema = boardSettingsFields
   .partial()
   .extend({
     customer_telegram_notify_enabled: z.boolean().optional(),
-    pickup_scan_enabled: z.boolean().optional(),
   })
   .strict()
   .refine(

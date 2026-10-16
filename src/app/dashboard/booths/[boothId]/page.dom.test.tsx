@@ -62,6 +62,18 @@ beforeEach(() => {
   });
 });
 
+describe("booth editor self-checkout pickup", () => {
+  it("hands the booth's own pickup switch to the form", async () => {
+    booth.current = { ...booth.current, pickup_scan_enabled: true };
+    render(await page());
+    expect(form).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initial: expect.objectContaining({ pickup_scan_enabled: true }),
+      }),
+    );
+  });
+});
+
 describe("booth editor data boundary", () => {
   it("requires a vendor before fetching booth or payment configuration", async () => {
     gate.mockRejectedValue(new Error("Denied"));

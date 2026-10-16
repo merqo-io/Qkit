@@ -105,7 +105,7 @@ describe("PaymentSection", () => {
     },
   );
 
-  it("links to paykit's setup page in the same tab, carrying this page as the way back", () => {
+  it("opens paykit's setup page in a new tab, carrying this page as the way back", () => {
     process.env.NEXT_PUBLIC_PAYKIT_URL = "https://paykit.test";
     window.history.replaceState(null, "", "/dashboard/booths/new?mode=event");
     renderSection({ state: "none" });
@@ -120,7 +120,8 @@ describe("PaymentSection", () => {
     expect(href.searchParams.get("return_to")).toBe(
       `${window.location.origin}/dashboard/booths/new?mode=event`,
     );
-    expect(link).not.toHaveAttribute("target");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it.each([

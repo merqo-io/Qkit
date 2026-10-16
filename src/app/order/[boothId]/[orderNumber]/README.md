@@ -155,12 +155,12 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   for payment reconciliation, not display. A "Remember this number for
   pickup" line sits right under the heading, the first of several places
   (see `OrderStatusPoller` above) that re-anchor the order number to fight
-  pickup mixups, per Manfred's first-event AAR. `resolveOrderDisplay` (one
-  vendor `board_settings` read) also yields `pickupScanEnabled`; once
-  `order.status === "ready"` and that flag is on, a `react-qr-code` QR
+  pickup mixups, per Manfred's first-event AAR. The booth read also selects
+  `pickup_scan_enabled` (per booth, migration 0104); once
+  `order.status === "ready"` and that column is on, a `react-qr-code` QR
   encoding this same page's own URL renders after the itemized order
   ("Show this at the pickup counter to collect") — a vendor opts a booth
-  into this via the dashboard settings "Self-checkout pickup" toggle, and a
+  into this via the "Self-checkout pickup" switch on that booth's edit page, and a
   staff kiosk scans it into `../pickup`'s `confirmCollection`. The QR's
   origin comes from the request's own `host`/`x-forwarded-host` header
   (`resolveOrigin`), not an env var — `booth-qr-poster.tsx`'s design doc
@@ -182,8 +182,9 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   `ready`/`completed`/`cancelled`), the `../pay` redirect guard (fires
   only when `payment_status === "pending"`, `next/navigation`'s `redirect`
   mocked the same throw-to-abort way as `notFound`), the pickup QR
-  (renders only when `status === "ready"` AND the mocked vendor row's
-  `board_settings.pickup_scan_enabled` is `true`), and `resolveOrigin`'s
+  (renders only when `status === "ready"` AND the mocked booth row's
+  `pickup_scan_enabled` is `true`; the retired vendor-wide
+  `board_settings` key is ignored), and `resolveOrigin`'s
   host allowlist (`react-qr-code` mocked to expose its `value` prop as a
   `data-value` attribute so a test can assert the exact URL embedded — a
   trusted `host` or `x-forwarded-host` is used verbatim, an untrusted one

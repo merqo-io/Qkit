@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BoothForm } from "./booth-form";
 import type { Entitlement } from "@/lib/plan";
@@ -64,7 +64,7 @@ const ENTITLEMENT: Entitlement = {
   statsRanges: ["24h"],
 };
 
-const TOGGLE_LABEL = "Default to walk-up order entry";
+const TOGGLE_LABEL = "Walk-up entry by default";
 const NO_SETUP = { state: "none" } as const;
 const PAYNOW_SETUP = { state: "paynow", name: "Cart" } as const;
 const BOOTH_ID = "00000000-0000-4000-8000-000000000001";
@@ -472,7 +472,7 @@ describe("BoothForm menu section", () => {
 });
 
 describe("BoothForm per-order item limit", () => {
-  const LIMIT_LABEL = "Most items in one order";
+  const LIMIT_LABEL = "Max items per order";
 
   it("submits null when left blank, meaning no limit", async () => {
     const user = userEvent.setup();
@@ -522,12 +522,8 @@ describe("BoothForm per-order item limit", () => {
         paymentSetup={NO_SETUP}
       />,
     );
-    expect(
-      screen.queryByLabelText("Stop after this many items each day"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Stop after this many items each day"),
-    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Daily item limit")).not.toBeInTheDocument();
+    expect(screen.getByText("Daily item limit")).toBeInTheDocument();
   });
 });
 
@@ -559,7 +555,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
         initial={initial}
       />,
     );
-    expect(screen.getByText(/Set to 200\./)).toBeInTheDocument();
+    expect(screen.getByText("Set to 200")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /save booth/i }));
     expect(saveBooth).toHaveBeenCalledWith(
@@ -580,7 +576,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "Remove limit" }));
-    expect(screen.queryByText(/Set to 200\./)).not.toBeInTheDocument();
+    expect(screen.queryByText("Set to 200")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /save booth/i }));
     expect(saveBooth).toHaveBeenCalledWith(
@@ -591,7 +587,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
 });
 
 describe("BoothForm daily cup cap", () => {
-  const CAP_LABEL = "Stop after this many items each day";
+  const CAP_LABEL = "Daily item limit";
   const ENTITLEMENT_WITH_CAPS: Entitlement = {
     ...ENTITLEMENT,
     stockCaps: true,
@@ -661,5 +657,112 @@ describe("BoothForm daily cup cap", () => {
       />,
     );
     expect(screen.getByLabelText(CAP_LABEL)).toHaveValue(200);
+  });
+});
+
+function renderNewBooth(entitlement: Entitlement = ENTITLEMENT) {
+  return render(
+    <BoothForm
+      vendorId="v1"
+      entitlement={entitlement}
+      vendorSocialLinks={{}}
+      paymentSetup={NO_SETUP}
+    />,
+  );
+}
+
+function sectionTitled(title: string): HTMLElement {
+  const heading = screen.getByRole("heading", { name: title });
+  const section = heading.closest("section");
+  if (!section) throw new Error(`no section around ${title}`);
+  return section;
+}
+
+describe("BoothForm layout", () => {
+  it("puts both item limits in their own Limits card, out of Order flow", () => {
+    renderNewBooth({ ...ENTITLEMENT, stockCaps: true });
+    const limits = sectionTitled("Limits");
+    expect(
+      within(limits).getByLabelText("Daily item limit"),
+    ).toBeInTheDocument();
+    expect(
+      within(limits).getByLabelText("Max items per order"),
+    ).toBeInTheDocument();
+
+    const flow = sectionTitled("Order flow");
+    expect(within(flow).queryByText(/item limit|items per order/i)).toBeNull();
+    expect(
+      within(flow).getByRole("switch", { name: "Hold prep until arrival" }),
+    ).toBeInTheDocument();
+    expect(
+      within(flow).getByRole("switch", { name: TOGGLE_LABEL }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps each row's explanation behind a tap-to-open hint", async () => {
+    const user = userEvent.setup();
+    renderNewBooth();
+    expect(screen.queryByText(/like ice cream/i)).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "About holding prep until arrival" }),
+    );
+    expect(await screen.findByText(/like ice cream/i)).toBeInTheDocument();
+  });
+});
+
+describe("BoothForm self-checkout pickup", () => {
+  const SWITCH = "Self-checkout pickup";
+
+  it("sits with printing at the counter and starts off for a new booth", async () => {
+    const user = userEvent.setup();
+    renderNewBooth();
+    const counter = sectionTitled("Printing & pickup");
+    const toggle = within(counter).getByRole("switch", { name: SWITCH });
+    expect(toggle).not.toBeChecked();
+
+    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+    expect(saveBooth).toHaveBeenCalledWith(
+      expect.objectContaining({ pickup_scan_enabled: false }),
+      [],
+    );
+  });
+
+  it("opens on the booth's saved value and saves a change", async () => {
+    const user = userEvent.setup();
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
+        initial={{
+          boothId: BOOTH_ID,
+          name: "Ice Cream Cart",
+          image_url: null,
+          is_active: true,
+          hours: null,
+          menuItemCount: 0,
+          takes_payment: false,
+          social_links: null,
+          requires_arrival_confirm: false,
+          walkup_default: false,
+          print_enabled: false,
+          pickup_scan_enabled: true,
+          paykit_booking_id: null,
+          daily_cup_cap: null,
+        }}
+      />,
+    );
+    const toggle = screen.getByRole("switch", { name: SWITCH });
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+    expect(saveBooth).toHaveBeenCalledWith(
+      expect.objectContaining({ pickup_scan_enabled: false }),
+      [],
+    );
   });
 });

@@ -7,9 +7,9 @@ customers see while they wait: the amber/red aging thresholds, how long
 staff have to undo a tap, how long an uncollected ready order sits before
 auto-clearing, whether the customer Telegram "order ready" ping is on for
 this vendor, the new-order sound, desktop notifications, whether order
-numbers reset daily, whether a wait-time estimate shows at all, a
-backup prep-time estimate, and whether the order-status page shows a
-pickup QR once an order is `ready` (self-checkout, opt-in). Settings are
+numbers reset daily, whether a wait-time estimate shows at all, and a
+backup prep-time estimate. Self-checkout pickup moved to each booth's edit
+page on 2026-10-16 (`booths.pickup_scan_enabled`, migration 0104). Settings are
 stored on the vendor's own row and
 sync across devices. The "Connect Telegram" section that used to live here
 (a one-time deep-link QR against qkit's own Telegram bot) was retired
@@ -66,18 +66,8 @@ md:grid-cols-2` over all four: a CSS grid's row tracks size to the tallest
   window" (`undo_seconds`, 2-15s, validated live via `boardSettingsSchema`),
   "Auto-clear after" (`ready_auto_clear_min`, 1-60min, blank/empty =
   `null` = the auto-clear sweep is off for that vendor entirely — see
-  `sweepReadyOrders` in `src/app/dashboard/order-actions.ts`), and (2026-08-16,
-  directly below Auto-clear after, same "Save timing" submit) a `Switch`
-  labeled "Notify customers on Telegram when their order is ready" for
-  `customer_telegram_notify_enabled` — defaults checked (`?? true` on read,
-  covering a legacy vendor row whose stored `board_settings` predates this
-  key, same rationale as `boardSettingsSchema`'s own `.default(true)`); this
-  is a vendor-side opt-out layered on the customer's own already-given
-  consent (merqo's connect flow), not a re-ask — see `customerNotifyEnabled`
-  in `src/app/dashboard/order-actions.ts`; directly below it, a `Switch`
-  labeled "Self-checkout pickup" for `pickup_scan_enabled` (default `false`,
-  copied from the customer-notify switch above) — gates the pickup QR on
-  `src/app/order/[boothId]/[orderNumber]/page.tsx`'s order-status page; "New-order
+  `sweepReadyOrders` in `src/app/dashboard/order-actions.ts`); "Save timing"
+  covers only those four fields. "New-order
   sound" is a `ToggleGroup` of `SOUND_OPTIONS` —
   chime/bell/ding/horn/triple/off — that previews via `playSound` on pick and
   saves immediately; "Notifications" is a `Switch` (its extra iOS/Android
@@ -91,7 +81,19 @@ md:grid-cols-2` over all four: a CSS grid's row tracks size to the tallest
     this browser hasn't granted it (e.g. after syncing from another device),
     clicking the switch would just turn it off, so a standalone "Enable in
     this browser" button re-requests permission without touching the account
-    setting. "Customer order screen" has three controls: a `Switch` labeled
+    setting. While that is the case the status beside the switch reads "On,
+    but not on this device" in the warning colour instead of a green "On":
+    the account setting stays on (it syncs to other devices and is never
+    flipped off here), only this device is named as missing out. Below it
+    (moved out of Board timing on 2026-10-16) a `Switch` labeled "Notify
+    customers on Telegram when their order is ready" for
+    `customer_telegram_notify_enabled`, saved the moment it is flipped —
+    defaults checked (`?? true` on read, covering a legacy vendor row whose
+    stored `board_settings` predates this key, same rationale as
+    `boardSettingsSchema`'s own `.default(true)`); this is a vendor-side
+    opt-out layered on the customer's own already-given consent (merqo's
+    connect flow), not a re-ask — see `customerNotifyEnabled` in
+    `src/app/dashboard/order-actions.ts`. "Customer order screen" has three controls: a `Switch` labeled
     "Simple daily order number" for `daily_order_number_reset` (see
     `displayOrderNumber` in `@/lib/orders` — zero-padded to 3 digits, e.g.
     "#003"); a `Switch` labeled "Show wait-time estimate" for
@@ -134,11 +136,12 @@ aging_min` and an out-of-range `undo_seconds` client-side without calling
   not-enough-history naming the
   queue-position fallback, naming the backup number once one's set, and (2026-08-16)
   the customer-notify toggle (renders checked by default and saves
-  `customer_telegram_notify_enabled: false` via "Save timing" once toggled
+  `customer_telegram_notify_enabled: false` the moment it is toggled
   off; still renders checked when `initial` is a legacy `BoardSettings`
   object with the key stripped out entirely, simulating a vendor row stored
-  before this key existed), the pickup-scan toggle (saves
-  `pickup_scan_enabled: true` via "Save timing" once toggled), and the
+  before this key existed, and sits in the Notifications card, not Board
+  timing), the absence of any self-checkout pickup switch (now per booth),
+  the "On, but not on this device" warning state, and the
   live-estimate line once enough history exists) — all with
   `updateBoardSettings`/`sonner`/`order-alerts` mocked.
 
@@ -165,9 +168,7 @@ sound / fires notifications, `daily_order_number_reset` feeds
 (`src/app/order/[boothId]/[orderNumber]/status-actions.ts`), and
 `ready_auto_clear_min` gates the board's 30s `sweepReadyOrders` poll
 (`realtime-order-board.tsx` in `src/app/dashboard`) — `null` (the field left
-blank here) disables the sweep entirely for that vendor, and
-`pickup_scan_enabled` gates whether the order-status page renders the
-pickup QR once `status === "ready"`.
+blank here) disables the sweep entirely for that vendor.
 
 ## Parent
 

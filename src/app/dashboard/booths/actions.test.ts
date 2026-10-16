@@ -181,6 +181,7 @@ function makeBooth(over: Partial<BoothFormInput> = {}): BoothFormInput {
     requires_arrival_confirm: false,
     walkup_default: false,
     print_enabled: false,
+    pickup_scan_enabled: false,
     paykit_booking_id: null,
     daily_cup_cap: null,
     max_items_per_order: null,
@@ -615,6 +616,15 @@ describe("saveBooth — requires_arrival_confirm", () => {
     await saveBooth(makeBooth());
     expect(h.insertSpy).toHaveBeenCalledWith(
       expect.objectContaining({ requires_arrival_confirm: false }),
+    );
+  });
+});
+
+describe("saveBooth — self-checkout pickup", () => {
+  it("persists pickup_scan_enabled on the booth row", async () => {
+    await saveBooth(makeBooth({ pickup_scan_enabled: true }));
+    expect(h.insertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ pickup_scan_enabled: true }),
     );
   });
 });

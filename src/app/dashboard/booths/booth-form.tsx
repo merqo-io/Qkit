@@ -14,6 +14,7 @@ import {
   Printer,
   ClipboardList,
   ArrowRight,
+  Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +52,7 @@ import { PrintingSection } from "./printing-section";
 import { SocialLinksSection } from "./social-links-section";
 import { BookingStatusSection } from "./booking-status-section";
 import { CloseBoothControl } from "./close-booth-control";
+import { SettingRow } from "./setting-row";
 import { saveBooth, deleteBooth } from "./actions";
 import { boothFormSchema } from "@/lib/schemas";
 import type { Entitlement } from "@/lib/plan";
@@ -86,6 +88,7 @@ interface Props {
     requires_arrival_confirm: boolean;
     walkup_default: boolean;
     print_enabled: boolean;
+    pickup_scan_enabled?: boolean;
     paykit_booking_id: string | null;
     daily_cup_cap: number | null;
     max_items_per_order?: number | null;
@@ -106,6 +109,7 @@ function LimitField({
   id,
   label,
   hint,
+  hintLabel,
   max,
   value,
   onChange,
@@ -113,16 +117,13 @@ function LimitField({
   id: string;
   label: string;
   hint: string;
+  hintLabel: string;
   max: number;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
-      <Label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </Label>
-      <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+    <SettingRow label={label} hint={hint} hintLabel={hintLabel} htmlFor={id}>
       <Input
         id={id}
         type="number"
@@ -132,13 +133,16 @@ function LimitField({
         placeholder="No limit"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 max-w-40"
+        className="h-10 w-28 rounded-lg"
       />
-    </div>
+    </SettingRow>
   );
 }
 
-const DAILY_LIMIT_LABEL = "Stop after this many items each day";
+const DAILY_LIMIT_LABEL = "Daily item limit";
+const DAILY_LIMIT_HINT_LABEL = "About the daily item limit";
+const DAILY_LIMIT_HINT =
+  "Ordering stops once the booth sells this many items in a day. Counts every item, so an order of four counts four. Leave blank for no limit. It starts again from zero at midnight, so a booth open the next day is not still sold out.";
 
 // The daily limit on a plan without stock caps. With none set it is an
 // upgrade prompt. With one already set (from a pass that has since ended) it
@@ -152,30 +156,31 @@ function LockedDailyLimit({
 }) {
   if (value === "")
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+      <SettingRow
+        label={DAILY_LIMIT_LABEL}
+        hint={DAILY_LIMIT_HINT}
+        hintLabel={DAILY_LIMIT_HINT_LABEL}
+      >
         <ProLock feature="stock_cap" label="Pro" />
-        <span className="text-sm text-muted-foreground">
-          {DAILY_LIMIT_LABEL}
-        </span>
-      </div>
+      </SettingRow>
     );
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
-      <p className="text-sm font-medium">{DAILY_LIMIT_LABEL}</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Set to {value}. It keeps working until you remove it. Changing it needs
-        an Event pass or Pro.
-      </p>
+    <SettingRow
+      label={DAILY_LIMIT_LABEL}
+      hint="It keeps working until you remove it. Changing it needs an Event pass or Pro."
+      hintLabel={DAILY_LIMIT_HINT_LABEL}
+    >
+      <span className="text-sm text-muted-foreground">Set to {value}</span>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        className="mt-2 rounded-lg"
+        className="rounded-lg"
         onClick={onRemove}
       >
         Remove limit
       </Button>
-    </div>
+    </SettingRow>
   );
 }
 
@@ -224,6 +229,9 @@ export function BoothForm({
   const [printEnabled, setPrintEnabled] = useState(
     initial?.print_enabled ?? false,
   );
+  const [pickupScanEnabled, setPickupScanEnabled] = useState(
+    initial?.pickup_scan_enabled ?? false,
+  );
   const [paykitBookingId, setPaykitBookingId] = useState<string | null>(
     initial?.paykit_booking_id ?? null,
   );
@@ -253,6 +261,7 @@ export function BoothForm({
     requiresArrivalConfirm,
     walkupDefault,
     printEnabled,
+    pickupScanEnabled,
     paykitBookingId,
     dailyCupCap,
     maxItemsPerOrder,
@@ -298,6 +307,7 @@ export function BoothForm({
         requires_arrival_confirm: requiresArrivalConfirm,
         walkup_default: walkupDefault,
         print_enabled: printEnabled,
+        pickup_scan_enabled: pickupScanEnabled,
         paykit_booking_id: paykitBookingId,
         daily_cup_cap: limitOrNull(dailyCupCap),
         max_items_per_order: limitOrNull(maxItemsPerOrder),
@@ -443,53 +453,60 @@ export function BoothForm({
             icon={<ClipboardList className="size-5" />}
             eyebrow="How orders come in"
             title="Order flow"
-            description="Fine-tune arrival timing and walk-up entry."
+            description="Arrival timing and walk-up entry."
           >
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-              <span className="text-sm">
-                <span className="font-medium">
-                  Hold prep until the customer arrives
-                </span>
-                <span className="block text-muted-foreground">
-                  For items made fresh per order, like ice cream. The order
-                  waits until the customer taps &quot;I&apos;m here&quot; on
-                  their status page.
-                </span>
-              </span>
+            <SettingRow
+              label="Hold prep until arrival"
+              hint="For items made fresh per order, like ice cream. The order waits until the customer taps “I'm here” on their status page."
+              hintLabel="About holding prep until arrival"
+            >
               <Switch
                 checked={requiresArrivalConfirm}
                 onCheckedChange={setRequiresArrivalConfirm}
-                aria-label="Hold prep until the customer arrives"
+                aria-label="Hold prep until arrival"
               />
-            </div>
+            </SettingRow>
 
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-              <span className="text-sm">
-                <span className="font-medium">
-                  Default to walk-up order entry
-                  {eventMode && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                      Recommended
-                    </span>
-                  )}
-                </span>
-                <span className="block text-muted-foreground">
-                  Staff enter every order directly. For a one-off event where
-                  guests don&apos;t scan a QR to order themselves.
-                </span>
-              </span>
+            <SettingRow
+              label="Walk-up entry by default"
+              hint="Staff enter every order directly. For a one-off event where guests don't scan a QR to order themselves."
+              hintLabel="About walk-up entry"
+              badge={
+                eventMode && (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
+                    Recommended
+                  </span>
+                )
+              }
+            >
               <Switch
                 checked={walkupDefault}
                 onCheckedChange={setWalkupDefault}
-                aria-label="Default to walk-up order entry"
+                aria-label="Walk-up entry by default"
               />
-            </div>
+            </SettingRow>
 
+            {walkupDefault && (
+              <BookingStatusSection
+                value={paykitBookingId}
+                onChange={setPaykitBookingId}
+                status={initial?.bookingStatus}
+              />
+            )}
+          </Section>
+
+          <Section
+            icon={<Gauge className="size-5" />}
+            eyebrow="How much you take"
+            title="Limits"
+            description="Cap what one day or one order can take."
+          >
             {entitlement.stockCaps ? (
               <LimitField
                 id="daily-cup-cap"
                 label={DAILY_LIMIT_LABEL}
-                hint="Counts every item you sell, whatever it is, so an order of four counts four. Leave blank for no limit. Resets at midnight."
+                hint={DAILY_LIMIT_HINT}
+                hintLabel={DAILY_LIMIT_HINT_LABEL}
                 max={100000}
                 value={dailyCupCap}
                 onChange={setDailyCupCap}
@@ -503,20 +520,13 @@ export function BoothForm({
 
             <LimitField
               id="max-items-per-order"
-              label="Most items in one order"
+              label="Max items per order"
               hint="Stops one customer taking the whole tray. Orders you key in yourself are not limited. Leave blank for no limit."
+              hintLabel="About the per-order item limit"
               max={100}
               value={maxItemsPerOrder}
               onChange={setMaxItemsPerOrder}
             />
-
-            {walkupDefault && (
-              <BookingStatusSection
-                value={paykitBookingId}
-                onChange={setPaykitBookingId}
-                status={initial?.bookingStatus}
-              />
-            )}
           </Section>
         </div>
 
@@ -567,8 +577,8 @@ export function BoothForm({
           <Section
             icon={<Printer className="size-5" />}
             eyebrow="At your counter"
-            title="Printing"
-            description="Optional. Without it, new orders still land on your board, just with no auto-printed label to work from."
+            title="Printing & pickup"
+            description="Optional. Auto-printed order labels, and a kiosk where customers mark their own pickup."
           >
             <PrintingSection
               value={printEnabled}
@@ -576,6 +586,17 @@ export function BoothForm({
               boothId={initial?.boothId}
               savedEnabled={initial?.print_enabled ?? false}
             />
+            <SettingRow
+              label="Self-checkout pickup"
+              hint="A ready order's status page shows a QR. The customer scans it at this booth's pickup kiosk and the order is marked picked up, without staff tapping it."
+              hintLabel="About self-checkout pickup"
+            >
+              <Switch
+                checked={pickupScanEnabled}
+                onCheckedChange={setPickupScanEnabled}
+                aria-label="Self-checkout pickup"
+              />
+            </SettingRow>
           </Section>
 
           <Section

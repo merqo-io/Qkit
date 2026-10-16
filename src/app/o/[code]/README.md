@@ -116,7 +116,7 @@ the current (non-legacy) customer ordering entry point.
   `md:max-w-lg` so it doesn't stretch wide alongside the wider menu below.
   `loadBasketLimits` calls `booth_availability` (migration `0096`) for the
   items left in the booth's daily total and its per-order limit, either null
-  when not set: zero left makes the page read "Sold out for today" and closes
+  when not set: zero left makes the page read "Sold out" and closes
   ordering. Both go to `OrderForm`, which stops a basket at them and prints
   the "Only N items left today" note itself (`StockNotice`), from availability
   net of other baskets' holds, so it can never contradict "the last items are

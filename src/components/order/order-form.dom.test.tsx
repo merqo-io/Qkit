@@ -1076,9 +1076,7 @@ describe("OrderForm booth limits and basket holds", () => {
       screen.getByRole("button", { name: "Add items to order" }),
     ).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Add" }));
-    expect(toast.error).toHaveBeenCalledWith(
-      "This stall has nothing left for today.",
-    );
+    expect(toast.error).toHaveBeenCalledWith("This stall has sold out.");
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
@@ -1145,6 +1143,11 @@ describe("OrderForm stock notice", () => {
           `Only ${left} ${left === 1 ? "item" : "items"} left today`,
         ),
       ).toBeInTheDocument();
+      // A one-off event never reopens tomorrow, so the notice promises nothing.
+      expect(
+        screen.getByText("Once they're gone, this stall stops taking orders."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/tomorrow/)).not.toBeInTheDocument();
     },
   );
 

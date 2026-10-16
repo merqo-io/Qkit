@@ -372,13 +372,16 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   `optionBreakdown`, `grossMargin` (only computed when at least one item
   carries a cost); also `windowSeries`/`waitSeries` (bucketed trend/wait-time
   series), `avgWaitSeconds`, `peakThroughput`, `pctChange`,
-  `estimateWaitSeconds` (recent-average × orders-ahead customer wait
-  estimate, null below `minSample`; takes an optional
+  `typicalPrepSeconds` (median placed-to-ready wait, leaving out cancelled
+  orders and waits over `MAX_PREP_WAIT_SECONDS` = 1h as abandoned, so a few
+  forgotten test orders cannot push it to hours), `estimateWaitSeconds`
+  (typical prep × orders-ahead customer wait estimate, null below
+  `minSample` usable waits; takes an optional
   `fallbackAvgSecondsPerOrder` — board_settings.default_prep_minutes × 60 —
   used only below that sample size, so a vendor's manual estimate never
   overrides real, trusted data), `currentPrepEstimate` (same threshold gate
-  as `estimateWaitSeconds`, but returns the recent average in minutes plus
-  the raw sample count/`minSample` instead of multiplying by orders-ahead —
+  as `estimateWaitSeconds`, but returns the typical (median) prep time in
+  minutes plus the usable-wait count/`minSample` instead of multiplying by orders-ahead —
   a vendor-facing "here's what's live right now" label for the Settings
   page, not part of any customer-facing wait calculation).
 - `stats.test.ts` — tests bucketing, margin computation, refund detection,

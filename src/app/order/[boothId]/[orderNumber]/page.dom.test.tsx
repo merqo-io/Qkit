@@ -76,8 +76,8 @@ const booth = {
   social_links: null,
 };
 
-// Minimal valid boardSettingsSchema shape (see @/lib/schemas) — required
-// fields filled in, pickup_scan_enabled set per-test.
+// Minimal valid boardSettingsSchema shape (see @/lib/schemas), required
+// fields filled in.
 const VALID_BOARD_SETTINGS = {
   aging_min: 5,
   overdue_min: 10,
@@ -125,7 +125,7 @@ beforeEach(() => {
   maybeSingle.mockReset();
   boothSingle.mockReset().mockResolvedValue({ data: booth });
   // No board_settings row -> boardSettingsSchema fails -> resolveOrderDisplay
-  // degrades to the real order_number/pickupScanEnabled:false, no second query.
+  // degrades to the real order_number, no second query.
   vendorMaybeSingle.mockReset().mockResolvedValue({ data: null });
   notFoundMock.mockClear();
   redirectMock.mockClear();
@@ -244,11 +244,9 @@ describe("OrderStatusPage — pending-payment redirect guard", () => {
 });
 
 describe("OrderStatusPage — pickup QR", () => {
-  it("shows a pickup QR when ready and pickup_scan_enabled is on", async () => {
-    vendorMaybeSingle.mockResolvedValue({
-      data: {
-        board_settings: { ...VALID_BOARD_SETTINGS, pickup_scan_enabled: true },
-      },
+  it("shows a pickup QR when ready and the booth has self-checkout pickup on", async () => {
+    boothSingle.mockResolvedValue({
+      data: { ...booth, pickup_scan_enabled: true },
     });
     await renderPage("ready");
     expect(
@@ -260,13 +258,20 @@ describe("OrderStatusPage — pickup QR", () => {
     );
   });
 
-  it("shows no pickup QR when the toggle is off", async () => {
+  it("shows no pickup QR when the booth has it off", async () => {
+    boothSingle.mockResolvedValue({
+      data: { ...booth, pickup_scan_enabled: false },
+    });
+    await renderPage("ready");
+    expect(
+      screen.queryByText(/show this at the pickup counter/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("ignores the retired vendor-wide board_settings key", async () => {
     vendorMaybeSingle.mockResolvedValue({
       data: {
-        board_settings: {
-          ...VALID_BOARD_SETTINGS,
-          pickup_scan_enabled: false,
-        },
+        board_settings: { ...VALID_BOARD_SETTINGS, pickup_scan_enabled: true },
       },
     });
     await renderPage("ready");
@@ -275,11 +280,9 @@ describe("OrderStatusPage — pickup QR", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows no pickup QR when not ready even if the toggle is on", async () => {
-    vendorMaybeSingle.mockResolvedValue({
-      data: {
-        board_settings: { ...VALID_BOARD_SETTINGS, pickup_scan_enabled: true },
-      },
+  it("shows no pickup QR when not ready even if the booth has it on", async () => {
+    boothSingle.mockResolvedValue({
+      data: { ...booth, pickup_scan_enabled: true },
     });
     await renderPage("preparing");
     expect(
@@ -290,10 +293,8 @@ describe("OrderStatusPage — pickup QR", () => {
 
 describe("OrderStatusPage — pickup QR origin allowlist", () => {
   beforeEach(() => {
-    vendorMaybeSingle.mockResolvedValue({
-      data: {
-        board_settings: { ...VALID_BOARD_SETTINGS, pickup_scan_enabled: true },
-      },
+    boothSingle.mockResolvedValue({
+      data: { ...booth, pickup_scan_enabled: true },
     });
   });
 
