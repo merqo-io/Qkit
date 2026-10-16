@@ -109,9 +109,12 @@ function ScreenOptions({ booth }: { booth: Booth }) {
 export function CustomerScreenButton({
   booths,
   defaultBoothId,
+  size = "default",
 }: {
   booths: Booth[];
   defaultBoothId?: string;
+  // "sm" matches a row of small buttons, as on a booth card.
+  size?: "default" | "sm";
 }) {
   const [open, setOpen] = useState(false);
   const [chosenId, setChosenId] = useState<string | null>(null);
@@ -125,6 +128,7 @@ export function CustomerScreenButton({
       <Button
         type="button"
         variant="outline"
+        size={size}
         className="rounded-full [@media(pointer:coarse)]:min-w-11"
         onClick={() => setOpen(true)}
         aria-label="Customer screen"

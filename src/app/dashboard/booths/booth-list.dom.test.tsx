@@ -64,6 +64,8 @@ describe("BoothList", () => {
     );
 
     const [first] = screen.getAllByRole("button", { name: "Customer screen" });
+    // Same height as the card's other small buttons.
+    expect(first).toHaveAttribute("data-size", "sm");
     fireEvent.click(first!);
     expect(
       await screen.findByRole("dialog", { name: "Customer screen" }),

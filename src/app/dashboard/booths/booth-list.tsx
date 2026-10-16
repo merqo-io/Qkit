@@ -121,6 +121,7 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
                     open the customer screen the same way. */}
                 <CustomerScreenButton
                   booths={[{ id: booth.id, name: booth.name }]}
+                  size="sm"
                 />
               </div>
             </div>
