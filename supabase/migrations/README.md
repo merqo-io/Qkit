@@ -84,4 +84,5 @@ fixtures with separate Paykit checkout prerequisites.
 The audit additions follow these deployed versions as 0100 through 0103. Local database and isolation-runner validation remain outstanding.
 
 - 0104_booth_pickup_scan_enabled.sql moves self-checkout pickup from the vendor-wide `board_settings.pickup_scan_enabled` key to a per-booth `booths.pickup_scan_enabled` column, backfilled from each vendor's current value and granted to vendors. Apply it before deploying the app that reads it.
+- 0106_booth_start_new_service.sql adds `booths.cap_reset_at` and the vendor-only `qkit.start_new_service(uuid)` RPC (SECURITY DEFINER, owner check on `auth.uid()`, stamps `now()`; no column grant to vendors). `qkit.booth_cups_today` and the `orders_daily_cup_cap` trigger count from the later of midnight SGT and `cap_reset_at`. Apply it before deploying the app that calls the RPC.
 - 0105_order_push_subscriptions.sql adds `qkit.order_push_subscriptions` (service-role only: RLS on, no policies, no anon/authenticated grant) for the order-ready web push, plus a trigger that drops an order's rows when it is completed or cancelled. Apply it before deploying the app that writes it.
