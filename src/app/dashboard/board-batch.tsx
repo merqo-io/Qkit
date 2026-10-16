@@ -69,6 +69,7 @@ export function SelectionBar({
     <div
       role="toolbar"
       aria-label="Selected orders"
+      data-selection-bar=""
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_28px_-20px_oklch(0.4_0.06_45/0.4)] backdrop-blur-md"
     >
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2">

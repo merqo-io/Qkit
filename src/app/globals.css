@@ -481,6 +481,13 @@ html::-webkit-scrollbar {
   }
 }
 
+/* Tour: the floating replay button (@merqo/ui, fixed bottom-right) sits on
+   top of the board's selection bar action on a phone. Hide it while the bar
+   is open: the vendor is mid-task, and it comes back on Cancel. */
+body:has([data-selection-bar]) [data-tour="tour-replay"] {
+  display: none;
+}
+
 /* Tour: inline "example" preview shown inside a driver.js popover's
    description via innerHTML (see src/components/tour-steps.ts). */
 .tour-example {
