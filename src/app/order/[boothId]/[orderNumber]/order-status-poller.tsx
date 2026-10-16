@@ -94,9 +94,10 @@ const STATUS_COPY: Record<OrderStatus, { headline: string; detail: string }> = {
     headline: "We're making it now",
     detail: "Stay close. This page turns to Ready the moment it is.",
   },
+  // No order number here: it is already the biggest thing above this line.
   ready: {
     headline: "It's ready",
-    detail: "Come to the counter and collect it.",
+    detail: "Come to the counter to collect it.",
   },
   completed: {
     headline: "Collected. Enjoy!",
@@ -128,6 +129,10 @@ const PAYMENT_CHECK_COPY: Partial<
   preparing: {
     headline: "We're making it now",
     detail: "The stall is still checking your payment. Stay close.",
+  },
+  ready: {
+    headline: "It's ready",
+    detail: "Come to the counter. The stall will check your payment there.",
   },
 };
 
@@ -393,7 +398,6 @@ export function OrderStatusPoller({
     needsArrival,
     awaitingPayment,
     paymentSent,
-    displayNumber,
   });
 
   return (
@@ -490,12 +494,10 @@ function statusCopy(
     needsArrival,
     awaitingPayment,
     paymentSent,
-    displayNumber,
   }: {
     needsArrival: boolean;
     awaitingPayment: boolean;
     paymentSent: boolean;
-    displayNumber: string;
   },
 ): StatusCopy {
   if (needsArrival)
@@ -507,13 +509,6 @@ function statusCopy(
     return {
       headline: STATUS_COPY.cancelled.headline,
       detail: CANCELLED_AFTER_PAYMENT_DETAIL,
-    };
-  if (status === "ready")
-    return {
-      headline: STATUS_COPY.ready.headline,
-      detail: awaitingPayment
-        ? `Show order #${displayNumber} at the counter. The stall will check your payment there.`
-        : `Show order #${displayNumber} at the counter to collect it.`,
     };
   if (awaitingPayment) return PAYMENT_CHECK_COPY[status] ?? STATUS_COPY[status];
   return STATUS_COPY[status];
