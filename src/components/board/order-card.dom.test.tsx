@@ -1131,6 +1131,17 @@ describe("OrderCard status placement", () => {
     );
   });
 
+  it("gives the footer a fixed height, so the pill cannot make an Incoming ticket taller", () => {
+    render(<OrderCard order={makeOrder({ status: "pending" })} />, {
+      wrapper: TooltipProvider,
+    });
+    const footer = screen.getByTitle("Time since the order arrived")
+      .parentElement as HTMLElement;
+    expect(footer).toHaveClass("h-10");
+    expect(footer).not.toHaveClass("min-h-10");
+    expect(footer.className).not.toMatch(/(^|\s)py-/);
+  });
+
   it("says nothing for a preparing order", () => {
     render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
     expect(screen.queryByText("Preparing")).not.toBeInTheDocument();

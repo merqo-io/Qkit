@@ -92,8 +92,11 @@ function TicketFooter({
 }) {
   const showStatus = status !== "preparing";
   if (ageMins == null && !showStatus) return null;
+  // A fixed h-10 with no vertical padding: the "Waiting for you" pill is taller
+  // than the timer, so min-h-10 plus py-2 grew an Incoming footer to 44px
+  // against an Accepted one's 40px.
   return (
-    <div className="flex min-h-10 items-center justify-between gap-3 border-t border-border/60 px-4 py-2">
+    <div className="flex h-10 items-center justify-between gap-3 border-t border-border/60 px-4">
       {ageMins != null ? (
         <span
           className={cn(
