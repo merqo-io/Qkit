@@ -123,7 +123,7 @@ describe("public QR entry", () => {
           closed: false,
         }),
       );
-      expect(screen.queryByText(/Only .* left today/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Only .* left/)).not.toBeInTheDocument();
     },
   );
   it("does not block browsing when decorative stock lookup fails", async () => {

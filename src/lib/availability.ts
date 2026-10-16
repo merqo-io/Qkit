@@ -140,7 +140,7 @@ export function addBlockMessage(block: AddBlock): string {
     case "booth_held":
       return "The last items are in other baskets. Try again in a few minutes.";
     case "booth_left":
-      return `This stall has only ${block.left} ${plural(block.left)} left today.`;
+      return `This stall has only ${block.left} ${plural(block.left)} left.`;
     case "order_limit":
       return `This stall takes up to ${block.max} ${plural(block.max)} per order.`;
   }

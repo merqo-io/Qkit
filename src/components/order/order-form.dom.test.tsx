@@ -930,7 +930,7 @@ describe("OrderForm booth limits and basket holds", () => {
     expect(holdCart).not.toHaveBeenCalled();
   });
 
-  it("refuses an add past what the booth has left today, across items", async () => {
+  it("refuses an add past what the booth has left, across items", async () => {
     const user = userEvent.setup();
     render(
       <OrderForm
@@ -945,7 +945,7 @@ describe("OrderForm booth limits and basket holds", () => {
     await user.click(screen.getByRole("button", { name: "stub-confirm" }));
 
     expect(toast.error).toHaveBeenCalledWith(
-      "This stall has only 1 item left today.",
+      "This stall has only 1 item left.",
     );
   });
 
@@ -1172,7 +1172,7 @@ describe("OrderForm booth limits and basket holds", () => {
 
 describe("OrderForm stock notice", () => {
   it.each([1, 3, 10])(
-    "says how many items are left today when stock is low: %s",
+    "says how many items are left when stock is low: %s",
     (left) => {
       render(
         <OrderForm
@@ -1183,9 +1183,7 @@ describe("OrderForm stock notice", () => {
         />,
       );
       expect(
-        screen.getByText(
-          `Only ${left} ${left === 1 ? "item" : "items"} left today`,
-        ),
+        screen.getByText(`Only ${left} ${left === 1 ? "item" : "items"} left`),
       ).toBeInTheDocument();
       // A one-off event never reopens tomorrow, so the notice promises nothing.
       expect(
@@ -1206,7 +1204,7 @@ describe("OrderForm stock notice", () => {
           left={left}
         />,
       );
-      expect(screen.queryByText(/left today/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Only .* left/)).not.toBeInTheDocument();
     },
   );
 
@@ -1228,8 +1226,8 @@ describe("OrderForm stock notice", () => {
         { timeout: 3000 },
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Only 3 items left today")).toBeInTheDocument();
-    expect(screen.queryByText("Only 1 item left today")).toBeNull();
+    expect(screen.getByText("Only 3 items left")).toBeInTheDocument();
+    expect(screen.queryByText("Only 1 item left")).toBeNull();
   });
 
   it("allows daily stock held in other baskets without exceeding the order limit", async () => {
@@ -1253,7 +1251,7 @@ describe("OrderForm stock notice", () => {
         },
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Only 3 items left today")).toBeInTheDocument();
+    expect(screen.getByText("Only 3 items left")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add" }));
     await user.click(screen.getByRole("button", { name: "Add one Kopi" }));
     expect(toast.error).toHaveBeenCalledWith(

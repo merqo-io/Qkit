@@ -522,6 +522,7 @@ export interface Database {
           daily_cup_cap: number | null;
           max_items_per_order: number | null;
           pickup_scan_enabled: boolean;
+          cap_reset_at: string | null;
         };
         Insert: {
           id?: string;
@@ -545,6 +546,7 @@ export interface Database {
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
           pickup_scan_enabled?: boolean;
+          cap_reset_at?: string | null;
         };
         Update: {
           id?: string;
@@ -568,6 +570,7 @@ export interface Database {
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
           pickup_scan_enabled?: boolean;
+          cap_reset_at?: string | null;
         };
         Relationships: [
           {
@@ -787,6 +790,10 @@ export interface Database {
       booth_cups_today: {
         Args: { p_booth_id: string };
         Returns: number;
+      };
+      start_new_service: {
+        Args: { p_booth_id: string };
+        Returns: boolean;
       };
       booth_cups_left: {
         Args: { p_booth_id: string };
