@@ -498,8 +498,9 @@ export function RealtimeOrderBoard({
 
   return (
     // Room under the last ticket for the selection bar, which floats over the
-    // bottom of the board while Select is on.
-    <div className={cn(selectMode && "pb-28")}>
+    // bottom of the board while Select is on. Enough for the bar wrapped to two
+    // rows of touch-sized buttons on a phone.
+    <div className={cn(selectMode && "pb-40")}>
       {loadError && <LoadErrorBanner />}
       {liveStatus === "disconnected" && (
         <div
