@@ -37,8 +37,8 @@ importers:
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.77.0(react@19.2.7))
       '@merqo/ui':
-        specifier: github:merqo-io/merqo-ui#2e8744e6184c2b44e3e2b903736bede8bdbc5967
-        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/2e8744e6184c2b44e3e2b903736bede8bdbc5967(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)
+        specifier: github:merqo-io/merqo-ui#90cec6a49449ecaf1d13a5b934bff820e59aace4
+        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/90cec6a49449ecaf1d13a5b934bff820e59aace4(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)
       '@supabase/ssr':
         specifier: ^0.10.3
         version: 0.10.3(@supabase/supabase-js@2.107.0)
@@ -999,8 +999,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/2e8744e6184c2b44e3e2b903736bede8bdbc5967':
-    resolution: {gitHosted: true, integrity: sha512-nrj/KgfpO2UpkqYo8U/i2MME0kavL8eGcJ9z2I0cXEyHKaV3txAW96EwBmijBvYmQhtsiagtfjumn9NgysUD2Q==, tarball: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/2e8744e6184c2b44e3e2b903736bede8bdbc5967}
+  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/90cec6a49449ecaf1d13a5b934bff820e59aace4':
+    resolution: {gitHosted: true, integrity: sha512-UrCLFfpERTnODghlBc0pkkiSCqD2Fj62006omolspfGYutAPI3FNfcYLgY4rVp1UdQsDJlpEmJVngwuP+bxRjA==, tarball: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/90cec6a49449ecaf1d13a5b934bff820e59aace4}
     version: 0.34.0
     engines: {node: '>=24'}
     peerDependencies:
@@ -6395,7 +6395,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/2e8744e6184c2b44e3e2b903736bede8bdbc5967(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)':
+  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/90cec6a49449ecaf1d13a5b934bff820e59aace4(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)':
     dependencies:
       '@icons-pack/react-simple-icons': 13.13.0(react@19.2.7)
       '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
