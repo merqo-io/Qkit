@@ -21,7 +21,9 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 - `order-actions.ts` — validated vendor actions using the authenticated client
   and RLS. `advanceOrder` and `revertOrderAdvance` condition writes on the expected
   status and modify only fulfillment state/timestamps; the ready transition sends
-  best-effort customer notifications unless the vendor opts out.
+  best-effort customer notifications: the Telegram ping unless the vendor opts
+  out, and the customer's web push (`sendOrderReadyPush`, scheduled with
+  `after()` so the vendor never waits on it).
   `confirmOrderPayment` and `confirmPaymentAndStart` confirm through Paykit before
   mirroring its confirmed state. The merged action also starts the order; its undo
   only restores fulfillment status, preserving payment. `confirmOrderPayment`
