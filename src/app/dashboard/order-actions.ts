@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/supabase/get-user";
 import {
@@ -18,6 +19,7 @@ import {
 import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
+import { sendOrderReadyPush } from "@/lib/push/send";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
 import type { ActionResult } from "@/lib/action-result";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
@@ -83,6 +85,42 @@ async function customerNotifyEnabled(
 }
 
 /**
+ * The customer alerts for a fresh `ready`: web push and the Telegram ping.
+ * Neither may change advanceOrder's result, so every failure stays in here.
+ */
+async function notifyOrderReady(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  orderId: string,
+  userId: string | null,
+): Promise<void> {
+  // Web push to a customer who asked for an alert, sent after the response so
+  // Mark Ready (and "Mark all ready") is never slowed by the push services.
+  // Not gated by the vendor's Telegram switch: the customer opted in from
+  // their own browser, as with the page's own popup.
+  try {
+    after(() => sendOrderReadyPush(orderId));
+  } catch (err) {
+    console.error("advanceOrder: scheduling web push failed", err);
+  }
+
+  // Same fire-and-forget pattern as notifyVendorTelegram in
+  // src/app/o/[code]/notify.ts: notifyCustomer already never throws on its
+  // own, but this call site still wraps it so nothing here can ever change
+  // advanceOrder's own returned result.
+  if (!userId) return;
+  try {
+    if (!(await customerNotifyEnabled(supabase, userId))) return;
+    await notifyCustomer(
+      userId,
+      `qkit:${orderId}`,
+      "Your order is ready for pickup!",
+    );
+  } catch (err) {
+    console.error("advanceOrder: notifyCustomer failed", err);
+  }
+}
+
+/**
  * Advance an order to its next state (preparing→ready→completed), stamping the
  * transition timestamp. The next state is derived server-side from the order's
  * current status — the client never dictates it. Rejects an order with no legal
@@ -140,23 +178,7 @@ export async function advanceOrder(
     });
   }
 
-  // Same fire-and-forget pattern as notifyVendorTelegram in
-  // src/app/o/[code]/notify.ts: notifyCustomer already never throws on its
-  // own, but this call site still wraps it so nothing here can ever change
-  // advanceOrder's own returned result below.
-  if (adv.next === "ready" && userId) {
-    try {
-      if (!(await customerNotifyEnabled(supabase, userId)))
-        return { success: true, status: adv.next };
-      await notifyCustomer(
-        userId,
-        `qkit:${orderId}`,
-        "Your order is ready for pickup!",
-      );
-    } catch (err) {
-      console.error("advanceOrder: notifyCustomer failed", err);
-    }
-  }
+  if (adv.next === "ready") await notifyOrderReady(supabase, orderId, userId);
 
   return { success: true, status: adv.next };
 }

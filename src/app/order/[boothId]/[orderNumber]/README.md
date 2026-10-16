@@ -48,6 +48,14 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   never break this page, same fail-closed rule as `EarnLink`).
 - `telegram-connect.dom.test.tsx` — RTL tests for `TelegramConnect`'s
   successful-mint (link + disclosure) and failed-mint (`null`) branches.
+- `push-actions.ts` — `savePushSubscription(boothId, orderNumber, token,
+subscription)`: saves the customer's web push subscription for the
+  order-ready alert (`src/lib/push/`). Token-gated and rate-limited like the
+  other customer actions; refuses an order already ready or finished, a
+  push endpoint off the allowlist, and a sixth browser per order. The
+  notification text and link are computed server-side.
+- `push-actions.test.ts` — unit tests for the save, bad ref, foreign host,
+  rate limit, unknown order, not-waiting and per-order cap branches.
 - `loading.tsx` — animated skeleton matching the real ticket's shadow/layout,
   shown while `page.tsx`'s server reads resolve.
 - `order-status-poller.tsx` — `OrderStatusPoller` client component: polls
@@ -89,7 +97,10 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   a queue-position label (`queuePositionLabel`, e.g. "2 orders ahead of
   you") instead of showing nothing when there isn't enough recent history
   for a time estimate yet, an "Alert me when it's ready" opt-in that unlocks
-  audio + requests `Notification` permission, and on transition to `"ready"`
+  audio + requests `Notification` permission (once granted, now or on an
+  earlier visit, it also subscribes to web push via `subscribeToPush` and
+  `savePushSubscription`, so the ready alert reaches a locked phone), and on
+  transition to `"ready"`
   fires a system notification (`fireReadyNotification`), plays a chime, or
   flashes the tab title if backgrounded. The ready-state copy repeats the
   order number ("Order #N ready, please collect now") instead of a generic

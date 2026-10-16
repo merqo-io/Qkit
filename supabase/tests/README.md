@@ -30,6 +30,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 - `audit-truncate-privileges.test.sql` — 18 effective privilege and denied
   service-role truncation assertions for the append-only trails (`0099`).
 - `print-callback-ordering.test.sql` — monotonic print-state callback behavior.
+- `order-push-subscriptions.test.sql` — `0105`: no anon/authenticated privilege on push subscriptions, RLS on, and the trigger that drops a completed or cancelled order's rows.
 
 These new regression fixtures are prepared but have not been executed in this
 review: Docker Desktop's Linux database engine is unavailable.
