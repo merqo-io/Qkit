@@ -49,6 +49,12 @@ test("vendor starts, readies and hands over a customer's order", async ({
 
   const { menu, card } = ticket(board, number);
   await expect(menu).toBeVisible({ timeout: 30_000 });
+  // The ticket's waiting time ("0m") renders only once the board has mounted
+  // (useNow is null on the server). A tap before that lands on server HTML
+  // with no handler, which a cold CI dev server makes likely.
+  await expect(card.getByLabel(/minutes since arrival/)).toBeVisible({
+    timeout: 30_000,
+  });
 
   // A claimed payment folds confirm-and-start into one tap.
   await card.getByRole("button", { name: /Mark paid & start/ }).click();
