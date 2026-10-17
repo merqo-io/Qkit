@@ -104,6 +104,26 @@ describe("useRealtimeOrders", () => {
     expect(statusCallback).toBeUndefined();
   });
 
+  it("reports which booth each change touched, and null after a resync", async () => {
+    mockFrom.mockReturnValue(makeOrdersQuery({ data: [], error: null }));
+    const onChange = vi.fn();
+    renderHook(() => useRealtimeOrders(["b1"], [], undefined, onChange));
+    await act(async () => statusCallback?.("SUBSCRIBED"));
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    act(() =>
+      pgCallback?.({
+        eventType: "INSERT",
+        new: order({ booth_id: "b1" }),
+        old: {},
+      }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith("b1");
+    act(() =>
+      pgCallback?.({ eventType: "DELETE", new: {}, old: { id: "o1" } }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith(null);
+  });
+
   it("resyncs on the first SUBSCRIBED to recover orders placed during hydration", async () => {
     mockFrom.mockReturnValue(makeOrdersQuery({ data: [order()], error: null }));
     const { result } = renderHook(() => useRealtimeOrders(["b1"], []));
