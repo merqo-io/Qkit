@@ -488,7 +488,9 @@ export function OrderStatusPoller({
         onEnable={onEnableAlerts}
       />
 
-      {!cancelled && elapsed && (
+      {/* A finished order's header already stamps when it was placed (see
+          PastOrderStamp in page.tsx); saying it twice reads as two times. */}
+      {!isTerminal(status) && elapsed && (
         <p className="text-xs text-muted-foreground">Placed {elapsed}</p>
       )}
     </div>

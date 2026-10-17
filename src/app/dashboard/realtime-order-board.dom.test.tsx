@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";
 import { advanceOrder, revertOrderAdvance } from "./order-actions";
 import { toast } from "sonner";
+import { playSound } from "@/lib/order-alerts";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
 import type { BoardOrder } from "@/lib/types";
 
@@ -42,6 +43,14 @@ function order(overrides: Partial<BoardOrder> = {}): BoardOrder {
 
 // The board renders via useRealtimeOrders, which opens a Supabase realtime
 // channel — stub it out to a no-op so the hook just echoes initialOrders.
+// The change handler is kept, so a test can deliver a realtime INSERT.
+const realtime = vi.hoisted(() => ({
+  emit: null as ((payload: unknown) => void) | null,
+}));
+vi.mock("@/lib/order-alerts", () => ({
+  playSound: vi.fn(async () => true),
+  fireNewOrderNotification: vi.fn(async () => undefined),
+}));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     from: () => ({
@@ -54,10 +63,13 @@ vi.mock("@/lib/supabase/client", () => ({
       }),
     }),
     channel: () => ({
-      on: () => ({
-        on: () => ({ subscribe: () => ({}) }),
-        subscribe: () => ({}),
-      }),
+      on: (_type: string, _filter: unknown, cb: (p: unknown) => void) => {
+        realtime.emit = cb;
+        return {
+          on: () => ({ subscribe: () => ({}) }),
+          subscribe: () => ({}),
+        };
+      },
       subscribe: () => ({}),
     }),
     removeChannel: () => {},
@@ -1472,6 +1484,144 @@ describe("RealtimeOrderBoard start all incoming", () => {
     expect(
       screen.queryByRole("button", { name: /^start all/i }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("RealtimeOrderBoard arrival-hold label", () => {
+  it("says the customer is not here yet, and keeps Start now as an override", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={[
+          { ...BOOTHS[0]!, requires_arrival_confirm: true },
+          { id: "b2", name: "Tea Stand", is_active: true, open: true },
+        ]}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", status: "pending" }),
+          order({
+            id: "o2",
+            booth_id: "b2",
+            order_number: "0002",
+            status: "pending",
+          }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(screen.getAllByText("Not here yet")).toHaveLength(1);
+    expect(screen.getAllByText("Waiting for you")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /start now/i })).toHaveLength(
+      2,
+    );
+  });
+});
+
+describe("RealtimeOrderBoard own walk-up alert", () => {
+  const WALKUP_BOOTH = {
+    id: "b1",
+    name: "Event Stall",
+    is_active: true,
+    open: true,
+    walkup_default: true,
+  };
+
+  function insert(o: BoardOrder) {
+    act(() => realtime.emit?.({ eventType: "INSERT", new: o, old: {} }));
+  }
+
+  beforeEach(() => {
+    vi.mocked(getWalkupMenu).mockResolvedValue({
+      menuItems: [
+        {
+          id: "m1",
+          name: "Kopi",
+          description: "",
+          available: true,
+          price_cents: 350,
+        },
+      ],
+      remaining: {},
+      expectsPayment: false,
+      paymentKind: null,
+    });
+  });
+
+  async function placeWalkup(before?: () => void) {
+    let finish!: () => void;
+    vi.mocked(placeWalkupOrder).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              success: true,
+              orderNumber: "0003",
+              accessToken: "tok",
+              payment: null,
+            });
+        }),
+    );
+    const user = userEvent.setup();
+    render(
+      <RealtimeOrderBoard
+        booths={[WALKUP_BOOTH]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await user.click(await screen.findByRole("button", { name: "Add" }));
+    await user.click(
+      screen.getByRole("button", { name: /add order · 1 item/i }),
+    );
+    before?.();
+    await act(async () => finish());
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringMatching(/^Order #0*[13] added to the board$/),
+      ),
+    );
+  }
+
+  const OWN = order({
+    id: "w3",
+    order_number: "0003",
+    status: "preparing",
+    source: "walkup",
+    created_at: new Date().toISOString(),
+  });
+
+  it("does not alert for its own walk-up arriving after the dialog returns", async () => {
+    await placeWalkup();
+    insert(OWN);
+    expect(playSound).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^New order/));
+  });
+
+  it("does not alert for its own walk-up arriving before the dialog returns", async () => {
+    await placeWalkup(() => insert(OWN));
+    expect(playSound).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^New order/));
+  });
+
+  it("still alerts for a walk-up placed elsewhere while its own is in flight", async () => {
+    await placeWalkup(() => insert({ ...OWN, id: "w4", order_number: "0004" }));
+    expect(playSound).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringMatching(/^New order #\d+ · Priya$/),
+    );
+  });
+
+  it("alerts for a walk-up another device placed", async () => {
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...WALKUP_BOOTH, walkup_default: false }]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    insert(OWN);
+    expect(playSound).toHaveBeenCalledTimes(1);
   });
 });
 

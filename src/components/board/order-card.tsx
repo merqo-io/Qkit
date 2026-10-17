@@ -85,10 +85,12 @@ function TicketFooter({
   ageMins,
   tone,
   status,
+  awaitingArrival,
 }: {
   ageMins: number | null;
   tone: AgeTone;
   status: OrderStatus;
+  awaitingArrival: boolean;
 }) {
   const showStatus = status !== "preparing";
   if (ageMins == null && !showStatus) return null;
@@ -123,7 +125,7 @@ function TicketFooter({
           would make an Incoming ticket taller than its neighbours. */}
       {showStatus && (
         <span className="shrink-0 whitespace-nowrap">
-          <OrderStatusBadge status={status} />
+          <OrderStatusBadge status={status} awaitingArrival={awaitingArrival} />
         </span>
       )}
     </div>
@@ -248,6 +250,7 @@ function OrderCardInner({
   selectable = false,
   selected = false,
   onToggleSelect,
+  awaitingArrival = false,
 }: {
   order: BoardOrder;
   // board_settings.daily_order_number_reset display number (see
@@ -300,6 +303,11 @@ function OrderCardInner({
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (orderId: string) => void;
+  // The booth waits for the customer's "I'm here" tap
+  // (requires_arrival_confirm), so a pending order is waiting on the
+  // customer, not on staff. "Start now" stays as the override for a customer
+  // who turned up without tapping.
+  awaitingArrival?: boolean;
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
   // Resync to the (realtime-updated) prop when it actually changes value, so a
@@ -666,7 +674,12 @@ function OrderCardInner({
       />
 
       {!closed && (
-        <TicketFooter ageMins={ageMins} tone={tone} status={status} />
+        <TicketFooter
+          ageMins={ageMins}
+          tone={tone}
+          status={status}
+          awaitingArrival={awaitingArrival}
+        />
       )}
 
       {/* Opened from the "more" menu. An auto-completed order gets its own

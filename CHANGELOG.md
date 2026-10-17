@@ -45,6 +45,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Four fixes from the 2026-10-17 production sweep. No migration.
+  - At a booth that waits for the customer's "I'm here" tap, a pending ticket's badge reads "Not here yet" instead of "Waiting for you", since the order is waiting on the customer. "Start now" stays as the override for a customer who arrives without tapping. Pending orders at other booths still say "Waiting for you". `OrderStatusBadge` gains an `awaitingArrival` prop, set by the board from `requires_arrival_confirm`.
+  - The walk-up dialog no longer says "Payment comes next" for a $0 cart, and a $0 walk-up never gets a payment step: `placeWalkupOrder` returns no payment (and creates no paykit checkout) for an order that totals 0, even at a booth that takes payment.
+  - A walk-up added from this board's New order dialog no longer also plays the new-order sound and toasts "New order #003" through realtime on that same board. The dialog reports each placement to the board (`onPlacing` / `onPlaced`), which skips the alert for its own order by booth and number, holding a walk-up INSERT that arrives before the placement returns. Other devices still alert.
+  - A finished order's status page shows when it was placed once, in the header stamp, instead of again as "Placed 3 min ago" further down.
 - Board: on a phone the floating "?" tour replay button no longer covers the selection bar's right-hand action ("Pick orders", "Mark N Ready", "Mark N Picked Up"). It is hidden while the bar is open and comes back on Cancel. A `body:has([data-selection-bar])` rule in `globals.css`; the bar carries the new `data-selection-bar` attribute.
 - Board: an Incoming ticket was 4px taller than an Accepted one with the same content. The "Waiting for you" pill made its footer 44px against the timer-only 40px. The footer row is now a fixed `h-10` with no vertical padding, so both are 40px. The pill stays bottom-right.
 - Landing page: "See how" scrolled the "Up and running in three steps" heading under the sticky nav. The `#how` section now has `scroll-mt-20`.

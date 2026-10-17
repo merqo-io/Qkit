@@ -171,6 +171,18 @@ describe("placeWalkupOrder", () => {
     expect(createCheckoutMock).not.toHaveBeenCalled();
   });
 
+  it("returns no payment for a $0 order at a booth that takes payment", async () => {
+    placedOk();
+    orderLookupMock.mockResolvedValue({
+      data: { ...PENDING_ORDER.data, total_cents: 0 },
+    });
+
+    const res = await placeWalkupOrder(BOOTH_ID, makeInput(), false);
+
+    expect(res).toMatchObject({ success: true, payment: null });
+    expect(createCheckoutMock).not.toHaveBeenCalled();
+  });
+
   it("skips the payment lookup for an order placed already paid", async () => {
     placedOk();
 

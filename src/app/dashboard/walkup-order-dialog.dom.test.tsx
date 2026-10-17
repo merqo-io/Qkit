@@ -187,6 +187,7 @@ describe("WalkupOrderDialog", () => {
 
   it("has no payment control before the order is placed", async () => {
     getWalkupMenu.mockResolvedValue(PAID_MENU);
+    const user = userEvent.setup();
     render(
       <WalkupOrderDialog
         open={true}
@@ -195,11 +196,62 @@ describe("WalkupOrderDialog", () => {
         initialBoothId="b1"
       />,
     );
-    await screen.findByText("Kopi");
+    await user.click(await screen.findByRole("button", { name: "Add" }));
     expect(
       screen.queryByRole("switch", { name: "Payment collected" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/payment comes next/i)).toBeInTheDocument();
+  });
+
+  it("says nothing about payment for a free order at a booth that takes payment", async () => {
+    const free = { ...PAID_MENU.menuItems[0]!, price_cents: 0 };
+    getWalkupMenu.mockResolvedValue({ ...PAID_MENU, menuItems: [free] });
+    placeWalkupOrder.mockResolvedValue({
+      ...UNPAID_ORDER,
+      payment: { ...UNPAID_ORDER.payment, amountCents: 0 },
+    });
+    const onOpenChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WalkupOrderDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        booths={BOOTHS}
+        initialBoothId="b1"
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Add" }));
+    expect(screen.queryByText(/payment comes next/i)).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /add order · 1 item/i }),
+    );
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(
+      screen.queryByRole("button", { name: "Payment received" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("tells the board which order it placed, and when", async () => {
+    const onPlacing = vi.fn();
+    const onPlaced = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WalkupOrderDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        booths={BOOTHS}
+        initialBoothId="b1"
+        onPlacing={onPlacing}
+        onPlaced={onPlaced}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Add" }));
+    await user.click(
+      screen.getByRole("button", { name: /add order · 1 item/i }),
+    );
+    await waitFor(() => expect(onPlaced).toHaveBeenCalledWith("b1", "0009"));
+    expect(onPlacing).toHaveBeenCalledTimes(1);
   });
 
   it("says nothing about payment at a booth that takes none", async () => {

@@ -51,6 +51,10 @@ async function pendingPayment(
       .eq("access_token", accessToken)
       .maybeSingle();
     if (!order || order.payment_status !== "pending") return null;
+    // A $0 order at a booth that takes payment is still written "pending"
+    // (place_walkup_order decides on the booth, not the total), but there is
+    // no amount to put on a QR. Skip the checkout and the payment step.
+    if (order.total_cents <= 0) return null;
 
     const {
       data: { user },
