@@ -69,7 +69,7 @@ entries, items, add, increment, decrement }`: lines keyed by item plus
 - `use-polling.test.tsx` — fake-timer tests: no-op while disabled, immediate +
   interval ticks while visible, silence while hidden, immediate tick on
   visibility regain, and cleanup on unmount.
-- `use-realtime-orders.ts` — `useRealtimeOrders(boothIds, initialOrders, onInsert?)`
+- `use-realtime-orders.ts` — `useRealtimeOrders(boothIds, initialOrders, onInsert?, onChange?)`
   returns `{ orders, status }` (`RealtimeStatus = "connecting" | "connected" |
 "disconnected"`). Subscribes to a Supabase Realtime `postgres_changes` channel
   (`vendor-orders`, schema `qkit`, table `orders`, filtered to
@@ -82,13 +82,22 @@ entries, items, add, increment, decrement }`: lines keyed by item plus
   remove missing stale active orders, preserve realtime changes made during the
   read, and keep terminal history for undo and passed-over indicators.
   Surfaces `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED` as `"disconnected"` rather than
-  failing silently.
+  failing silently. `onChange` gets the booth id of every insert or update, and
+  `null` for a delete or after a resync.
+- `use-cups-today.ts` — `useCupsToday(booths)` returns `{ withLiveCount,
+refreshCups }`: keeps the board's per-booth "N/cap items" count current by
+  re-reading `booth_cups_today` for a capped booth when `refreshCups(boothId)`
+  is called (wired to `useRealtimeOrders`' `onChange`; `null` re-reads every
+  capped booth). One request per booth in flight, plus at most one queued
+  follow-up. A live count is tied to the booth object it was read against, so
+  a `router.refresh()` (Start new service) brings back the server's count.
 - `use-realtime-orders.test.tsx` — mocks `@/lib/supabase/client`'s `channel`/
   `from`/`removeChannel` to test: no subscribe with an empty booth list, first
   `SUBSCRIBED` recovers the hydration gap, an `INSERT` payload updates state and
   fires `onInsert`, a reconnect (`CLOSED` → `SUBSCRIBED`) triggers a resync that
-  keeps the newer of {local, snapshot} per id, and error statuses flip to
-  `"disconnected"`.
+  keeps the newer of {local, snapshot} per id, error statuses flip to
+  `"disconnected"`, and `onChange` reports the booth per change. `useCupsToday`
+  is covered through the board's DOM tests.
 - `use-printer-status.ts` — `usePrinterStatus(boothId)` returns a small view
   of this booth's printer as printkit reports it: `loading`, `unreachable`, `unconfigured` (qkit has no printkit address or
   secret),
