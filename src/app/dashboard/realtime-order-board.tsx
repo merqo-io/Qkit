@@ -247,7 +247,55 @@ export function RealtimeOrderBoard({
     (_boothId: string, orderNumber: string) => orderNumber,
   );
 
+  // Walk-up orders this board placed itself, by booth and permanent number,
+  // each forgotten after a minute. The dialog already says "Order #003 added to
+  // the board", so its own realtime echo must not chime and toast again.
+  // Other devices on the same account never see these and still alert.
+  const ownWalkups = useRef(new Set<string>());
+  // The INSERT can land before placeWalkupOrder returns the number, so while
+  // a placement is in flight a walk-up INSERT waits here until it is known.
+  const walkupsInFlight = useRef(0);
+  const heldWalkupAlerts = useRef<BoardOrder[]>([]);
+
+  // True when the order is this board's own walk-up, and forgets it.
+  function claimOwnWalkup(order: BoardOrder): boolean {
+    return ownWalkups.current.delete(`${order.booth_id}:${order.order_number}`);
+  }
+
   function handleNewOrder(order: BoardOrder) {
+    if (order.order_number == null) return;
+    if (order.source === "walkup") {
+      if (claimOwnWalkup(order)) return;
+      if (walkupsInFlight.current > 0) {
+        heldWalkupAlerts.current.push(order);
+        return;
+      }
+    }
+    alertNewOrder(order);
+  }
+
+  function handleWalkupPlacing() {
+    walkupsInFlight.current += 1;
+  }
+
+  // orderNumber is the permanent number, or null when the placement failed.
+  function handleWalkupPlaced(boothId: string, orderNumber: string | null) {
+    walkupsInFlight.current = Math.max(0, walkupsInFlight.current - 1);
+    if (orderNumber != null) {
+      const key = `${boothId}:${orderNumber}`;
+      ownWalkups.current.add(key);
+      setTimeout(() => ownWalkups.current.delete(key), 60_000);
+    }
+    const held = heldWalkupAlerts.current;
+    heldWalkupAlerts.current = [];
+    for (const order of held) {
+      if (claimOwnWalkup(order)) continue;
+      if (walkupsInFlight.current > 0) heldWalkupAlerts.current.push(order);
+      else alertNewOrder(order);
+    }
+  }
+
+  function alertNewOrder(order: BoardOrder) {
     if (order.order_number == null) return;
     const shown = newOrderNumberRef.current(order.booth_id, order.order_number);
     void playSound(boardSettings.sound_id);
@@ -469,6 +517,7 @@ export function RealtimeOrderBoard({
         selectable={selectMode && isBatchable(order)}
         selected={selectedIds.has(order.id)}
         onToggleSelect={toggleSelect}
+        awaitingArrival={waitsForArrival.has(order.booth_id)}
       />
     );
   }
@@ -818,6 +867,8 @@ export function RealtimeOrderBoard({
             : booths.find((b) => b.walkup_default && boothIsActive(b))?.id
         }
         displayNumber={newOrderNumber}
+        onPlacing={handleWalkupPlacing}
+        onPlaced={handleWalkupPlaced}
       />
     </div>
   );

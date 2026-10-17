@@ -116,6 +116,15 @@ describe("OrderStatusPoller", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it("leaves the placed time to the header on a completed order", async () => {
+    getOrderStatus.mockResolvedValue("completed");
+    renderPoller("completed");
+    await waitFor(() =>
+      expect(screen.getByText("Collected. Enjoy!")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/^Placed /)).not.toBeInTheDocument();
+  });
+
   it("hides the placed stamp for a cancelled order", async () => {
     getOrderStatus.mockResolvedValue("cancelled");
     renderPoller("cancelled");

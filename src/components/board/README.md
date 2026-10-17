@@ -138,6 +138,8 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   file, the chosen design target over other kits' plain shadcn `Badge` uses)
   — keeps qkit's own `STATUS_CONFIG` label/colour map, passed through as the
   `config` prop; same rendered markup as before.
+  `awaitingArrival` relabels pending "Not here yet" (same colours) for a
+  booth that waits for the customer's "I'm here" tap.
 - `payment-proof-viewer.dom.test.tsx` — RTL tests for `PaymentProofViewer`:
   the photo, no hint when paykit reports none, the amount-match and
   could-not-confirm hints, both duplicate warnings (a numbered order, with

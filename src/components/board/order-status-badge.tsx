@@ -34,6 +34,24 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; className: string }> =
     },
   };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  return <StatusBadge status={status} config={STATUS_CONFIG} />;
+// A pending order at a booth that waits for the customer's "I'm here" tap is
+// waiting on the customer, not on staff. Same pending colours, other words.
+const AWAITING_ARRIVAL_CONFIG: typeof STATUS_CONFIG = {
+  ...STATUS_CONFIG,
+  pending: { ...STATUS_CONFIG.pending, label: "Not here yet" },
+};
+
+export function OrderStatusBadge({
+  status,
+  awaitingArrival = false,
+}: {
+  status: OrderStatus;
+  awaitingArrival?: boolean;
+}) {
+  return (
+    <StatusBadge
+      status={status}
+      config={awaitingArrival ? AWAITING_ARRIVAL_CONFIG : STATUS_CONFIG}
+    />
+  );
 }

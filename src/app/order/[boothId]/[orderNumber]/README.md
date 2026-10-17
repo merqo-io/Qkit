@@ -108,7 +108,8 @@ subscription)`: saves the customer's web push subscription for the
   pending-state message above. It also tells the booth page's on-device
   recent-orders list (`noteDisplayNumber`, with the page's token) the number
   it is showing, which fills in the order number of an entry recorded before
-  payment.
+  payment. The relative "Placed 3 min ago" line shows only while the order is live;
+  a finished order's header stamp already gives the placed time.
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.
