@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,8 +42,15 @@ function order(overrides: Partial<BoardOrder> = {}): BoardOrder {
 
 // The board renders via useRealtimeOrders, which opens a Supabase realtime
 // channel — stub it out to a no-op so the hook just echoes initialOrders.
+// The postgres_changes handler is captured so a test can push an order event,
+// and rpc answers the item count's booth_cups_today re-read.
+const realtime = vi.hoisted(() => ({
+  emit: undefined as ((payload: unknown) => void) | undefined,
+  rpc: vi.fn(),
+}));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
+    rpc: realtime.rpc,
     from: () => ({
       select: () => ({
         in: () => ({
@@ -54,10 +61,13 @@ vi.mock("@/lib/supabase/client", () => ({
       }),
     }),
     channel: () => ({
-      on: () => ({
-        on: () => ({ subscribe: () => ({}) }),
-        subscribe: () => ({}),
-      }),
+      on: (_event: string, _filter: unknown, cb: (p: unknown) => void) => {
+        realtime.emit = cb;
+        return {
+          on: () => ({ subscribe: () => ({}) }),
+          subscribe: () => ({}),
+        };
+      },
       subscribe: () => ({}),
     }),
     removeChannel: () => {},
@@ -428,6 +438,93 @@ describe("RealtimeOrderBoard cup cap counter", () => {
     expect(
       screen.queryByRole("button", { name: /start a new service for/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("re-reads the count when a new order arrives, without a reload", async () => {
+    realtime.rpc.mockResolvedValue({ data: 133, error: null });
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(screen.getByText("132/200 items")).toBeInTheDocument();
+    act(() =>
+      realtime.emit?.({
+        eventType: "INSERT",
+        new: order({ id: "o9", order_number: "0009" }),
+        old: {},
+      }),
+    );
+    expect(await screen.findByText("133/200 items")).toBeInTheDocument();
+    expect(realtime.rpc).toHaveBeenCalledExactlyOnceWith("booth_cups_today", {
+      p_booth_id: "b1",
+    });
+  });
+
+  it("re-reads the count when an order is cancelled", async () => {
+    realtime.rpc.mockResolvedValue({ data: 131, error: null });
+    const placed = order({ id: "o9", order_number: "0009" });
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        initialOrders={[placed]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() =>
+      realtime.emit?.({
+        eventType: "UPDATE",
+        new: {
+          ...placed,
+          status: "cancelled",
+          updated_at: "2026-06-12T04:05:00Z",
+        },
+        old: {},
+      }),
+    );
+    expect(await screen.findByText("131/200 items")).toBeInTheDocument();
+  });
+
+  it("gives way to a fresh server count after Start new service refreshes", async () => {
+    realtime.rpc.mockResolvedValue({ data: 133, error: null });
+    const props = {
+      initialOrders: [],
+      boardSettings: DEFAULT_BOARD_SETTINGS,
+    };
+    const { rerender } = render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        {...props}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() => realtime.emit?.({ eventType: "INSERT", new: order(), old: {} }));
+    expect(await screen.findByText("133/200 items")).toBeInTheDocument();
+    // router.refresh() after the reset: new booth objects, count back to 0.
+    rerender(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 0 }]}
+        {...props}
+      />,
+    );
+    expect(screen.getByText("0/200 items")).toBeInTheDocument();
+  });
+
+  it("does not re-read for a booth with no cap", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() => realtime.emit?.({ eventType: "INSERT", new: order(), old: {} }));
+    expect(realtime.rpc).not.toHaveBeenCalled();
   });
 
   it("warns inside the last tenth of the cap, so staff can tell the queue", () => {

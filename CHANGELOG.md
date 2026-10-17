@@ -45,6 +45,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The board's per-booth item count ("1/10 items", for a booth with a daily limit) now follows new and cancelled orders live. It used to be read once when the board loaded, so during a rush it stayed at the load-time number until a reload. The board now re-reads `booth_cups_today` for a booth whenever its realtime channel reports a change to one of that booth's orders, and for every capped booth after a reconnect. New `useCupsToday` hook; `useRealtimeOrders` gains an optional `onChange` callback. Start new service still drops the count to 0 straight away. No migration.
 - Board: on a phone the floating "?" tour replay button no longer covers the selection bar's right-hand action ("Pick orders", "Mark N Ready", "Mark N Picked Up"). It is hidden while the bar is open and comes back on Cancel. A `body:has([data-selection-bar])` rule in `globals.css`; the bar carries the new `data-selection-bar` attribute.
 - Board: an Incoming ticket was 4px taller than an Accepted one with the same content. The "Waiting for you" pill made its footer 44px against the timer-only 40px. The footer row is now a fixed `h-10` with no vertical padding, so both are 40px. The pill stays bottom-right.
 - Landing page: "See how" scrolled the "Up and running in three steps" heading under the sticky nav. The `#how` section now has `scroll-mt-20`.

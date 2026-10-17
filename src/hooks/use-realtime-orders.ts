@@ -15,6 +15,10 @@ export function useRealtimeOrders(
   boothIds: string[],
   initialOrders: BoardOrder[],
   onInsert?: (order: BoardOrder) => void,
+  // Any change to the order set: the order's booth for an insert or update,
+  // null when the booth is unknown (a delete) or after a resync, which can
+  // carry changes to any booth.
+  onChange?: (boothId: string | null) => void,
 ): { orders: BoardOrder[]; status: RealtimeStatus } {
   const [orders, setOrders] = useState<BoardOrder[]>(initialOrders);
   const [status, setStatus] = useState<RealtimeStatus>("connecting");
@@ -27,8 +31,10 @@ export function useRealtimeOrders(
   // Hold the latest callback in a ref so a fresh closure each render doesn't
   // force a channel re-subscribe.
   const onInsertRef = useRef(onInsert);
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
     onInsertRef.current = onInsert;
+    onChangeRef.current = onChange;
   });
 
   // Re-fetch the active-order set (mirrors the dashboard server query in
@@ -86,6 +92,7 @@ export function useRealtimeOrders(
       }
       return [...byId.values()];
     });
+    onChangeRef.current?.(null);
     // supabase is stable; only the booth filter identity matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterString]);
@@ -112,6 +119,9 @@ export function useRealtimeOrders(
           changedAt.current.set(id, ++eventVersion.current);
           setOrders((prev) => applyRealtimeOrderEvent(prev, event));
           if (event.type === "INSERT") onInsertRef.current?.(event.order);
+          onChangeRef.current?.(
+            event.type === "DELETE" ? null : event.order.booth_id,
+          );
         },
       )
       // Every subscription reconciles, including the SSR-to-hydration gap.

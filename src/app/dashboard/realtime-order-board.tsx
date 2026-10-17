@@ -32,6 +32,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
+import { useCupsToday } from "@/hooks/use-cups-today";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import type { OptionCodes } from "@/lib/ticket";
 import { OrderCard } from "@/components/board/order-card";
@@ -262,10 +263,15 @@ export function RealtimeOrderBoard({
     }
   }
 
+  // Each capped booth's item count, re-read as its orders change so the
+  // booth row's "N/cap items" follows a rush without a reload.
+  const { withLiveCount, refreshCups } = useCupsToday(booths);
+
   const { orders, status: liveStatus } = useRealtimeOrders(
     boothIds,
     initialOrders,
     handleNewOrder,
+    refreshCups,
   );
 
   // dailyOrderNumberBaselines is each booth's first order_number of the SGT
@@ -625,7 +631,7 @@ export function RealtimeOrderBoard({
       {booths.length === 1 && soleBooth && (
         <div className="mb-6 max-w-sm">
           <BoothRow
-            b={soleBooth}
+            b={withLiveCount(soleBooth)}
             color={boothColor.get(soleBooth.id)}
             showDot={false}
             active={boothIsActive(soleBooth)}
@@ -655,7 +661,7 @@ export function RealtimeOrderBoard({
             {booths.map((b) => (
               <BoothRow
                 key={b.id}
-                b={b}
+                b={withLiveCount(b)}
                 color={boothColor.get(b.id)}
                 showDot
                 active={boothIsActive(b)}
