@@ -14,7 +14,9 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.34.0`, which adds `DataCollectionNotice`, the PDPA
+commit tagged `v0.34.2`, which treats a Next.js `redirect()` from a server
+action as navigation, so the dashboard's Sign out no longer flashes
+"NEXT_REDIRECT". Since `v0.34.0` it has `DataCollectionNotice`, the PDPA
 point-of-collection line the customer order form shows above its submit button
 (`phoneOptional`, because the phone field can be left blank).
 Since `v0.32.3`, `Section` title tooltips and default-mode `InfoTooltip`s open
