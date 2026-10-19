@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, Circle } from "lucide-react";
+import { Check, Circle } from "lucide-react";
+import { BackButton } from "@merqo/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
@@ -155,12 +155,7 @@ export default async function AdminVendorDetailPage({
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-5 py-7">
       <div className="space-y-3">
-        <Link
-          href="/admin/vendors"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> All vendors
-        </Link>
+        <BackButton href="/admin/vendors" label="All vendors" />
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-4xl font-semibold leading-none">
             {stallName}

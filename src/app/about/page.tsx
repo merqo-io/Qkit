@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AboutMerqo } from "@merqo/ui";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/landing/nav";
-import { Footer } from "@/components/landing/footer";
+import { SiteFooter } from "@/components/widgets/site-footer";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
@@ -21,7 +21,7 @@ export default async function AboutPage() {
           <Link href="/#how">See how qkit works</Link>
         </Button>
       </AboutMerqo>
-      <Footer />
+      <SiteFooter showSignIn />
     </div>
   );
 }

@@ -13,7 +13,7 @@ Printable QR-code poster page for one booth, with a token-regenerate action for 
 
 ## Connectivity
 
-Reached from `booth-list.tsx`'s QR button and from `BoothQrPoster`'s own "Back to booths" link. `page.tsx` loads the booth and hands it to `booth-qr-poster.tsx`, which embeds `regenerate-button.tsx`; `regenerate-button.tsx` calls `regenerateShortCode` in `../../actions.ts` (two levels up, the `booths/actions.ts` shared with the booth form), which revalidates this same `qr` page path after rotating the code.
+Reached from `booth-list.tsx`'s QR button and from `BoothQrPoster`'s own "Back to booths" `BackButton` (`@merqo/ui`). `page.tsx` loads the booth and hands it to `booth-qr-poster.tsx`, which embeds `regenerate-button.tsx`; `regenerate-button.tsx` calls `regenerateShortCode` in `../../actions.ts` (two levels up, the `booths/actions.ts` shared with the booth form), which revalidates this same `qr` page path after rotating the code.
 
 ## Parent
 

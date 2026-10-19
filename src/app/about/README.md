@@ -20,7 +20,7 @@ wedding-coffee-cart story), linked from the landing `Nav` and `Footer`.
 
 ## Connectivity
 
-Linked from `Nav`/`Footer` (`src/components/landing/`) on both the
+Linked from `Nav` (`src/components/landing/`) and `SiteFooter` (`src/components/widgets/`) on both the
 landing page and this one.
 
 ## Parent

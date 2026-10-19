@@ -19,7 +19,9 @@ vi.mock("@/components/landing/nav", () => ({
     return null;
   },
 }));
-vi.mock("@/components/landing/footer", () => ({ Footer: () => null }));
+vi.mock("@/components/widgets/site-footer", () => ({
+  SiteFooter: () => null,
+}));
 vi.mock("@/components/landing/hero-preview-carousel", () => ({
   HeroPreviewCarousel: () => null,
 }));
