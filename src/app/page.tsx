@@ -1,7 +1,7 @@
 import { Bell, Check, ListChecks, QrCode, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/landing/nav";
-import { Footer } from "@/components/landing/footer";
+import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
 import { BackToTop } from "@merqo/ui";
@@ -637,7 +637,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <Footer />
+      <SiteFooter showSignIn />
 
       <BackToTop />
     </div>

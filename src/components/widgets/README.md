@@ -60,6 +60,11 @@ ariaLabel, size? })` (client): a bordered row of pills with one active,
   range, "By volume / By revenue"). Also exports `SEGMENT_GROUP_CLASS`, the
   track, for the booth form's two sub-mode switches: those are radio inputs
   in a form, so they stay a `ToggleGroup` and only share the look.
+- `site-footer.test.tsx` — wordmark, tagline, copyright, About, Terms and
+  Privacy links; sign-in link only with `showSignIn`.
+- `site-footer.tsx` — `SiteFooter({ showSignIn })`: `@merqo/ui`'s family
+  `Footer` with qkit's wordmark and tagline. The landing page and `/about`
+  pass `showSignIn`; the dashboard layout ends with it, without.
 - `social-links-row.dom.test.tsx` — RTL tests for `SocialLinksRow`'s
   empty/partial-link rendering.
 - `social-links-row.tsx` — `SocialLinksRow({ links })`: read-only icon row
