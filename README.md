@@ -55,7 +55,8 @@ rebuild after changing them.
 See [.env.example](.env.example) for the full configuration contract and
 [deployment notes](docs/DEPLOY.md) for environment scoping. In particular,
 `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` is Production-only; setting `.merqo.io` on a
-preview hostname breaks authentication. Missing Merqo legal configuration
+preview hostname breaks authentication. Preview deployments use the staging
+Supabase project, not production (see the deployment notes). Missing Merqo legal configuration
 prevents signed-in vendors from passing the legal-acceptance gate.
 
 ## Database setup
@@ -155,7 +156,7 @@ checks; inspect `.github/workflows/` for the actual job conditions.
 - [supabase](supabase/README.md): migrations, seeds and pgTAP checks.
 - [test](test/README.md) and [e2e](e2e/README.md): test layers and prerequisites.
 - [docs](docs/README.md): operations, design history and audit findings.
-- [scripts](scripts/README.md): opt-in demo recording/composition tools.
+- [scripts](scripts/README.md): opt-in demo recording/composition tools and the staging migration loader. `.gitattributes` keeps `*.sh` on LF line endings.
 - [public](public/README.md): static assets (seed images and the service worker).
 - [AGENTS.md](AGENTS.md) and [constitution](docs/CONSTITUTION.md): project rules.
 - [.claude](.claude/README.md) and [.husky](.husky/README.md): agent and Git hooks.

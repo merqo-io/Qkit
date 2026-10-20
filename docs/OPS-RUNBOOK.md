@@ -28,6 +28,19 @@ any of these as a bug, check the var is set on Vercel → Production first:
 | No Telegram ping to vendor or customer                   | `MERQO_CUSTOMER_SECRET`, `MERQO_BASE_URL`                                                            |
 | "Earn a stamp" link missing on order-status              | `NEXT_PUBLIC_LOOPKIT_URL`                                                                            |
 
+## Migration-bearing PRs: staging first
+
+Before merging a PR that adds a file under `supabase/migrations/`:
+
+1. Apply only the new file(s) to the staging project, from the PR branch
+   checkout, with `STAGING_DB_URL` set to the staging session pooler URI
+   (merqo's `docs/STAGING.md`, setup step 2):
+   `docker run --rm -e STAGING_DB_URL -v "${PWD}:/repo:ro" postgres:17.6-alpine sh /repo/scripts/staging-migrate.sh supabase/migrations/<new-file>.sql`
+2. Check the PR's own Vercel preview end to end. Its `Preview` env vars
+   already point at the staging project and merqo's staging host.
+3. Merge the PR.
+4. Apply the same file to production the usual way (Supabase SQL Editor).
+
 ## When it actually needs a dev (me)
 
 - The env var above is confirmed set correctly and the feature still doesn't
