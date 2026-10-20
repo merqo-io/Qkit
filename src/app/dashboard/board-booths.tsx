@@ -7,8 +7,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { boothColor } from "@/lib/booth/color";
+import { boothDotTitle } from "@/lib/booth/color";
 import { cn } from "@/lib/utils";
+import { StartServiceButton } from "./start-service-button";
 
 export type BoothView = {
   id: string;
@@ -117,11 +118,14 @@ function CupCount({ cap, used }: { cap?: number | null; used?: number }) {
 // button would be a border around a border for no reason.
 export function BoothRow({
   b,
+  color,
   showDot,
   active,
   onToggle,
 }: {
   b: BoothView;
+  // From the board's boothColors(), so it matches the tickets and the filter.
+  color?: string;
   showDot: boolean;
   active: boolean;
   onToggle: (checked: boolean) => void;
@@ -131,11 +135,16 @@ export function BoothRow({
       {showDot && (
         <span
           className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: boothColor(b.id) }}
+          style={{ backgroundColor: color }}
+          title={boothDotTitle(b.name)}
         />
       )}
       <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
       <CupCount cap={b.daily_cup_cap} used={b.cups_today} />
+      {/* Only a booth with a daily limit has a count to reset. */}
+      {b.daily_cup_cap != null && (
+        <StartServiceButton boothId={b.id} boothName={b.name} compact />
+      )}
       {/* Manually active but outside scheduled hours: customers still see
           it closed. A distinct state from the toggle itself, worth
           surfacing so the vendor isn't confused about why orders still

@@ -170,6 +170,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `nps.test.ts` — tests the breakdown math and the empty-responses case.
 - `order-alerts.ts` — customer/vendor "order ready"/"new order" alerting:
   `isNotifySupported`/`notifyPermission`/`requestNotifyPermission`,
+  `readyNotificationContent` (the ready popup's title, body and tag, shared
+  with the server's web push so both coalesce into one popup),
   `fireReadyNotification`/`fireNewOrderNotification` (service-worker
   `showNotification` with a page-level `Notification` fallback),
   `unlockAudio` + `playReadyChime`/`playSound` (a shared, gesture-unlocked
@@ -179,6 +181,10 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `order-alerts.test.ts` — tests permission gating, notification dispatch
   fallback, sound-preset scheduling and synchronous/rejected audio-resume
   failures against mocked WebAudio/Notification APIs.
+- `order-display.ts` — `resolveOrderDisplay(supabase, boothId, vendorId,
+orderNumber)`: the customer-facing order number (daily-reset number when the
+  vendor turned it on, else the real one). Shared by the order-status page and
+  `savePushSubscription`.
 - `orders.ts` — order-board core: `BOARD_ORDER_COLUMNS` (explicit column list
   excluding `access_token`), `TERMINAL_STATUSES`/`isTerminal`, `ADVANCE` (legal
   forward-status map + button label), `orderAgeTone`/`elapsedMinutes`/
@@ -230,6 +236,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   real-number fallbacks, `splitTrailingDigit`'s lead/last split (including
   the single-character and `null` edge cases), and `needsPaymentReview`'s
   pending/payment-status matrix.
+- `push/` — order-ready web push: subscription schema and push-host
+  allowlist, the server-side sender, and the browser subscribe helper.
 - `paykit/` — server-only HTTP client for paykit's `/api/v1/*` checkout API
   (vendor config upsert + full read-back, checkout create/claim/unclaim/
   confirm/status); see its own README. Replaced the local PayNow QR builder
@@ -372,13 +380,16 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   `optionBreakdown`, `grossMargin` (only computed when at least one item
   carries a cost); also `windowSeries`/`waitSeries` (bucketed trend/wait-time
   series), `avgWaitSeconds`, `peakThroughput`, `pctChange`,
-  `estimateWaitSeconds` (recent-average × orders-ahead customer wait
-  estimate, null below `minSample`; takes an optional
+  `typicalPrepSeconds` (median placed-to-ready wait, leaving out cancelled
+  orders and waits over `MAX_PREP_WAIT_SECONDS` = 1h as abandoned, so a few
+  forgotten test orders cannot push it to hours), `estimateWaitSeconds`
+  (typical prep × orders-ahead customer wait estimate, null below
+  `minSample` usable waits; takes an optional
   `fallbackAvgSecondsPerOrder` — board_settings.default_prep_minutes × 60 —
   used only below that sample size, so a vendor's manual estimate never
   overrides real, trusted data), `currentPrepEstimate` (same threshold gate
-  as `estimateWaitSeconds`, but returns the recent average in minutes plus
-  the raw sample count/`minSample` instead of multiplying by orders-ahead —
+  as `estimateWaitSeconds`, but returns the typical (median) prep time in
+  minutes plus the usable-wait count/`minSample` instead of multiplying by orders-ahead —
   a vendor-facing "here's what's live right now" label for the Settings
   page, not part of any customer-facing wait calculation).
 - `stats.test.ts` — tests bucketing, margin computation, refund detection,

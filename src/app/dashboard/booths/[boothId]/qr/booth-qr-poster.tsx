@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import QRCode from "react-qr-code";
-import { ArrowLeft, Download, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
+import { BackButton } from "@merqo/ui";
 import { Button } from "@/components/ui/button";
 import { Ticket } from "@/components/widgets/ticket";
 import { orderPath } from "@/lib/booth/code";
@@ -36,7 +37,6 @@ function slugify(value: string): string {
 }
 
 export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
-  const router = useRouter();
   const qrRef = useRef<HTMLDivElement>(null);
   // origin is only known on the client. useSyncExternalStore returns the server
   // snapshot (null) during hydration, then the client snapshot — SSR-safe with
@@ -85,14 +85,11 @@ export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
   return (
     <div className="mx-auto max-w-md">
       <div className="mb-5 print:hidden">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-lg"
-          onClick={() => router.push("/dashboard/booths")}
-        >
-          <ArrowLeft className="size-4" /> Back to booths
-        </Button>
+        <BackButton
+          href="/dashboard/booths"
+          label="Back to booths"
+          LinkComponent={Link}
+        />
       </div>
 
       <Ticket shadow="none" className="bg-card p-8 text-center">

@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { Switch } from "@/components/ui/switch";
+import { SettingRow } from "./setting-row";
 import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 
 // Mirrors src/lib/paykit/client.ts's fallback — duplicated since this is a
@@ -77,28 +78,28 @@ export function PaymentSection({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-        <span className="text-sm">
-          <span className="font-medium">
-            Take payment for orders at this booth
-          </span>
-          <span className="block text-muted-foreground">
-            While off, customers just join the queue and settle up at the
-            counter.
-          </span>
-        </span>
+      <SettingRow
+        label="Take payment"
+        hint="Customers pay when they order. While off, they just join the queue and settle up at the counter."
+        hintLabel="About taking payment"
+      >
         <Switch
           checked={value && !nothingOnFile}
           onCheckedChange={onChange}
           disabled={locked}
           aria-label="Take payment for orders at this booth"
         />
-      </div>
+      </SettingRow>
 
       <p className="px-1 text-sm text-muted-foreground">{summaryOf(setup)}</p>
 
       <p className="px-1 text-sm">
-        <a href={setupUrl} className="font-medium text-primary hover:underline">
+        <a
+          href={setupUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-primary hover:underline"
+        >
           {linkTextOf(setup)}
         </a>
       </p>

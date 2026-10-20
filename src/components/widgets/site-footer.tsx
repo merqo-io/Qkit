@@ -1,8 +1,13 @@
-import { Footer as SharedFooter } from "@merqo/ui";
+import { Footer } from "@merqo/ui";
 
-export function Footer() {
+/**
+ * qkit's copy of the family footer: `@merqo/ui`'s shared `Footer` with the
+ * qkit wordmark and tagline. The landing page and `/about` pass `showSignIn`;
+ * the dashboard leaves it off, since everyone there is already signed in.
+ */
+export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
   return (
-    <SharedFooter
+    <Footer
       wordmark={
         // Plain <a>, not Link — see nav.tsx's wordmark comment: a same-page
         // hash jump needs a native anchor so the URL bar's hash always
@@ -19,6 +24,7 @@ export function Footer() {
       }
       tagline="Built for booths. Made in Singapore."
       kitName="qkit"
+      showSignIn={showSignIn}
     />
   );
 }

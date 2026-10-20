@@ -62,6 +62,22 @@ async function showNotification(
   }
 }
 
+/**
+ * Text of the "your order is ready" popup. Shared by the page's own popup and
+ * the server's web push (src/lib/push/send.ts), so the two carry the same tag
+ * and an open tab shows one popup, not two.
+ */
+export function readyNotificationContent(
+  boothName: string,
+  orderNumber: string,
+): { title: string; body: string; tag: string } {
+  return {
+    title: `Order #${orderNumber} is ready`,
+    body: `${boothName}. Please collect it now.`,
+    tag: `qkit-order-${orderNumber}`,
+  };
+}
+
 /** "Your order is ready" popup for the customer status page. */
 export async function fireReadyNotification(
   boothName: string,
@@ -69,12 +85,9 @@ export async function fireReadyNotification(
   url?: string,
 ): Promise<void> {
   if (!isNotifySupported() || Notification.permission !== "granted") return;
-  await showNotification(`Order #${orderNumber} is ready`, {
-    body: `${boothName}. Please collect it now.`,
-    // Same tag coalesces repeats into one popup if the effect re-fires.
-    tag: `qkit-order-${orderNumber}`,
-    data: { url: url ?? "/" },
-  });
+  const { title, body, tag } = readyNotificationContent(boothName, orderNumber);
+  // Same tag coalesces repeats into one popup if the effect re-fires.
+  await showNotification(title, { body, tag, data: { url: url ?? "/" } });
 }
 
 /**

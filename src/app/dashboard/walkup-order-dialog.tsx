@@ -57,6 +57,11 @@ interface Props {
   // board owns the day's numbering (daily reset shows #002 for permanent
   // number 0847); without this the dialog can only show the permanent one.
   displayNumber?: (boothId: string, orderNumber: string) => string;
+  // Bracket each placement, so the board can tell its own walk-up's realtime
+  // echo from a new order and skip the new-order alert for it. onPlaced gets
+  // the permanent number, or null when the order was not placed.
+  onPlacing?: () => void;
+  onPlaced?: (boothId: string, orderNumber: string | null) => void;
 }
 
 const permanentNumber = (_boothId: string, orderNumber: string) => orderNumber;
@@ -101,6 +106,8 @@ export function WalkupOrderDialog({
   booths,
   initialBoothId,
   displayNumber = permanentNumber,
+  onPlacing,
+  onPlaced,
 }: Props) {
   const [boothId, setBoothId] = useState(initialBoothId ?? booths[0]?.id ?? "");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -262,21 +269,26 @@ export function WalkupOrderDialog({
       return;
     }
     setSubmitting(true);
+    let placedNumber: string | null = null;
+    onPlacing?.();
     try {
       const res = await placeWalkupOrder(boothId, parsed.data, false);
       if (!res.success) {
         toast.error(res.error);
         return;
       }
+      placedNumber = res.orderNumber;
       const shown = displayNumber(boothId, res.orderNumber);
       toast.success(`Order #${shown} added to the board`);
-      if (res.payment) setPayStep({ ...res.payment, orderNumber: shown });
+      if (res.payment && res.payment.amountCents > 0)
+        setPayStep({ ...res.payment, orderNumber: shown });
       else finishOrder();
     } catch {
       toast.error(
         "Could not confirm the order. Check the board before trying again.",
       );
     } finally {
+      onPlaced?.(boothId, placedNumber);
       setSubmitting(false);
     }
   }
@@ -551,7 +563,9 @@ export function WalkupOrderDialog({
                   />
                 </div>
 
-                {expectsPayment && (
+                {/* A free order has nothing to collect, so no payment step
+                    follows it (see pendingPayment in walkup-actions). */}
+                {expectsPayment && total > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Payment comes next. After you add the order, this screen
                     shows the amount and your payment QR for the customer.

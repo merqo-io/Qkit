@@ -243,6 +243,50 @@ describe("OrderForm cart", () => {
     expect(within(dialog).getByLabelText("Your name")).not.toHaveFocus();
   });
 
+  it.each([
+    [true, true],
+    [false, false],
+  ])(
+    "says to pay at the counter in the sheet when the booth takes no payment (%s)",
+    async (paysInPerson, shown) => {
+      const user = userEvent.setup();
+      render(
+        <OrderForm
+          code="code123"
+          boothId="b1"
+          menuItems={[KOPI]}
+          paysInPerson={paysInPerson}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Add" }));
+      await user.click(screen.getByRole("button", { name: /Continue/ }));
+      const dialog = await screen.findByRole("dialog");
+      const note = within(dialog).queryByText(
+        "Pay at the counter when you collect.",
+      );
+      if (shown) expect(note).toBeInTheDocument();
+      else expect(note).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not ask for payment at the counter on a free basket", async () => {
+    const user = userEvent.setup();
+    render(
+      <OrderForm
+        code="code123"
+        boothId="b1"
+        menuItems={[{ ...KOPI, price_cents: undefined }]}
+        paysInPerson
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByText("Pay at the counter when you collect."),
+    ).not.toBeInTheDocument();
+  });
+
   it("lists what's being ordered inside the checkout sheet", async () => {
     const user = userEvent.setup();
     renderForm();
@@ -667,6 +711,26 @@ describe("OrderForm cart", () => {
     expect(push).toHaveBeenCalledWith("/order/b1/0042?t=tok42");
   });
 
+  it("tells the customer why their details are collected, with a privacy link, before the submit button", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).getByText(
+        /We use your name, and your phone number if you give one, to identify your order and send you order updates\./,
+      ),
+    ).toBeInTheDocument();
+    const link = within(dialog).getByRole("link", { name: "Privacy Policy" });
+    expect(link).toHaveAttribute("href", "/legal/privacy");
+    const submit = within(dialog).getByRole("button", { name: /Place order/ });
+    expect(
+      link.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("passes the phone value through to placeOrder when filled", async () => {
     const user = userEvent.setup();
     renderForm();
@@ -866,7 +930,7 @@ describe("OrderForm booth limits and basket holds", () => {
     expect(holdCart).not.toHaveBeenCalled();
   });
 
-  it("refuses an add past what the booth has left today, across items", async () => {
+  it("refuses an add past what the booth has left, across items", async () => {
     const user = userEvent.setup();
     render(
       <OrderForm
@@ -881,7 +945,7 @@ describe("OrderForm booth limits and basket holds", () => {
     await user.click(screen.getByRole("button", { name: "stub-confirm" }));
 
     expect(toast.error).toHaveBeenCalledWith(
-      "This stall has only 1 item left today.",
+      "This stall has only 1 item left.",
     );
   });
 
@@ -1056,9 +1120,7 @@ describe("OrderForm booth limits and basket holds", () => {
       screen.getByRole("button", { name: "Add items to order" }),
     ).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Add" }));
-    expect(toast.error).toHaveBeenCalledWith(
-      "This stall has nothing left for today.",
-    );
+    expect(toast.error).toHaveBeenCalledWith("This stall has sold out.");
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
@@ -1110,7 +1172,7 @@ describe("OrderForm booth limits and basket holds", () => {
 
 describe("OrderForm stock notice", () => {
   it.each([1, 3, 10])(
-    "says how many items are left today when stock is low: %s",
+    "says how many items are left when stock is low: %s",
     (left) => {
       render(
         <OrderForm
@@ -1121,10 +1183,13 @@ describe("OrderForm stock notice", () => {
         />,
       );
       expect(
-        screen.getByText(
-          `Only ${left} ${left === 1 ? "item" : "items"} left today`,
-        ),
+        screen.getByText(`Only ${left} ${left === 1 ? "item" : "items"} left`),
       ).toBeInTheDocument();
+      // A one-off event never reopens tomorrow, so the notice promises nothing.
+      expect(
+        screen.getByText("Once they're gone, this stall stops taking orders."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/tomorrow/)).not.toBeInTheDocument();
     },
   );
 
@@ -1139,7 +1204,7 @@ describe("OrderForm stock notice", () => {
           left={left}
         />,
       );
-      expect(screen.queryByText(/left today/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Only .* left/)).not.toBeInTheDocument();
     },
   );
 
@@ -1161,8 +1226,8 @@ describe("OrderForm stock notice", () => {
         { timeout: 3000 },
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Only 3 items left today")).toBeInTheDocument();
-    expect(screen.queryByText("Only 1 item left today")).toBeNull();
+    expect(screen.getByText("Only 3 items left")).toBeInTheDocument();
+    expect(screen.queryByText("Only 1 item left")).toBeNull();
   });
 
   it("allows daily stock held in other baskets without exceeding the order limit", async () => {
@@ -1186,7 +1251,7 @@ describe("OrderForm stock notice", () => {
         },
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Only 3 items left today")).toBeInTheDocument();
+    expect(screen.getByText("Only 3 items left")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add" }));
     await user.click(screen.getByRole("button", { name: "Add one Kopi" }));
     expect(toast.error).toHaveBeenCalledWith(

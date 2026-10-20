@@ -1,7 +1,7 @@
 import { Bell, Check, ListChecks, QrCode, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/landing/nav";
-import { Footer } from "@/components/landing/footer";
+import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
 import { BackToTop } from "@merqo/ui";
@@ -371,6 +371,7 @@ export default async function LandingPage() {
               <LandingCta
                 href={primaryHref}
                 event={user ? undefined : "landing_cta"}
+                className="h-12 rounded-xl px-7 text-base font-semibold"
               >
                 {primaryLabel}
               </LandingCta>
@@ -418,8 +419,9 @@ export default async function LandingPage() {
         </p>
       </section>
 
-      {/* How it works */}
-      <section id="how" className="mx-auto max-w-5xl px-5 py-14">
+      {/* How it works. scroll-mt-20 clears the sticky nav (about 69px) so
+          "See how" does not land the heading under it. */}
+      <section id="how" className="mx-auto max-w-5xl scroll-mt-20 px-5 py-14">
         <h2 className="font-display mb-10 text-center text-3xl font-semibold">
           Up and running in three steps
         </h2>
@@ -635,7 +637,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <Footer />
+      <SiteFooter showSignIn />
 
       <BackToTop />
     </div>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";
 import { advanceOrder, revertOrderAdvance } from "./order-actions";
 import { toast } from "sonner";
+import { playSound } from "@/lib/order-alerts";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
 import type { BoardOrder } from "@/lib/types";
 
@@ -42,8 +43,19 @@ function order(overrides: Partial<BoardOrder> = {}): BoardOrder {
 
 // The board renders via useRealtimeOrders, which opens a Supabase realtime
 // channel — stub it out to a no-op so the hook just echoes initialOrders.
+// The postgres_changes handler is captured so a test can push an order event,
+// and rpc answers the item count's booth_cups_today re-read.
+const realtime = vi.hoisted(() => ({
+  emit: undefined as ((payload: unknown) => void) | undefined,
+  rpc: vi.fn(),
+}));
+vi.mock("@/lib/order-alerts", () => ({
+  playSound: vi.fn(async () => true),
+  fireNewOrderNotification: vi.fn(async () => undefined),
+}));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
+    rpc: realtime.rpc,
     from: () => ({
       select: () => ({
         in: () => ({
@@ -54,10 +66,13 @@ vi.mock("@/lib/supabase/client", () => ({
       }),
     }),
     channel: () => ({
-      on: () => ({
-        on: () => ({ subscribe: () => ({}) }),
-        subscribe: () => ({}),
-      }),
+      on: (_event: string, _filter: unknown, cb: (p: unknown) => void) => {
+        realtime.emit = cb;
+        return {
+          on: () => ({ subscribe: () => ({}) }),
+          subscribe: () => ({}),
+        };
+      },
       subscribe: () => ({}),
     }),
     removeChannel: () => {},
@@ -410,6 +425,9 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       { wrapper: TooltipProvider },
     );
     expect(screen.getByText("132/200 items")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /start a new service for/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows nothing for a booth with no cap", () => {
@@ -422,6 +440,96 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       { wrapper: TooltipProvider },
     );
     expect(screen.queryByText(/\d items$/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /start a new service for/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("re-reads the count when a new order arrives, without a reload", async () => {
+    realtime.rpc.mockResolvedValue({ data: 133, error: null });
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(screen.getByText("132/200 items")).toBeInTheDocument();
+    act(() =>
+      realtime.emit?.({
+        eventType: "INSERT",
+        new: order({ id: "o9", order_number: "0009" }),
+        old: {},
+      }),
+    );
+    expect(await screen.findByText("133/200 items")).toBeInTheDocument();
+    expect(realtime.rpc).toHaveBeenCalledExactlyOnceWith("booth_cups_today", {
+      p_booth_id: "b1",
+    });
+  });
+
+  it("re-reads the count when an order is cancelled", async () => {
+    realtime.rpc.mockResolvedValue({ data: 131, error: null });
+    const placed = order({ id: "o9", order_number: "0009" });
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        initialOrders={[placed]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() =>
+      realtime.emit?.({
+        eventType: "UPDATE",
+        new: {
+          ...placed,
+          status: "cancelled",
+          updated_at: "2026-06-12T04:05:00Z",
+        },
+        old: {},
+      }),
+    );
+    expect(await screen.findByText("131/200 items")).toBeInTheDocument();
+  });
+
+  it("gives way to a fresh server count after Start new service refreshes", async () => {
+    realtime.rpc.mockResolvedValue({ data: 133, error: null });
+    const props = {
+      initialOrders: [],
+      boardSettings: DEFAULT_BOARD_SETTINGS,
+    };
+    const { rerender } = render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 132 }]}
+        {...props}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() => realtime.emit?.({ eventType: "INSERT", new: order(), old: {} }));
+    expect(await screen.findByText("133/200 items")).toBeInTheDocument();
+    // router.refresh() after the reset: new booth objects, count back to 0.
+    rerender(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 200, cups_today: 0 }]}
+        {...props}
+      />,
+    );
+    expect(screen.getByText("0/200 items")).toBeInTheDocument();
+  });
+
+  it("does not re-read for a booth with no cap", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    act(() => realtime.emit?.({ eventType: "INSERT", new: order(), old: {} }));
+    expect(realtime.rpc).not.toHaveBeenCalled();
   });
 
   it("warns inside the last tenth of the cap, so staff can tell the queue", () => {
@@ -991,10 +1099,8 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /^select$/i }));
-    // With nothing ticked the stand-in button is the one that applies here.
-    expect(
-      screen.getByRole("button", { name: "Mark 0 Picked Up" }),
-    ).toBeDisabled();
+    // With nothing ticked the bar asks for a pick, not "Mark 0".
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
     expect(
       screen.queryByRole("button", { name: /mark \d+ ready/i }),
     ).not.toBeInTheDocument();
@@ -1075,9 +1181,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       { wrapper: TooltipProvider },
     );
     await user.click(screen.getByRole("button", { name: /^select$/i }));
-    expect(
-      screen.getByRole("button", { name: "Mark 0 Picked Up" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
 
     await user.click(screen.getByText("Mei Ling"));
     expect(
@@ -1105,9 +1209,10 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await user.click(screen.getByRole("button", { name: "Select all" }));
     await user.click(screen.getByRole("button", { name: "Clear all" }));
 
+    expect(screen.getByRole("button", { name: "Pick orders" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /mark 0 ready/i }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: /mark \d+/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Select all" }),
     ).toBeInTheDocument();
@@ -1194,24 +1299,136 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     },
   );
 
-  it("has no separate mark-all button on the board", () => {
+  it("floats the selection bar over the board instead of pushing it down", async () => {
+    const user = userEvent.setup();
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
         initialOrders={[
-          order({ id: "o1", order_number: "0001", status: "preparing" }),
-          order({ id: "o2", order_number: "0002", status: "preparing" }),
+          order({ id: "o1", order_number: "0001", status: "ready" }),
         ]}
         boardSettings={DEFAULT_BOARD_SETTINGS}
       />,
       { wrapper: TooltipProvider },
     );
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+
+    const bar = screen.getByRole("toolbar", { name: "Selected orders" });
+    expect(bar).toHaveClass("fixed", "bottom-0");
+    expect(bar.className).toMatch(/safe-area-inset-bottom/);
     expect(
-      screen.queryByRole("button", { name: "Mark all ready" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "About Select" }),
+      within(bar).getByRole("button", { name: "Cancel" }),
     ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole("button", { name: "Select all" }),
+    ).toBeInTheDocument();
+    // Select mode is on, so its own button is gone from the header.
+    expect(
+      screen.queryByRole("button", { name: /^select$/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(within(bar).getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.queryByRole("toolbar", { name: "Selected orders" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("RealtimeOrderBoard Accepted header", () => {
+  function renderBoard(orders: BoardOrder[]) {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={orders}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+  }
+  const acceptedHeader = () =>
+    screen.getByRole("heading", { name: /^Accepted \(\d+\)$/ })
+      .parentElement as HTMLElement;
+
+  it("puts Select in the Accepted header, the only section it acts on", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+    ]);
+    expect(
+      within(acceptedHeader()).getByRole("button", { name: /^select$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(acceptedHeader()).getByRole("button", { name: "About Select" }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks every preparing order ready in one tap and can undo it", async () => {
+    vi.mocked(revertOrderAdvance).mockResolvedValue({
+      success: true,
+      status: "preparing",
+    });
+    const user = userEvent.setup();
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+      order({ id: "o3", order_number: "0003", status: "ready" }),
+    ]);
+
+    await user.click(
+      within(acceptedHeader()).getByRole("button", {
+        name: "Mark all 2 ready",
+      }),
+    );
+
+    await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
+    expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
+    expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
+    const batchToast = vi
+      .mocked(toast.success)
+      .mock.calls.find(([message]) => message === "Marked 2 orders ready");
+    const options = batchToast?.[1] as {
+      action: { label: string; onClick: () => Promise<void> };
+    };
+    expect(options.action.label).toBe("Undo");
+    await options.action.onClick();
+    expect(revertOrderAdvance).toHaveBeenCalledWith(
+      "o1",
+      "preparing",
+      "ready",
+      "not_required",
+    );
+  });
+
+  it("is not offered for a single preparing order, which has its own button", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "ready" }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: /^mark all/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("never offers a bulk pick-up outside Select: customers collect one at a time", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "ready" }),
+      order({ id: "o2", order_number: "0002", status: "ready" }),
+    ]);
+    expect(
+      screen.queryByRole("button", { name: /^mark (all )?\d+ picked up/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("steps aside while Select is on", async () => {
+    const user = userEvent.setup();
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "preparing" }),
+      order({ id: "o2", order_number: "0002", status: "preparing" }),
+    ]);
+    await user.click(screen.getByRole("button", { name: /^select$/i }));
+    expect(
+      screen.queryByRole("button", { name: "Mark all 2 ready" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -1242,7 +1459,7 @@ describe("RealtimeOrderBoard incoming/accepted split", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows no section headers when every order is already accepted", () => {
+  it("keeps the Accepted header when every order is accepted, since Select lives there", () => {
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
@@ -1253,7 +1470,9 @@ describe("RealtimeOrderBoard incoming/accepted split", () => {
     );
 
     expect(screen.queryByText(/^Incoming/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Accepted/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Accepted (1)" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -1358,6 +1577,144 @@ describe("RealtimeOrderBoard start all incoming", () => {
   });
 });
 
+describe("RealtimeOrderBoard arrival-hold label", () => {
+  it("says the customer is not here yet, and keeps Start now as an override", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={[
+          { ...BOOTHS[0]!, requires_arrival_confirm: true },
+          { id: "b2", name: "Tea Stand", is_active: true, open: true },
+        ]}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", status: "pending" }),
+          order({
+            id: "o2",
+            booth_id: "b2",
+            order_number: "0002",
+            status: "pending",
+          }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(screen.getAllByText("Not here yet")).toHaveLength(1);
+    expect(screen.getAllByText("Waiting for you")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /start now/i })).toHaveLength(
+      2,
+    );
+  });
+});
+
+describe("RealtimeOrderBoard own walk-up alert", () => {
+  const WALKUP_BOOTH = {
+    id: "b1",
+    name: "Event Stall",
+    is_active: true,
+    open: true,
+    walkup_default: true,
+  };
+
+  function insert(o: BoardOrder) {
+    act(() => realtime.emit?.({ eventType: "INSERT", new: o, old: {} }));
+  }
+
+  beforeEach(() => {
+    vi.mocked(getWalkupMenu).mockResolvedValue({
+      menuItems: [
+        {
+          id: "m1",
+          name: "Kopi",
+          description: "",
+          available: true,
+          price_cents: 350,
+        },
+      ],
+      remaining: {},
+      expectsPayment: false,
+      paymentKind: null,
+    });
+  });
+
+  async function placeWalkup(before?: () => void) {
+    let finish!: () => void;
+    vi.mocked(placeWalkupOrder).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              success: true,
+              orderNumber: "0003",
+              accessToken: "tok",
+              payment: null,
+            });
+        }),
+    );
+    const user = userEvent.setup();
+    render(
+      <RealtimeOrderBoard
+        booths={[WALKUP_BOOTH]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await user.click(await screen.findByRole("button", { name: "Add" }));
+    await user.click(
+      screen.getByRole("button", { name: /add order · 1 item/i }),
+    );
+    before?.();
+    await act(async () => finish());
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringMatching(/^Order #0*[13] added to the board$/),
+      ),
+    );
+  }
+
+  const OWN = order({
+    id: "w3",
+    order_number: "0003",
+    status: "preparing",
+    source: "walkup",
+    created_at: new Date().toISOString(),
+  });
+
+  it("does not alert for its own walk-up arriving after the dialog returns", async () => {
+    await placeWalkup();
+    insert(OWN);
+    expect(playSound).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^New order/));
+  });
+
+  it("does not alert for its own walk-up arriving before the dialog returns", async () => {
+    await placeWalkup(() => insert(OWN));
+    expect(playSound).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^New order/));
+  });
+
+  it("still alerts for a walk-up placed elsewhere while its own is in flight", async () => {
+    await placeWalkup(() => insert({ ...OWN, id: "w4", order_number: "0004" }));
+    expect(playSound).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringMatching(/^New order #\d+ · Priya$/),
+    );
+  });
+
+  it("alerts for a walk-up another device placed", async () => {
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...WALKUP_BOOTH, walkup_default: false }]}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    insert(OWN);
+    expect(playSound).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("RealtimeOrderBoard payment filter", () => {
   it("hides a pending-payment QR order from the board", () => {
     const orders = [
@@ -1413,5 +1770,35 @@ describe("RealtimeOrderBoard payment filter", () => {
     expect(
       screen.getByText(byOrderNumber(/#0001/), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
+  });
+});
+
+describe("RealtimeOrderBoard booth colours", () => {
+  // "a" and "i" landed on the same hue under the old id hash.
+  const TWO_BOOTHS = [
+    { id: "a", name: "Kopi Corner", is_active: true, open: true },
+    { id: "i", name: "Teh Stand", is_active: true, open: true },
+  ];
+
+  it("gives each booth's tickets a different dot, labelled with the booth", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={TWO_BOOTHS}
+        initialOrders={[
+          order({ id: "o1", order_number: "0001", booth_id: "a" }),
+          order({ id: "o2", order_number: "0002", booth_id: "i" }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    const kopi = screen.getByTitle(
+      "Kopi Corner's colour, the same on its tickets and in the booth filter",
+    );
+    const teh = screen.getByTitle(
+      "Teh Stand's colour, the same on its tickets and in the booth filter",
+    );
+    expect(kopi.style.backgroundColor).not.toBe("");
+    expect(kopi.style.backgroundColor).not.toBe(teh.style.backgroundColor);
   });
 });

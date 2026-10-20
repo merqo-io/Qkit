@@ -190,8 +190,48 @@ export function avgWaitSeconds(orders: StatsOrder[]): number | null {
 }
 
 /**
- * Customer-facing wait estimate: recent average prep time × orders ahead in
- * the queue. Requires at least `minSample` recent orders before trusting the
+ * A placed-to-ready wait longer than this is read as an order left sitting
+ * (a test order, or one nobody marked ready until the end of the day), not a
+ * real prep time. The 2026-10-16 report: a few test orders left for hours
+ * pushed a plain mean to "~624 min per order".
+ */
+export const MAX_PREP_WAIT_SECONDS = 60 * 60;
+
+/** Waits that count towards a prep estimate: real, not cancelled, not abandoned. */
+function prepWaits(orders: StatsOrder[]): number[] {
+  const waits: number[] = [];
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    const w = waitOf(o);
+    if (w === null || w > MAX_PREP_WAIT_SECONDS) continue;
+    waits.push(w);
+  }
+  return waits;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[mid]!
+    : (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+/**
+ * Typical placed-to-ready time (seconds) for the wait estimates: the median
+ * of the usable waits, so one slow or forgotten order does not move it, with
+ * abandoned waits (over MAX_PREP_WAIT_SECONDS) left out. null when none
+ * qualify. Stats-page averages keep using avgWaitSeconds.
+ */
+export function typicalPrepSeconds(orders: StatsOrder[]): number | null {
+  return median(prepWaits(orders));
+}
+
+/**
+ * Customer-facing wait estimate: typical prep time (typicalPrepSeconds) ×
+ * orders ahead in the queue. Requires at least `minSample` usable recent
+ * waits before trusting the
  * booth's own history — a booth's first order of the day would otherwise get
  * a guess built from almost nothing. Below that threshold, falls back to
  * `fallbackAvgSecondsPerOrder` (board_settings.default_prep_minutes × 60,
@@ -206,20 +246,20 @@ export function estimateWaitSeconds(
   minSample = 10,
   fallbackAvgSecondsPerOrder: number | null = null,
 ): number | null {
-  if (recentOrders.length < minSample) {
+  const waits = prepWaits(recentOrders);
+  if (waits.length < minSample) {
     return fallbackAvgSecondsPerOrder !== null
       ? ordersAhead * fallbackAvgSecondsPerOrder
       : null;
   }
-  const avg = avgWaitSeconds(recentOrders);
-  if (avg === null) return null;
-  return ordersAhead * avg;
+  return ordersAhead * median(waits)!;
 }
 
 /**
  * Vendor-facing snapshot of the same data estimateWaitSeconds draws on —
- * average prep time per order (minutes) over the last completed orders, and
- * how many of `minSample` that's built on. Same threshold gate, so a
+ * typical prep time per order (minutes, the median from typicalPrepSeconds)
+ * over the last completed orders, and how many usable waits of `minSample`
+ * that's built on. Same threshold gate, so a
  * non-null `avgMinutes` here means the real estimate is live and the
  * vendor's `default_prep_minutes` fallback currently isn't in use. Settings-
  * page label only; not itself part of any customer-facing wait calculation.
@@ -228,12 +268,12 @@ export function currentPrepEstimate(
   recentOrders: StatsOrder[],
   minSample = 10,
 ): { avgMinutes: number | null; sampleCount: number; minSample: number } {
-  const sampleCount = recentOrders.length;
+  const waits = prepWaits(recentOrders);
+  const sampleCount = waits.length;
   if (sampleCount < minSample) {
     return { avgMinutes: null, sampleCount, minSample };
   }
-  const avg = avgWaitSeconds(recentOrders);
-  return { avgMinutes: avg === null ? null : avg / 60, sampleCount, minSample };
+  return { avgMinutes: median(waits)! / 60, sampleCount, minSample };
 }
 
 /**

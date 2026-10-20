@@ -16,6 +16,7 @@ const {
   advanceOrder,
   confirmOrderPayment,
   confirmPaymentAndStart,
+  declinePaymentClaim,
   revertPaymentAndStart,
   cancelOrder,
   bumpOrder,
@@ -25,6 +26,7 @@ const {
   advanceOrder: vi.fn(),
   confirmOrderPayment: vi.fn(),
   confirmPaymentAndStart: vi.fn(),
+  declinePaymentClaim: vi.fn(),
   revertPaymentAndStart: vi.fn(),
   cancelOrder: vi.fn(),
   bumpOrder: vi.fn(),
@@ -36,6 +38,7 @@ vi.mock("@/app/dashboard/order-actions", () => ({
   advanceOrder,
   confirmOrderPayment,
   confirmPaymentAndStart,
+  declinePaymentClaim,
   revertPaymentAndStart,
   cancelOrder,
   bumpOrder,
@@ -97,6 +100,7 @@ beforeEach(() => {
   advanceOrder.mockReset();
   confirmOrderPayment.mockReset();
   confirmPaymentAndStart.mockReset();
+  declinePaymentClaim.mockReset().mockResolvedValue({ success: true });
   revertPaymentAndStart.mockReset();
   cancelOrder.mockReset();
   bumpOrder.mockReset();
@@ -1035,34 +1039,145 @@ describe("OrderCard — payment proof review", () => {
     ).toBeInTheDocument();
   });
 
-  it("expands to render PaymentProofViewer with the order id and total once tapped, and collapses back on a second tap", async () => {
+  async function openProof(order: BoardOrder) {
     const user = userEvent.setup();
-    render(
-      <OrderCard
-        order={makeOrder({
-          id: "order-9",
-          payment_status: "claimed",
-          payment_proof_path: "vendor-1/order-1.png",
-          total_cents: 550,
-        })}
-      />,
-      { wrapper: TooltipProvider },
-    );
-
+    render(<OrderCard order={order} />, { wrapper: TooltipProvider });
     await user.click(
       screen.getByRole("button", { name: /view payment proof/i }),
     );
-    expect(await screen.findByTestId("proof-viewer")).toHaveTextContent(
-      "order-9:550",
-    );
-    expect(
-      screen.getByRole("button", { name: /hide payment proof/i }),
-    ).toBeInTheDocument();
+    return user;
+  }
 
-    await user.click(
-      screen.getByRole("button", { name: /hide payment proof/i }),
+  it("opens a modal with PaymentProofViewer for the order id and total, not on the ticket", async () => {
+    await openProof(
+      makeOrder({
+        id: "order-9",
+        payment_status: "claimed",
+        total_cents: 550,
+      }),
     );
-    expect(screen.queryByTestId("proof-viewer")).not.toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toContainElement(screen.getByTestId("proof-viewer"));
+    expect(screen.getByTestId("proof-viewer")).toHaveTextContent("order-9:550");
+  });
+
+  it("accepts the claim from the modal and closes it", async () => {
+    const user = await openProof(
+      makeOrder({ payment_status: "claimed", status: "preparing" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: /accept payment/i }),
+    );
+    await waitFor(() => expect(confirmOrderPayment).toHaveBeenCalledWith("o1"));
+    expect(confirmPaymentAndStart).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("accepting a still-pending claimed order starts it too", async () => {
+    const user = await openProof(
+      makeOrder({ payment_status: "claimed", status: "pending" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: /accept & start/i }),
+    );
+    await waitFor(() =>
+      expect(confirmPaymentAndStart).toHaveBeenCalledWith("o1"),
+    );
+    expect(confirmOrderPayment).not.toHaveBeenCalled();
+  });
+
+  it("declines the claim from the modal and closes it", async () => {
+    const user = await openProof(makeOrder({ payment_status: "claimed" }));
+    await user.click(await screen.findByRole("button", { name: /decline/i }));
+    await waitFor(() => expect(declinePaymentClaim).toHaveBeenCalledWith("o1"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("toasts the reason when a decline fails", async () => {
+    declinePaymentClaim.mockResolvedValue({
+      success: false,
+      error: "This payment was already confirmed",
+    });
+    const user = await openProof(makeOrder({ payment_status: "claimed" }));
+    await user.click(await screen.findByRole("button", { name: /decline/i }));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "This payment was already confirmed",
+      ),
+    );
+  });
+});
+
+describe("OrderCard status placement", () => {
+  it("puts a pending order's status badge in the bottom strip, not the header", () => {
+    render(<OrderCard order={makeOrder({ status: "pending" })} />, {
+      wrapper: TooltipProvider,
+    });
+    const badge = screen.getByText("Waiting for you");
+    const age = screen.getByTitle("Time since the order arrived");
+    expect(age.parentElement).toContainElement(badge);
+    expect(screen.getByRole("heading", { level: 3 })).not.toContainElement(
+      badge,
+    );
+  });
+
+  it("keeps the badge on one line, so an Incoming ticket is no taller than an Accepted one", () => {
+    render(<OrderCard order={makeOrder({ status: "pending" })} />, {
+      wrapper: TooltipProvider,
+    });
+    expect(screen.getByText("Waiting for you").parentElement).toHaveClass(
+      "shrink-0",
+      "whitespace-nowrap",
+    );
+  });
+
+  it("gives the footer a fixed height, so the pill cannot make an Incoming ticket taller", () => {
+    render(<OrderCard order={makeOrder({ status: "pending" })} />, {
+      wrapper: TooltipProvider,
+    });
+    const footer = screen.getByTitle("Time since the order arrived")
+      .parentElement as HTMLElement;
+    expect(footer).toHaveClass("h-10");
+    expect(footer).not.toHaveClass("min-h-10");
+    expect(footer.className).not.toMatch(/(^|\s)py-/);
+  });
+
+  it("says nothing for a preparing order", () => {
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    expect(screen.queryByText("Preparing")).not.toBeInTheDocument();
+  });
+});
+
+describe("OrderCard more menu icons", () => {
+  it("gives Cancel order an icon like Bump to front", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    await openMore(user);
+    expect(menuItem(/cancel order/i)?.querySelector("svg")).toBeInTheDocument();
+    expect(
+      menuItem(/bump to front/i)?.querySelector("svg"),
+    ).toBeInTheDocument();
+  });
+
+  it("colours Cancel order, icon included, as destructive", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    await openMore(user);
+    expect(menuItem(/cancel order/i)).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+    expect(menuItem(/bump to front/i)).toHaveAttribute(
+      "data-variant",
+      "default",
+    );
+  });
+
+  it("does not bump when the number is tapped: bumping is in the menu only", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder()} />, { wrapper: TooltipProvider });
+    await user.click(screen.getByRole("heading", { level: 3 }));
+    expect(bumpOrder).not.toHaveBeenCalled();
   });
 });
 

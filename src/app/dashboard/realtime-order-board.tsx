@@ -32,6 +32,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
+import { useCupsToday } from "@/hooks/use-cups-today";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import type { OptionCodes } from "@/lib/ticket";
 import { OrderCard } from "@/components/board/order-card";
@@ -44,7 +45,7 @@ import {
   sortActiveOrders,
   type AgeSortOrder,
 } from "@/lib/orders";
-import { boothColor } from "@/lib/booth/color";
+import { boothColors, boothDotTitle } from "@/lib/booth/color";
 import { fireNewOrderNotification, playSound } from "@/lib/order-alerts";
 import { toggleBoothActive } from "./booths/actions";
 import { sweepReadyOrders, sweepAbandonedPayments } from "./order-actions";
@@ -53,7 +54,8 @@ import { SegmentedControl } from "@/components/widgets/segmented-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 import {
   BATCH_BUTTON,
-  BatchControls,
+  SelectButton,
+  SelectionBar,
   isBatchable,
   useBatchSelection,
 } from "./board-batch";
@@ -142,6 +144,9 @@ export function RealtimeOrderBoard({
   const router = useRouter();
   const boothIds = booths.map((b) => b.id);
   const boothName = new Map(booths.map((b) => [b.id, b.name]));
+  // By place in the full booth list (oldest first), not the filtered one, so
+  // a booth keeps its colour whatever the filter shows.
+  const boothColor = boothColors(booths.map((b) => b.id));
   const [filter, setFilter] = useState<BoothFilter>("all");
   const [sortOrder, setSortOrder] = useState<AgeSortOrder>("earliest");
   const [phoneSection, setPhoneSection] = useState<PhoneSection>("incoming");
@@ -242,7 +247,55 @@ export function RealtimeOrderBoard({
     (_boothId: string, orderNumber: string) => orderNumber,
   );
 
+  // Walk-up orders this board placed itself, by booth and permanent number,
+  // each forgotten after a minute. The dialog already says "Order #003 added to
+  // the board", so its own realtime echo must not chime and toast again.
+  // Other devices on the same account never see these and still alert.
+  const ownWalkups = useRef(new Set<string>());
+  // The INSERT can land before placeWalkupOrder returns the number, so while
+  // a placement is in flight a walk-up INSERT waits here until it is known.
+  const walkupsInFlight = useRef(0);
+  const heldWalkupAlerts = useRef<BoardOrder[]>([]);
+
+  // True when the order is this board's own walk-up, and forgets it.
+  function claimOwnWalkup(order: BoardOrder): boolean {
+    return ownWalkups.current.delete(`${order.booth_id}:${order.order_number}`);
+  }
+
   function handleNewOrder(order: BoardOrder) {
+    if (order.order_number == null) return;
+    if (order.source === "walkup") {
+      if (claimOwnWalkup(order)) return;
+      if (walkupsInFlight.current > 0) {
+        heldWalkupAlerts.current.push(order);
+        return;
+      }
+    }
+    alertNewOrder(order);
+  }
+
+  function handleWalkupPlacing() {
+    walkupsInFlight.current += 1;
+  }
+
+  // orderNumber is the permanent number, or null when the placement failed.
+  function handleWalkupPlaced(boothId: string, orderNumber: string | null) {
+    walkupsInFlight.current = Math.max(0, walkupsInFlight.current - 1);
+    if (orderNumber != null) {
+      const key = `${boothId}:${orderNumber}`;
+      ownWalkups.current.add(key);
+      setTimeout(() => ownWalkups.current.delete(key), 60_000);
+    }
+    const held = heldWalkupAlerts.current;
+    heldWalkupAlerts.current = [];
+    for (const order of held) {
+      if (claimOwnWalkup(order)) continue;
+      if (walkupsInFlight.current > 0) heldWalkupAlerts.current.push(order);
+      else alertNewOrder(order);
+    }
+  }
+
+  function alertNewOrder(order: BoardOrder) {
     if (order.order_number == null) return;
     const shown = newOrderNumberRef.current(order.booth_id, order.order_number);
     void playSound(boardSettings.sound_id);
@@ -258,10 +311,15 @@ export function RealtimeOrderBoard({
     }
   }
 
+  // Each capped booth's item count, re-read as its orders change so the
+  // booth row's "N/cap items" follows a rush without a reload.
+  const { withLiveCount, refreshCups } = useCupsToday(booths);
+
   const { orders, status: liveStatus } = useRealtimeOrders(
     boothIds,
     initialOrders,
     handleNewOrder,
+    refreshCups,
   );
 
   // dailyOrderNumberBaselines is each booth's first order_number of the SGT
@@ -446,6 +504,7 @@ export function RealtimeOrderBoard({
         overtaken={overtaken.has(order.id)}
         optionCodes={optionCodes[order.booth_id]}
         boothName={multiBooth ? boothName.get(order.booth_id) : undefined}
+        boothColor={boothColor.get(order.booth_id)}
         agingMin={boardSettings.aging_min}
         overdueMin={boardSettings.overdue_min}
         undoMs={boardSettings.undo_seconds * 1000}
@@ -458,12 +517,45 @@ export function RealtimeOrderBoard({
         selectable={selectMode && isBatchable(order)}
         selected={selectedIds.has(order.id)}
         onToggleSelect={toggleSelect}
+        awaitingArrival={waitsForArrival.has(order.booth_id)}
       />
     );
   }
 
+  function cancelSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  // The Accepted column's own controls: catch every order still being made up
+  // to ready in one tap (pick-up stays one at a time, or through Select, since
+  // customers collect one by one), and Select itself. Both step aside while
+  // Select is on; its bar has the controls then.
+  const acceptedAction = !selectMode && (
+    <div className="flex items-center gap-2">
+      {preparingIds.length > 1 && (
+        <Button
+          size="sm"
+          className={BATCH_BUTTON}
+          disabled={advancing}
+          onClick={() =>
+            advanceSelected(preparingIds, "preparing", paymentById)
+          }
+        >
+          Mark all {preparingIds.length} ready
+        </Button>
+      )}
+      {batchableIds.length > 0 && (
+        <SelectButton onStart={() => setSelectMode(true)} />
+      )}
+    </div>
+  );
+
   return (
-    <div>
+    // Room under the last ticket for the selection bar, which floats over the
+    // bottom of the board while Select is on. Enough for the bar wrapped to two
+    // rows of touch-sized buttons on a phone.
+    <div className={cn(selectMode && "pb-40")}>
       {loadError && <LoadErrorBanner />}
       {liveStatus === "disconnected" && (
         <div
@@ -588,7 +680,8 @@ export function RealtimeOrderBoard({
       {booths.length === 1 && soleBooth && (
         <div className="mb-6 max-w-sm">
           <BoothRow
-            b={soleBooth}
+            b={withLiveCount(soleBooth)}
+            color={boothColor.get(soleBooth.id)}
             showDot={false}
             active={boothIsActive(soleBooth)}
             onToggle={(checked) => setBoothActive(soleBooth, checked)}
@@ -603,6 +696,8 @@ export function RealtimeOrderBoard({
             <DialogDescription>
               Pause a booth to stop new orders landing without closing it for
               the day. Handy for clearing a rush-hour backlog. Resume anytime.
+              Each booth&apos;s coloured dot also marks its tickets and its
+              place in the booth filter.
             </DialogDescription>
           </DialogHeader>
           {/* Deliberately keyed on the full `booths` list, not visibleBooths,
@@ -615,7 +710,8 @@ export function RealtimeOrderBoard({
             {booths.map((b) => (
               <BoothRow
                 key={b.id}
-                b={b}
+                b={withLiveCount(b)}
+                color={boothColor.get(b.id)}
                 showDot
                 active={boothIsActive(b)}
                 onToggle={(checked) => setBoothActive(b, checked)}
@@ -625,15 +721,7 @@ export function RealtimeOrderBoard({
         </DialogContent>
       </Dialog>
 
-      {/* Pinned while tickets are being ticked, so the action for a long
-          selection is still on screen at the bottom of the list. */}
-      <div
-        className={cn(
-          "mb-6 flex flex-wrap items-center gap-3",
-          selectMode &&
-            "sticky top-0 z-10 -mx-5 border-b border-border bg-background px-5 py-2",
-        )}
-      >
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         {/* A dropdown rather than a tab-per-booth row: a vendor running a
             large event (a dozen-plus booths) would otherwise get a wall of
             pills wrapping across several lines before a single order card is
@@ -663,7 +751,8 @@ export function RealtimeOrderBoard({
                 <SelectItem key={b.id} value={b.id}>
                   <span
                     className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: boothColor(b.id) }}
+                    style={{ backgroundColor: boothColor.get(b.id) }}
+                    title={boothDotTitle(b.name)}
                   />
                   <span className="truncate">
                     {b.name} ({activeCountFor(b.id)}){!b.open && " · closed"}
@@ -684,30 +773,6 @@ export function RealtimeOrderBoard({
           value={sortOrder}
           onChange={setSortOrder}
         />
-        {batchableIds.length > 0 && (
-          <BatchControls
-            selectMode={selectMode}
-            readyCount={tickedPreparing.length}
-            pickupCount={tickedReady.length}
-            pickupByDefault={preparingIds.length === 0}
-            allSelected={allSelected}
-            busy={advancing}
-            onStart={() => setSelectMode(true)}
-            onCancel={() => {
-              setSelectMode(false);
-              setSelectedIds(new Set());
-            }}
-            onToggleAll={() =>
-              setSelectedIds(allSelected ? new Set() : new Set(batchableIds))
-            }
-            onMarkReady={() =>
-              advanceSelected(tickedPreparing, "preparing", paymentById)
-            }
-            onMarkPickedUp={() =>
-              advanceSelected(tickedReady, "ready", paymentById)
-            }
-          />
-        )}
       </div>
 
       {idle ? (
@@ -759,7 +824,8 @@ export function RealtimeOrderBoard({
                 label="Accepted"
                 orders={accepted}
                 solo={incoming.length === 0}
-                showHeader={incoming.length > 0}
+                showHeader
+                action={acceptedAction}
                 hiddenOnPhone={
                   incoming.length > 0 && phoneSection !== "accepted"
                 }
@@ -768,6 +834,25 @@ export function RealtimeOrderBoard({
             )}
           </div>
         </>
+      )}
+
+      {selectMode && (
+        <SelectionBar
+          readyCount={tickedPreparing.length}
+          pickupCount={tickedReady.length}
+          allSelected={allSelected}
+          busy={advancing}
+          onCancel={cancelSelect}
+          onToggleAll={() =>
+            setSelectedIds(allSelected ? new Set() : new Set(batchableIds))
+          }
+          onMarkReady={() =>
+            advanceSelected(tickedPreparing, "preparing", paymentById)
+          }
+          onMarkPickedUp={() =>
+            advanceSelected(tickedReady, "ready", paymentById)
+          }
+        />
       )}
 
       <WalkupOrderDialog
@@ -782,6 +867,8 @@ export function RealtimeOrderBoard({
             : booths.find((b) => b.walkup_default && boothIsActive(b))?.id
         }
         displayNumber={newOrderNumber}
+        onPlacing={handleWalkupPlacing}
+        onPlaced={handleWalkupPlaced}
       />
     </div>
   );

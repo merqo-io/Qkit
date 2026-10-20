@@ -72,7 +72,8 @@ from the customer side instead of the vendor's. This page and
 `collect-actions.ts` only consume the order-status page's existing URL
 shape (`/order/{boothId}/{orderNumber}?t=token`) — neither renders
 anything on that page itself. The order-status page renders the pickup QR once `order.status === "ready"`
-and `board_settings.pickup_scan_enabled` is on. Collection changes fulfillment
+and the booth's own `pickup_scan_enabled` column is on (migration 0104;
+before 2026-10-16 it was one vendor-wide `board_settings` key). Collection changes fulfillment
 only; it never confirms or clears payment. The vendor's board remains the
 manual collection fallback.
 

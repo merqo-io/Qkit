@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createServerClient } from "@/lib/supabase/server";
+import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import {
   parseMenuItems,
   parseMenuCategories,
@@ -9,6 +9,7 @@ import {
 import { isBoothOpen, nextOpenLabel } from "@/lib/hours";
 import { parseRemaining } from "@/lib/stock";
 import { parseAvailability } from "@/lib/availability";
+import { expectsPayment, paymentKindOf } from "@/lib/payment-marker";
 import { OrderForm } from "@/components/order/order-form";
 import { RecentOrders } from "@/components/order/recent-orders";
 import { ExpiredCode } from "@/components/order/expired-code";
@@ -75,6 +76,28 @@ async function loadBasketLimits(
   }
 }
 
+/**
+ * Whether the booth takes no payment through qkit, so a priced order is paid
+ * in person, by the same `booths.payment` marker place_order reads (see
+ * `@/lib/payment-marker`). The public booth RPC does not expose payment,
+ * so this reads the one column server-side. On any failure it answers false:
+ * the note is then missing, which is how the page looked before it existed.
+ */
+async function loadPaysInPerson(boothId: string): Promise<boolean> {
+  try {
+    const supabase = await createServiceClient();
+    const { data, error } = await supabase
+      .from("booths")
+      .select("payment")
+      .eq("id", boothId)
+      .maybeSingle();
+    if (error || !data) return false;
+    return !expectsPayment(paymentKindOf(data.payment));
+  } catch {
+    return false;
+  }
+}
+
 export default async function OrderEntryPage({ params }: Props) {
   const { code } = await params;
   const supabase = await createServerClient();
@@ -113,14 +136,15 @@ export default async function OrderEntryPage({ params }: Props) {
   let closedTitle = "Closed right now";
   let closedDetail = `${reopen ?? "Not taking orders at the moment."} You can browse the menu below.`;
   if (soldOutToday) {
-    closedTitle = "Sold out for today";
+    closedTitle = "Sold out";
     closedDetail =
-      "They have served everything they had for today. You can still browse the menu below.";
+      "They have served everything they had. You can still browse the menu below.";
   } else if (!booth.servable) {
     closedTitle = "Not taking orders";
     closedDetail = "This booth isn't accepting orders right now.";
   }
   const socialLinks = parseSocialLinks(booth.social_links);
+  const paysInPerson = await loadPaysInPerson(booth.booth_id);
 
   return (
     <div className="mx-auto min-h-screen max-w-lg px-5 pb-28 pt-8 md:max-w-2xl">
@@ -177,6 +201,7 @@ export default async function OrderEntryPage({ params }: Props) {
         remaining={remaining}
         left={itemsLeft}
         maxPerOrder={maxPerOrder}
+        paysInPerson={paysInPerson}
       />
     </div>
   );

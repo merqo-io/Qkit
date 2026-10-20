@@ -256,6 +256,35 @@ export async function regenerateShortCode(
   return { success: true };
 }
 
+/**
+ * "Start new service": the booth's daily item count goes back to zero now, for
+ * a vendor running a morning and an afternoon service off one limit. The
+ * start_new_service RPC (migration 0106) stamps booths.cap_reset_at itself and
+ * checks the booth is the caller's, so a non-owner gets "not found".
+ */
+export async function startNewService(boothId: string): Promise<ActionResult> {
+  if (!z.string().uuid().safeParse(boothId).success)
+    return { success: false, error: "Invalid booth" };
+
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: reset, error } = await supabase.rpc("start_new_service", {
+    p_booth_id: boothId,
+  });
+  if (error) {
+    console.error("startNewService rpc failed", error.message);
+    return { success: false, error: "Could not start a new service" };
+  }
+  if (!reset) return { success: false, error: "Booth not found" };
+
+  revalidatePath("/dashboard", "layout");
+  return { success: true };
+}
+
 // Bounds the client-supplied list of images a save uploaded. A booth form
 // commits at most a banner.
 const freshUploadsSchema = z.array(z.string().max(2048)).max(10);
@@ -375,6 +404,7 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
     requires_arrival_confirm: data.requires_arrival_confirm,
     walkup_default: data.walkup_default,
     print_enabled: data.print_enabled,
+    pickup_scan_enabled: data.pickup_scan_enabled,
     paykit_booking_id: data.paykit_booking_id,
     max_items_per_order: data.max_items_per_order,
     ...dailyCapPatch(entitlement, data.daily_cup_cap, !data.boothId),

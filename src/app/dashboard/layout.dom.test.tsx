@@ -56,4 +56,14 @@ describe("DashboardLayout", () => {
     const header = container.querySelector("header");
     expect(header?.parentElement).toHaveClass("contents", "print:hidden");
   });
+
+  it("ends with the family footer, without a sign-in link, hidden when printing", async () => {
+    const jsx = await DashboardLayout({ children: <div>page content</div> });
+    const { container } = render(jsx);
+
+    const footer = container.querySelector("footer");
+    expect(footer?.parentElement).toHaveClass("contents", "print:hidden");
+    expect(footer).toHaveTextContent("© 2026 qkit · a Merqo kit");
+    expect(footer).not.toHaveTextContent("Vendor sign in");
+  });
 });

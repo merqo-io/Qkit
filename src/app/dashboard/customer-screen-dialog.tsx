@@ -6,6 +6,11 @@ import { Copy, ExternalLink, Tv } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -74,7 +79,9 @@ function ScreenOptions({ booth }: { booth: Booth }) {
           Scan this with its camera. It needs no login, and works in any
           browser.
         </p>
-        <div className="flex justify-center">
+        {/* pb-2 on top of the section's space-y-3 puts 20px between the code
+            and its button, the same gap as between the dialog's sections. */}
+        <div className="flex justify-center pb-2">
           <div className="rounded-xl border border-border bg-white p-3">
             <QRCode
               value={url}
@@ -107,9 +114,16 @@ function ScreenOptions({ booth }: { booth: Booth }) {
 export function CustomerScreenButton({
   booths,
   defaultBoothId,
+  size = "default",
+  iconOnly = false,
 }: {
   booths: Booth[];
   defaultBoothId?: string;
+  // "sm" matches a row of small buttons, as on a booth card.
+  size?: "default" | "sm";
+  // The TV icon alone, named by a hover tooltip, as on a booth card's row of
+  // icon buttons. The board header keeps the word.
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [chosenId, setChosenId] = useState<string | null>(null);
@@ -118,18 +132,33 @@ export function CustomerScreenButton({
   const booth =
     booths.find((b) => b.id === (chosenId ?? defaultBoothId)) ?? booths[0];
 
+  const trigger = (
+    <Button
+      type="button"
+      variant="outline"
+      size={size}
+      className={cn(
+        iconOnly ? "rounded-lg" : "rounded-full",
+        "[@media(pointer:coarse)]:min-w-11",
+      )}
+      onClick={() => setOpen(true)}
+      aria-label="Customer screen"
+    >
+      <Tv className="size-3.5" />
+      {!iconOnly && <span className="hidden sm:inline">Customer screen</span>}
+    </Button>
+  );
+
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className="rounded-full [@media(pointer:coarse)]:min-w-11"
-        onClick={() => setOpen(true)}
-        aria-label="Customer screen"
-      >
-        <Tv className="size-3.5" />
-        <span className="hidden sm:inline">Customer screen</span>
-      </Button>
+      {iconOnly ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent>Customer screen</TooltipContent>
+        </Tooltip>
+      ) : (
+        trigger
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>

@@ -3,7 +3,7 @@
 ## Purpose
 
 The "QKit" wordmark surfaces and the site chrome shared across the
-landing page and `/about`: the sticky top nav, the footer, and the plain
+landing page and `/about`: the sticky top nav and the plain
 inline mark used on the login page.
 
 ## Contents
@@ -21,14 +21,6 @@ inline mark used on the login page.
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
   link targets.
-- `footer.tsx` — `Footer()`: the site footer, shared by the landing page
-  and `/about` (previously inlined in `src/app/page.tsx`, extracted so
-  `/about` could reuse it without duplicating the markup). Since 2026-09-16
-  a thin wrapper around `@merqo/ui`'s own `Footer` (`wordmark`/`tagline`/
-  `kitName` slots) — qkit's copy was found structurally identical to
-  loopkit's and paykit's, differing only in that content, and promoted.
-- `footer.test.tsx` — asserts the wordmark link, tagline, copyright line,
-  About link, and Terms/Privacy links.
 - `wordmark.tsx` — `Wordmark({ className })`: the standalone "QKit" mark (no
   link, no nav chrome) used by the login page's two panels, where the nav
   shell itself doesn't apply.
@@ -62,7 +54,7 @@ inline mark used on the login page.
 
 ## Connectivity
 
-`nav.tsx`'s `Nav` and `footer.tsx`'s `Footer` are rendered by both
+`nav.tsx`'s `Nav` is rendered by both
 `src/app/page.tsx` (the landing page) and `src/app/about/page.tsx`.
 `wordmark.tsx`'s `Wordmark` is rendered by `src/app/(auth)/login/page.tsx`.
 None of these are used by the vendor dashboard, which has its own wordmark

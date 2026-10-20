@@ -17,7 +17,6 @@ import {
   EYEBROW_CLASS,
 } from "@/lib/utils";
 import {
-  boardSettingsSchema,
   orderBoothIdSchema,
   orderNumberSchema,
   orderTokenSchema,
@@ -25,9 +24,9 @@ import {
   parseSocialLinks,
   resolveSocialLinks,
 } from "@/lib/schemas";
-import { displayOrderNumber, isStaleOrderView, isTerminal } from "@/lib/orders";
+import { isStaleOrderView, isTerminal } from "@/lib/orders";
+import { resolveOrderDisplay } from "@/lib/order-display";
 import { shortDateTime } from "@/lib/tz";
-import { firstOrderNumberToday } from "@/lib/daily-order-number";
 import { FeedbackForm } from "@/components/widgets/feedback-form";
 import { ReorderButton } from "@/components/order/reorder-button";
 import { OrderStatusPoller } from "./order-status-poller";
@@ -150,10 +149,12 @@ function OrderLines({
   items,
   priced,
   totalCents,
+  payAtCounter,
 }: {
   items: ReturnType<typeof parseOrderItems>;
   priced: boolean;
   totalCents: number;
+  payAtCounter: boolean;
 }) {
   return (
     <section className="space-y-1.5 px-6 py-5">
@@ -186,6 +187,11 @@ function OrderLines({
           <span>Total</span>
           <span className="font-mono">{formatPrice(totalCents)}</span>
         </div>
+      )}
+      {payAtCounter && (
+        <p className="pt-1 text-sm text-muted-foreground">
+          Pay at the counter when you collect.
+        </p>
       )}
     </section>
   );
@@ -222,14 +228,6 @@ async function loadVendorProfile(
 }
 
 /**
- * board_settings-derived page state: the daily-reset heading number (see
- * displayOrderNumber in @/lib/orders) and whether the vendor has turned on
- * the pickup QR (pickup_scan_enabled) — one vendor-row read serves both, so
- * the pickup toggle doesn't cost a second query. Decorative, so any failure
- * here degrades to the real order_number / QR-off rather than breaking the
- * page — same philosophy as loadVendorProfile above.
- */
-/**
  * A repeat customer's browser can restore an earlier visit's status URL, so
  * this page can be a live-looking view of an order served weeks ago (see
  * isStaleOrderView in @/lib/orders). The number shown is then that old order's
@@ -242,41 +240,6 @@ async function loadVendorProfile(
  */
 function resolveStaleView(createdAt: string): boolean {
   return isStaleOrderView(createdAt, Date.now());
-}
-
-async function resolveOrderDisplay(
-  supabase: Awaited<ReturnType<typeof createServiceClient>>,
-  boothId: string,
-  vendorId: string,
-  orderNumber: string,
-): Promise<{ headingNumber: string; pickupScanEnabled: boolean }> {
-  try {
-    const { data: vendorRow } = await supabase
-      .from("vendors")
-      .select("board_settings")
-      .eq("id", vendorId)
-      .maybeSingle();
-    const settings = boardSettingsSchema.safeParse(vendorRow?.board_settings);
-    const pickupScanEnabled =
-      settings.success && settings.data.pickup_scan_enabled;
-
-    if (!settings.success || !settings.data.daily_order_number_reset)
-      return { headingNumber: orderNumber, pickupScanEnabled };
-
-    const firstToday = await firstOrderNumberToday(supabase, boothId);
-    return {
-      headingNumber: firstToday
-        ? displayOrderNumber(orderNumber, firstToday)
-        : orderNumber,
-      pickupScanEnabled,
-    };
-  } catch (err) {
-    console.error(
-      "order-status: daily display-number read failed",
-      err instanceof Error ? err.message : err,
-    );
-    return { headingNumber: orderNumber, pickupScanEnabled: false };
-  }
 }
 
 async function resolveOrigin(): Promise<string> {
@@ -317,7 +280,9 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
         .maybeSingle(),
       supabase
         .from("booths")
-        .select("name, vendor_id, social_links, requires_arrival_confirm")
+        .select(
+          "name, vendor_id, social_links, requires_arrival_confirm, pickup_scan_enabled",
+        )
         .eq("id", boothId)
         .single(),
     ]);
@@ -346,17 +311,18 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
     parseSocialLinks(vendorProfile?.social_links ?? null),
   );
 
-  const { headingNumber, pickupScanEnabled } = booth?.vendor_id
+  const headingNumber = booth?.vendor_id
     ? await resolveOrderDisplay(
         supabase,
         boothId,
         booth.vendor_id,
         order.order_number,
       )
-    : { headingNumber: order.order_number, pickupScanEnabled: false };
+    : order.order_number;
 
+  // Self-checkout pickup is set per booth (migration 0104).
   const pickupUrl =
-    order.status === "ready" && pickupScanEnabled
+    order.status === "ready" && booth?.pickup_scan_enabled === true
       ? `${await resolveOrigin()}/order/${boothId}/${orderNumber}?t=${token}`
       : null;
 
@@ -373,6 +339,10 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   // isTerminal: a completed order still shows PayPanel's "confirmed" state).
   const showPay =
     order.payment_status !== "not_required" && order.status !== "cancelled";
+  // A priced order at a booth that takes no payment through qkit: the stall
+  // collects in person, and nothing else on the page says so.
+  const payAtCounter =
+    order.payment_status === "not_required" && order.total_cents > 0 && !past;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col px-5 py-10">
@@ -467,6 +437,7 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
           items={items}
           priced={priced}
           totalCents={order.total_cents}
+          payAtCounter={payAtCounter}
         />
 
         {pickupUrl && (

@@ -107,12 +107,15 @@ jobs:
       - run: supabase start
       # The coffee-cart seed reuses a dev "Test" vendor (vendors.id → auth.users)
       # that a fresh CI DB lacks — bootstrap that auth user + vendor first, then
-      # seed the booth. ON_ERROR_STOP so a broken seed fails the job loudly.
-      - name: Seed CI auth bootstrap + coffee-cart
+      # seed the booth. The merqo stub gives the vendor dashboard the
+      # merqo.vendor_profile RPC it reads on every render (vendor-fulfillment
+      # spec). ON_ERROR_STOP so a broken seed fails the job loudly.
+      - name: Seed CI auth bootstrap + coffee-cart + merqo stub
         run: |
           DB="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           psql "$DB" -v ON_ERROR_STOP=1 -f supabase/seed/ci-auth-bootstrap.sql
           psql "$DB" -v ON_ERROR_STOP=1 -f supabase/seed/coffee-cart.sql
+          psql "$DB" -v ON_ERROR_STOP=1 -f supabase/seed/e2e-merqo-stub.sql
       # Hand the app the live local creds under the names it reads. The
       # override-name form writes KEY=value lines straight to the job env.
       - name: Export local Supabase creds for the app
@@ -128,7 +131,7 @@ jobs:
             | grep -E '^(NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|SUPABASE_SECRET_KEY)=' \
             >> "$GITHUB_ENV"
       # Playwright's webServer boots `pnpm dev`, which inherits the env above.
-      - run: pnpm exec playwright test e2e/customer-order.spec.ts e2e/order-code.spec.ts
+      - run: pnpm exec playwright test e2e/customer-order.spec.ts e2e/order-code.spec.ts e2e/vendor-fulfillment.spec.ts
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:

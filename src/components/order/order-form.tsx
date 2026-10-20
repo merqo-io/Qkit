@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { DataCollectionNotice } from "@merqo/ui";
 import { ChevronDown, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +70,9 @@ interface Props {
   left?: number | null;
   // Most items one order may carry; null = the booth sets no limit.
   maxPerOrder?: number | null;
+  // The booth takes no payment through qkit, so a priced basket is paid in
+  // person and the sheet says so.
+  paysInPerson?: boolean;
 }
 
 // Below this many items left, the menu says how many. Above it the number is
@@ -87,13 +91,11 @@ function StockNotice({
   if (left > 0)
     return (
       <div className="rounded-xl border border-status-aging/40 bg-status-aging/10 px-4 py-3 text-center">
-        <p className="text-sm font-semibold">
-          Only {count(left, "item")} left today
-        </p>
+        <p className="text-sm font-semibold">Only {count(left, "item")} left</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {leftHeld > 0
             ? "Other baskets also contain these items. Stock is checked when you order."
-            : "Once they are gone this stall stops taking orders until tomorrow."}
+            : "Once they're gone, this stall stops taking orders."}
         </p>
       </div>
     );
@@ -144,6 +146,7 @@ export function OrderForm({
   remaining = {},
   left = null,
   maxPerOrder = null,
+  paysInPerson = false,
 }: Props) {
   const router = useRouter();
   const {
@@ -785,6 +788,11 @@ export function OrderForm({
                       {formatPrice(total)}
                     </span>
                   </div>
+                  {paysInPerson && total > 0 && (
+                    <p className="shrink-0 px-4 pb-2.5 text-sm text-muted-foreground">
+                      Pay at the counter when you collect.
+                    </p>
+                  )}
                 </>
               )}
             </>
@@ -849,6 +857,11 @@ export function OrderForm({
                 </p>
               )}
             </section>
+
+            <DataCollectionNotice
+              purpose="identify your order and send you order updates"
+              phoneOptional
+            />
 
             <SheetFooter className="gap-2 px-0 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {submitError && (

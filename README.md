@@ -14,11 +14,15 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.32.3`: `Section` title tooltips and default-mode
-`InfoTooltip`s open on a tap as well as on hover and keyboard focus, and every
-info icon takes taps through a 44px touch area on touch devices. That area
-comes from `@merqo/ui` itself, not from this app's CSS. A long tooltip wraps
-inside the viewport.
+commit tagged `v0.34.2`, which treats a Next.js `redirect()` from a server
+action as navigation, so the dashboard's Sign out no longer flashes
+"NEXT_REDIRECT". Since `v0.34.0` it has `DataCollectionNotice`, the PDPA
+point-of-collection line the customer order form shows above its submit button
+(`phoneOptional`, because the phone field can be left blank).
+Since `v0.32.3`, `Section` title tooltips and default-mode `InfoTooltip`s open
+on a tap as well as on hover and keyboard focus, and every info icon takes taps
+through a 44px touch area on touch devices. That area comes from `@merqo/ui`
+itself, not from this app's CSS. A long tooltip wraps inside the viewport.
 
 qkit uses Supabase, **not** templateCentral's better-auth/Drizzle data layer.
 Database authorization is enforced through RLS and SQL privileges. Service-role
@@ -46,6 +50,7 @@ rebuild after changing them.
 | `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration |
 | `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout        |
 | `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                    |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`          | Optional order-ready web push                    |
 
 See [.env.example](.env.example) for the full configuration contract and
 [deployment notes](docs/DEPLOY.md) for environment scoping. In particular,
@@ -64,8 +69,9 @@ routine development.
 
 Local tests require Docker and a running local Supabase stack. The pgTAP suite
 creates its own fixtures and rolls them back. Customer E2E tests additionally
-need the CI auth bootstrap and coffee-cart seed. Some shared Merqo integration
-paths require the sibling schema; see [E2E setup](e2e/README.md) and
+need the CI auth bootstrap and coffee-cart seed; the vendor fulfillment E2E
+also needs the `e2e-merqo-stub.sql` seed. Some shared Merqo integration paths
+require the sibling schema; see [E2E setup](e2e/README.md) and
 [test documentation](test/README.md).
 
 ```bash

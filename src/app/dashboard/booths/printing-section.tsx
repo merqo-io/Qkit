@@ -15,6 +15,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePrinterStatus } from "@/hooks/use-printer-status";
 import { PrinterStatus } from "./printer-status";
+import { SettingRow } from "./setting-row";
+
+/**
+ * printkit's own address, taken from the page printkit named. While printing
+ * is off printkit cannot honour that booth page, but its origin still opens
+ * printkit, so qkit builds no printkit address of its own.
+ */
+function printkitHome(manageUrl: string | null): string | null {
+  if (!manageUrl) return null;
+  try {
+    return `${new URL(manageUrl).origin}/`;
+  } catch {
+    return null;
+  }
+}
 
 export function PrintingSection({
   value,
@@ -44,6 +59,7 @@ export function PrintingSection({
       ? status.manageUrl
       : null;
   const needsSave = !boothId || !savedEnabled;
+  const homeUrl = boothId ? printkitHome(manageUrl) : null;
 
   // Only interrupt turning printing ON when a printer exists but isn't
   // reachable. A booth with no printer yet has nothing to warn about: the
@@ -58,20 +74,17 @@ export function PrintingSection({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-        <span className="text-sm">
-          <span className="font-medium">Print via printkit</span>
-          <span className="block text-muted-foreground">
-            Auto-print a label for every QR order placed on this booth. While
-            off, new orders wait in Incoming until you tap Start now.
-          </span>
-        </span>
+      <SettingRow
+        label="Print via printkit"
+        hint="Auto-print a label for every QR order placed on this booth. While off, new orders wait in Incoming until you tap Start now."
+        hintLabel="About printing via printkit"
+      >
         <Switch
           checked={value}
           onCheckedChange={handleToggle}
           aria-label="Print via printkit"
         />
-      </div>
+      </SettingRow>
 
       {value && !needsSave && <PrinterStatus view={status} />}
 
@@ -99,6 +112,19 @@ export function PrintingSection({
             {hasPrinter
               ? "Manage this booth's printer in printkit →"
               : "Choose the printer for this booth →"}
+          </a>
+        </p>
+      )}
+
+      {!value && homeUrl && (
+        <p className="px-1 text-sm text-muted-foreground">
+          <a
+            href={homeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            Open printkit →
           </a>
         </p>
       )}

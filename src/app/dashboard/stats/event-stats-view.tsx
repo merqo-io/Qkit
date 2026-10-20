@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { BackButton } from "@merqo/ui";
 import { bucketPlan, computeStats, windowSeries } from "@/lib/stats";
 import { MS_PER_DAY } from "@/lib/utils";
 import { shortDay } from "@/lib/tz";
@@ -51,12 +50,9 @@ export async function EventStatsView({
   return (
     <div className="space-y-7">
       <div>
-        <Link
-          href="/dashboard/stats"
-          className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-        >
-          <ArrowLeft className="size-3.5" /> All stats
-        </Link>
+        <div className="mb-2">
+          <BackButton href="/dashboard/stats" label="All stats" />
+        </div>
         <PageHeader
           eyebrow={
             <>

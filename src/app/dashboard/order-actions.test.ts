@@ -4,6 +4,7 @@ import {
   revertOrderAdvance,
   confirmOrderPayment,
   confirmPaymentAndStart,
+  declinePaymentClaim,
   revertPaymentAndStart,
   cancelOrder,
   bumpOrder,
@@ -91,15 +92,21 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/supabase/get-user", () => ({ getUser: getUserMock }));
 
-const { createCheckoutMock, confirmCheckoutMock, getCheckoutByOrderRefMock } =
-  vi.hoisted(() => ({
-    createCheckoutMock: vi.fn(),
-    confirmCheckoutMock: vi.fn(),
-    getCheckoutByOrderRefMock: vi.fn(),
-  }));
+const {
+  createCheckoutMock,
+  confirmCheckoutMock,
+  unclaimCheckoutMock,
+  getCheckoutByOrderRefMock,
+} = vi.hoisted(() => ({
+  createCheckoutMock: vi.fn(),
+  confirmCheckoutMock: vi.fn(),
+  unclaimCheckoutMock: vi.fn(),
+  getCheckoutByOrderRefMock: vi.fn(),
+}));
 vi.mock("@/lib/paykit/client", () => ({
   createCheckout: createCheckoutMock,
   confirmCheckout: confirmCheckoutMock,
+  unclaimCheckout: unclaimCheckoutMock,
   getCheckoutByOrderRef: getCheckoutByOrderRefMock,
 }));
 
@@ -109,6 +116,18 @@ const { notifyCustomerMock } = vi.hoisted(() => ({
 vi.mock("@/lib/merqo/customer-notify", () => ({
   notifyCustomer: notifyCustomerMock,
 }));
+
+const { sendOrderReadyPushMock, afterMock } = vi.hoisted(() => ({
+  sendOrderReadyPushMock: vi.fn(),
+  // Runs the deferred callback at once; a test may queue it instead.
+  afterMock: vi.fn((task: () => unknown) => {
+    void task();
+  }),
+}));
+vi.mock("@/lib/push/send", () => ({
+  sendOrderReadyPush: sendOrderReadyPushMock,
+}));
+vi.mock("next/server", () => ({ after: afterMock }));
 
 const { recordAuditMock, recordOrderStatusEventMock } = vi.hoisted(() => ({
   recordAuditMock: vi.fn(),
@@ -168,6 +187,7 @@ beforeEach(() => {
       vendorId: "v1",
     },
   });
+  unclaimCheckoutMock.mockReset();
   confirmCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
     data: {
@@ -180,6 +200,8 @@ beforeEach(() => {
     },
   });
   notifyCustomerMock.mockReset().mockResolvedValue(undefined);
+  sendOrderReadyPushMock.mockReset().mockResolvedValue(undefined);
+  afterMock.mockClear();
 });
 
 describe("advanceOrder", () => {
@@ -253,6 +275,60 @@ describe("advanceOrder", () => {
       `qkit:${ID}`,
       "Your order is ready for pickup!",
     );
+  });
+
+  it("sends the web push after responding when advancing to ready", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    await advanceOrder(ID);
+    expect(afterMock).toHaveBeenCalledTimes(1);
+    expect(sendOrderReadyPushMock).toHaveBeenCalledWith(ID);
+  });
+
+  it("does not wait for the web push before returning", async () => {
+    let deferred: (() => unknown) | null = null;
+    afterMock.mockImplementationOnce((task: () => unknown) => {
+      deferred = task;
+    });
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({ success: true, status: "ready" });
+    expect(sendOrderReadyPushMock).not.toHaveBeenCalled();
+    expect(deferred).not.toBeNull();
+  });
+
+  it("still returns success when scheduling the web push throws", async () => {
+    afterMock.mockImplementationOnce(() => {
+      throw new Error("no request scope");
+    });
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({ success: true, status: "ready" });
+    expect(notifyCustomerMock).toHaveBeenCalled();
+  });
+
+  it("sends the web push even when the vendor turned off the Telegram ping", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    vendorSingle.mockResolvedValue({
+      data: { board_settings: { customer_telegram_notify_enabled: false } },
+    });
+    await advanceOrder(ID);
+    expect(sendOrderReadyPushMock).toHaveBeenCalledWith(ID);
+  });
+
+  it("does not send the web push for other transitions", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "ready", payment_status: "claimed" },
+    });
+    await advanceOrder(ID);
+    expect(sendOrderReadyPushMock).not.toHaveBeenCalled();
   });
 
   it("still returns success when notifyCustomer rejects", async () => {
@@ -662,6 +738,101 @@ describe("revertPaymentAndStart", () => {
   it("rejects an invalid order id before touching the DB", async () => {
     const res = await revertPaymentAndStart("not-a-uuid", "claimed");
     expect(res.success).toBe(false);
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("declinePaymentClaim", () => {
+  const claimed = {
+    data: {
+      id: ID,
+      status: "preparing",
+      payment_status: "claimed",
+      total_cents: 800,
+    },
+  };
+
+  it("unclaims in paykit and mirrors the order back to unpaid", async () => {
+    maybeSingle.mockResolvedValue(claimed);
+    unclaimCheckoutMock.mockResolvedValue({
+      ok: true,
+      data: { status: "pending" },
+    });
+    expect(await declinePaymentClaim(ID)).toEqual({ success: true });
+    expect(unclaimCheckoutMock).toHaveBeenCalledWith("tx1");
+    expect(update).toHaveBeenCalledWith({ payment_status: "pending" });
+    expect(confirmCheckoutMock).not.toHaveBeenCalled();
+    expect(recordAuditMock).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "decline_order_payment" }),
+    );
+  });
+
+  it("does not mirror a revert paykit refused because the payment was confirmed", async () => {
+    maybeSingle.mockResolvedValue(claimed);
+    unclaimCheckoutMock.mockResolvedValue({
+      ok: true,
+      data: { status: "confirmed" },
+    });
+    expect(await declinePaymentClaim(ID)).toEqual({
+      success: false,
+      error: "This payment was already confirmed",
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("fails without a local write when paykit errors", async () => {
+    maybeSingle.mockResolvedValue(claimed);
+    unclaimCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      error: "boom",
+    });
+    expect(await declinePaymentClaim(ID)).toEqual({
+      success: false,
+      error: "Failed to decline payment",
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("refuses a transaction that belongs to another vendor", async () => {
+    maybeSingle.mockResolvedValue(claimed);
+    getCheckoutByOrderRefMock.mockResolvedValue({
+      ok: true,
+      data: {
+        transactionId: "tx1",
+        status: "claimed",
+        amountCents: 800,
+        orderRef: ID,
+        claimedAt: "2026-08-11T00:00:00Z",
+        confirmedAt: null,
+        vendorId: "v2",
+      },
+    });
+    expect((await declinePaymentClaim(ID)).success).toBe(false);
+    expect(unclaimCheckoutMock).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op success when the claim is already gone", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { ...claimed.data, payment_status: "pending" },
+    });
+    expect(await declinePaymentClaim(ID)).toEqual({ success: true });
+    expect(unclaimCheckoutMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["confirmed", "not_required"])(
+    "rejects an order whose payment is %s",
+    async (payment_status) => {
+      maybeSingle.mockResolvedValue({
+        data: { ...claimed.data, payment_status },
+      });
+      expect((await declinePaymentClaim(ID)).success).toBe(false);
+      expect(unclaimCheckoutMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a malformed id before any lookup", async () => {
+    expect((await declinePaymentClaim("nope")).success).toBe(false);
     expect(getUserMock).not.toHaveBeenCalled();
   });
 });

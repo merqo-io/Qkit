@@ -15,99 +15,100 @@ import type { BoardOrder, PaymentStatus } from "@/lib/types";
 // `pointer: coarse` rule in globals.css raises every one of these to 44px.
 export const BATCH_BUTTON = "rounded-full";
 
-// The board's one batch control. Idle, it is a single "Select" button with a
-// tap-to-open hint. In select mode it becomes Cancel, Select all (which flips
-// to Clear all once everything is ticked) and the action itself, whose count
-// is the confirmation: "Mark N Ready" for the ticked orders still being made,
-// "Mark N Picked Up" for the ticked ones already ready. Both show only when
-// both kinds are ticked, which is the end-of-event case: a vendor who had no
-// time to mark anything clears the whole board in two taps.
-export function BatchControls({
-  selectMode,
+// Opens select mode. It sits in the Accepted column's header, the only column
+// a batch acts on, with a tap-to-open hint.
+export function SelectButton({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        className={BATCH_BUTTON}
+        onClick={onStart}
+      >
+        Select
+      </Button>
+      <Hint label="About Select">
+        Tick several accepted orders, or all of them, and mark them ready or
+        picked up in one tap.
+      </Hint>
+    </div>
+  );
+}
+
+// Select mode's controls, floating over the bottom of the board so turning it
+// on does not push every ticket down: Cancel, Select all (which flips to Clear
+// all once everything is ticked) and the action itself, whose count is the
+// confirmation. "Mark N Ready" is for the ticked orders still being made,
+// "Mark N Picked Up" for the ticked ones already ready; both show only when
+// both kinds are ticked, which is the end-of-event case. With nothing ticked
+// the action slot asks for a pick instead of offering "Mark 0". The bottom
+// padding clears the home indicator on a phone.
+export function SelectionBar({
   readyCount,
   pickupCount,
-  pickupByDefault,
   allSelected,
   busy,
-  onStart,
   onCancel,
   onToggleAll,
   onMarkReady,
   onMarkPickedUp,
 }: {
-  selectMode: boolean;
   // Ticked orders that are still preparing, and ticked orders that are ready.
   readyCount: number;
   pickupCount: number;
-  // Which button stands in, disabled, while nothing is ticked: pick-up when
-  // no order on the board is still being made.
-  pickupByDefault: boolean;
   allSelected: boolean;
   busy: boolean;
-  onStart: () => void;
   onCancel: () => void;
   onToggleAll: () => void;
   onMarkReady: () => void;
   onMarkPickedUp: () => void;
 }) {
-  if (!selectMode)
-    return (
-      <div className="ml-auto flex items-center">
+  const nothingTicked = readyCount === 0 && pickupCount === 0;
+  return (
+    <div
+      role="toolbar"
+      aria-label="Selected orders"
+      data-selection-bar=""
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_28px_-20px_oklch(0.4_0.06_45/0.4)] backdrop-blur-md"
+    >
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2">
+        <Button variant="outline" className={BATCH_BUTTON} onClick={onCancel}>
+          Cancel
+        </Button>
         <Button
           variant="outline"
-          size="sm"
           className={BATCH_BUTTON}
-          onClick={onStart}
+          onClick={onToggleAll}
         >
-          Select
+          {allSelected ? "Clear all" : "Select all"}
         </Button>
-        <Hint label="About Select">
-          Tick several orders, or all of them, and mark them ready or picked up
-          in one tap.
-        </Hint>
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
+          {nothingTicked && (
+            <Button className={BATCH_BUTTON} disabled>
+              Pick orders
+            </Button>
+          )}
+          {readyCount > 0 && (
+            <Button
+              className={BATCH_BUTTON}
+              disabled={busy}
+              onClick={onMarkReady}
+            >
+              Mark {readyCount} Ready
+            </Button>
+          )}
+          {pickupCount > 0 && (
+            <Button
+              className={BATCH_BUTTON}
+              disabled={busy}
+              onClick={onMarkPickedUp}
+            >
+              Mark {pickupCount} Picked Up
+            </Button>
+          )}
+        </div>
       </div>
-    );
-  const nothingTicked = readyCount === 0 && pickupCount === 0;
-  const showReady = readyCount > 0 || (nothingTicked && !pickupByDefault);
-  const showPickup = pickupCount > 0 || (nothingTicked && pickupByDefault);
-  return (
-    <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        className={BATCH_BUTTON}
-        onClick={onCancel}
-      >
-        Cancel
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className={BATCH_BUTTON}
-        onClick={onToggleAll}
-      >
-        {allSelected ? "Clear all" : "Select all"}
-      </Button>
-      {showReady && (
-        <Button
-          size="sm"
-          className={BATCH_BUTTON}
-          disabled={readyCount === 0 || busy}
-          onClick={onMarkReady}
-        >
-          Mark {readyCount} Ready
-        </Button>
-      )}
-      {showPickup && (
-        <Button
-          size="sm"
-          className={BATCH_BUTTON}
-          disabled={pickupCount === 0 || busy}
-          onClick={onMarkPickedUp}
-        >
-          Mark {pickupCount} Picked Up
-        </Button>
-      )}
     </div>
   );
 }

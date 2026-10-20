@@ -54,7 +54,16 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   order-status page (or, for a payment-required order, to `../pay`; that
   entry has the access token but no order number yet). The phone field is a genuinely optional convenience
   (cross-kit customer identity, migration `0075`), never required to
-  submit, passed through `placeOrder`'s `customerPhone` input. Menu items
+  submit, passed through `placeOrder`'s `customerPhone` input. Between the
+  fields and the submit button the sheet renders `@merqo/ui`'s
+  `DataCollectionNotice`. Under the sheet's Total, a `paysInPerson` prop (the
+  booth takes no payment through qkit) adds "Pay at the counter when you
+  collect." for a basket that costs anything. Before that notice comes
+  `DataCollectionNotice` ("We use your name, and your phone number if you give one, to identify your
+  order and send you order updates. See our Privacy Policy.", linking to
+  `/legal/privacy`), the PDPA notification at the point of collection. Display
+  only: no consent is recorded, and no SMS, voice or fax marketing exists, so
+  the Do Not Call Registry does not apply. Menu items
   render grouped under `menuCategories` (`@/lib/menu-sections`'s
   `groupByCategory`) once there are 2+ non-empty sections. From `md` up that
   is a two-pane layout: a sticky jump-nav sidebar (own `overflow-y-auto`, so
@@ -91,7 +100,8 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   the cart summary's collapsed-by-default/expand-on-tap behavior, that the
   sticky trigger opens the checkout sheet (itemized recap included) rather
   than submitting directly, and that an empty name inside the sheet focuses
-  the field instead of calling `placeOrder`.
+  the field instead of calling `placeOrder`, and that the data-collection
+  notice and its Privacy Policy link render above the submit button.
 - `recent-orders.tsx` — `RecentOrders({ boothId })`: reads
   `getRecentOrdersForBooth` from localStorage post-mount (avoids an SSR
   hydration mismatch — there's no server-side customer identity), rendering

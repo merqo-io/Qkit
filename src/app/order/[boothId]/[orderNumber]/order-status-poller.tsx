@@ -25,6 +25,8 @@ import {
   unlockAudio,
 } from "@/lib/order-alerts";
 import { noteDisplayNumber } from "@/lib/recent-orders";
+import { subscribeToPush } from "@/lib/push/client";
+import { savePushSubscription } from "./push-actions";
 import {
   getOrderStatus,
   getWaitEstimate,
@@ -94,9 +96,10 @@ const STATUS_COPY: Record<OrderStatus, { headline: string; detail: string }> = {
     headline: "We're making it now",
     detail: "Stay close. This page turns to Ready the moment it is.",
   },
+  // No order number here: it is already the biggest thing above this line.
   ready: {
     headline: "It's ready",
-    detail: "Come to the counter and collect it.",
+    detail: "Come to the counter to collect it.",
   },
   completed: {
     headline: "Collected. Enjoy!",
@@ -128,6 +131,10 @@ const PAYMENT_CHECK_COPY: Partial<
   preparing: {
     headline: "We're making it now",
     detail: "The stall is still checking your payment. Stay close.",
+  },
+  ready: {
+    headline: "It's ready",
+    detail: "Come to the counter. The stall will check your payment there.",
   },
 };
 
@@ -281,6 +288,24 @@ export function OrderStatusPoller({
     return () => clearInterval(id);
   }, [status]);
 
+  // Web push reaches the customer with the phone locked, where the poll and
+  // the page's own popup cannot. Best-effort and silent: without it the page
+  // still chimes and pops up while open.
+  const enablePush = useCallback(async () => {
+    try {
+      const sub = await subscribeToPush();
+      if (sub) await savePushSubscription(boothId, orderNumber, token, sub);
+    } catch {
+      // Push is an extra; the opt-in has already armed the page's own alerts.
+    }
+  }, [boothId, orderNumber, token]);
+
+  // Permission granted on an earlier visit hides the opt-in, so subscribe here.
+  const waitingForReady = status !== "ready" && !isTerminal(status);
+  useEffect(() => {
+    if (permission === "granted" && waitingForReady) void enablePush();
+  }, [permission, waitingForReady, enablePush]);
+
   async function onEnableAlerts() {
     setRequesting(true);
     // Unlock audio on this gesture (the only reliable moment on mobile), then
@@ -393,7 +418,6 @@ export function OrderStatusPoller({
     needsArrival,
     awaitingPayment,
     paymentSent,
-    displayNumber,
   });
 
   return (
@@ -464,7 +488,9 @@ export function OrderStatusPoller({
         onEnable={onEnableAlerts}
       />
 
-      {!cancelled && elapsed && (
+      {/* A finished order's header already stamps when it was placed (see
+          PastOrderStamp in page.tsx); saying it twice reads as two times. */}
+      {!isTerminal(status) && elapsed && (
         <p className="text-xs text-muted-foreground">Placed {elapsed}</p>
       )}
     </div>
@@ -490,12 +516,10 @@ function statusCopy(
     needsArrival,
     awaitingPayment,
     paymentSent,
-    displayNumber,
   }: {
     needsArrival: boolean;
     awaitingPayment: boolean;
     paymentSent: boolean;
-    displayNumber: string;
   },
 ): StatusCopy {
   if (needsArrival)
@@ -507,13 +531,6 @@ function statusCopy(
     return {
       headline: STATUS_COPY.cancelled.headline,
       detail: CANCELLED_AFTER_PAYMENT_DETAIL,
-    };
-  if (status === "ready")
-    return {
-      headline: STATUS_COPY.ready.headline,
-      detail: awaitingPayment
-        ? `Show order #${displayNumber} at the counter. The stall will check your payment there.`
-        : `Show order #${displayNumber} at the counter to collect it.`,
     };
   if (awaitingPayment) return PAYMENT_CHECK_COPY[status] ?? STATUS_COPY[status];
   return STATUS_COPY[status];

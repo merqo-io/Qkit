@@ -5,6 +5,7 @@ import {
   menuItemSchema,
   menuItemFormSchema,
   boothFormSchema,
+  boardSettingsPatchSchema,
   placeOrderSchema,
   orderStatusSchema,
   sanitizeOptionGroups,
@@ -301,9 +302,18 @@ describe("boardSettingsSchema", () => {
     }
   });
 
-  it("defaults pickup_scan_enabled to false when missing", () => {
-    const result = boardSettingsSchema.safeParse(valid);
-    expect(result.success && result.data.pickup_scan_enabled).toBe(false);
+  it("drops the retired pickup_scan_enabled key, now a per-booth column", () => {
+    const result = boardSettingsSchema.safeParse({
+      ...valid,
+      pickup_scan_enabled: true,
+    });
+    expect(result.success && "pickup_scan_enabled" in result.data).toBe(false);
+  });
+
+  it("refuses pickup_scan_enabled in a board settings patch", () => {
+    expect(
+      boardSettingsPatchSchema.safeParse({ pickup_scan_enabled: true }).success,
+    ).toBe(false);
   });
 });
 
@@ -383,6 +393,16 @@ describe("boothFormSchema", () => {
 
   it("accepts a minimal valid booth (no id = create)", () => {
     expect(boothFormSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("defaults self-checkout pickup off and keeps it when set", () => {
+    const off = boothFormSchema.safeParse(base);
+    expect(off.success && off.data.pickup_scan_enabled).toBe(false);
+    const on = boothFormSchema.safeParse({
+      ...base,
+      pickup_scan_enabled: true,
+    });
+    expect(on.success && on.data.pickup_scan_enabled).toBe(true);
   });
 
   it("rejects an empty name", () => {

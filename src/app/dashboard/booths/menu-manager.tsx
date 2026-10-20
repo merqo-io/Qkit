@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import {
+  BackButton,
   commitPendingImages,
   InfoTooltip,
   PendingImageUploadError,
@@ -208,12 +209,11 @@ export function MenuManager({
 
   return (
     <div className="mx-auto max-w-lg space-y-6 md:max-w-2xl">
-      <Link
+      <BackButton
         href={`/dashboard/booths/${boothId}`}
-        className="tap-area inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> Back to {boothName}
-      </Link>
+        label={`Back to ${boothName}`}
+        LinkComponent={Link}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5">

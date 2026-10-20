@@ -74,9 +74,6 @@ export type BoardSettings = {
   // customer's own consent (merqo's, untouched by this). Default true: the
   // customer already asked for this by connecting.
   customer_telegram_notify_enabled: boolean;
-  // Opt-in for pickup-scan QR checkout flow (self-service pickup validation).
-  // Default false: disabled until explicitly enabled by the vendor.
-  pickup_scan_enabled: boolean;
 };
 
 // Falls back to this until migration 0050 (board_settings column) has been
@@ -94,7 +91,6 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = {
   undo_seconds: 4,
   ready_auto_clear_min: 3,
   customer_telegram_notify_enabled: true,
-  pickup_scan_enabled: false,
 };
 
 export type PaymentStatus =
@@ -525,6 +521,8 @@ export interface Database {
           printkit_location_id: string | null;
           daily_cup_cap: number | null;
           max_items_per_order: number | null;
+          pickup_scan_enabled: boolean;
+          cap_reset_at: string | null;
         };
         Insert: {
           id?: string;
@@ -547,6 +545,8 @@ export interface Database {
           printkit_location_id?: string | null;
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
+          pickup_scan_enabled?: boolean;
+          cap_reset_at?: string | null;
         };
         Update: {
           id?: string;
@@ -569,6 +569,8 @@ export interface Database {
           printkit_location_id?: string | null;
           daily_cup_cap?: number | null;
           max_items_per_order?: number | null;
+          pickup_scan_enabled?: boolean;
+          cap_reset_at?: string | null;
         };
         Relationships: [
           {
@@ -704,6 +706,53 @@ export interface Database {
           },
         ];
       };
+      // Service-role only (migration 0105): no anon/authenticated grant.
+      order_push_subscriptions: {
+        Row: {
+          id: string;
+          order_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          title: string;
+          body: string;
+          url: string;
+          tag: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          title: string;
+          body: string;
+          url: string;
+          tag: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          title?: string;
+          body?: string;
+          url?: string;
+          tag?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_push_subscriptions_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -741,6 +790,10 @@ export interface Database {
       booth_cups_today: {
         Args: { p_booth_id: string };
         Returns: number;
+      };
+      start_new_service: {
+        Args: { p_booth_id: string };
+        Returns: boolean;
       };
       booth_cups_left: {
         Args: { p_booth_id: string };

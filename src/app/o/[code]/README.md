@@ -109,16 +109,19 @@ the current (non-legacy) customer ordering entry point.
   resolves booth-override-vs-vendor-default, migration `0053`), and
   `OrderForm`. Also parses `menu_categories` (migration `0066`, previously
   fetched by the RPC but dropped by this page's own Zod schema) via
-  `parseMenuCategories` and passes it through to `OrderForm`. The outer
+  `parseMenuCategories` and passes it through to `OrderForm`.
+  `loadPaysInPerson` reads the booth's `booths.payment` marker server-side
+  (the public RPC does not expose it) through `@/lib/payment-marker`, and
+  passes `paysInPerson` to `OrderForm`; any failure answers false. The outer
   container widens to `md:max-w-2xl` (2026-09-15) so `OrderForm`'s
   two-pane sidebar layout has room beside the item list on tablet/desktop;
   the header/hero-image/closed-banner block stays wrapped in its own
   `md:max-w-lg` so it doesn't stretch wide alongside the wider menu below.
   `loadBasketLimits` calls `booth_availability` (migration `0096`) for the
   items left in the booth's daily total and its per-order limit, either null
-  when not set: zero left makes the page read "Sold out for today" and closes
+  when not set: zero left makes the page read "Sold out" and closes
   ordering. Both go to `OrderForm`, which stops a basket at them and prints
-  the "Only N items left today" note itself (`StockNotice`), from availability
+  the "Only N items left" note itself (`StockNotice`), from availability
   net of other baskets' holds, so it can never contradict "the last items are
   in other baskets". The total this page uses is the stock itself, with no
   basket hold taken off: the server cannot tell which hold is the visitor's

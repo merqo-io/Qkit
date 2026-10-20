@@ -3,6 +3,8 @@ import {
   avgWaitSeconds,
   estimateWaitSeconds,
   currentPrepEstimate,
+  typicalPrepSeconds,
+  MAX_PREP_WAIT_SECONDS,
   computeStats,
   pctChange,
   waitSeries,
@@ -517,7 +519,67 @@ function readiedOrders(n: number, waitSeconds: number): StatsOrder[] {
   );
 }
 
+function ordersWithWaits(waits: number[]): StatsOrder[] {
+  return waits.map((w) => readiedOrders(1, w)[0]!);
+}
+
+describe("typicalPrepSeconds", () => {
+  it("returns null when no order has a usable wait", () => {
+    expect(typicalPrepSeconds([])).toBeNull();
+    expect(
+      typicalPrepSeconds([waitOrder("2026-06-12T04:00:00Z", null)]),
+    ).toBeNull();
+  });
+
+  it("takes the median, so one slow order does not drag the estimate", () => {
+    expect(typicalPrepSeconds(ordersWithWaits([60, 120, 3000]))).toBe(120);
+  });
+
+  it("averages the two middle waits for an even count", () => {
+    expect(typicalPrepSeconds(ordersWithWaits([60, 120, 180, 240]))).toBe(150);
+  });
+
+  it("sorts numerically, not as strings", () => {
+    expect(typicalPrepSeconds(ordersWithWaits([900, 80, 100]))).toBe(100);
+  });
+
+  it("ignores waits over an hour as abandoned", () => {
+    expect(MAX_PREP_WAIT_SECONDS).toBe(3600);
+    expect(
+      typicalPrepSeconds(ordersWithWaits([120, 3601, 36_000, 36_000])),
+    ).toBe(120);
+    expect(typicalPrepSeconds(ordersWithWaits([3600]))).toBe(3600);
+    expect(typicalPrepSeconds(ordersWithWaits([3601]))).toBeNull();
+  });
+
+  it("ignores cancelled orders", () => {
+    expect(
+      typicalPrepSeconds([
+        waitOrder("2026-06-12T04:00:00Z", "2026-06-12T04:02:00Z", "cancelled"),
+      ]),
+    ).toBeNull();
+  });
+});
+
 describe("estimateWaitSeconds", () => {
+  it("uses the median and drops abandoned waits", () => {
+    const orders = ordersWithWaits([
+      ...Array.from({ length: 10 }, () => 120),
+      37_440,
+      37_440,
+    ]);
+    expect(estimateWaitSeconds(orders, 2)).toBe(240);
+  });
+
+  it("counts only usable waits towards the sample size", () => {
+    const orders = ordersWithWaits([
+      ...Array.from({ length: 9 }, () => 120),
+      36_000,
+    ]);
+    expect(estimateWaitSeconds(orders, 2)).toBeNull();
+    expect(estimateWaitSeconds(orders, 2, 10, 300)).toBe(600);
+  });
+
   it("returns null below the minimum sample size (default 10)", () => {
     expect(estimateWaitSeconds(readiedOrders(9, 120), 2)).toBeNull();
   });
@@ -584,12 +646,26 @@ describe("currentPrepEstimate", () => {
     });
   });
 
-  it("returns null avgMinutes when the sample size is met but none of the orders have usable wait data", () => {
+  it("does not count orders without a usable wait towards the sample", () => {
     const orders = Array.from({ length: 10 }, () =>
       waitOrder("2026-06-12T04:00:00Z", null),
     );
     expect(currentPrepEstimate(orders)).toEqual({
       avgMinutes: null,
+      sampleCount: 0,
+      minSample: 10,
+    });
+  });
+
+  it("reports the median in minutes, ignoring orders left ready for hours", () => {
+    // The 2026-10-16 report: test orders left sitting pushed a plain mean
+    // to "~624 min per order".
+    const orders = ordersWithWaits([
+      ...Array.from({ length: 10 }, () => 180),
+      ...Array.from({ length: 8 }, () => 37_440),
+    ]);
+    expect(currentPrepEstimate(orders)).toEqual({
+      avgMinutes: 3,
       sampleCount: 10,
       minSample: 10,
     });

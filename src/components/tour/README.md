@@ -23,6 +23,9 @@ The dashboard's guided tours: qkit's wiring of `@merqo/ui`'s
   is qkit-local. Renamed from a single-tour `{ seen }` prop shape (2026-09-15)
   once the booths page needed its own tour instead of always redirecting to
   `/dashboard` to replay the orders one.
+  The replay button is hidden while the board's selection bar is open (a
+  `globals.css` rule keyed on `data-selection-bar`), since on a phone it
+  covers the bar's right-hand action.
 - `tour-steps.test.ts` — unit tests asserting the mobile/desktop step lists
   for `ordersTourSteps` and the single step for `boothsTourSteps`.
 - `tour-steps.ts` — pure step config (element selector + title +

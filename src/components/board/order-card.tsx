@@ -24,7 +24,7 @@ import { OrderStatusBadge } from "@/components/board/order-status-badge";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
 import { cn, formatPrice, orderHasPricing } from "@/lib/utils";
-import { boothColor } from "@/lib/booth/color";
+import { boothDotTitle } from "@/lib/booth/color";
 import {
   ADVANCE,
   ageLabel,
@@ -45,6 +45,7 @@ import {
   cancelOrder as cancelOrderAction,
   confirmOrderPayment,
   confirmPaymentAndStart,
+  declinePaymentClaim,
   revertOrderAdvance,
   revertPaymentAndStart,
   restoreAutoCompleted,
@@ -75,39 +76,58 @@ const ATTENTION_ICON: Record<TicketAttention["kind"], typeof AlertTriangle> = {
   unpaid: Banknote,
 };
 
-// How long the order has waited, in the ticket's bottom-left corner. It sits
-// under the action button, away from the number and name, so the top of the
-// ticket carries only what gets read out and the "more" menu. The right-hand
-// corner of the strip is left free on purpose. Renders nothing before mount
-// (ageMins is null until then, see useNow).
-function TicketAge({
+// The ticket's bottom strip, under the action button and away from the number
+// and name, so the top of the ticket carries only what gets read out and the
+// "more" menu. Bottom-left is how long the order has waited; bottom-right is
+// its status, when it is anything other than the unsaid "Preparing". The time
+// is absent before mount (ageMins is null until then, see useNow).
+function TicketFooter({
   ageMins,
   tone,
+  status,
+  awaitingArrival,
 }: {
   ageMins: number | null;
   tone: AgeTone;
+  status: OrderStatus;
+  awaitingArrival: boolean;
 }) {
-  if (ageMins == null) return null;
+  const showStatus = status !== "preparing";
+  if (ageMins == null && !showStatus) return null;
+  // A fixed h-10 with no vertical padding: the "Waiting for you" pill is taller
+  // than the timer, so min-h-10 plus py-2 grew an Incoming footer to 44px
+  // against an Accepted one's 40px.
   return (
-    <div className="flex items-center border-t border-border/60 px-4 py-2">
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums",
-          ageToneClass(tone),
-        )}
-        title="Time since the order arrived"
-        aria-label={`${ageMins} minutes since arrival${ageToneAriaSuffix(tone)}`}
-      >
-        {tone === "overdue" ? (
-          <AlertTriangle className="size-3.5" aria-hidden="true" />
-        ) : (
-          <Clock className="size-3.5" aria-hidden="true" />
-        )}
-        {ageLabel(ageMins)}
-        {/* A word and its own icon, so a late ticket does not rest on the
-            difference between amber and red. */}
-        {tone === "overdue" && <span aria-hidden="true">· Late</span>}
-      </span>
+    <div className="flex h-10 items-center justify-between gap-3 border-t border-border/60 px-4">
+      {ageMins != null ? (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums",
+            ageToneClass(tone),
+          )}
+          title="Time since the order arrived"
+          aria-label={`${ageMins} minutes since arrival${ageToneAriaSuffix(tone)}`}
+        >
+          {tone === "overdue" ? (
+            <AlertTriangle className="size-3.5" aria-hidden="true" />
+          ) : (
+            <Clock className="size-3.5" aria-hidden="true" />
+          )}
+          {ageLabel(ageMins)}
+          {/* A word and its own icon, so a late ticket does not rest on the
+              difference between amber and red. */}
+          {tone === "overdue" && <span aria-hidden="true">· Late</span>}
+        </span>
+      ) : (
+        <span />
+      )}
+      {/* One line whatever the column width: a wrapped "Waiting for you"
+          would make an Incoming ticket taller than its neighbours. */}
+      {showStatus && (
+        <span className="shrink-0 whitespace-nowrap">
+          <OrderStatusBadge status={status} awaitingArrival={awaitingArrival} />
+        </span>
+      )}
     </div>
   );
 }
@@ -220,6 +240,7 @@ function OrderCardInner({
   overtaken = false,
   optionCodes,
   boothName,
+  boothColor,
   agingMin,
   overdueMin,
   onUndoWindowChange,
@@ -229,6 +250,7 @@ function OrderCardInner({
   selectable = false,
   selected = false,
   onToggleSelect,
+  awaitingArrival = false,
 }: {
   order: BoardOrder;
   // board_settings.daily_order_number_reset display number (see
@@ -244,6 +266,9 @@ function OrderCardInner({
   // @/lib/ticket). A choice with no code prints in full, so this is optional.
   optionCodes?: OptionCodes;
   boothName?: string;
+  // The booth's dot colour, from the board's boothColors(), so it matches the
+  // dot in the booth filter.
+  boothColor?: string;
   // Vendor-configurable board_settings thresholds (see /dashboard/settings).
   // Fall through to orderAgeTone's own defaults when not supplied.
   agingMin?: number;
@@ -278,6 +303,11 @@ function OrderCardInner({
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (orderId: string) => void;
+  // The booth waits for the customer's "I'm here" tap
+  // (requires_arrival_confirm), so a pending order is waiting on the
+  // customer, not on staff. "Start now" stays as the override for a customer
+  // who turned up without tapping.
+  awaitingArrival?: boolean;
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
   // Resync to the (realtime-updated) prop when it actually changes value, so a
@@ -463,6 +493,15 @@ function OrderCardInner({
     });
   }
 
+  // The customer's claim goes back to unpaid; the order itself is untouched,
+  // so they can pay again. The payment status prop follows via realtime.
+  function declinePayment() {
+    return run(async () => {
+      const res = await declinePaymentClaim(order.id);
+      if (!res.success) toast.error(res.error);
+    });
+  }
+
   function cancelOrder() {
     return run(async () => {
       const res = await cancelOrderAction(order.id);
@@ -548,14 +587,15 @@ function OrderCardInner({
           </label>
         )}
         <div className="min-w-0 flex-1">
-          {/* Only in multi-booth view. Same boothColor() hash as the board's
+          {/* Only in multi-booth view. Same boothColors() colour as the board's
               filter, so the colour still carries onto the ticket, but as one
               quiet line: the number below is what gets called out. */}
           {boothName && (
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               <span
                 className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: boothColor(order.booth_id) }}
+                style={{ backgroundColor: boothColor }}
+                title={boothDotTitle(boothName)}
                 aria-hidden="true"
               />
               <span className="truncate">{boothName}</span>
@@ -578,10 +618,10 @@ function OrderCardInner({
                 aria-label="Manually bumped to the front of the queue"
               />
             )}
-            {/* "Preparing" is what a ticket on the board is unless told
-                otherwise, so it goes unsaid. Only the states that change what
-                staff do next are named. */}
-            {status !== "preparing" && <OrderStatusBadge status={status} />}
+            {/* A live ticket's status sits in its bottom strip (see
+                TicketFooter). A closed ticket has no strip, so its outcome
+                stays up here. */}
+            {closed && <OrderStatusBadge status={status} />}
           </div>
           {/* Wrapped, not truncated: this name is what staff write on the cup
               and call out, so a cut-off one is a mix-up waiting to happen. A
@@ -627,12 +667,20 @@ function OrderCardInner({
         showDate={showDate}
         onConfirmPayment={confirmPayment}
         onConfirmPaymentAndStart={confirmPaymentAndStartHandler}
+        onDeclinePayment={declinePayment}
         onAdvance={advanceStatus}
         onUndo={undoAdvance}
         onRestore={restoreToReady}
       />
 
-      {!closed && <TicketAge ageMins={ageMins} tone={tone} />}
+      {!closed && (
+        <TicketFooter
+          ageMins={ageMins}
+          tone={tone}
+          status={status}
+          awaitingArrival={awaitingArrival}
+        />
+      )}
 
       {/* Opened from the "more" menu. An auto-completed order gets its own
           wording: the auto-clear sweep can beat a vendor's own cancel tap, and

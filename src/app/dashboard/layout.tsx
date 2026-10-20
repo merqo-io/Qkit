@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin/access";
 import { requireCurrentLegalAcceptance } from "@/lib/legal-gate";
 import { DashboardNav } from "./dashboard-nav";
 import { DashboardTour } from "@/components/tour/dashboard-tour";
+import { SiteFooter } from "@/components/widgets/site-footer";
 
 export default async function DashboardLayout({
   children,
@@ -77,6 +78,9 @@ export default async function DashboardLayout({
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-7">
         {children}
       </main>
+      <div className="contents print:hidden">
+        <SiteFooter />
+      </div>
       <DashboardTour toursSeen={vendor.tours_seen} />
     </div>
   );

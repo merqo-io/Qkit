@@ -49,6 +49,14 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   never break this page, same fail-closed rule as `EarnLink`).
 - `telegram-connect.dom.test.tsx` — RTL tests for `TelegramConnect`'s
   successful-mint (link + disclosure) and failed-mint (`null`) branches.
+- `push-actions.ts` — `savePushSubscription(boothId, orderNumber, token,
+subscription)`: saves the customer's web push subscription for the
+  order-ready alert (`src/lib/push/`). Token-gated and rate-limited like the
+  other customer actions; refuses an order already ready or finished, a
+  push endpoint off the allowlist, and a sixth browser per order. The
+  notification text and link are computed server-side.
+- `push-actions.test.ts` — unit tests for the save, bad ref, foreign host,
+  rate limit, unknown order, not-waiting and per-order cap branches.
 - `loading.tsx` — animated skeleton matching the real ticket's shadow/layout,
   shown while `page.tsx`'s server reads resolve.
 - `order-status-poller.tsx` — `OrderStatusPoller` client component: polls
@@ -90,7 +98,10 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   a queue-position label (`queuePositionLabel`, e.g. "2 orders ahead of
   you") instead of showing nothing when there isn't enough recent history
   for a time estimate yet, an "Alert me when it's ready" opt-in that unlocks
-  audio + requests `Notification` permission, and on transition to `"ready"`
+  audio + requests `Notification` permission (once granted, now or on an
+  earlier visit, it also subscribes to web push via `subscribeToPush` and
+  `savePushSubscription`, so the ready alert reaches a locked phone), and on
+  transition to `"ready"`
   fires a system notification (`fireReadyNotification`), plays a chime, or
   flashes the tab title if backgrounded. The ready-state copy repeats the
   order number ("Order #N ready, please collect now") instead of a generic
@@ -98,11 +109,14 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   pending-state message above. It also tells the booth page's on-device
   recent-orders list (`noteDisplayNumber`, with the page's token) the number
   it is showing, which fills in the order number of an entry recorded before
-  payment.
+  payment. The relative "Placed 3 min ago" line shows only while the order is live;
+  a finished order's header stamp already gives the placed time.
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.
-- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). `resolveStaleView`
+- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). A priced,
+  live order with `payment_status = not_required` (the booth takes no payment
+  through qkit) shows "Pay at the counter when you collect." under its total. `resolveStaleView`
   (wrapping `isStaleOrderView` in `@/lib/orders`, kept out of the component body
   because reading the clock during render trips `react-hooks/purity`) flags a
   view of an order placed more than `STALE_ORDER_VIEW_HOURS` ago: a repeat
@@ -156,12 +170,12 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   for payment reconciliation, not display. A "Remember this number for
   pickup" line sits right under the heading, the first of several places
   (see `OrderStatusPoller` above) that re-anchor the order number to fight
-  pickup mixups, per Manfred's first-event AAR. `resolveOrderDisplay` (one
-  vendor `board_settings` read) also yields `pickupScanEnabled`; once
-  `order.status === "ready"` and that flag is on, a `react-qr-code` QR
+  pickup mixups, per Manfred's first-event AAR. The booth read also selects
+  `pickup_scan_enabled` (per booth, migration 0104); once
+  `order.status === "ready"` and that column is on, a `react-qr-code` QR
   encoding this same page's own URL renders after the itemized order
   ("Show this at the pickup counter to collect") — a vendor opts a booth
-  into this via the dashboard settings "Self-checkout pickup" toggle, and a
+  into this via the "Self-checkout pickup" switch on that booth's edit page, and a
   staff kiosk scans it into `../pickup`'s `confirmCollection`. The QR's
   origin comes from the request's own `host`/`x-forwarded-host` header
   (`resolveOrigin`), not an env var — `booth-qr-poster.tsx`'s design doc
@@ -183,8 +197,9 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   `ready`/`completed`/`cancelled`), the `../pay` redirect guard (fires
   only when `payment_status === "pending"`, `next/navigation`'s `redirect`
   mocked the same throw-to-abort way as `notFound`), the pickup QR
-  (renders only when `status === "ready"` AND the mocked vendor row's
-  `board_settings.pickup_scan_enabled` is `true`), and `resolveOrigin`'s
+  (renders only when `status === "ready"` AND the mocked booth row's
+  `pickup_scan_enabled` is `true`; the retired vendor-wide
+  `board_settings` key is ignored), and `resolveOrigin`'s
   host allowlist (`react-qr-code` mocked to expose its `value` prop as a
   `data-value` attribute so a test can assert the exact URL embedded — a
   trusted `host` or `x-forwarded-host` is used verbatim, an untrusted one

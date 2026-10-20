@@ -16,6 +16,11 @@ export const PAYKIT_MOCK_PORT = 4319;
 export const PAYKIT_MOCK_URL = `http://127.0.0.1:${PAYKIT_MOCK_PORT}`;
 export const PAYKIT_MOCK_SECRET = "e2e-mock-secret";
 
+// The app's port. 3000 unless E2E_PORT says otherwise, for a machine where
+// something else already holds 3000 (playwright.config.ts reads it too).
+export const E2E_PORT = process.env.E2E_PORT ?? "3000";
+export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
+
 type MockStatus = "pending" | "claimed" | "confirmed";
 
 interface MockTransaction {
@@ -39,7 +44,7 @@ interface MockTransaction {
 // e2e runs the customer's own claim and the callback against one order at
 // the same moment, as production does.
 export const PAYKIT_MOCK_CALLBACK_SECRET = "e2e-mock-callback-secret";
-const QKIT_CALLBACK_URL = "http://localhost:3000/api/paykit/payment-status";
+const QKIT_CALLBACK_URL = `${E2E_BASE_URL}/api/paykit/payment-status`;
 
 function fireCallback(tx: MockTransaction) {
   void fetch(QKIT_CALLBACK_URL, {
