@@ -17,6 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The paykit fallback URL, used when `NEXT_PUBLIC_PAYKIT_URL` is unset, is now `https://paykit.merqo.io` instead of the deleted `paykit-sg.vercel.app`. Applies to the API client (`src/lib/paykit/client.ts`) and the booth page's payment setup link. Production sets the variable, so nothing changes live.
+- The order status page's "Earn a stamp" link now fails closed when `NEXT_PUBLIC_LOOPKIT_URL` is unset, as `.env.example` already said: no link and no request. It used to fall back to the deleted `loopkit-sg.vercel.app`, sending the metrics secret to a host qkit no longer owns.
 - Shared-UI parity with the sibling kits. The vendor dashboard now ends with the family `Footer` (About, Terms, Privacy, no sign-in link, hidden when printing), as stockkit, printkit and paykit already do. The footer wrapper moved from `src/components/landing/footer.tsx` to `src/components/widgets/site-footer.tsx` as `SiteFooter({ showSignIn })`; the landing page and `/about` pass `showSignIn`. Four hand-rolled "back" links (menu editor, booth QR poster, event stats, admin vendor detail) now use the shared `BackButton`. No migration.
 - Booths list: each card's Customer screen button is an icon again, as before #235, and still opens the same dialog as the board. Its QR code, Copy link and Customer screen icons each name themselves in a hover tooltip. `CustomerScreenButton` gains an `iconOnly` prop; the board header keeps the word.
 - Booth edit page: "Printing & pickup" is split into a Printing card and a Pickup card, since printkit printing and the self-checkout pickup kiosk are unrelated settings. No migration.

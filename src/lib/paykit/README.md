@@ -10,7 +10,8 @@ tracks payment state locally end-to-end; this is the seam that replaced
 
 ## Contents
 
-- `client.ts` — `getVendorConfig(vendorId)` (reads the vendor's payment
+- `client.ts` — calls paykit at `NEXT_PUBLIC_PAYKIT_URL` (falls back to
+  `https://paykit.merqo.io` when unset). `getVendorConfig(vendorId)` (reads the vendor's payment
   config as paykit holds it; qkit never writes it, the vendor enters it in
   paykit's own dashboard. `ok:false` means paykit did not say, which is not
   the same as nothing on file), `createCheckout({vendorId,

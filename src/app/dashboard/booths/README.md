@@ -54,7 +54,8 @@ Payment details are entered in Paykit only. The Payment section
 one read-only line naming what Paykit has on file (the kind and the vendor's
 own name for it, never a UEN, mobile number or link), and one link to
 Paykit's setup page, opened in a new tab (2026-10-16, so the booth form stays
-open), still carrying this page as `return_to`. With nothing on file the switch is off and locked and
+open), still carrying this page as `return_to`. The link's base is `NEXT_PUBLIC_PAYKIT_URL`, falling
+back to `https://paykit.merqo.io`. With nothing on file the switch is off and locked and
 the link reads "Set up payments in paykit"; when Paykit cannot be reached the
 switch shows the stored setting and is locked. `saveBooth` writes the booth's
 payment-kind marker from the switch plus the kind Paykit reports at save time

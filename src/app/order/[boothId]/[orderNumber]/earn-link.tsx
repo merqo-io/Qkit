@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-const LOOPKIT_URL =
-  process.env.NEXT_PUBLIC_LOOPKIT_URL ?? "https://loopkit-sg.vercel.app";
 const MERQO_METRICS_SECRET = process.env.MERQO_METRICS_SECRET ?? "";
 
 const earnConfigSchema = z.object({
@@ -10,10 +8,13 @@ const earnConfigSchema = z.object({
 });
 type EarnConfig = z.infer<typeof earnConfigSchema>;
 
-async function fetchEarnConfig(vendorId: string): Promise<EarnConfig> {
+async function fetchEarnConfig(
+  loopkitUrl: string,
+  vendorId: string,
+): Promise<EarnConfig> {
   try {
     const res = await fetch(
-      `${LOOPKIT_URL}/api/merqo/qkit-earn-config?vendor_id=${encodeURIComponent(vendorId)}`,
+      `${loopkitUrl}/api/merqo/qkit-earn-config?vendor_id=${encodeURIComponent(vendorId)}`,
       {
         headers: { Authorization: `Bearer ${MERQO_METRICS_SECRET}` },
         cache: "no-store",
@@ -33,13 +34,15 @@ async function fetchEarnConfig(vendorId: string): Promise<EarnConfig> {
 export async function EarnLink({
   orderId,
   vendorId,
-  loopkitBaseUrl = LOOPKIT_URL,
+  loopkitBaseUrl = process.env.NEXT_PUBLIC_LOOPKIT_URL,
 }: {
   orderId: string;
   vendorId: string;
   loopkitBaseUrl?: string;
 }) {
-  const config = await fetchEarnConfig(vendorId);
+  // No fallback host: unset means loopkit isn't configured, so no link.
+  if (!loopkitBaseUrl) return null;
+  const config = await fetchEarnConfig(loopkitBaseUrl, vendorId);
   if (!config.enabled) return null;
 
   return (
