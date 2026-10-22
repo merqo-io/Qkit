@@ -1,0 +1,28 @@
+name: staging sync
+
+# Keeps the long-lived `staging` branch (the staging Vercel deployment) on main's
+# exact commit. Fast-forward only: a diverged `staging` fails here instead of being overwritten.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: fast-forward staging to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - run: git push origin HEAD:refs/heads/staging

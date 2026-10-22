@@ -54,9 +54,22 @@ env var value — some are Production-only by design:
   cross-kit SSO config changes — it's a dashboard setting, not something
   `.env.example` enforces.
 
-**Database**: Preview and Production currently point at the **same**
-Supabase project — no separate staging database. This is a known,
-deliberate gap (not yet urgent) rather than an oversight: preview builds
-read/write real production data. Segregating Preview onto a separate
-staging project (plus auditing which other env vars should split
-Prod/Preview) is scoped for a future pass, not scheduled yet.
+**Database**: Preview uses a separate staging Supabase project, not
+production. The `staging` branch (kept on `main` by the `staging sync`
+workflow) is served at `qkit-staging.merqo.io`, and every per-PR preview
+calls merqo's staging host (`staging.merqo.io`). The setup steps, the
+full list of `Preview` env vars and the end-to-end check live in merqo's
+`docs/STAGING.md`. qkit's `Preview` scope overrides:
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+  `SUPABASE_SECRET_KEY`: the staging project.
+- `MERQO_BASE_URL`: `https://staging.merqo.io`.
+- `MERQO_CUSTOMER_SECRET`, `MERQO_METRICS_SECRET`,
+  `MERQO_PROVISION_SECRET`: staging-only values, never the production ones.
+- `PAYKIT_KIT_SECRET`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET`:
+  Production only. paykit and printkit have no staging yet, so payment
+  and printing stay off on previews (they fail closed).
+
+Load staging's schema with `scripts/staging-migrate.sh`, not
+`supabase db push`: every kit shares one migration history table and
+reuses the same version numbers.
