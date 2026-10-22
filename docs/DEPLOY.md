@@ -64,11 +64,24 @@ full list of `Preview` env vars and the end-to-end check live in merqo's
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
   `SUPABASE_SECRET_KEY`: the staging project.
 - `MERQO_BASE_URL`: `https://staging.merqo.io`.
+- `NEXT_PUBLIC_PAYKIT_URL`, `NEXT_PUBLIC_PRINTKIT_URL`,
+  `NEXT_PUBLIC_LOOPKIT_URL`: each kit's `<kit>-staging.merqo.io` host.
 - `MERQO_CUSTOMER_SECRET`, `MERQO_METRICS_SECRET`,
   `MERQO_PROVISION_SECRET`: staging-only values, never the production ones.
-- `PAYKIT_KIT_SECRET`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET`:
-  Production only. paykit and printkit have no staging yet, so payment
-  and printing stay off on previews (they fail closed).
+- `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`, `PRINTKIT_KIT_SECRET`,
+  `PRINTKIT_CALLBACK_SECRET`: staging-only values matching qkit's rows in
+  the staging `paykit.kit_api_keys` and `printkit.kit_api_keys` (each
+  kit's `supabase/seed/staging-kit-keys.sql`). Until paykit or printkit is
+  on staging, leave that kit's pair unset on Preview: payment or printing
+  then stays off (fails closed).
+- `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN`: `.merqo.io` for Git branch `staging`
+  only, so one sign-in covers the staging hosts. Never on other previews.
+
+Vercel Deployment Protection is off on this project: it still challenged
+the branch-assigned staging domain. The `staging sync` workflow also calls
+the project's Vercel deploy hook (repo secret `VERCEL_STAGING_DEPLOY_HOOK`),
+because Vercel does not git-deploy a commit it already built for
+production.
 
 Load staging's schema with `scripts/staging-migrate.sh`, not
 `supabase db push`: every kit shares one migration history table and

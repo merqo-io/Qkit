@@ -26,3 +26,14 @@ jobs:
           ref: main
           fetch-depth: 0
       - run: git push origin HEAD:refs/heads/staging
+      # Vercel skips a git deploy for a commit it already built (main's production
+      # deploy), so the staging deploy is triggered through the project's deploy hook.
+      - name: deploy staging on Vercel
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_STAGING_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::VERCEL_STAGING_DEPLOY_HOOK is not set, so staging was not redeployed"
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK" > /dev/null
