@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- `next` and `eslint-config-next` 16.3.8 to 16.4.2. next `>=16.0.0 <=16.4.0` has two critical unauthenticated remote code execution advisories, GHSA-2464-fhr4-w9xw (Image Optimization API with SVG files) and GHSA-673q-mjm6-r5xr (`use cache` functions returning typed arrays), and a high Server Actions denial of service, GHSA-p3m5-59mp-jv5r. They failed the dependency-audit job on every open PR. `pnpm audit --prod --audit-level=high` is clean again.
+
 ### Added
 
 - Staging rollout: `docs/DEPLOY.md` lists qkit's full set of `Preview` overrides now that paykit, printkit and loopkit join staging (staging `PAYKIT_*` and `PRINTKIT_*` pairs matching each kit's `staging-kit-keys.sql`, the kits' staging URLs, the auth cookie domain for the `staging` branch only) and notes that Vercel Deployment Protection is off on this project. The `staging sync` workflow now triggers the Vercel deploy hook in `VERCEL_STAGING_DEPLOY_HOOK`, since Vercel does not git-deploy a commit it already built for production.
