@@ -46,7 +46,6 @@ rebuild after changing them.
 | ----------------------------------------------------------------------------- | ------------------------------------------------ |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Browser-safe Supabase connection                 |
 | `SUPABASE_SECRET_KEY`                                                         | Server-only service-role access                  |
-| `NEXT_PUBLIC_BASE_URL`                                                        | Application origin                               |
 | `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration |
 | `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout        |
 | `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                    |
