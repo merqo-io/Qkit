@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- `next` and `eslint-config-next` 16.3.8 to 16.4.2. next `>=16.0.0 <=16.4.0` has two critical unauthenticated remote code execution advisories, GHSA-2464-fhr4-w9xw (Image Optimization API with SVG files) and GHSA-673q-mjm6-r5xr (`use cache` functions returning typed arrays), and a high Server Actions denial of service, GHSA-p3m5-59mp-jv5r. They failed the dependency-audit job on every open PR. `pnpm audit --prod --audit-level=high` is clean again.
+
 ### Added
 
 - Staging environment (pilot with merqo). Vercel `Preview` deployments move off the production database onto a separate staging Supabase project, and the `staging` branch is served at `qkit-staging.merqo.io`, calling merqo's `staging.merqo.io`. `docs/DEPLOY.md` drops the "deliberate gap" note and lists qkit's `Preview` env var overrides; `docs/OPS-RUNBOOK.md` adds the staging-first gate for PRs that add a migration. New `scripts/staging-migrate.sh` loads migrations into staging with psql (the kits share one migration history table with overlapping version numbers, so `supabase db push` cannot), and the `staging sync` workflow keeps `staging` on `main`. Full setup: merqo's `docs/STAGING.md`.
