@@ -16,6 +16,10 @@ import { notifyVendor } from "@/lib/merqo/customer-notify";
 import { createPrintJob } from "@/lib/printkit/client";
 import { vendorFacingOrderNumber } from "@/lib/daily-order-number";
 
+function errorName(err: unknown): string {
+  return err instanceof Error ? err.name : "unknown";
+}
+
 /**
  * Redundant new-order channel: alerts the booth's vendor via merqo's shared
  * Telegram bot (Phase A2 — supersedes qkit's own now-retired bot). Entirely
@@ -59,7 +63,7 @@ export async function notifyVendorTelegram(
 
     await notifyVendor(booth.vendor_id, `New order #${shown}${totalLabel}`);
   } catch (err) {
-    console.error("notifyVendorTelegram failed", err);
+    console.error("notifyVendorTelegram failed", errorName(err));
   }
 }
 
@@ -86,34 +90,25 @@ export async function notifyPrintkit(
 ): Promise<void> {
   try {
     const service = await createServiceClient();
-    const { data: booth, error: boothError } = await service
+    const { data: booth } = await service
       .from("booths")
       .select("vendor_id, print_enabled")
       .eq("id", boothId)
       .maybeSingle();
     if (!booth) {
-      console.error(
-        "notifyPrintkit: booth lookup found nothing",
-        boothId,
-        boothError?.message,
-      );
+      console.error("notifyPrintkit: booth lookup found nothing");
       return;
     }
     if (!booth.print_enabled) return;
 
-    const { data: order, error: orderError } = await service
+    const { data: order } = await service
       .from("orders")
       .select("id, customer_name")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
     if (!order) {
-      console.error(
-        "notifyPrintkit: order lookup found nothing",
-        boothId,
-        orderNumber,
-        orderError?.message,
-      );
+      console.error("notifyPrintkit: order lookup found nothing");
       return;
     }
 
@@ -148,11 +143,7 @@ export async function notifyPrintkit(
     // write below: it repairs a first call that died before marking the order
     // queued, and changes nothing otherwise.
     if (!result.ok && result.status !== 409) {
-      console.error(
-        "notifyPrintkit: createPrintJob failed",
-        result.status,
-        result.error,
-      );
+      console.error("notifyPrintkit: createPrintJob failed", result.status);
       return;
     }
 
@@ -169,12 +160,9 @@ export async function notifyPrintkit(
       .eq("id", order.id)
       .eq("print_status", "not_required");
     if (updateError) {
-      console.error(
-        "notifyPrintkit: print_status update failed",
-        updateError.message,
-      );
+      console.error("notifyPrintkit: print_status update failed");
     }
   } catch (err) {
-    console.error("notifyPrintkit failed", err);
+    console.error("notifyPrintkit failed", errorName(err));
   }
 }

@@ -23,6 +23,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Signed-in render smoke and CSP e2e specs; CI e2e serves the production build.
 - `docs/security/2026-10-24-data-inventory.md`.
 
+## [0.1.3] - 2026-10-24
+
+### Security
+
+- `notifyVendorTelegram` and `notifyPrintkit` no longer log the booth id, order number, printkit response text or database error messages. Failures log a fixed message plus the error name (CodeQL `js/log-injection`, 2 alerts), so a forged newline in a request value cannot write a fake log line.
+
 ## [0.1.2] - 2026-10-24
 
 ### Security
