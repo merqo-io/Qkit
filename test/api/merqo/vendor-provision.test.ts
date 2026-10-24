@@ -24,7 +24,7 @@ vi.mock("@/lib/audit", () => ({
 
 import { POST } from "@/app/api/merqo/vendor-provision/route";
 
-const USER_ID = "11111111-1111-1111-1111-111111111111";
+const USER_ID = "11111111-1111-1111-8111-111111111111";
 
 function req(body: unknown, auth?: string) {
   return new Request("http://localhost/api/merqo/vendor-provision", {

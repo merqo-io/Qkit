@@ -39,16 +39,16 @@ describe("submitFeedback", () => {
     allow();
     const res = await submitFeedback({
       source: "customer",
-      boothId: "11111111-1111-1111-1111-111111111111",
+      boothId: "11111111-1111-1111-8111-111111111111",
       orderNumber: "0042",
-      token: "22222222-2222-2222-2222-222222222222",
+      token: "22222222-2222-2222-8222-222222222222",
       rating: 5,
     });
     expect(res).toEqual({ success: true });
 
     const call = rpc.mock.calls.find((c) => c[0] === "submit_feedback");
     expect(call?.[1]).toMatchObject({
-      p_access_token: "22222222-2222-2222-2222-222222222222",
+      p_access_token: "22222222-2222-2222-8222-222222222222",
     });
   });
 

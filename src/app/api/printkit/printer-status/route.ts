@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPrinterStatus, printkitConfigured } from "@/lib/printkit/client";
 
-const querySchema = z.object({ booth: z.string().uuid() });
+const querySchema = z.object({ booth: z.uuid() });
 
 /**
  * The browser's way to refresh a booth's printer status. It exists so the

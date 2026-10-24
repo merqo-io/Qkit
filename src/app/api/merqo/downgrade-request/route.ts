@@ -11,7 +11,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const revalidate = 0;
 
-const bodySchema = z.object({ email: z.string().email() });
+const bodySchema = z.object({ email: z.email() });
 
 export async function POST(request: Request) {
   if (!bearerOk(request)) {

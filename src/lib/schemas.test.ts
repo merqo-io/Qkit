@@ -25,8 +25,8 @@ import {
   ALLERGEN_TAGS,
 } from "./schemas";
 
-const UUID_A = "11111111-1111-1111-1111-111111111111";
-const UUID_B = "22222222-2222-2222-2222-222222222222";
+const UUID_A = "11111111-1111-1111-8111-111111111111";
+const UUID_B = "22222222-2222-2222-8222-222222222222";
 
 describe("parseOrderRef", () => {
   it("accepts a valid (boothId, orderNumber, token) triple", () => {

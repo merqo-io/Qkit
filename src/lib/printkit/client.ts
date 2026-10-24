@@ -47,7 +47,7 @@ const printerStatusSchema = z.object({
       hardware_verified: z.boolean(),
     })
     .nullable(),
-  manage_url: z.unknown().transform(httpUrlOrNull),
+  manage_url: z.unknown().optional().transform(httpUrlOrNull),
 });
 
 export type PrinterStatusBody = z.infer<typeof printerStatusSchema>;

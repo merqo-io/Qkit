@@ -10,8 +10,8 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 // accepted. A body whose two names disagree is refused, not guessed at.
 const bodySchema = z
   .object({
-    source_ref: z.string().uuid().optional(),
-    order_id: z.string().uuid().optional(),
+    source_ref: z.uuid().optional(),
+    order_id: z.uuid().optional(),
     status: z.enum(["printed", "failed"]),
     attempt_at: z.string().datetime({ precision: 6 }),
   })
