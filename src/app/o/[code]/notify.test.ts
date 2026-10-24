@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { notifyPrintkit } from "./notify";
+import { notifyPrintkit, notifyVendorTelegram } from "./notify";
 
 const {
   boothsMaybeSingle,
@@ -126,5 +126,76 @@ describe("notifyPrintkit run more than once for one order", () => {
     await notifyPrintkit(BOOTH, "0007");
     expect(createPrintJobMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("failure logging never carries caller or remote text", () => {
+  const FORGED = "x\nFORGED level=info msg=admin-login";
+
+  function logged(): string {
+    return errorSpy.mock.calls.flat().map(String).join(" ");
+  }
+
+  it("omits the booth id when the booth lookup finds nothing", async () => {
+    boothsMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: FORGED },
+    });
+    await notifyPrintkit(FORGED, "0007");
+    expect(errorSpy).toHaveBeenCalled();
+    expect(logged()).not.toContain("FORGED");
+  });
+
+  it("omits the order number when the order lookup finds nothing", async () => {
+    ordersMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: FORGED },
+    });
+    await notifyPrintkit(BOOTH, FORGED);
+    expect(errorSpy).toHaveBeenCalled();
+    expect(logged()).not.toContain("FORGED");
+  });
+
+  it("omits printkit's response text when job creation fails", async () => {
+    createPrintJobMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      error: FORGED,
+    });
+    await notifyPrintkit(BOOTH, "0007");
+    expect(errorSpy).toHaveBeenCalled();
+    expect(logged()).not.toContain("FORGED");
+  });
+
+  it("omits the database message when the print_status write fails", async () => {
+    const failingUpdate = () => {
+      const node = {
+        eq: () => node,
+        then: (resolve: (value: { error: { message: string } }) => unknown) =>
+          Promise.resolve({ error: { message: FORGED } }).then(resolve),
+      };
+      return node;
+    };
+    updateMock.mockImplementationOnce(failingUpdate as never);
+    await notifyPrintkit(BOOTH, "0007");
+    expect(errorSpy).toHaveBeenCalled();
+    expect(logged()).not.toContain("FORGED");
+  });
+
+  it("logs only the error name when notifyPrintkit throws", async () => {
+    boothsMaybeSingle.mockRejectedValue(new TypeError(FORGED));
+    await notifyPrintkit(BOOTH, "0007");
+    expect(errorSpy).toHaveBeenCalledWith("notifyPrintkit failed", "TypeError");
+    expect(logged()).not.toContain("FORGED");
+  });
+
+  it("logs only the error name when notifyVendorTelegram throws", async () => {
+    boothsMaybeSingle.mockRejectedValue(new TypeError(FORGED));
+    await notifyVendorTelegram(BOOTH, "0007");
+    expect(errorSpy).toHaveBeenCalledWith(
+      "notifyVendorTelegram failed",
+      "TypeError",
+    );
+    expect(logged()).not.toContain("FORGED");
   });
 });
