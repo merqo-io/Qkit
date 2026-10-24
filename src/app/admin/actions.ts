@@ -21,7 +21,7 @@ import { forgetPlatformSettings } from "@/lib/platform-settings";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 
 const setPlanSchema = z.object({
-  vendorId: z.string().uuid(),
+  vendorId: z.uuid(),
   plan: z.enum(["free", "pro"]),
   // When flipping to pro against a real (non-comp) payment, record it.
   amountCents: z.number().int().nonnegative().max(MAX_MONEY_CENTS).optional(),
@@ -205,7 +205,7 @@ export async function grantPass(input: GrantPassInput): Promise<ActionResult> {
   return { success: true };
 }
 
-const resolveRequestSchema = z.object({ id: z.string().uuid() });
+const resolveRequestSchema = z.object({ id: z.uuid() });
 
 /** Dismiss a vendor's upgrade request once handled. Admin-only. */
 export async function resolvePurchaseRequest(
@@ -239,7 +239,7 @@ export async function resolvePurchaseRequest(
   return { success: true };
 }
 
-const resolveMessageSchema = z.object({ id: z.string().uuid() });
+const resolveMessageSchema = z.object({ id: z.uuid() });
 
 /** Mark a vendor's help request resolved once handled. Admin-only. */
 export async function resolveSupportMessage(
@@ -279,7 +279,7 @@ export async function resolveSupportMessage(
   return { success: true };
 }
 
-const revokePassSchema = z.object({ vendorId: z.string().uuid() });
+const revokePassSchema = z.object({ vendorId: z.uuid() });
 
 /**
  * Revoke a vendor's live pass(es): end the window now (set expires_at = now)

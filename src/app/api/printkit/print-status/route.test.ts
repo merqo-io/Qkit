@@ -42,8 +42,8 @@ function requestWith(body: unknown) {
   });
 }
 
-const ORDER_ID = "11111111-1111-1111-1111-111111111111";
-const OTHER_ORDER_ID = "22222222-2222-2222-2222-222222222222";
+const ORDER_ID = "11111111-1111-1111-8111-111111111111";
+const OTHER_ORDER_ID = "22222222-2222-2222-8222-222222222222";
 
 beforeEach(() => {
   printkitCallbackBearerOkMock.mockReset();
@@ -251,12 +251,12 @@ it("acknowledges a stale terminal callback without rewriting the order", async (
   printkitCallbackBearerOkMock.mockReturnValue(true);
   maybeSingleMock.mockResolvedValue({ data: null, error: null });
   existsMock.mockResolvedValue({
-    data: { id: "11111111-1111-1111-1111-111111111111" },
+    data: { id: "11111111-1111-1111-8111-111111111111" },
     error: null,
   });
   const response = await POST(
     requestWith({
-      order_id: "11111111-1111-1111-1111-111111111111",
+      order_id: "11111111-1111-1111-8111-111111111111",
       status: "failed",
     }),
   );
@@ -277,7 +277,7 @@ it.each([
     updateMock.mockClear();
     const response = await POST(
       requestWith({
-        order_id: "11111111-1111-1111-1111-111111111111",
+        order_id: "11111111-1111-1111-8111-111111111111",
         status: "failed",
         attempt_at,
       }),

@@ -21,7 +21,7 @@ vi.mock("@/lib/printkit/client", () => ({
 
 import { GET } from "./route";
 
-const BOOTH = "11111111-1111-1111-1111-111111111111";
+const BOOTH = "11111111-1111-1111-8111-111111111111";
 
 function request(booth: string | null = BOOTH): Request {
   const url = booth

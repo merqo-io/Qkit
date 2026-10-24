@@ -10,6 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- `zod` 3.25.76 to 4.6.6 (GHSA-mrhx-c7xc-m3w5, memory exhaustion on oversized constrained collections). `z.string().uuid()` and `z.string().email()` became `z.uuid()` and `z.email()`; test fixture UUIDs are now RFC-valid because Zod 4 checks the version and variant. An override pins any transitive `zod` below 4.6.6. `@hookform/resolvers` 3.10.0 to 5.2.2 for Zod 4 support. printkit `manage_url` is now `.optional()` before its transform so an answer without the key still parses.
+
 - Dev tooling advisories: `vitest` and `@vitest/coverage-v8` to `4.1.12` (`@vitest/mocker` GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp), `vite` pinned as a direct dev dependency at the first patched version of its major (GHSA-587h-7wmj-h5pm and five more), `undici` override raised to `>=7.30.1`, `fast-uri` override raised to `>=4.2.3`. `@supabase/supabase-js` is now an exact pin instead of a caret range.
 
 - `next` and `eslint-config-next` 16.3.8 to 16.4.2. next `>=16.0.0 <=16.4.0` has two critical unauthenticated remote code execution advisories, GHSA-2464-fhr4-w9xw (Image Optimization API with SVG files) and GHSA-673q-mjm6-r5xr (`use cache` functions returning typed arrays), and a high Server Actions denial of service, GHSA-p3m5-59mp-jv5r. They failed the dependency-audit job on every open PR. `pnpm audit --prod --audit-level=high` is clean again.

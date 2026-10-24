@@ -26,7 +26,7 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "5.2.2",
     "@merqo/ui": "github:merqo-io/merqo-ui#7b386558af36a1cbf008a9b4c4073c07ffc105ba",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "2.107.0",
@@ -44,7 +44,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "web-push": "3.6.7",
-    "zod": "^3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

@@ -198,7 +198,7 @@ type DeleteBoothResult = ActionResult;
  * booths. Never blocks the delete itself.
  */
 export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
 
   const supabase = await createServerClient();
@@ -237,7 +237,7 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
 export async function regenerateShortCode(
   boothId: string,
 ): Promise<ActionResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
 
   const supabase = await createServerClient();
@@ -263,7 +263,7 @@ export async function regenerateShortCode(
  * checks the booth is the caller's, so a non-owner gets "not found".
  */
 export async function startNewService(boothId: string): Promise<ActionResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
 
   const supabase = await createServerClient();
@@ -432,7 +432,7 @@ export async function saveMenuItems(
   boothId: string,
   items: MenuItemFormInput[],
 ): Promise<ActionResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
   const parsed = menuItemsInputSchema.safeParse(items);
   if (!parsed.success) return { success: false, error: "Invalid menu items" };
@@ -483,7 +483,7 @@ export async function saveMenuCategories(
   boothId: string,
   categories: MenuCategory[],
 ): Promise<ActionResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
   const parsed = menuCategoriesSchema.safeParse(categories);
   if (!parsed.success) return { success: false, error: "Invalid categories" };
@@ -514,7 +514,7 @@ export async function toggleBoothActive(
   boothId: string,
   active: boolean,
 ): Promise<ActionResult> {
-  if (!z.string().uuid().safeParse(boothId).success)
+  if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
   if (!z.boolean().safeParse(active).success)
     return { success: false, error: "Invalid active state" };

@@ -19,7 +19,7 @@ type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 // answers with when asked, so a forged, replayed or out-of-order body can
 // never set a status paykit does not hold. The uuid check also keeps the
 // value safe to use as a filter.
-const bodySchema = z.object({ order_ref: z.string().uuid() });
+const bodySchema = z.object({ order_ref: z.uuid() });
 
 type CallbackOrder = {
   id: string;

@@ -14,7 +14,7 @@ import { OPTION_CODE_MAX } from "@/lib/ticket";
 export const PASSWORD_MIN_LENGTH = 8;
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email"),
+  email: z.email("Invalid email"),
   password: z
     .string()
     .min(
@@ -249,14 +249,14 @@ export const printStatusSchema = z.enum([
 // polling reads. boothId is a UUID; order numbers are short sequential per-booth
 // strings (bounded to reject junk before it reaches a query).
 /** Any id that is a uuid (booth, order, vendor, idempotency key, session). */
-export const uuidSchema = z.string().uuid();
+export const uuidSchema = z.uuid();
 
 export const orderBoothIdSchema = uuidSchema;
 export const orderNumberSchema = z.string().min(1).max(40);
 // Per-order access token minted by place_order; gates the status page + its
 // polling/claim reads so booth_id + sequential order_number alone can't
 // enumerate other customers' orders.
-export const orderTokenSchema = z.string().uuid();
+export const orderTokenSchema = z.uuid();
 
 export type OrderRef = { boothId: string; orderNumber: string; token: string };
 export type ParseOrderRefResult =
@@ -342,7 +342,7 @@ export function resolveSocialLinks(
 }
 
 export const boothFormSchema = z.object({
-  boothId: z.string().uuid().optional(),
+  boothId: z.uuid().optional(),
   name: z.string().min(1, "Booth name is required").max(100),
   image_url: imageUrlString.nullable(),
   is_active: z.boolean(),
@@ -416,7 +416,7 @@ export const bannerFormSchema = z.object({
 export type BannerFormInput = z.infer<typeof bannerFormSchema>;
 
 export const grantPassSchema = z.object({
-  vendorId: z.string().uuid(),
+  vendorId: z.uuid(),
   // Sold per day; 1 covers a few-hour market, up to 14 for long bazaars/fairs.
   days: z.number().int().positive().max(14),
   // When the pass starts (ISO). Omitted = starts now. Lets a vendor schedule it
@@ -433,11 +433,11 @@ export type GrantPassInput = z.infer<typeof grantPassSchema>;
 export const feedbackSchema = z
   .object({
     source: z.enum(["customer", "vendor"]),
-    boothId: z.string().uuid().optional(),
+    boothId: z.uuid().optional(),
     orderNumber: orderNumberSchema.optional(),
     // Per-order access token — proves a customer reviewer actually placed the
     // order (the RPC rejects customer feedback whose token doesn't match).
-    token: z.string().uuid().optional(),
+    token: z.uuid().optional(),
     // customer order rating
     rating: z.number().int().min(1).max(5).optional(),
     // vendor → qkit loyalty

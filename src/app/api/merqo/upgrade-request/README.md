@@ -6,7 +6,7 @@ Endpoint the Merqo product calls to file a monthly-Pro upgrade request on a vend
 
 ## Contents
 
-- `route.ts` — `POST(request)`. Guarded by `bearerOk()` (shared-secret `Authorization: Bearer` check, constant-time compare, imported from `@/lib/merqo/auth`, same helper `../metrics/route.ts` uses). Body validated with `z.object({ email: z.string().email() })`. Looks up the auth user by email via `@/lib/merqo/auth`'s `listAllAuthUsers()` + `findAuthUserByEmail()` (case-insensitive, across all auth pages), checks for an existing pending `purchase_requests` row of kind `monthly`, and feeds `(vendorFound, alreadyPending)` to `resolveUpgradeOutcome()` (`@/lib/merqo/upgrade-request`): `not_found` → 404, `already_pending` → 200 no-op, otherwise inserts a new `purchase_requests` row (`kind: "monthly"`). Returns `{ success, error? }` JSON with 401/400/404/503/200 status codes.
+- `route.ts` — `POST(request)`. Guarded by `bearerOk()` (shared-secret `Authorization: Bearer` check, constant-time compare, imported from `@/lib/merqo/auth`, same helper `../metrics/route.ts` uses). Body validated with `z.object({ email: z.email() })`. Looks up the auth user by email via `@/lib/merqo/auth`'s `listAllAuthUsers()` + `findAuthUserByEmail()` (case-insensitive, across all auth pages), checks for an existing pending `purchase_requests` row of kind `monthly`, and feeds `(vendorFound, alreadyPending)` to `resolveUpgradeOutcome()` (`@/lib/merqo/upgrade-request`): `not_found` → 404, `already_pending` → 200 no-op, otherwise inserts a new `purchase_requests` row (`kind: "monthly"`). Returns `{ success, error? }` JSON with 401/400/404/503/200 status codes.
 
 ## Connectivity
 

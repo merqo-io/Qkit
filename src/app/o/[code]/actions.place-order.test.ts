@@ -101,7 +101,7 @@ const validInput = {
   customerName: "Ada",
   items: [{ menuItemId: "m1", name: "Kopi", price_cents: 200, quantity: 1 }],
 };
-const IDEM = "11111111-1111-1111-1111-111111111111";
+const IDEM = "11111111-1111-1111-8111-111111111111";
 
 // Shared by the vendor-alert and printkit-notify describe blocks below —
 // both exercise a redundant post-order notify channel off the same

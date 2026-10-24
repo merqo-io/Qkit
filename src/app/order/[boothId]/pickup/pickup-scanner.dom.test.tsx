@@ -23,7 +23,7 @@ describe("PickupScanner", () => {
     render(<PickupScanner boothId="b1" />);
     const input = screen.getByRole("textbox");
     const scan =
-      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-1111-111111111111";
+      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-8111-111111111111";
     fireEvent.change(input, { target: { value: scan } });
     fireEvent.keyDown(input, { key: "Enter" });
     await screen.findByText(/could not complete order.*scan again/i);
@@ -53,12 +53,12 @@ describe("PickupScanner", () => {
     const input = screen.getByRole("textbox");
     await userEvent.type(
       input,
-      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-1111-111111111111{Enter}",
+      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-8111-111111111111{Enter}",
     );
     expect(confirmCollectionMock).toHaveBeenCalledWith(
       "b1",
       "0007",
-      "11111111-1111-1111-1111-111111111111",
+      "11111111-1111-1111-8111-111111111111",
     );
     expect(
       await screen.findByText(/order #0007 collected/i),
@@ -71,7 +71,7 @@ describe("PickupScanner", () => {
     const input = screen.getByRole("textbox");
     await userEvent.type(
       input,
-      "https://qkit.example/order/b2/0007?t=11111111-1111-1111-1111-111111111111{Enter}",
+      "https://qkit.example/order/b2/0007?t=11111111-1111-1111-8111-111111111111{Enter}",
     );
     expect(confirmCollectionMock).not.toHaveBeenCalled();
     expect(await screen.findByText(/wrong stall/i)).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("PickupScanner", () => {
     const input = screen.getByRole("textbox");
     await userEvent.type(
       input,
-      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-1111-111111111111{Enter}",
+      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-8111-111111111111{Enter}",
     );
     expect(input).toBeDisabled();
     resolveCall({ success: true, status: "completed" });
@@ -106,7 +106,7 @@ describe("PickupScanner", () => {
     const input = screen.getByRole("textbox");
     await userEvent.type(
       input,
-      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-1111-111111111111{Enter}",
+      "https://qkit.example/order/b1/0007?t=11111111-1111-1111-8111-111111111111{Enter}",
     );
     expect(input).toBeDisabled();
     expect(confirmCollectionMock).toHaveBeenCalledTimes(1);
@@ -119,7 +119,7 @@ describe("PickupScanner", () => {
     fireEvent.change(input, {
       target: {
         value:
-          "https://qkit.example/order/b1/0008?t=22222222-2222-2222-2222-222222222222",
+          "https://qkit.example/order/b1/0008?t=22222222-2222-2222-8222-222222222222",
       },
     });
     fireEvent.keyDown(input, { key: "Enter" });

@@ -3,7 +3,7 @@ import type { PlaceOrderInput } from "@/lib/schemas";
 
 const pendingOrderSchema = z
   .object({
-    key: z.string().uuid(),
+    key: z.uuid(),
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
