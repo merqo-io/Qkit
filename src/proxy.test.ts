@@ -127,3 +127,27 @@ describe("proxy Supabase origins", () => {
     expect(csp(response)).toContain("ws://127.0.0.1:54321");
   });
 });
+
+describe("proxy Vercel toolbar", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("allows vercel.live outside production", async () => {
+    signedIn();
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const response = await proxy(
+      new NextRequest("https://qkit.merqo.io/dashboard"),
+    );
+
+    expect(csp(response)).toContain("https://vercel.live");
+  });
+
+  it("keeps vercel.live out of the production policy", async () => {
+    signedIn();
+    vi.stubEnv("VERCEL_ENV", "production");
+    const response = await proxy(
+      new NextRequest("https://qkit.merqo.io/dashboard"),
+    );
+
+    expect(csp(response)).not.toContain("vercel.live");
+  });
+});

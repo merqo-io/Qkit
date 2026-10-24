@@ -86,3 +86,5 @@ results across the PostgREST row cap. It fails on incomplete/error responses.
 ID, order ascending by ID and fetch after the previous page's last ID. This
 keeps a completing/removing earlier order from shifting an offset and hiding
 the next order. Failed reads and nonadvancing cursors reject the whole result.
+
+`middleware.ts` clears the host-only copy of any auth cookie the browser sends twice (host-only plus `.merqo.io`) on every request, with no one-time marker, so a re-created duplicate cannot send the vendor back to /login.

@@ -13,6 +13,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Nonce-based CSP (`script-src` without `unsafe-inline`) on every page, set in `proxy.ts` from `@merqo/ui/security`. Every page already rendered per request, so none stays on the static policy. The `@merqo/ui` pin moves to v0.35.0 and next-themes receives the nonce.
 - `X-Robots-Tag: noindex, nofollow` and a disallow-all `robots.txt` on every non-production deployment.
 - Admin pages and actions now require a verified TOTP second factor (`aal2`); a password-only admin session is redirected to the new `/mfa` page.
+- Duplicate host-only auth cookies are cleared on every request instead of once behind a marker (a re-created duplicate sent vendors to /login).
+- The CSP allows the Vercel toolbar origin outside production. In the nonce policy the toolbar script itself stays blocked (`strict-dynamic` ignores host allow-lists), so turn the toolbar off for preview in Vercel.
 - Zod parsing for the auth callback query and the legal-accept redirect; `select("*")` replaced by explicit columns.
 - `no-restricted-imports` keeps the service-role client to `src/lib` and `src/app/api`; every other import states why.
 

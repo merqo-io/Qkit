@@ -15,53 +15,40 @@ function isProtectedPath(path: string): boolean {
   );
 }
 
-const MIGRATION_MARKER = "sb-auth-cookie-domain-migrated";
-
-function isLegacyAuthCookieName(name: string): boolean {
+function isAuthTokenCookieName(name: string): boolean {
   return name.startsWith("sb-") && name.includes("-auth-token");
 }
 
-// One-time cleanup after enabling the shared .merqo.io cookie domain: a
-// vendor already signed in has a HOST-ONLY Supabase auth cookie from before
-// this change. Once this kit starts writing a Domain=.merqo.io cookie of the
-// same name, both can exist in the jar at once, and the browser's cookie
-// parser and Next's disagree on which same-named cookie wins (RFC 6265
-// ordering ambiguity) — which can replay an already-used refresh token and
-// trip Supabase's reuse detection. Clearing the host-only cookie once (no
-// Domain attribute, so it can't touch the new domain-scoped one) forces a
-// one-time re-login instead.
-//
-// `writtenThisPass` is the set of cookie names @supabase/ssr's own setAll
-// just wrote to `response` THIS request (e.g. a token refresh). Next's
-// ResponseCookies keys Set-Cookie by name only, so clearing a name that was
-// just (re)written in the same response would silently overwrite — and
-// discard — that fresh write instead of coexisting with it. Any legacy name
-// caught mid-refresh is skipped this pass (the host-only duplicate survives
-// one more request) rather than risking a dropped session; the migration
-// marker is only set once a pass clears every legacy name with none
-// skipped, so an incomplete pass retries on the vendor's next request.
-function clearLegacyHostOnlyCookie(
+// Names that appear twice in the raw Cookie header: a host-only cookie from
+// before the shared .merqo.io domain, plus the domain-scoped one. The parsed
+// cookie jar keeps one per name, so only the raw header shows the pair.
+function duplicatedAuthCookieNames(request: NextRequest): string[] {
+  const seen = new Set<string>();
+  const duplicated = new Set<string>();
+  for (const part of (request.headers.get("cookie") ?? "").split(";")) {
+    const name = part.split("=")[0].trim();
+    if (!isAuthTokenCookieName(name)) continue;
+    if (seen.has(name)) duplicated.add(name);
+    seen.add(name);
+  }
+  return [...duplicated];
+}
+
+// A Set-Cookie with no Domain expires only the host-only copy, leaving the
+// domain-scoped one. Runs on every request until the duplicate is gone (a
+// one-time marker let a re-created duplicate send the vendor back to /login).
+// `writtenThisPass` holds the names @supabase/ssr just wrote this request:
+// ResponseCookies keys by name, so clearing one would overwrite the fresh
+// session, and the next request retries instead.
+function clearHostOnlyDuplicates(
   request: NextRequest,
   response: NextResponse,
   writtenThisPass: ReadonlySet<string>,
 ) {
-  const authCookieDomain = process.env.NEXT_PUBLIC_AUTH_COOKIE_DOMAIN;
-  if (!authCookieDomain || request.cookies.get(MIGRATION_MARKER)) return;
-
-  const legacyNames = request.cookies
-    .getAll()
-    .map((c) => c.name)
-    .filter(isLegacyAuthCookieName);
-  const toClear = legacyNames.filter((name) => !writtenThisPass.has(name));
-  toClear.forEach((name) =>
-    response.cookies.set(name, "", { path: "/", maxAge: 0 }),
-  );
-
-  if (toClear.length === legacyNames.length) {
-    response.cookies.set(MIGRATION_MARKER, "1", {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
+  if (!process.env.NEXT_PUBLIC_AUTH_COOKIE_DOMAIN) return;
+  for (const name of duplicatedAuthCookieNames(request)) {
+    if (writtenThisPass.has(name)) continue;
+    response.cookies.set(name, "", { path: "/", maxAge: 0 });
   }
 }
 
@@ -98,7 +85,7 @@ export async function updateSession(request: NextRequest) {
   // The customer funnel is anonymous and hot — don't spend an auth round-trip
   // (or risk an auth-outage 500) on it. Only protected routes resolve the user.
   if (!isProtectedPath(request.nextUrl.pathname)) {
-    clearLegacyHostOnlyCookie(
+    clearHostOnlyDuplicates(
       request,
       supabaseResponse,
       cookiesWrittenBySupabase,
@@ -120,7 +107,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     const redirectResponse = NextResponse.redirect(url);
-    clearLegacyHostOnlyCookie(
+    clearHostOnlyDuplicates(
       request,
       redirectResponse,
       cookiesWrittenBySupabase,
@@ -128,10 +115,6 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  clearLegacyHostOnlyCookie(
-    request,
-    supabaseResponse,
-    cookiesWrittenBySupabase,
-  );
+  clearHostOnlyDuplicates(request, supabaseResponse, cookiesWrittenBySupabase);
   return supabaseResponse;
 }

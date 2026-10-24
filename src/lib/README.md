@@ -536,3 +536,5 @@ Option statistics key group and choice as a tuple so different pairs cannot coll
 Restored carts recompute current option surcharges, including options on unpriced items.
 
 `security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.
+
+`security-headers.ts` also allows the Vercel toolbar origin (`vercel.live`) outside production.
