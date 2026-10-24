@@ -1,48 +1,77 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const exchange = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/supabase/server", () => ({
-  createServerClient: async () => ({
-    auth: { exchangeCodeForSession: exchange },
-  }),
+const { exchange, client } = vi.hoisted(() => ({
+  exchange: vi.fn(),
+  client: vi.fn(),
 }));
+vi.mock("@/lib/supabase/server", () => ({ createServerClient: client }));
 import { GET } from "./route";
 
-const call = (qs: string) =>
-  GET(new Request(`https://qkit.merqo.io/auth/callback${qs}`));
-const location = (r: Response) => r.headers.get("location");
-
 beforeEach(() => {
-  vi.clearAllMocks();
-  exchange.mockResolvedValue({ error: null });
+  client
+    .mockReset()
+    .mockResolvedValue({ auth: { exchangeCodeForSession: exchange } });
+  exchange.mockReset().mockResolvedValue({ error: null });
 });
 
-describe("auth callback", () => {
-  it("rejects a missing code without calling Supabase", async () => {
-    expect(location(await call(""))).toBe(
-      "https://qkit.merqo.io/login?error=oauth",
+describe("authentication callback", () => {
+  it("rejects a missing authorization code without constructing a client", async () => {
+    const response = await GET(
+      new Request("https://qkit.example/auth/callback"),
+    );
+    expect(response.headers.get("location")).toBe(
+      "https://qkit.example/login?error=oauth",
+    );
+    expect(client).not.toHaveBeenCalled();
+  });
+
+  it("does not continue to recovery when code exchange fails", async () => {
+    exchange.mockResolvedValue({ error: { message: "Expired code" } });
+    const response = await GET(
+      new Request(
+        "https://qkit.example/auth/callback?code=expired&next=/reset-password",
+      ),
+    );
+    expect(response.headers.get("location")).toBe(
+      "https://qkit.example/login?error=oauth",
+    );
+  });
+
+  it.each([
+    null,
+    "https://evil.example",
+    "//evil.example",
+    "javascript:alert(1)",
+    "dashboard",
+  ])("keeps unsupported next=%s on the dashboard", async (next) => {
+    const url = new URL("https://qkit.example/auth/callback?code=valid-code");
+    if (next !== null) url.searchParams.set("next", next);
+    const response = await GET(new Request(url));
+    expect(exchange).toHaveBeenCalledWith("valid-code");
+    expect(response.headers.get("location")).toBe(
+      "https://qkit.example/dashboard",
+    );
+  });
+
+  it.each(["/reset-password", "/dashboard?tab=orders", "/\\evil.example"])(
+    "allows only a same-origin destination for %s",
+    async (next) => {
+      const url = new URL("https://qkit.example/auth/callback?code=valid");
+      url.searchParams.set("next", next);
+      const response = await GET(new Request(url));
+      const destination = new URL(response.headers.get("location")!);
+      expect(destination.origin).toBe(url.origin);
+      if (next === "/reset-password") expect(destination.pathname).toBe(next);
+    },
+  );
+
+  it("rejects an oversized authorization code without calling Supabase", async () => {
+    const response = await GET(
+      new Request(`https://x.example/auth/callback?code=${"a".repeat(513)}`),
+    );
+    expect(response.headers.get("location")).toBe(
+      "https://x.example/login?error=oauth",
     );
     expect(exchange).not.toHaveBeenCalled();
-  });
-
-  it("rejects an oversized code without calling Supabase", async () => {
-    const res = await call(`?code=${"a".repeat(513)}`);
-    expect(location(res)).toBe("https://qkit.merqo.io/login?error=oauth");
-    expect(exchange).not.toHaveBeenCalled();
-  });
-
-  it("falls back to /dashboard for a protocol-relative next", async () => {
-    const res = await call("?code=abc&next=//evil.example");
-    expect(location(res)).toBe("https://qkit.merqo.io/dashboard");
-  });
-
-  it("falls back to /dashboard for a backslash next", async () => {
-    const res = await call("?code=abc&next=/%5Cevil.example");
-    expect(location(res)).toBe("https://qkit.merqo.io/dashboard");
-  });
-
-  it("follows a same-origin next", async () => {
-    const res = await call("?code=abc&next=/reset-password");
-    expect(location(res)).toBe("https://qkit.merqo.io/reset-password");
   });
 });
