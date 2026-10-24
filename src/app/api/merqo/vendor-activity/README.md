@@ -16,7 +16,7 @@ this repo) for the cross-kit design.
 - `route.ts` — `GET(request)`. Guarded by `bearerOk()` (shared-secret
   `Authorization: Bearer` check against `MERQO_METRICS_SECRET`, imported
   from `@/lib/merqo/auth`). Reads `email` off the query string, validated
-  with `z.object({ email: z.string().email() })`. Resolves the email to an
+  with `z.object({ email: z.email() })`. Resolves the email to an
   auth user via `listAllAuthUsers()`/`findAuthUserByEmail()`
   (`@/lib/merqo/auth`) — 404 if no auth user matches. Reads the matching
   `vendors` row — 404 if none exists (a vendor who has never touched qkit

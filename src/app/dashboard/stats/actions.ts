@@ -7,7 +7,7 @@ import { loadEntitlement } from "@/lib/supabase/get-entitlement";
 import type { ActionResult } from "@/lib/action-result";
 
 const renameSchema = z.object({
-  licenseId: z.string().uuid(),
+  licenseId: z.uuid(),
   // Empty clears the label (reverts to the dated default).
   label: z.string().trim().max(80),
 });

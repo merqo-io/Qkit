@@ -62,12 +62,12 @@ describe("getProofPhotoUrl", () => {
       data: { signedUrl: "https://signed.example/payment-proofs/..." },
       error: null,
     });
-    const url = await getProofPhotoUrl("11111111-1111-1111-1111-111111111111");
+    const url = await getProofPhotoUrl("11111111-1111-1111-8111-111111111111");
     expect(url).toBe("https://signed.example/payment-proofs/...");
     expect(queryStep).toHaveBeenCalledWith(
       "eq",
       "id",
-      "11111111-1111-1111-1111-111111111111",
+      "11111111-1111-1111-8111-111111111111",
     );
     expect(queryStep).toHaveBeenCalledWith("bucket", "payment-proofs");
     expect(createSignedUrl).toHaveBeenCalledWith("vendor-1/order-1.png", 300);
@@ -78,7 +78,7 @@ describe("getProofPhotoUrl", () => {
       data: { payment_proof_path: null },
       error: null,
     });
-    const url = await getProofPhotoUrl("22222222-2222-2222-2222-222222222222");
+    const url = await getProofPhotoUrl("22222222-2222-2222-8222-222222222222");
     expect(url).toBeNull();
     expect(createSignedUrl).not.toHaveBeenCalled();
   });
@@ -98,7 +98,7 @@ describe("getProofPhotoUrl", () => {
       data: null,
       error: { message: "boom" },
     });
-    const url = await getProofPhotoUrl("11111111-1111-1111-1111-111111111111");
+    const url = await getProofPhotoUrl("11111111-1111-1111-8111-111111111111");
     expect(url).toBeNull();
   });
 });
@@ -116,7 +116,7 @@ describe("findDuplicateProofOrder", () => {
     });
     duplicateSingle.mockResolvedValueOnce({ data: match, error: null });
     const other = await findDuplicateProofOrder(
-      "11111111-1111-1111-1111-111111111111",
+      "11111111-1111-1111-8111-111111111111",
     );
     expect(other).toEqual(match);
     expect(queryStep).toHaveBeenCalledWith(
@@ -127,7 +127,7 @@ describe("findDuplicateProofOrder", () => {
     expect(queryStep).toHaveBeenCalledWith(
       "neq",
       "id",
-      "11111111-1111-1111-1111-111111111111",
+      "11111111-1111-1111-8111-111111111111",
     );
     expect(queryStep).toHaveBeenCalledWith("limit", 1);
   });
@@ -139,7 +139,7 @@ describe("findDuplicateProofOrder", () => {
     });
     duplicateSingle.mockResolvedValueOnce({ data: null, error: null });
     const other = await findDuplicateProofOrder(
-      "22222222-2222-2222-2222-222222222222",
+      "22222222-2222-2222-8222-222222222222",
     );
     expect(other).toBeNull();
   });
@@ -150,7 +150,7 @@ describe("findDuplicateProofOrder", () => {
       error: null,
     });
     const other = await findDuplicateProofOrder(
-      "33333333-3333-3333-3333-333333333333",
+      "33333333-3333-3333-8333-333333333333",
     );
     expect(other).toBeNull();
     expect(duplicateSingle).not.toHaveBeenCalled();
