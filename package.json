@@ -1,6 +1,6 @@
 {
   "name": "qkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "packageManager": "pnpm@11.28.5",
   "engines": {
@@ -29,7 +29,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@merqo/ui": "github:merqo-io/merqo-ui#7b386558af36a1cbf008a9b4c4073c07ffc105ba",
     "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.48.0",
+    "@supabase/supabase-js": "2.107.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
@@ -61,7 +61,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "3.6.4",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "eslint": "^9.17.0",
     "eslint-config-next": "16.4.2",
     "eslint-plugin-sonarjs": "4.2.2",
@@ -72,6 +72,7 @@
     "tailwindcss": "^4.0.0",
     "tw-animate-css": "^1.2.5",
     "typescript": "^5.7.3",
-    "vitest": "4.1.11"
+    "vite": "6.4.5",
+    "vitest": "4.1.12"
   }
 }
