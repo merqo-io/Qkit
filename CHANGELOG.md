@@ -6,7 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-24
+
 ### Security
+
+- `notifyVendorTelegram` and `notifyPrintkit` no longer log the booth id, order number, printkit response text or database error messages. Failures log a fixed message plus the error name (CodeQL `js/log-injection`, 2 alerts), so a forged newline in a request value cannot write a fake log line.
 
 - `next` and `eslint-config-next` 16.3.8 to 16.4.2. next `>=16.0.0 <=16.4.0` has two critical unauthenticated remote code execution advisories, GHSA-2464-fhr4-w9xw (Image Optimization API with SVG files) and GHSA-673q-mjm6-r5xr (`use cache` functions returning typed arrays), and a high Server Actions denial of service, GHSA-p3m5-59mp-jv5r. They failed the dependency-audit job on every open PR. `pnpm audit --prod --audit-level=high` is clean again.
 
