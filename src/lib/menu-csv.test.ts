@@ -108,8 +108,12 @@ describe("menuCsvTemplate", () => {
 
   it("demonstrates a blank price and a set cost", () => {
     const rows = csvToMenuItems(menuCsvTemplate());
-    expect(rows.some((r) => r.price_cents == null)).toBe(true);
-    expect(rows.some((r) => r.cost_cents != null)).toBe(true);
+    expect(
+      rows.some((r) => r.price_cents === null || r.price_cents === undefined),
+    ).toBe(true);
+    expect(
+      rows.some((r) => r.cost_cents !== null && r.cost_cents !== undefined),
+    ).toBe(true);
   });
 
   it("carries no example customization rows", () => {

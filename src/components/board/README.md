@@ -171,3 +171,5 @@ expectedAmountCents })`: `"use client"`, dynamically imported
 [components](../README.md)
 
 `order-card-parts.tsx` shows "View payment proof" for every claimed, non-cancelled order. It no longer looks at `order.payment_proof_path`: paykit holds the screenshot, so the order row cannot say whether one exists and the viewer finds out when opened.
+
+`order-card.dom.test.tsx` also asserts that the ticket actions (`Mark Ready`, `Mark Picked Up`) are real named buttons and that no button on the card lacks an accessible name.

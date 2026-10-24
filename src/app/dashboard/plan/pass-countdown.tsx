@@ -20,7 +20,10 @@ export function PassCountdown({ expiresAt }: { expiresAt: string }) {
   // null until mounted (see useNow): the server and first client render both
   // hold the line with a non-breaking space, so SSR text can't drift.
   const nowMs = useNow(60_000);
-  const left = nowMs == null ? null : Date.parse(expiresAt) - nowMs;
+  const left =
+    nowMs === null || nowMs === undefined
+      ? null
+      : Date.parse(expiresAt) - nowMs;
   // Fixed to SGT so the server and client render the same string (no hydration
   // mismatch), unlike a runtime-tz toLocaleString.
   const until = sgtWeekdayTime(expiresAt);
@@ -36,7 +39,7 @@ export function PassCountdown({ expiresAt }: { expiresAt: string }) {
           Pro until {until}
         </p>
         <p className="text-sm text-muted-foreground">
-          {left == null ? " " : format(left)}
+          {left === null || left === undefined ? " " : format(left)}
         </p>
       </div>
     </TicketCard>

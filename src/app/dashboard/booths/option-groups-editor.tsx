@@ -42,7 +42,8 @@ interface Props {
 
 function hasAdvancedSet(choice: OptionChoice): boolean {
   return (
-    choice.cost_delta_cents != null ||
+    (choice.cost_delta_cents !== null &&
+      choice.cost_delta_cents !== undefined) ||
     (choice.allergens?.length ?? 0) > 0 ||
     Boolean(choice.code)
   );
@@ -139,8 +140,7 @@ export function OptionGroupsEditor({
   }
 
   function toggleChoiceAllergen(
-    gi: number,
-    ci: number,
+    { gi, ci }: { gi: number; ci: number },
     choice: OptionChoice,
     tag: AllergenTag,
     checked: boolean,
@@ -267,7 +267,7 @@ export function OptionGroupsEditor({
                     onCostChange={(cents) => setChoiceCost(gi, ci, cents)}
                     onCodeChange={(code) => setChoiceCode(gi, ci, code)}
                     onAllergenToggle={(tag, checked) =>
-                      toggleChoiceAllergen(gi, ci, choice, tag, checked)
+                      toggleChoiceAllergen({ gi, ci }, choice, tag, checked)
                     }
                     onRemove={() => removeChoice(gi, ci)}
                   />

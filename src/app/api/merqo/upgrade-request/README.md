@@ -15,3 +15,5 @@ Calls `createServiceClient()` and `resolveUpgradeOutcome()` (`@/lib/merqo/upgrad
 ## Parent
 
 [merqo](../README.md)
+
+The vendor lookup is shared with the downgrade route through `findVendorByEmail` (`@/lib/merqo/vendor-lookup`).

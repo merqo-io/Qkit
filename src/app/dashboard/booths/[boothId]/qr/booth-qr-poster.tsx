@@ -66,7 +66,7 @@ export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
       canvas.height = size;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "white";
       ctx.fillRect(0, 0, size, size);
       ctx.drawImage(img, 0, 0, size, size);
       canvas.toBlob((blob) => {

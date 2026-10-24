@@ -19,8 +19,12 @@ function itemRowToCsv(it: MenuItemFormInput): string {
   return [
     csvField(it.name),
     csvField(it.description ?? ""),
-    it.price_cents == null ? "" : (it.price_cents / 100).toFixed(2),
-    it.cost_cents == null ? "" : (it.cost_cents / 100).toFixed(2),
+    it.price_cents === null || it.price_cents === undefined
+      ? ""
+      : (it.price_cents / 100).toFixed(2),
+    it.cost_cents === null || it.cost_cents === undefined
+      ? ""
+      : (it.cost_cents / 100).toFixed(2),
     it.available ? "true" : "false",
     "",
     "",
@@ -43,7 +47,7 @@ function choiceRowToCsv(
     csvField(group.label),
     group.multiple ? "any" : "one",
     csvField(choice.label),
-    choice.price_delta_cents == null
+    choice.price_delta_cents === null || choice.price_delta_cents === undefined
       ? ""
       : (choice.price_delta_cents / 100).toFixed(2),
     csvField(choice.code ?? ""),
@@ -319,7 +323,7 @@ export function optionGroupsFromCsvChoices(
     current.choices.push({
       id: crypto.randomUUID(),
       label: c.choiceLabel,
-      ...(c.choicePrice_cents != null
+      ...(c.choicePrice_cents !== null && c.choicePrice_cents !== undefined
         ? { price_delta_cents: c.choicePrice_cents }
         : {}),
       ...(c.choiceCode ? { code: c.choiceCode } : {}),

@@ -1,7 +1,7 @@
+/* eslint-disable no-restricted-syntax -- ImageResponse needs literal CSS colours */
 import type { ReactElement } from "react";
 
-// Market Ochre marks as hex (ImageResponse needs concrete CSS colours): Sanzo
-// Wada's Khaki, the `--primary` token, on chalk-cream paper.
+// Hex approximations of the `--primary` khaki on chalk-cream paper.
 export const BRAND_KHAKI = "#bc892b";
 export const BRAND_OAT = "#efe3c8";
 

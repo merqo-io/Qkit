@@ -117,7 +117,7 @@ describe("unsavedUploadPaths", () => {
           { name: "abandoned.webp", created_at: old },
         ],
         ["v1/kept.webp"],
-        NOW,
+        { nowMs: NOW },
       ),
     ).toEqual(["v1/abandoned.webp"]);
   });
@@ -128,7 +128,7 @@ describe("unsavedUploadPaths", () => {
         "v1",
         [{ name: "fresh.webp", created_at: recent }],
         [],
-        NOW,
+        { nowMs: NOW },
       ),
     ).toEqual([]);
   });
@@ -139,8 +139,7 @@ describe("unsavedUploadPaths", () => {
         "v1",
         [{ name: "edge.webp", created_at: "2026-09-22T11:00:00Z" }],
         [],
-        NOW,
-        60 * 60 * 1000,
+        { nowMs: NOW, graceMs: 60 * 60 * 1000 },
       ),
     ).toEqual(["v1/edge.webp"]);
   });
@@ -155,7 +154,7 @@ describe("unsavedUploadPaths", () => {
           { name: "bad-ts.webp", created_at: "not a date" },
         ],
         [],
-        NOW,
+        { nowMs: NOW },
       ),
     ).toEqual([]);
   });

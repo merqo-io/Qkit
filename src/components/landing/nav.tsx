@@ -6,11 +6,7 @@ export function Nav({ authed }: { authed: boolean }) {
   return (
     <LandingNav
       wordmark={
-        // Plain <a>, not next/link's Link: this is a same-page hash jump
-        // (already on "/"), and Link doesn't reliably update the URL bar's
-        // hash when only the fragment changes — it scrolls but leaves the
-        // old hash showing. A native anchor always gets this right.
-        // eslint-disable-next-line @next/next/no-html-link-for-pages
+        // eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump
         <a
           href="/#top"
           aria-label="qkit home, back to top"
@@ -27,13 +23,7 @@ export function Nav({ authed }: { authed: boolean }) {
             size="sm"
             className="hidden rounded-lg sm:inline-flex"
           >
-            {/* Plain <a>, not Link — same reasoning as the wordmark above: a
-                native anchor jumps straight to the hash whether this nav is
-                rendered on "/" itself (same-page jump) or on "/about"
-                (full navigation to "/", then the hash), where Link's
-                same-page-hash-only-change caveat doesn't apply cleanly
-                either way. */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump */}
             <a href="/#faq">FAQ</a>
           </Button>
           <Button

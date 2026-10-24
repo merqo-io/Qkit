@@ -46,7 +46,12 @@ export function useCupsToday<B extends CappedBooth>(booths: B[]) {
         return;
       }
       const source = boothsRef.current.find((b) => b.id === boothId);
-      if (!source || source.daily_cup_cap == null) return;
+      if (
+        !source ||
+        source.daily_cup_cap === null ||
+        source.daily_cup_cap === undefined
+      )
+        return;
       inFlight.current.add(boothId);
       try {
         const { data, error } = await supabase.rpc("booth_cups_today", {
@@ -66,8 +71,7 @@ export function useCupsToday<B extends CappedBooth>(booths: B[]) {
         if (queued.current.delete(boothId)) void fetchOne(boothId);
       }
     },
-    // supabase is stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the supabase client is stable
     [],
   );
 
@@ -77,7 +81,10 @@ export function useCupsToday<B extends CappedBooth>(booths: B[]) {
       const ids =
         boothId === null
           ? boothsRef.current
-              .filter((b) => b.daily_cup_cap != null)
+              .filter(
+                (b) =>
+                  b.daily_cup_cap !== null && b.daily_cup_cap !== undefined,
+              )
               .map((b) => b.id)
           : [boothId];
       for (const id of ids) void fetchOne(id);

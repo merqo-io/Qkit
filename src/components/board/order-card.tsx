@@ -23,7 +23,7 @@ import {
 import { OrderStatusBadge } from "@/components/board/order-status-badge";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
-import { cn, formatPrice, orderHasPricing } from "@/lib/utils";
+import { cn, formatPrice, orderHasPricing, isNil } from "@/lib/utils";
 import { boothDotTitle } from "@/lib/booth/color";
 import {
   ADVANCE,
@@ -93,13 +93,13 @@ function TicketFooter({
   awaitingArrival: boolean;
 }) {
   const showStatus = status !== "preparing";
-  if (ageMins == null && !showStatus) return null;
+  if (isNil(ageMins) && !showStatus) return null;
   // A fixed h-10 with no vertical padding: the "Waiting for you" pill is taller
   // than the timer, so min-h-10 plus py-2 grew an Incoming footer to 44px
   // against an Accepted one's 40px.
   return (
     <div className="flex h-10 items-center justify-between gap-3 border-t border-border/60 px-4">
-      {ageMins != null ? (
+      {ageMins !== null && ageMins !== undefined ? (
         <span
           className={cn(
             "inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums",
@@ -161,12 +161,12 @@ function AttentionLine({ attention }: { attention: TicketAttention }) {
  */
 function ticketAge(
   nowMs: number | null,
-  createdAt: string,
-  status: OrderStatus,
-  agingMin: number | undefined,
-  overdueMin: number | undefined,
+  order: { createdAt: string; status: OrderStatus },
+  thresholds: { agingMin: number | undefined; overdueMin: number | undefined },
 ): { tone: AgeTone; ageMins: number | null } {
-  if (nowMs == null) return { tone: "fresh", ageMins: null };
+  const { createdAt, status } = order;
+  const { agingMin, overdueMin } = thresholds;
+  if (isNil(nowMs)) return { tone: "fresh", ageMins: null };
   const elapsedMs = nowMs - Date.parse(createdAt);
   return {
     tone:
@@ -315,7 +315,7 @@ function OrderCardInner({
   // card. An optimistic local setStatus doesn't change the prop, so it survives
   // until its own realtime echo arrives and this no-ops.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs local state to the prop until its realtime echo arrives
     setStatus(order.status);
   }, [order.status]);
   // Payment status is driven by the (realtime-updated) prop so a customer's
@@ -329,7 +329,10 @@ function OrderCardInner({
   // realtime-updated prop once that echo arrives (or reflecting another
   // session's bump immediately, without waiting on this one's own tap).
   const [bumpedLocally, setBumpedLocally] = useState(false);
-  const bumped = bumpedLocally || order.priority_bumped_at != null;
+  const bumped =
+    bumpedLocally ||
+    (order.priority_bumped_at !== null &&
+      order.priority_bumped_at !== undefined);
   const { pending: updating, run } = useAsyncAction();
   const [cancelOpen, setCancelOpen] = useState(false);
 
@@ -352,10 +355,8 @@ function OrderCardInner({
   const nowMs = useNow(30_000, !isTerminal(status));
   const { tone, ageMins } = ticketAge(
     nowMs,
-    order.created_at,
-    status,
-    agingMin,
-    overdueMin,
+    { createdAt: order.created_at, status },
+    { agingMin, overdueMin },
   );
   const items = useMemo(() => parseOrderItems(order.items), [order.items]);
   const priced = orderHasPricing(items);
@@ -380,8 +381,13 @@ function OrderCardInner({
     number | null
   >(null);
   useEffect(() => {
-    if (readyAutoClearMs == null || status !== "ready" || !order.ready_at) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (
+      readyAutoClearMs === null ||
+      readyAutoClearMs === undefined ||
+      status !== "ready" ||
+      !order.ready_at
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the countdown when auto-clear no longer applies
       setRemainingAutoClearMs(null);
       return;
     }

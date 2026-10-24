@@ -1,5 +1,5 @@
 import type { OrderItem, OrderStatus, PaymentStatus } from "@/lib/types";
-import { formatOptions, MS_PER_DAY, MS_PER_HOUR } from "@/lib/utils";
+import { formatOptions, MS_PER_DAY, MS_PER_HOUR, isNil } from "@/lib/utils";
 import { sgtHour, sgtWeekday, WEEKDAY_ORDER } from "@/lib/tz";
 
 /** A 1-day span buckets hourly; anything longer buckets one slot per day. */
@@ -359,9 +359,11 @@ function computeRefunds(orders: StatsOrder[]): {
 function accumulateItem(
   byLabel: Map<string, TopItem>,
   label: string,
-  revenue: number,
-  cost: number,
-  quantity: number,
+  {
+    revenue,
+    cost,
+    quantity,
+  }: { revenue: number; cost: number; quantity: number },
 ) {
   const existing = byLabel.get(label);
   if (existing) {
@@ -437,12 +439,16 @@ function aggregateOrders(counted: StatsOrder[]): {
 
     for (const item of order.items) {
       const revenue = (item.price_cents ?? 0) * item.quantity;
-      if (item.cost_cents != null) anyCost = true;
+      if (!isNil(item.cost_cents)) anyCost = true;
       const cost = (item.cost_cents ?? 0) * item.quantity;
       itemRevenue += revenue;
       itemCost += cost;
 
-      accumulateItem(byLabel, itemLabel(item), revenue, cost, item.quantity);
+      accumulateItem(byLabel, itemLabel(item), {
+        revenue,
+        cost,
+        quantity: item.quantity,
+      });
       accumulateOptions(optionMap, item.options, item.quantity);
     }
   }

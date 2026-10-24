@@ -83,6 +83,22 @@ async function applyPaykitStatus(
   return finalized.ok ? NextResponse.json({ ok: true }) : unavailable();
 }
 
+async function readBody(request: Request) {
+  let json: unknown;
+  try {
+    json = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success)
+    return NextResponse.json({ error: "Invalid order_ref" }, { status: 400 });
+  return parsed.data;
+}
+
 /**
  * paykit calls this after a payment's status changes. The body is a hint
  * that something changed for one order; what changed is read back from
@@ -103,24 +119,14 @@ export async function POST(request: Request) {
   if (!allowed)
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  let json: unknown;
-  try {
-    json = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
-  }
-  const parsed = bodySchema.safeParse(json);
-  if (!parsed.success)
-    return NextResponse.json({ error: "Invalid order_ref" }, { status: 400 });
+  const body = await readBody(request);
+  if (body instanceof NextResponse) return body;
 
   const supabase = await createServiceClient();
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select("id, booth_id, status, order_number, payment_status, total_cents")
-    .eq("id", parsed.data.order_ref)
+    .eq("id", body.order_ref)
     .maybeSingle();
   if (orderError) {
     console.error(

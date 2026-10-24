@@ -113,3 +113,5 @@ booth saved with no payment stays payment-free. A new booth opens off. New
 and existing booth forms share one loader (`vendorPaymentSetup`); booking and
 payment-setup requests run concurrently. Menu CSV import/export also preserves
 item and option short codes.
+
+`actions.ts` passes grouped arguments to `syncPrintLocation` and `checkActiveBoothCap`; `menu-order.ts`'s `resolveItemDrop` takes the drag target as one object.

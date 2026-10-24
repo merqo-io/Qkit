@@ -145,7 +145,15 @@ describe("buildVendorHealth", () => {
   ];
 
   it("keys orders to vendors, excludes cancelled + orphan orders", () => {
-    const h = buildVendorHealth(vendors, booths, orders, new Set(), NOW);
+    const h = buildVendorHealth(
+      {
+        vendors: vendors,
+        booths: booths,
+        orders: orders,
+        openMessageVendorIds: new Set(),
+      },
+      NOW,
+    );
     const v1 = h.get("v1")!;
     expect(v1.orderCount).toBe(2); // cancelled + orphan excluded
     expect(v1.orders7d).toBe(2);
@@ -155,12 +163,28 @@ describe("buildVendorHealth", () => {
   });
 
   it("a fresh vendor with nothing yet is new", () => {
-    const h = buildVendorHealth(vendors, booths, orders, new Set(), NOW);
+    const h = buildVendorHealth(
+      {
+        vendors: vendors,
+        booths: booths,
+        orders: orders,
+        openMessageVendorIds: new Set(),
+      },
+      NOW,
+    );
     expect(h.get("v2")!.status).toBe("new");
   });
 
   it("an open message flips a vendor to attention", () => {
-    const h = buildVendorHealth(vendors, booths, orders, new Set(["v1"]), NOW);
+    const h = buildVendorHealth(
+      {
+        vendors: vendors,
+        booths: booths,
+        orders: orders,
+        openMessageVendorIds: new Set(["v1"]),
+      },
+      NOW,
+    );
     expect(h.get("v1")!.status).toBe("attention");
   });
 });

@@ -29,7 +29,7 @@ export default async function AdminVendorsPage() {
   const merqoClient =
     (await createServiceClient()) as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
 
-  // eslint-disable-next-line react-hooks/purity
+  // eslint-disable-next-line react-hooks/purity -- the wall clock is read once per request on purpose
   const now = Date.now();
   const cutoff7d = new Date(now - 7 * MS_PER_DAY).toISOString();
   const cutoff14d = new Date(now - 14 * MS_PER_DAY).toISOString();
@@ -97,10 +97,12 @@ export default async function AdminVendorsPage() {
     passExpiresAt: passByVendor.get(v.id) ?? null,
   }));
   const health = buildVendorHealth(
-    vendorLites,
-    boothRows ?? [],
-    orderRows ?? [],
-    openMsgVendors,
+    {
+      vendors: vendorLites,
+      booths: boothRows ?? [],
+      orders: orderRows ?? [],
+      openMessageVendorIds: openMsgVendors,
+    },
     now,
   );
 

@@ -18,7 +18,7 @@ export function useNow(intervalMs: number, enabled = true): number | null {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
     setNow(Date.now());
     if (!enabled) return;
     const id = setInterval(() => setNow(Date.now()), intervalMs);

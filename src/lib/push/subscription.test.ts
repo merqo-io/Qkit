@@ -19,7 +19,6 @@ describe("isAllowedPushEndpoint", () => {
   });
 
   it.each([
-    // eslint-disable-next-line sonarjs/no-clear-text-protocols -- proves plain http is rejected
     "http://fcm.googleapis.com/fcm/send/abc",
     "https://evil.example/fcm.googleapis.com",
     "https://fcm.googleapis.com.evil.example/x",

@@ -36,6 +36,15 @@ interface Props {
   socialLinks: SocialLinks;
 }
 
+function FieldError({ id, message }: { id?: string; message: string | null }) {
+  if (!message) return null;
+  return (
+    <p id={id} className={FORM_ERROR_CLASS}>
+      {message}
+    </p>
+  );
+}
+
 export function ProfileForm({
   stallName,
   displayName,
@@ -221,11 +230,7 @@ export function ProfileForm({
                 aria-invalid={!!nameError}
                 aria-describedby={nameError ? "stall-name-error" : undefined}
               />
-              {nameError && (
-                <p id="stall-name-error" className={FORM_ERROR_CLASS}>
-                  {nameError}
-                </p>
-              )}
+              <FieldError id="stall-name-error" message={nameError} />
             </div>
             <div className="flex justify-end">
               <Button
@@ -315,11 +320,7 @@ export function ProfileForm({
                   pwError ? "confirm-password-error" : undefined
                 }
               />
-              {pwError && (
-                <p id="confirm-password-error" className={FORM_ERROR_CLASS}>
-                  {pwError}
-                </p>
-              )}
+              <FieldError id="confirm-password-error" message={pwError} />
             </div>
             <div className="flex justify-end">
               <Button
@@ -358,11 +359,7 @@ export function ProfileForm({
                   displayError ? "display-name-error" : undefined
                 }
               />
-              {displayError && (
-                <p id="display-name-error" className={FORM_ERROR_CLASS}>
-                  {displayError}
-                </p>
-              )}
+              <FieldError id="display-name-error" message={displayError} />
             </div>
             <div className="flex justify-end">
               <Button
@@ -387,7 +384,7 @@ export function ProfileForm({
               onChange={setLinks}
               idPrefix="profile"
             />
-            {linksError && <p className={FORM_ERROR_CLASS}>{linksError}</p>}
+            <FieldError message={linksError} />
             <div className="flex justify-end">
               <Button
                 type="button"

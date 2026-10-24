@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { parseOrderItems } from "@/lib/schemas";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, isNil } from "@/lib/utils";
 import { ADVANCE, isTerminal, needsPaymentReview } from "@/lib/orders";
 import { ticketOptions, type OptionCodes } from "@/lib/ticket";
 import { shortDateTime } from "@/lib/tz";
@@ -141,7 +141,7 @@ export const PAYMENT_BUTTON =
 // The amount owed, set off at the far end of a payment button. Absent for an
 // order with no prices, where there is nothing to check.
 export function AmountDue({ amount }: { amount: string | null }) {
-  if (amount == null) return null;
+  if (isNil(amount)) return null;
   return <span className="ml-auto pl-3 font-mono tabular-nums">{amount}</span>;
 }
 
@@ -225,7 +225,7 @@ export function TicketItems({
               </p>
               {showPrices && (
                 <span className="shrink-0 font-mono text-sm text-muted-foreground">
-                  {item.price_cents == null
+                  {item.price_cents === null || item.price_cents === undefined
                     ? "Free"
                     : formatPrice(item.price_cents * item.quantity)}
                 </span>
@@ -289,7 +289,7 @@ export function TicketActions({
   const closed = isTerminal(status);
   const advance = ADVANCE[status];
   const paymentReviewNeeded = needsPaymentReview(status, payStatus);
-  const priced = amountDue != null;
+  const priced = amountDue !== null && amountDue !== undefined;
 
   return (
     <div className="mt-auto">
@@ -395,15 +395,16 @@ export function TicketActions({
                 onClick={onAdvance}
                 disabled={updating}
               >
-                {remainingAutoClearMs != null && (
-                  <span
-                    className="autoclear-bar absolute inset-y-0 left-0 bg-black/10"
-                    style={{
-                      animationDuration: `${remainingAutoClearMs}ms`,
-                    }}
-                    aria-hidden="true"
-                  />
-                )}
+                {remainingAutoClearMs !== null &&
+                  remainingAutoClearMs !== undefined && (
+                    <span
+                      className="autoclear-bar absolute inset-y-0 left-0 bg-black/10"
+                      style={{
+                        animationDuration: `${remainingAutoClearMs}ms`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
                 <span className="relative">{advance.label}</span>
               </Button>
             </div>

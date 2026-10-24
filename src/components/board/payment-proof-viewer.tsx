@@ -63,7 +63,7 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
 
   return (
     <div className="space-y-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- signed proof URL, not a next/image source */}
       <img src={url} alt="Payment proof" className="w-full rounded-lg" />
       {duplicateOrderNumber && (
         <p className="text-sm font-semibold text-destructive">

@@ -1,6 +1,7 @@
 import type { CartItem, MenuItem, SelectedOption } from "@/lib/types";
 import { cartKey, sumOptionDeltas } from "@/lib/cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
+import { isNil } from "@/lib/utils";
 
 // One line of a past order, as needed to rebuild a cart. Carries no price/name —
 // those are re-read from the live menu so a reorder always reflects current
@@ -37,7 +38,7 @@ function optionsStillValid(
 
 function currentPrice(item: MenuItem, options: SelectedOption[] | undefined) {
   const delta = sumOptionDeltas(item, options);
-  return item.price_cents == null && delta === 0
+  return isNil(item.price_cents) && delta === 0
     ? undefined
     : (item.price_cents ?? 0) + delta;
 }

@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
-import {
-  bearerOk,
-  listAllAuthUsers,
-  findAuthUserByEmail,
-} from "@/lib/merqo/auth";
+import { bearerOk } from "@/lib/merqo/auth";
+import { findVendorByEmail } from "@/lib/merqo/vendor-lookup";
 import { resolveDowngradeOutcome } from "@/lib/merqo/downgrade-request";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const revalidate = 0;
+
+function upstreamUnavailable() {
+  return NextResponse.json(
+    { success: false, error: "Upstream unavailable" },
+    { status: 503 },
+  );
+}
 
 const bodySchema = z.object({ email: z.email() });
 
@@ -42,42 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "email required" }, { status: 400 });
   }
 
-  const usersRes = await listAllAuthUsers(supabase, "merqo downgrade-request");
-  if (usersRes.error) {
-    console.error(
-      "merqo downgrade-request: read failed",
-      usersRes.error.message,
-    );
-    return NextResponse.json(
-      { success: false, error: "Upstream unavailable" },
-      { status: 503 },
-    );
-  }
-
-  const authUser = findAuthUserByEmail(
-    usersRes.data?.users ?? [],
+  const lookup = await findVendorByEmail(
+    supabase,
+    "merqo downgrade-request",
     parsed.data.email,
   );
-
-  const vendorRes = authUser
-    ? await supabase
-        .from("vendors")
-        .select("id, plan")
-        .eq("id", authUser.id)
-        .maybeSingle()
-    : null;
-  if (vendorRes?.error) {
-    console.error(
-      "merqo downgrade-request: read failed",
-      vendorRes.error.message,
-    );
-    return NextResponse.json(
-      { success: false, error: "Upstream unavailable" },
-      { status: 503 },
-    );
-  }
-  const vendorId = vendorRes?.data?.id ?? null;
-  const currentPlan = vendorRes?.data?.plan ?? "free";
+  if (!lookup.ok) return upstreamUnavailable();
+  const vendorId = lookup.vendor?.id ?? null;
+  const currentPlan = lookup.vendor?.plan ?? "free";
 
   const outcome = resolveDowngradeOutcome(vendorId !== null, currentPlan);
 
@@ -107,10 +83,7 @@ export async function POST(request: Request) {
       "merqo downgrade-request: update failed",
       updateRes.error.message,
     );
-    return NextResponse.json(
-      { success: false, error: "Upstream unavailable" },
-      { status: 503 },
-    );
+    return upstreamUnavailable();
   }
 
   // Clear any stale pending monthly request — best-effort, does not fail

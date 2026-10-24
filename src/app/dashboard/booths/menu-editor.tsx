@@ -178,14 +178,12 @@ export function MenuEditor({
     }
     if (activeData?.type === "item") {
       const overData = over.data.current as ItemDropTarget | undefined;
-      const reordered = resolveItemDrop(
-        items,
-        categories,
-        activeData.groupId,
-        String(active.id),
+      const reordered = resolveItemDrop(items, categories, {
+        activeGroupId: activeData.groupId,
+        activeId: String(active.id),
         overData,
-        String(over.id),
-      );
+        overId: String(over.id),
+      });
       if (reordered !== items) onChange(reordered);
     }
   }

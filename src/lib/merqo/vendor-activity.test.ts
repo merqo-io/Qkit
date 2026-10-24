@@ -44,10 +44,12 @@ describe("computeVendorActivity", () => {
 
     const result = computeVendorActivity(
       vendor,
-      booths,
-      orders,
-      null,
-      false,
+      {
+        booths: booths,
+        orders: orders,
+        passExpiresAt: null,
+        hasOpenMessage: false,
+      },
       NOW,
     );
 
@@ -63,13 +65,21 @@ describe("computeVendorActivity", () => {
   });
 
   it("an open help request flips status to attention, matching the admin console", () => {
-    const result = computeVendorActivity(vendor, [], [], null, true, NOW);
+    const result = computeVendorActivity(
+      vendor,
+      { booths: [], orders: [], passExpiresAt: null, hasOpenMessage: true },
+      NOW,
+    );
     expect(result.status).toBe("attention");
   });
 
   it("a vendor with nothing yet has zeroed metrics and a null lastActivityAt", () => {
     const fresh = { id: "v2", plan: "free" as const, created_at: daysAgo(1) };
-    const result = computeVendorActivity(fresh, [], [], null, false, NOW);
+    const result = computeVendorActivity(
+      fresh,
+      { booths: [], orders: [], passExpiresAt: null, hasOpenMessage: false },
+      NOW,
+    );
 
     expect(result.active).toBe(true);
     expect(result.status).toBe("new");
@@ -84,17 +94,26 @@ describe("computeVendorActivity", () => {
   it("a live pass expiring within 48h wins over an older healthy order history", () => {
     const result = computeVendorActivity(
       vendor,
-      [{ id: "b1", vendor_id: "v1", created_at: daysAgo(25), is_active: true }],
-      [
-        {
-          booth_id: "b1",
-          status: "completed",
-          total_cents: 500,
-          created_at: daysAgo(1),
-        },
-      ],
-      new Date(NOW + 10 * 3_600_000).toISOString(),
-      false,
+      {
+        booths: [
+          {
+            id: "b1",
+            vendor_id: "v1",
+            created_at: daysAgo(25),
+            is_active: true,
+          },
+        ],
+        orders: [
+          {
+            booth_id: "b1",
+            status: "completed",
+            total_cents: 500,
+            created_at: daysAgo(1),
+          },
+        ],
+        passExpiresAt: new Date(NOW + 10 * 3_600_000).toISOString(),
+        hasOpenMessage: false,
+      },
       NOW,
     );
     expect(result.status).toBe("expiring");
@@ -102,7 +121,11 @@ describe("computeVendorActivity", () => {
 
   it("a pro vendor is reported with plan pro", () => {
     const pro = { id: "v3", plan: "pro" as const, created_at: daysAgo(10) };
-    const result = computeVendorActivity(pro, [], [], null, false, NOW);
+    const result = computeVendorActivity(
+      pro,
+      { booths: [], orders: [], passExpiresAt: null, hasOpenMessage: false },
+      NOW,
+    );
     expect(result.plan).toBe("pro");
   });
 });
