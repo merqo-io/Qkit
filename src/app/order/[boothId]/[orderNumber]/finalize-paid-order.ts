@@ -4,6 +4,7 @@
 // callback route (src/app/api/paykit/payment-status/route.ts), each of which
 // has already established that paykit holds the payment being recorded.
 
+// eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyVendorTelegram, notifyPrintkit } from "@/app/o/[code]/notify";

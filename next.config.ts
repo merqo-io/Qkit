@@ -25,31 +25,12 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
-    // Auth and realtime connect directly to Supabase; local origins are dev-only.
-    const connectSrc =
-      process.env.NODE_ENV === "production"
-        ? "connect-src 'self' https://*.supabase.co wss://*.supabase.co"
-        : "connect-src 'self' https://*.supabase.co wss://*.supabase.co http://127.0.0.1:54321 ws://127.0.0.1:54321";
-
-    // Plain avatar/menu images need their storage origins in addition to self.
-    const imgSrc =
-      process.env.NODE_ENV === "production"
-        ? "img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com"
-        : "img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com http://127.0.0.1:54321";
-
-    // React development stack traces require eval; production does not.
-    const scriptSrc =
-      process.env.NODE_ENV === "production"
-        ? "script-src 'self' 'unsafe-inline'"
-        : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
-
     // Allow embedded development previews; deny framing in production.
+    // The CSP and X-Robots-Tag are set per request in src/proxy.ts.
     const frameHeaders =
       process.env.NODE_ENV === "production"
         ? [{ key: "X-Frame-Options", value: "DENY" }]
         : [];
-    const frameAncestors =
-      process.env.NODE_ENV === "production" ? "frame-ancestors 'none'" : null;
 
     return [
       {
@@ -66,25 +47,6 @@ const nextConfig: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains",
-          },
-          {
-            // Hydration scripts have no nonces here. Inline scripts remain allowed;
-            // this policy constrains origins but cannot prevent inline XSS.
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              scriptSrc,
-              "style-src 'self' 'unsafe-inline'",
-              imgSrc,
-              "font-src 'self' data:",
-              connectSrc,
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              frameAncestors,
-            ]
-              .filter(Boolean)
-              .join("; "),
           },
         ],
       },

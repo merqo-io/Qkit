@@ -36,10 +36,13 @@ export default defineConfig({
   // need this to reach the "payment sent" / rendered-booth states.
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
-    command: `pnpm dev --port ${E2E_PORT}`,
+    // CI tests the production build, where the nonce CSP is active.
+    command: process.env.CI
+      ? `pnpm build && pnpm start --port ${E2E_PORT}`
+      : `pnpm dev --port ${E2E_PORT}`,
     url: E2E_BASE_URL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
     env: {
       NEXT_PUBLIC_PAYKIT_URL: PAYKIT_MOCK_URL,
       PAYKIT_KIT_SECRET: PAYKIT_MOCK_SECRET,

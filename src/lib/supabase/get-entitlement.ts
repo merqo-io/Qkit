@@ -68,7 +68,11 @@ export const loadEntitlement = cache(
     const nowIso = new Date(now).toISOString();
     const [{ data: vendor, error: vendorError }, { data: license }] =
       await Promise.all([
-        supabase.from("vendors").select("*").eq("id", user.id).maybeSingle(),
+        supabase
+          .from("vendors")
+          .select("id, plan, created_at, tours_seen, board_settings")
+          .eq("id", user.id)
+          .maybeSingle(),
         supabase
           .from("licenses")
           .select("expires_at")

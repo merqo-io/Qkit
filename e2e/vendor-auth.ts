@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import type { BrowserContext } from "@playwright/test";
+import { totpCode } from "./totp";
 
 // The vendor that owns the seeded "Kopitiam Cart" booth
 // (supabase/seed/coffee-cart.sql; created in CI by ci-auth-bootstrap.sql).
@@ -28,10 +29,15 @@ function localSupabaseEnv() {
   return { url, publishableKey, secretKey };
 }
 
-/** Signs `context` in as the seed booth's vendor, past the dashboard's gates. */
+/**
+ * Signs `context` in as the seed booth's vendor, past the dashboard's gates.
+ * With `asAdmin` the vendor also becomes an admin and clears a TOTP challenge,
+ * so /admin (which needs `aal2`) opens.
+ */
 export async function signInSeedVendor(
   context: BrowserContext,
   baseURL: string,
+  { asAdmin = false }: { asAdmin?: boolean } = {},
 ): Promise<void> {
   const env = localSupabaseEnv();
   const admin = createClient(env.url, env.secretKey, {
@@ -68,12 +74,13 @@ export async function signInSeedVendor(
   });
   if (linkError) throw new Error(`generateLink: ${linkError.message}`);
 
-  const cookies: { name: string; value: string }[] = [];
+  // Later writes win: the TOTP upgrade re-issues the same cookie names.
+  const cookies = new Map<string, string>();
   const ssr = createServerClient(env.url, env.publishableKey, {
     cookies: {
       getAll: () => [],
       setAll: (set) => {
-        for (const { name, value } of set) cookies.push({ name, value });
+        for (const { name, value } of set) cookies.set(name, value);
       },
     },
   });
@@ -82,10 +89,25 @@ export async function signInSeedVendor(
     token_hash: link.properties.hashed_token,
   });
   if (otpError) throw new Error(`verifyOtp: ${otpError.message}`);
-  const live = cookies.filter((c) => c.value !== "");
+  if (asAdmin) {
+    const { error: adminError } = await qkit
+      .from("admins")
+      .upsert({ user_id: SEED_VENDOR_ID });
+    if (adminError) throw new Error(`admins: ${adminError.message}`);
+    const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
+      factorType: "totp",
+    });
+    if (enrolError || !factor) throw new Error("mfa enroll failed");
+    const { error: verifyError } = await ssr.auth.mfa.challengeAndVerify({
+      factorId: factor.id,
+      code: totpCode(factor.totp.secret),
+    });
+    if (verifyError) throw new Error(`mfa verify: ${verifyError.message}`);
+  }
+  const live = [...cookies].filter(([, value]) => value !== "");
   if (live.length === 0) throw new Error("Sign-in wrote no auth cookie");
 
   await context.addCookies(
-    live.map(({ name, value }) => ({ name, value, url: baseURL })),
+    live.map(([name, value]) => ({ name, value, url: baseURL })),
   );
 }

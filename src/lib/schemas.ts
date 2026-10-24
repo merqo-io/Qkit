@@ -670,3 +670,15 @@ export function parseOrderItems(data: unknown): OrderItem[] {
     return parsed.success ? [parsed.data] : [];
   });
 }
+
+// Route/action boundaries
+
+export const authCallbackQuerySchema = z.object({
+  code: z.string().min(1).max(512),
+});
+
+// Same-origin relative path only: a leading "//" or backslash would leave the site.
+export const redirectPathSchema = z
+  .string()
+  .max(512)
+  .regex(/^\/(?![/\\])/);

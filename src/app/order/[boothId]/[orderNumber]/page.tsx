@@ -3,6 +3,7 @@ import { requestOrigin } from "@/lib/request-origin";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import QRCode from "react-qr-code";
+// eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   getOrCreateVendorProfile,
@@ -273,7 +274,9 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
     await Promise.all([
       supabase
         .from("orders")
-        .select("*")
+        .select(
+          "id, booth_id, order_number, customer_name, items, status, total_cents, payment_status, payment_method_kind, paid_at, print_status, created_at, ready_at, completed_at, updated_at, source, auto_completed",
+        )
         .eq("booth_id", boothId)
         .eq("order_number", orderNumber)
         .eq("access_token", token)

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
+import { THEME_PROVIDER_PROPS } from "@/lib/theme-props";
 import { Providers } from "@/components/layout/providers";
 import { ServiceWorkerRegistrar } from "@/components/layout/service-worker-registrar";
 import { MaintenanceBanner } from "@/components/layout/maintenance-banner";
@@ -55,6 +57,8 @@ export default async function RootLayout({
   // keeps every page rendered per request. Only the query is skipped while a
   // recent answer is remembered, so no page is built once with a banner state
   // frozen into it.
+  // The proxy mints the nonce; next-themes stamps it on its inline script.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   let banner = DEFAULT_PLATFORM_SETTINGS;
   try {
     const supabase = await createServerClient();
@@ -83,12 +87,7 @@ export default async function RootLayout({
           enabled={banner.banner_enabled}
           message={banner.banner_message}
         />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider {...THEME_PROVIDER_PROPS} nonce={nonce}>
           <Providers>{children}</Providers>
         </ThemeProvider>
       </body>

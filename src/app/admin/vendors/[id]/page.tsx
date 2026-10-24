@@ -4,6 +4,7 @@ import { Check, Circle } from "lucide-react";
 import { BackButton } from "@merqo/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
+// eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";

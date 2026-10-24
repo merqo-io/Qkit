@@ -172,6 +172,27 @@ const eslintConfig = [
       "sonarjs/no-os-command-from-path": "off",
     },
   },
+  {
+    // The service client bypasses RLS: keep it in lib helpers and bearer-gated
+    // route handlers. A Server Action that needs it states why on the import.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/**", "src/app/api/**", "**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/supabase/server",
+              importNames: ["createServiceClient"],
+              message:
+                "Service-role client bypasses RLS. Use it only in src/lib or src/app/api, or justify with an eslint-disable description.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

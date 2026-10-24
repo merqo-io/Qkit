@@ -534,3 +534,5 @@ the client. A payment QR image is uploaded in paykit, not here.
 Menu CSV records preserve quoted LF, CRLF, and CR newlines on export/import.
 Option statistics key group and choice as a tuple so different pairs cannot collide.
 Restored carts recompute current option surcharges, including options on unpriced items.
+
+`security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.

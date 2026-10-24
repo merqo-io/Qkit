@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Star } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/access";
+// eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
 import { cn, EYEBROW_CLASS } from "@/lib/utils";

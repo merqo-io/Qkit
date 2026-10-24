@@ -23,7 +23,7 @@ export const getVendor = cache(
     const supabase = await createServerClient();
     const { data: vendor, error } = await supabase
       .from("vendors")
-      .select("*")
+      .select("id, plan, created_at, tours_seen, board_settings")
       .eq("id", user.id)
       .maybeSingle();
 

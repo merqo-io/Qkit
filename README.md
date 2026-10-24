@@ -178,3 +178,7 @@ Live queue reads page through the database API limit and reject partial results
 when a later page fails. ID cursors prevent earlier orders leaving the queue
 from shifting later pages. Dashboard booth filters use bounded batches; optional
 cup counters run with bounded concurrency and cannot fail the board.
+
+## Security headers and MFA
+
+`src/proxy.ts` sets a nonce CSP on every page and `X-Robots-Tag` off production. The admin area requires TOTP MFA; see `src/app/mfa/README.md` and `docs/security/`.

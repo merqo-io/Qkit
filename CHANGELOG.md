@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-24
+
+### Security
+
+- Nonce-based CSP (`script-src` without `unsafe-inline`) on every page, set in `proxy.ts` from `@merqo/ui/security`. Every page already rendered per request, so none stays on the static policy. The `@merqo/ui` pin moves to v0.35.0 and next-themes receives the nonce.
+- `X-Robots-Tag: noindex, nofollow` and a disallow-all `robots.txt` on every non-production deployment.
+- Admin pages and actions now require a verified TOTP second factor (`aal2`); a password-only admin session is redirected to the new `/mfa` page.
+- Zod parsing for the auth callback query and the legal-accept redirect; `select("*")` replaced by explicit columns.
+- `no-restricted-imports` keeps the service-role client to `src/lib` and `src/app/api`; every other import states why.
+
+### Added
+
+- Signed-in render smoke and CSP e2e specs; CI e2e serves the production build.
+- `docs/security/2026-10-24-data-inventory.md`.
+
 ## [0.1.2] - 2026-10-24
 
 ### Security

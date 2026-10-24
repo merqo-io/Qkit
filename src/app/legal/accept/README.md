@@ -32,3 +32,5 @@ qkit-local `@/lib/safe-redirect`; it was duplicated in all five repos.
 ## Parent
 
 [legal](../README.md)
+
+The `next` form field is length-checked by Zod before `safeRedirectPath` runs.
