@@ -37,7 +37,7 @@ export function moveItemToGroup(
 
   const known = new Set(categories.map((c) => c.id));
   const inTargetGroup = (it: MenuItemFormInput) =>
-    targetCategory == null
+    targetCategory === null || targetCategory === undefined
       ? !it.category || !known.has(it.category)
       : it.category === targetCategory;
 
@@ -65,10 +65,17 @@ export type ItemDropTarget =
 export function resolveItemDrop(
   items: MenuItemFormInput[],
   categories: MenuCategory[],
-  activeGroupId: string,
-  activeId: string,
-  overData: ItemDropTarget | undefined,
-  overId: string,
+  {
+    activeGroupId,
+    activeId,
+    overData,
+    overId,
+  }: {
+    activeGroupId: string;
+    activeId: string;
+    overData: ItemDropTarget | undefined;
+    overId: string;
+  },
 ): MenuItemFormInput[] {
   if (!overData) return items;
   const targetCategory =

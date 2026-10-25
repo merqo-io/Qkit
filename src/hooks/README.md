@@ -136,3 +136,5 @@ refreshCups }`: keeps the board's per-booth "N/cap items" count current by
 ## Parent
 
 [src](../README.md)
+
+Nullable checks in these hooks use `isNil` from `@/lib/utils`.

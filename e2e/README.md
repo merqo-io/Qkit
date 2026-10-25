@@ -30,3 +30,5 @@ qkit's checkout flow calls paykit's real HTTP API (`src/lib/paykit/client.ts`), 
 ## Parent
 
 [qkit](../README.md)
+
+`paykit-mock.ts` routes requests through `handleApi` and `handlePay`.

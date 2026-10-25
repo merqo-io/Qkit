@@ -73,7 +73,9 @@ export async function sweepUnsavedUploads(
         paykit.data.qrImageUrl,
       ]),
     ];
-    const paths = unsavedUploadPaths(user.id, objects, referenced, nowMs);
+    const paths = unsavedUploadPaths(user.id, objects, referenced, {
+      nowMs: nowMs,
+    });
     if (paths.length === 0) return;
 
     const { error } = await supabase.storage.from(BUCKET).remove(paths);

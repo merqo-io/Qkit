@@ -20,9 +20,7 @@ export function RecentOrders({ boothId }: Props) {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    // Intentional post-mount read of a browser-only store (localStorage); the
-    // server has no customer identity, so this can only run client-side.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is browser-only, so this read cannot run on the server
     setOrders(getRecentOrdersForBooth(boothId));
   }, [boothId]);
 

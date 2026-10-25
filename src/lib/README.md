@@ -539,3 +539,5 @@ Restored carts recompute current option surcharges, including options on unprice
 `security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.
 
 `security-headers.ts` also allows the Vercel toolbar origin (`vercel.live`) outside production.
+
+`utils.ts` also exports `isNil(value)`, the type guard for `null` or `undefined` used wherever the code checks a nullable column.

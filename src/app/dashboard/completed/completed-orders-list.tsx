@@ -77,7 +77,12 @@ export function CompletedOrdersList({
   const todayStartMs = Date.parse(todayStartIso);
   function shownNumber(o: BoardOrder): string | undefined {
     const baseline = dailyOrderNumberBaselines[o.booth_id];
-    if (o.order_number == null || baseline === undefined) return undefined;
+    if (
+      o.order_number === null ||
+      o.order_number === undefined ||
+      baseline === undefined
+    )
+      return undefined;
     if (Date.parse(o.created_at) < todayStartMs) return undefined;
     return displayOrderNumber(o.order_number, baseline);
   }

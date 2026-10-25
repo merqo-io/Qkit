@@ -68,7 +68,9 @@ export default async function DashboardPage() {
   const boothIds = (booths ?? []).map((b) => b.id);
   const cupsToday = await loadCupsToday(
     supabase,
-    (booths ?? []).filter((b) => b.daily_cup_cap != null).map((b) => b.id),
+    (booths ?? [])
+      .filter((b) => b.daily_cup_cap !== null && b.daily_cup_cap !== undefined)
+      .map((b) => b.id),
   );
 
   // Open/closed as of this request (SGT); revalidate=0 re-evaluates on nav.
@@ -113,7 +115,9 @@ export default async function DashboardPage() {
               if (afterId !== null) query.gt("id", afterId);
               return query.limit(1000);
             })
-          ).filter((o) => o.order_number != null),
+          ).filter(
+            (o) => o.order_number !== null && o.order_number !== undefined,
+          ),
         );
       }
       orders = completeOrders;

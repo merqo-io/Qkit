@@ -35,23 +35,22 @@ function serviceClient(env: ReturnType<typeof localSupabaseEnv>) {
   });
 }
 
+type Admin = ReturnType<typeof serviceClient>;
+
 /**
  * Redeems a magic link for `email` and returns the auth cookies
  * `@supabase/ssr` would have written. With `mfa` it first enrols and verifies
  * a TOTP factor, so the session reaches `aal2`.
  */
-type Admin = ReturnType<typeof serviceClient>;
-
 async function sessionCookies(
   env: ReturnType<typeof localSupabaseEnv>,
   admin: Admin,
-  email: string,
-  userId: string,
+  user: { email: string; id: string },
   { mfa }: { mfa: boolean },
 ): Promise<[string, string][]> {
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
     type: "magiclink",
-    email,
+    email: user.email,
   });
   if (linkError) throw new Error(`generateLink: ${linkError.message}`);
 
@@ -73,10 +72,10 @@ async function sessionCookies(
   if (mfa) {
     // A retry finds the factor of the last attempt, and a new one needs aal2.
     const { data: existing } = await admin.auth.admin.mfa.listFactors({
-      userId,
+      userId: user.id,
     });
     for (const old of existing?.factors ?? []) {
-      await admin.auth.admin.mfa.deleteFactor({ id: old.id, userId });
+      await admin.auth.admin.mfa.deleteFactor({ id: old.id, userId: user.id });
     }
     const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
       factorType: "totp",
@@ -128,9 +127,12 @@ export async function signInSeedVendor(
     .eq("id", SEED_VENDOR_ID);
   if (tourError) throw new Error(`vendors.tours_seen: ${tourError.message}`);
 
-  const cookies = await sessionCookies(env, admin, email, SEED_VENDOR_ID, {
-    mfa: false,
-  });
+  const cookies = await sessionCookies(
+    env,
+    admin,
+    { email, id: SEED_VENDOR_ID },
+    { mfa: false },
+  );
   await context.addCookies(
     cookies.map(([name, value]) => ({ name, value, url: baseURL })),
   );
@@ -172,9 +174,12 @@ export async function signInSeedAdmin(
     .upsert({ user_id: adminId });
   if (adminError) throw new Error(`admins: ${adminError.message}`);
 
-  const cookies = await sessionCookies(env, admin, ADMIN_EMAIL, adminId, {
-    mfa,
-  });
+  const cookies = await sessionCookies(
+    env,
+    admin,
+    { email: ADMIN_EMAIL, id: adminId },
+    { mfa },
+  );
   await context.addCookies(
     cookies.map(([name, value]) => ({ name, value, url: baseURL })),
   );

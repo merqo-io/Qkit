@@ -57,7 +57,7 @@ export default async function AdminVendorDetailPage({
   const merqoClient =
     (await createServiceClient()) as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
 
-  // eslint-disable-next-line react-hooks/purity
+  // eslint-disable-next-line react-hooks/purity -- the wall clock is read once per request on purpose
   const now = Date.now();
 
   // All four scoped to this one vendor (never the fleet fetch-all) and
@@ -125,14 +125,18 @@ export default async function AdminVendorDetailPage({
   const hasOpenMsg = (messages ?? []).some((m) => m.status === "open");
   const openMsgVendors = new Set(hasOpenMsg ? [id] : []);
   const health = buildVendorHealth(
-    [{ id, plan: vendor.plan, created_at: vendor.created_at, passExpiresAt }],
-    boothRows.map((b) => ({
-      id: b.id,
-      vendor_id: id,
-      created_at: b.created_at,
-    })),
-    orderRows,
-    openMsgVendors,
+    {
+      vendors: [
+        { id, plan: vendor.plan, created_at: vendor.created_at, passExpiresAt },
+      ],
+      booths: boothRows.map((b) => ({
+        id: b.id,
+        vendor_id: id,
+        created_at: b.created_at,
+      })),
+      orders: orderRows,
+      openMessageVendorIds: openMsgVendors,
+    },
     now,
   ).get(id)!;
 

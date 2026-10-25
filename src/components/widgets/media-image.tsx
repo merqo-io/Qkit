@@ -7,7 +7,6 @@ import Image, { type ImageProps } from "next/image";
  */
 export function MediaImage(props: ImageProps) {
   const isSvg = typeof props.src === "string" && props.src.endsWith(".svg");
-  // `alt` is forwarded via {...props}; the linter can't see it on a pass-through.
-  // eslint-disable-next-line jsx-a11y/alt-text
+  // eslint-disable-next-line jsx-a11y/alt-text -- alt is forwarded through the spread props
   return <Image {...props} unoptimized={isSvg || !!props.unoptimized} />;
 }

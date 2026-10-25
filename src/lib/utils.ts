@@ -58,7 +58,9 @@ export function parseDollarsToCents(
 export function orderHasPricing(
   items: { price_cents?: number | null }[],
 ): boolean {
-  return items.some((i) => i.price_cents != null);
+  return items.some(
+    (i) => i.price_cents !== null && i.price_cents !== undefined,
+  );
 }
 
 /** Count with a pluralized noun: "1 item" / "3 items" / "0 items". */
@@ -82,4 +84,9 @@ export function menuItemActionLabel(
   if (soldOut) return "Sold out";
   if (hasOptions) return "Customize";
   return "Add";
+}
+
+/** True for `null` and `undefined`, the two "no value" states a nullable column can hold. */
+export function isNil(value: unknown): value is null | undefined {
+  return value === null || value === undefined;
 }

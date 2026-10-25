@@ -70,8 +70,7 @@ export default async function AdminPage() {
   const merqoClient =
     (await createServiceClient()) as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
 
-  // Reading the wall clock in an async server component is intentional here.
-  // eslint-disable-next-line react-hooks/purity
+  // eslint-disable-next-line react-hooks/purity -- the wall clock is read once per request on purpose
   const now = Date.now();
   const cutoff7d = new Date(now - 7 * MS_PER_DAY).toISOString();
   const cutoff14d = new Date(now - 14 * MS_PER_DAY).toISOString();

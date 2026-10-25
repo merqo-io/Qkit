@@ -182,3 +182,7 @@ cup counters run with bounded concurrency and cannot fail the board.
 ## Security headers and MFA
 
 `src/proxy.ts` sets a nonce CSP on every page and `X-Robots-Tag` off production. The admin area requires TOTP MFA; see `src/app/mfa/README.md` and `docs/security/`.
+
+## Lint
+
+`eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand-icon.tsx` and `src/app/global-error.tsx`.

@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 import type { BoothHours } from "@/lib/hours";
 import { OPTION_CODE_MAX } from "@/lib/ticket";
+import { isNil } from "@/lib/utils";
 
 // Shared with passwordChangeSchema below — Supabase Auth config owns the
 // real policy, this is just the client-side form floor matching it.
@@ -447,7 +448,7 @@ export const feedbackSchema = z
   // Require at least a score (rating or NPS) or a non-empty message.
   .refine(
     (d) =>
-      d.rating != null || d.nps != null || (d.message && d.message.length > 0),
+      !isNil(d.rating) || !isNil(d.nps) || (d.message && d.message.length > 0),
     {
       message: "Add a rating or a message",
       path: ["message"],

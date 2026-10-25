@@ -38,8 +38,8 @@ importers:
         specifier: 5.2.2
         version: 5.2.2(react-hook-form@7.77.0(react@19.2.7))
       '@merqo/ui':
-        specifier: github:merqo-io/merqo-ui#9900246ed1587ab098c9f57923de775416251562
-        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/9900246ed1587ab098c9f57923de775416251562(@playwright/test@1.60.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)
+        specifier: github:merqo-io/merqo-ui#5577c4cbef0ef107c351826911264d7dce0cb132
+        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5577c4cbef0ef107c351826911264d7dce0cb132(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.60.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)
       '@supabase/ssr':
         specifier: ^0.10.3
         version: 0.10.3(@supabase/supabase-js@2.107.0)
@@ -92,6 +92,9 @@ importers:
         specifier: 4.6.6
         version: 4.6.6
     devDependencies:
+      '@eslint-community/eslint-plugin-eslint-comments':
+        specifier: 4.8.1
+        version: 4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
       '@eslint/eslintrc':
         specifier: ^3.2.0
         version: 3.3.5(supports-color@7.2.0)
@@ -589,6 +592,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@eslint-community/eslint-plugin-eslint-comments@4.8.1':
+    resolution: {integrity: sha512-vafrdi15JHBFh1qWOAucyJwlEEuhdoMof28jOdKdgnwZ7bXwd6v4wzHYSmAVLwnx0yc7bqAtfJ0EZQV1WAzV/Q==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    peerDependencies:
+      eslint: ^6.0.0 || ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
+
   '@eslint-community/eslint-utils@4.9.1':
     resolution: {integrity: sha512-phrYmNiYppR7znFEdqgfWHXR6NCkZEK7hwWDHZUjit/2/U0r6XvkDl0SYnoM51Hq7FhCGdLDT6zxCCOY1hexsQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
@@ -1009,8 +1018,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/9900246ed1587ab098c9f57923de775416251562':
-    resolution: {gitHosted: true, integrity: sha512-PNR5QjnmjfP49QEG7Wnh8PUbd+mVHTDCxsan66FZ49EbApSyqXqE44AqMGW0ia2RFGZDVsXDwQ55QDqEPjC2vg==, tarball: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/9900246ed1587ab098c9f57923de775416251562}
+  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5577c4cbef0ef107c351826911264d7dce0cb132':
+    resolution: {gitHosted: true, integrity: sha512-lri0Hj69VYSkPx42uZQo9HlFhTbDEhzH8smtE3jBEWBWf/C8SFcxaibgMse1J+YB8gsWdjM1MZJ1KqAr8VqSQw==, tarball: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5577c4cbef0ef107c351826911264d7dce0cb132}
     version: 0.35.0
     engines: {node: '>=24'}
     peerDependencies:
@@ -6107,6 +6116,12 @@ snapshots:
   '@esbuild/win32-x64@0.25.12':
     optional: true
 
+  '@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))':
+    dependencies:
+      escape-string-regexp: 4.0.0
+      eslint: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
+      ignore: 7.0.5
+
   '@eslint-community/eslint-utils@4.9.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))':
     dependencies:
       eslint: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
@@ -6459,7 +6474,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/9900246ed1587ab098c9f57923de775416251562(@playwright/test@1.60.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)':
+  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5577c4cbef0ef107c351826911264d7dce0cb132(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.60.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)':
     dependencies:
       '@icons-pack/react-simple-icons': 13.13.0(react@19.2.7)
       '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -6481,6 +6496,7 @@ snapshots:
       tailwind-merge: 2.6.1
       tailwindcss: 4.3.0
     optionalDependencies:
+      '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
       '@playwright/test': 1.60.0
       eslint: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
       eslint-plugin-sonarjs: 4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))

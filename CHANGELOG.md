@@ -27,6 +27,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Signed-in render smoke and CSP e2e specs; the public-smoke e2e job serves the production build.
 - `docs/security/2026-10-24-data-inventory.md`.
 
+## [0.1.4] - 2026-10-24
+
+### Changed
+
+- Lint config now consumes the shared `@merqo/ui/eslint` preset (`@merqo/ui` v0.35.0): comment and directive hygiene, size and complexity limits, and a ban on colour literals in `src`. `eslint-plugin-sonarjs` 4.2.2 and `@eslint-community/eslint-plugin-eslint-comments` 4.8.1 pinned. The local temporal-dead-zone rule stays at `error`; `eslint.config.test.ts` asserts it and the preset rules. Files over the size or complexity limits are listed in two baseline blocks, shrunk by the split-long-files task.
+- Eleven functions take a grouped argument instead of five or more positional ones; the upgrade and downgrade request routes share one vendor lookup; null checks use an `isNil` helper. No behaviour change.
+- Order board test asserts `Mark Ready` and `Mark Picked Up` are named buttons and every card button has an accessible name.
+- The daily-order-number tooltip and tour example read `003`/`0847`/`No. 118` without a leading `#`.
+
 ## [0.1.3] - 2026-10-24
 
 ### Security

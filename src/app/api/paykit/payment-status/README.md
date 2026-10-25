@@ -57,3 +57,5 @@ directly, not `transactionIdForOrder`, which would create one.
 ## Parent
 
 [paykit](../README.md)
+
+The body is parsed by `readBody`, which returns the validated body or the error response.

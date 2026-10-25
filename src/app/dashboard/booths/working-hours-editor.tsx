@@ -129,7 +129,7 @@ export function WorkingHoursEditor({
         <div className="space-y-2">
           {DAYS.map(({ key, label }) => {
             const win = days[key];
-            const open = win != null;
+            const open = win !== null && win !== undefined;
             return (
               <div key={key} className="flex flex-wrap items-center gap-2">
                 <label className="flex w-32 items-center gap-2 text-sm">

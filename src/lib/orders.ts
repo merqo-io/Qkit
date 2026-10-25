@@ -1,4 +1,5 @@
 import type { BoardOrder, OrderStatus, PaymentStatus } from "@/lib/types";
+import { isNil } from "@/lib/utils";
 
 // Explicit column list for every vendor-board order read (initial load +
 // realtime resync) — omits access_token, the customer's own status-page
@@ -274,14 +275,15 @@ export function overtakenOrderIds(orders: BoardOrder[]): Set<string> {
     if (o.status !== "ready" && o.status !== "completed") continue;
     const at = new Date(o.created_at).getTime();
     const seen = newestDoneAt.get(o.booth_id);
-    if (seen == null || at > seen) newestDoneAt.set(o.booth_id, at);
+    if (seen === null || seen === undefined || at > seen)
+      newestDoneAt.set(o.booth_id, at);
   }
 
   const overtaken = new Set<string>();
   for (const o of orders) {
     if (isTerminal(o.status) || o.status === "ready") continue;
     const cutoff = newestDoneAt.get(o.booth_id);
-    if (cutoff == null) continue;
+    if (isNil(cutoff)) continue;
     if (new Date(o.created_at).getTime() < cutoff) overtaken.add(o.id);
   }
   return overtaken;
@@ -293,8 +295,10 @@ export function sortActiveOrders(
 ): BoardOrder[] {
   const dir = order === "latest" ? -1 : 1;
   return [...orders].sort((a, b) => {
-    const aBumped = a.priority_bumped_at != null;
-    const bBumped = b.priority_bumped_at != null;
+    const aBumped =
+      a.priority_bumped_at !== null && a.priority_bumped_at !== undefined;
+    const bBumped =
+      b.priority_bumped_at !== null && b.priority_bumped_at !== undefined;
     if (aBumped !== bBumped) return aBumped ? -1 : 1;
     if (aBumped && bBumped) {
       return (
@@ -335,7 +339,9 @@ export function ordersAheadOf(
   },
 ): number {
   const targetRank = STATUS_RANK[target.status];
-  const targetBumped = target.priority_bumped_at != null;
+  const targetBumped =
+    target.priority_bumped_at !== null &&
+    target.priority_bumped_at !== undefined;
   const targetTime = new Date(
     target.priority_bumped_at ?? target.created_at,
   ).getTime();
@@ -344,7 +350,8 @@ export function ordersAheadOf(
     const rank = STATUS_RANK[o.status];
     if (rank < targetRank) return true;
     if (rank > targetRank) return false;
-    const oBumped = o.priority_bumped_at != null;
+    const oBumped =
+      o.priority_bumped_at !== null && o.priority_bumped_at !== undefined;
     if (oBumped !== targetBumped) return oBumped;
     const oTime = new Date(o.priority_bumped_at ?? o.created_at).getTime();
     // Bumped orders rank most-recently-bumped-first (descending); everyone

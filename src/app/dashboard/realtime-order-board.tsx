@@ -73,7 +73,7 @@ import {
   SectionSwitcher,
   type PhoneSection,
 } from "./board-sections";
-import { cn } from "@/lib/utils";
+import { cn, isNil } from "@/lib/utils";
 import type { BoardOrder, BoardSettings } from "@/lib/types";
 
 interface Props {
@@ -234,10 +234,10 @@ export function RealtimeOrderBoard({
     if (autoOpenedWalkup.current) return;
     if (booths.some((b) => b.walkup_default && b.is_active)) {
       autoOpenedWalkup.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot auto-open of the walk-up dialog
       setWalkupOpen(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps are intentionally limited to the booth list
   }, []);
 
   // The ticket number for an order that has just arrived. Set further down,
@@ -263,7 +263,7 @@ export function RealtimeOrderBoard({
   }
 
   function handleNewOrder(order: BoardOrder) {
-    if (order.order_number == null) return;
+    if (isNil(order.order_number)) return;
     if (order.source === "walkup") {
       if (claimOwnWalkup(order)) return;
       if (walkupsInFlight.current > 0) {
@@ -281,7 +281,7 @@ export function RealtimeOrderBoard({
   // orderNumber is the permanent number, or null when the placement failed.
   function handleWalkupPlaced(boothId: string, orderNumber: string | null) {
     walkupsInFlight.current = Math.max(0, walkupsInFlight.current - 1);
-    if (orderNumber != null) {
+    if (!isNil(orderNumber)) {
       const key = `${boothId}:${orderNumber}`;
       ownWalkups.current.add(key);
       setTimeout(() => ownWalkups.current.delete(key), 60_000);
@@ -296,7 +296,7 @@ export function RealtimeOrderBoard({
   }
 
   function alertNewOrder(order: BoardOrder) {
-    if (order.order_number == null) return;
+    if (isNil(order.order_number)) return;
     const shown = newOrderNumberRef.current(order.booth_id, order.order_number);
     void playSound(boardSettings.sound_id);
     toast(`New order #${shown} · ${order.customer_name}`);
@@ -347,10 +347,14 @@ export function RealtimeOrderBoard({
     // TV display and the printed label all still show its permanent number.
     const dayStart = Date.parse(sgtStartOfDayIso());
     for (const o of orders) {
-      if (o.order_number == null) continue;
+      if (isNil(o.order_number)) continue;
       if (Date.parse(o.created_at) < dayStart) continue;
       const seen = lowest[o.booth_id];
-      if (seen == null || Number(o.order_number) < Number(seen)) {
+      if (
+        seen === null ||
+        seen === undefined ||
+        Number(o.order_number) < Number(seen)
+      ) {
         lowest[o.booth_id] = o.order_number;
       }
     }
@@ -384,7 +388,12 @@ export function RealtimeOrderBoard({
     useCallback(async () => {
       await sweepReadyOrders();
     }, []),
-    { intervalMs: 30_000, enabled: boardSettings.ready_auto_clear_min != null },
+    {
+      intervalMs: 30_000,
+      enabled:
+        boardSettings.ready_auto_clear_min !== null &&
+        boardSettings.ready_auto_clear_min !== undefined,
+    },
   );
 
   // Abandoned-payment sweep: cancels pending QR orders older than 30 minutes.
@@ -490,7 +499,7 @@ export function RealtimeOrderBoard({
     .map((o) => o.id);
 
   function renderCard(order: BoardOrder) {
-    if (order.order_number == null) return null;
+    if (isNil(order.order_number)) return null;
     return (
       <OrderCard
         key={order.id}
@@ -509,7 +518,8 @@ export function RealtimeOrderBoard({
         overdueMin={boardSettings.overdue_min}
         undoMs={boardSettings.undo_seconds * 1000}
         readyAutoClearMs={
-          boardSettings.ready_auto_clear_min != null
+          boardSettings.ready_auto_clear_min !== null &&
+          boardSettings.ready_auto_clear_min !== undefined
             ? boardSettings.ready_auto_clear_min * 60_000
             : null
         }

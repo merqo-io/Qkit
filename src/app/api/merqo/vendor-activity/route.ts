@@ -18,6 +18,63 @@ export const revalidate = 0;
 
 const querySchema = z.object({ email: z.email() });
 
+async function readActivityData(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  vendorId: string,
+) {
+  // merqo.support_messages' SELECT policy gates on merqo.merqo_team
+  // membership, not qkit.admins/service-role scope alone — reuse the same
+  // service-client-cast-to-the-merqo-schema pattern admin/page.tsx already
+  // establishes rather than adding a second Supabase client.
+  const merqoClient =
+    supabase as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
+
+  const [booths, licenses, messages] = await Promise.all([
+    readAllRows((from, to) =>
+      supabase
+        .from("booths")
+        .select("id, vendor_id, created_at, is_active")
+        .eq("vendor_id", vendorId)
+        .order("id")
+        .range(from, to),
+    ),
+    readAllRows((from, to) =>
+      supabase
+        .from("licenses")
+        .select("vendor_id, valid_from, expires_at")
+        .eq("vendor_id", vendorId)
+        .order("id")
+        .range(from, to),
+    ),
+    readAllRows((from, to) =>
+      merqoClient
+        .schema("merqo")
+        .from("support_messages")
+        .select("id, status")
+        .eq("kit_slug", "qkit")
+        .eq("user_id", vendorId)
+        .eq("status", "open")
+        .order("id")
+        .range(from, to),
+    ),
+  ]);
+  const boothIds = booths.map((b) => b.id);
+  const orders = [];
+  for (let offset = 0; offset < boothIds.length; offset += 100) {
+    orders.push(
+      ...(await readAllRows((from, to) =>
+        supabase
+          .from("orders")
+          .select("booth_id, status, total_cents, created_at")
+          .in("booth_id", boothIds.slice(offset, offset + 100))
+          .order("id")
+          .range(from, to),
+      )),
+    );
+  }
+  return { booths, licenses, messages, orders };
+}
+
 export async function GET(request: Request) {
   if (!bearerOk(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -83,57 +140,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // merqo.support_messages' SELECT policy gates on merqo.merqo_team
-  // membership, not qkit.admins/service-role scope alone — reuse the same
-  // service-client-cast-to-the-merqo-schema pattern admin/page.tsx already
-  // establishes rather than adding a second Supabase client.
-  const merqoClient =
-    supabase as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
-
   try {
-    const [booths, licenses, messages] = await Promise.all([
-      readAllRows((from, to) =>
-        supabase
-          .from("booths")
-          .select("id, vendor_id, created_at, is_active")
-          .eq("vendor_id", vendor.id)
-          .order("id")
-          .range(from, to),
-      ),
-      readAllRows((from, to) =>
-        supabase
-          .from("licenses")
-          .select("vendor_id, valid_from, expires_at")
-          .eq("vendor_id", vendor.id)
-          .order("id")
-          .range(from, to),
-      ),
-      readAllRows((from, to) =>
-        merqoClient
-          .schema("merqo")
-          .from("support_messages")
-          .select("id, status")
-          .eq("kit_slug", "qkit")
-          .eq("user_id", vendor.id)
-          .eq("status", "open")
-          .order("id")
-          .range(from, to),
-      ),
-    ]);
-    const boothIds = booths.map((b) => b.id);
-    const orders = [];
-    for (let offset = 0; offset < boothIds.length; offset += 100) {
-      orders.push(
-        ...(await readAllRows((from, to) =>
-          supabase
-            .from("orders")
-            .select("booth_id, status, total_cents, created_at")
-            .in("booth_id", boothIds.slice(offset, offset + 100))
-            .order("id")
-            .range(from, to),
-        )),
-      );
-    }
+    const { booths, licenses, messages, orders } = await readActivityData(
+      supabase,
+      vendor.id,
+    );
 
     const nowMs = Date.now();
     const passExpiresAt =
@@ -141,10 +152,12 @@ export async function GET(request: Request) {
 
     const payload = computeVendorActivity(
       vendor as { id: string; plan: Plan; created_at: string },
-      booths,
-      orders,
-      passExpiresAt,
-      messages.length > 0,
+      {
+        booths,
+        orders,
+        passExpiresAt,
+        hasOpenMessage: messages.length > 0,
+      },
       nowMs,
     );
 
