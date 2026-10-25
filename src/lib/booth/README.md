@@ -36,8 +36,8 @@ per-booth colours and image paths.
   folder. It takes no "already persisted" set any more, because a booth save
   no longer writes a payment QR to paykit before the booth row.
   `uploadedPaths(urls)` maps any other URLs (avatar, paykit QR) to paths the
-  same way, and `unsavedUploadPaths(folder, objects, referenced, nowMs,
-graceMs)` picks the objects in a vendor folder that nothing references and
+  same way, and `unsavedUploadPaths(folder, objects, referenced, { nowMs,
+graceMs })` picks the objects in a vendor folder that nothing references and
   that are older than `UNSAVED_UPLOAD_GRACE_MS` (24h): uploads from a form the
   vendor never saved. Used by `dashboard/booths/sweep-unsaved-uploads.ts`.
 

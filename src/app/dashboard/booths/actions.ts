@@ -51,10 +51,17 @@ async function removeBoothImages(
 // notifyPrintkit: a failure is logged and never fails the caller. printkit
 // keys the location on the booth id, so nothing from its answer is stored.
 async function syncPrintLocation(
-  vendorId: string,
-  boothId: string,
-  label: string,
-  active: boolean,
+  {
+    vendorId,
+    boothId,
+    label,
+    active,
+  }: {
+    vendorId: string;
+    boothId: string;
+    label: string;
+    active: boolean;
+  },
   context: string,
 ) {
   try {
@@ -166,9 +173,15 @@ async function upsertBoothRow(
  */
 async function checkActiveBoothCap(
   supabase: Awaited<ReturnType<typeof createServerClient>>,
-  vendorId: string,
-  maxBooths: number,
-  excludeBoothId: string | undefined,
+  {
+    vendorId,
+    maxBooths,
+    excludeBoothId,
+  }: {
+    vendorId: string;
+    maxBooths: number;
+    excludeBoothId: string | undefined;
+  },
   context: string,
 ): Promise<string | null> {
   let q = supabase
@@ -224,7 +237,10 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
 
   if (booth) {
     await removeBoothImages(supabase, boothImagePaths(booth), "deleteBooth");
-    await syncPrintLocation(user.id, boothId, booth.name, false, "deleteBooth");
+    await syncPrintLocation(
+      { vendorId: user.id, boothId, label: booth.name, active: false },
+      "deleteBooth",
+    );
   }
   return { success: true };
 }
@@ -387,9 +403,11 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
   if (data.is_active && entitlement.maxBooths !== null) {
     const capError = await checkActiveBoothCap(
       supabase,
-      user.id,
-      entitlement.maxBooths,
-      data.boothId,
+      {
+        vendorId: user.id,
+        maxBooths: entitlement.maxBooths,
+        excludeBoothId: data.boothId,
+      },
       "saveBooth",
     );
     if (capError) return { success: false, error: capError };
@@ -414,10 +432,12 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
   const result = await upsertBoothRow(supabase, row, data.boothId, user.id);
   if (result.success) {
     await syncPrintLocation(
-      user.id,
-      result.boothId,
-      data.name,
-      data.print_enabled,
+      {
+        vendorId: user.id,
+        boothId: result.boothId,
+        label: data.name,
+        active: data.print_enabled,
+      },
       "saveBooth",
     );
     // Reclaim uploads from forms this vendor abandoned; runs after the
@@ -527,9 +547,11 @@ export async function toggleBoothActive(
   if (active && entitlement.maxBooths !== null) {
     const capError = await checkActiveBoothCap(
       supabase,
-      user.id,
-      entitlement.maxBooths,
-      boothId,
+      {
+        vendorId: user.id,
+        maxBooths: entitlement.maxBooths,
+        excludeBoothId: boothId,
+      },
       "toggleBoothActive",
     );
     if (capError) return { success: false, error: capError };

@@ -56,7 +56,11 @@ export async function firstOrderNumbersToday(
         query.range(from, to),
       );
       for (const o of todaysOrders) {
-        if (!(o.booth_id in baselines) && o.order_number != null) {
+        if (
+          !(o.booth_id in baselines) &&
+          o.order_number !== null &&
+          o.order_number !== undefined
+        ) {
           baselines[o.booth_id] = o.order_number;
         }
       }

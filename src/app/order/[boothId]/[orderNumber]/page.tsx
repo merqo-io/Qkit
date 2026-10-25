@@ -169,7 +169,7 @@ function OrderLines({
             </span>
             {priced && (
               <span className="shrink-0 font-mono text-muted-foreground">
-                {item.price_cents == null
+                {item.price_cents === null || item.price_cents === undefined
                   ? "Free"
                   : formatPrice(item.price_cents * item.quantity)}
               </span>
@@ -293,7 +293,8 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   // (maybeSingle → null, no error) is a true 404.
   if (orderError)
     throw new Error(`order status read failed: ${orderError.message}`);
-  if (!order || order.order_number == null) notFound();
+  if (!order || order.order_number === null || order.order_number === undefined)
+    notFound();
 
   // A still-unclaimed payment belongs on /pay, not here (stale bookmark guard).
   if (order.payment_status === "pending") {

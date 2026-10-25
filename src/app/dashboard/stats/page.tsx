@@ -95,10 +95,7 @@ export default async function StatsPage({ searchParams }: Props) {
     ? requested
     : (allowedRanges.at(-1) ?? "24h");
   const days = RANGE_DAYS[range];
-  // Async server component renders once per request; reading the wall clock here
-  // is intentional (the rolling-window cutoff). The purity rule targets client
-  // render, not RSC data fetching.
-  // eslint-disable-next-line react-hooks/purity
+  // eslint-disable-next-line react-hooks/purity -- the rolling-window cutoff reads the clock once per request
   const now = Date.now();
   const cutoff = new Date(now - days * MS_PER_DAY).toISOString();
 

@@ -276,12 +276,12 @@ export function OrderStatusPoller({
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
     setPermission(notifyPermission());
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
     setNowMs(Date.now());
     if (isTerminal(status)) return;
     const id = setInterval(() => setNowMs(Date.now()), 30_000);
@@ -406,7 +406,9 @@ export function OrderStatusPoller({
   const cancelled = status === "cancelled";
   const ready = status === "ready";
   const elapsed =
-    nowMs != null ? elapsedLabel(nowMs - Date.parse(placedAt)) : null;
+    nowMs !== null && nowMs !== undefined
+      ? elapsedLabel(nowMs - Date.parse(placedAt))
+      : null;
 
   const waiting = !ready && !isTerminal(status);
 

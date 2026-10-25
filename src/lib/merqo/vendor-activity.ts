@@ -32,24 +32,33 @@ export type VAOrder = OrderLite & { total_cents: number };
  */
 export function computeVendorActivity(
   vendor: VAVendor,
-  booths: VABooth[],
-  orders: VAOrder[],
-  passExpiresAt: string | null,
-  hasOpenMessage: boolean,
+  {
+    booths,
+    orders,
+    passExpiresAt,
+    hasOpenMessage,
+  }: {
+    booths: VABooth[];
+    orders: VAOrder[];
+    passExpiresAt: string | null;
+    hasOpenMessage: boolean;
+  },
   nowMs: number,
 ): VendorActivity {
   const health = buildVendorHealth(
-    [
-      {
-        id: vendor.id,
-        plan: vendor.plan,
-        created_at: vendor.created_at,
-        passExpiresAt,
-      },
-    ],
-    booths,
-    orders,
-    hasOpenMessage ? new Set([vendor.id]) : new Set(),
+    {
+      vendors: [
+        {
+          id: vendor.id,
+          plan: vendor.plan,
+          created_at: vendor.created_at,
+          passExpiresAt,
+        },
+      ],
+      booths: booths,
+      orders: orders,
+      openMessageVendorIds: hasOpenMessage ? new Set([vendor.id]) : new Set(),
+    },
     nowMs,
   ).get(vendor.id)!;
 

@@ -68,7 +68,7 @@ export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
   );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
     setNowMs(Date.now());
     const id = setInterval(() => setNowMs(Date.now()), 30_000);
     return () => clearInterval(id);

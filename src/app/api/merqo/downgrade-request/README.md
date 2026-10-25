@@ -15,3 +15,5 @@ Calls `createServiceClient()` (`@/lib/supabase/server`) and `resolveDowngradeOut
 ## Parent
 
 [merqo](../README.md)
+
+The vendor lookup is shared with the upgrade route through `findVendorByEmail` (`@/lib/merqo/vendor-lookup`).

@@ -70,7 +70,7 @@ function PaymentCode({ checkout }: { checkout: CheckoutView | null }) {
   return (
     <>
       <QrFrame>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- the QR is a data URL, nothing for next/image to optimise */}
         <img
           src={checkout.url}
           alt="Payment QR"

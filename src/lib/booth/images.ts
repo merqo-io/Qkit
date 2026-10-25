@@ -92,8 +92,10 @@ export function unsavedUploadPaths(
   folder: string,
   objects: StoredObject[],
   referenced: Iterable<string>,
-  nowMs: number,
-  graceMs: number = UNSAVED_UPLOAD_GRACE_MS,
+  {
+    nowMs,
+    graceMs = UNSAVED_UPLOAD_GRACE_MS,
+  }: { nowMs: number; graceMs?: number },
 ): string[] {
   const keep = new Set(referenced);
   const out: string[] = [];

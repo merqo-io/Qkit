@@ -9,11 +9,7 @@ export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
   return (
     <Footer
       wordmark={
-        // Plain <a>, not Link — see nav.tsx's wordmark comment: a same-page
-        // hash jump needs a native anchor so the URL bar's hash always
-        // updates, which Link doesn't reliably do when only the fragment
-        // changes.
-        // eslint-disable-next-line @next/next/no-html-link-for-pages
+        // eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump
         <a
           href="/#top"
           aria-label="qkit home, back to top"

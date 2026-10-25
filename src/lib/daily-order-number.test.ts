@@ -16,7 +16,7 @@ function fakeClient(rows: { settings?: unknown; firstToday?: string | null }) {
         maybeSingle: () =>
           Promise.resolve({
             data:
-              rows.firstToday == null
+              rows.firstToday === null || rows.firstToday === undefined
                 ? null
                 : { order_number: rows.firstToday },
           }),

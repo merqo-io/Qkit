@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { boothDotTitle } from "@/lib/booth/color";
-import { cn } from "@/lib/utils";
+import { cn, isNil } from "@/lib/utils";
 import { StartServiceButton } from "./start-service-button";
 
 export type BoothView = {
@@ -94,7 +94,7 @@ export function BoothToggle({
 const CUP_WARN_FRACTION = 0.1;
 
 function CupCount({ cap, used }: { cap?: number | null; used?: number }) {
-  if (cap == null) return null;
+  if (isNil(cap)) return null;
   const served = used ?? 0;
   const low = cap - served <= Math.ceil(cap * CUP_WARN_FRACTION);
   return (
@@ -142,7 +142,7 @@ export function BoothRow({
       <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
       <CupCount cap={b.daily_cup_cap} used={b.cups_today} />
       {/* Only a booth with a daily limit has a count to reset. */}
-      {b.daily_cup_cap != null && (
+      {b.daily_cup_cap !== null && b.daily_cup_cap !== undefined && (
         <StartServiceButton boothId={b.id} boothName={b.name} compact />
       )}
       {/* Manually active but outside scheduled hours: customers still see

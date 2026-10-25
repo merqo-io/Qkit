@@ -93,8 +93,7 @@ export function useRealtimeOrders(
       return [...byId.values()];
     });
     onChangeRef.current?.(null);
-    // supabase is stable; only the booth filter identity matters here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the supabase client is stable; only the booth filter matters
   }, [filterString]);
 
   useEffect(() => {
@@ -143,9 +142,7 @@ export function useRealtimeOrders(
       requests.current++;
       supabase.removeChannel(channel);
     };
-    // supabase client and setOrders are stable; only the booth filter should
-    // trigger re-subscription.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the supabase client and setOrders are stable; only the booth filter re-subscribes
   }, [filterString]);
 
   return { orders, status };

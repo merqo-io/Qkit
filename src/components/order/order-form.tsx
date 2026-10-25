@@ -257,9 +257,7 @@ export function OrderForm({
         } removed`,
       );
     }
-    // boothId is the only real input; menuItems/remaining are stable props and
-    // both reads are one-shot, so re-runs are harmless no-ops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only boothId should re-run this one-shot read
   }, [boothId]);
 
   // Persist the cart on every change so a refresh / tab-eviction restores it
@@ -657,11 +655,12 @@ export function OrderForm({
                             {options}
                           </p>
                         )}
-                        {item.price_cents != null && (
-                          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                            {formatPrice(item.price_cents * item.quantity)}
-                          </p>
-                        )}
+                        {item.price_cents !== null &&
+                          item.price_cents !== undefined && (
+                            <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                              {formatPrice(item.price_cents * item.quantity)}
+                            </p>
+                          )}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <Button
@@ -768,11 +767,12 @@ export function OrderForm({
                           </span>
                         )}
                       </span>
-                      {item.price_cents != null && (
-                        <span className="shrink-0 font-mono text-muted-foreground">
-                          {formatPrice(item.price_cents * item.quantity)}
-                        </span>
-                      )}
+                      {item.price_cents !== null &&
+                        item.price_cents !== undefined && (
+                          <span className="shrink-0 font-mono text-muted-foreground">
+                            {formatPrice(item.price_cents * item.quantity)}
+                          </span>
+                        )}
                     </div>
                   );
                 })}

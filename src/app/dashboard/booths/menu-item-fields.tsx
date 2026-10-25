@@ -118,7 +118,11 @@ export function MenuItemPricingFields({
             id={`menu-item-${index}-stock`}
             inputMode="numeric"
             placeholder="Unlimited"
-            value={item.stock == null ? "" : String(item.stock)}
+            value={
+              item.stock === null || item.stock === undefined
+                ? ""
+                : String(item.stock)
+            }
             onChange={(e) => onStock(e.target.value)}
             className="h-9 w-full rounded-lg"
           />

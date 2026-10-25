@@ -1,6 +1,6 @@
 {
   "name": "qkit",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "packageManager": "pnpm@11.28.5",
   "engines": {
@@ -27,7 +27,7 @@
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
     "@hookform/resolvers": "5.2.2",
-    "@merqo/ui": "github:merqo-io/merqo-ui#7b386558af36a1cbf008a9b4c4073c07ffc105ba",
+    "@merqo/ui": "github:merqo-io/merqo-ui#5577c4cbef0ef107c351826911264d7dce0cb132",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "2.107.0",
     "class-variance-authority": "^0.7.1",
@@ -62,6 +62,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "3.6.4",
     "@vitest/coverage-v8": "4.1.12",
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "eslint": "^9.17.0",
     "eslint-config-next": "16.4.2",
     "eslint-plugin-sonarjs": "4.2.2",

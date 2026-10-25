@@ -534,3 +534,5 @@ the client. A payment QR image is uploaded in paykit, not here.
 Menu CSV records preserve quoted LF, CRLF, and CR newlines on export/import.
 Option statistics key group and choice as a tuple so different pairs cannot collide.
 Restored carts recompute current option surcharges, including options on unpriced items.
+
+`utils.ts` also exports `isNil(value)`, the type guard for `null` or `undefined` used wherever the code checks a nullable column.

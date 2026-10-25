@@ -44,3 +44,5 @@ sees locally. `computeVendorActivity` also reuses `@/lib/admin/stats`'s
 ## Parent
 
 [merqo](../README.md)
+
+The route reads vendor data through `readActivityData`.

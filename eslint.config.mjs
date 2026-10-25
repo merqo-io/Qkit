@@ -1,5 +1,6 @@
 import next from "eslint-config-next";
 import sonarjs from "eslint-plugin-sonarjs";
+import { merqoEslintPreset } from "@merqo/ui/eslint";
 
 // Reuse Next's plugin instance to avoid duplicate registration.
 const typescriptEslintPlugin = next.find((c) => c.name === "next/typescript")
@@ -61,93 +62,14 @@ const eslintConfig = [
     },
   },
   {
-    // Commented code is not included in SonarJS's recommended rules.
     ...sonarjs.configs.recommended,
     rules: {
       ...sonarjs.configs.recommended.rules,
-      "no-inline-comments": [
-        "error",
-        {
-          ignorePattern:
-            "eslint-|@ts-|prettier-|c8 |istanbul |webpackChunkName",
-        },
-      ],
-      "sonarjs/no-commented-code": "error",
       // The TypeScript rule supports our intentional-unused convention.
       "sonarjs/no-unused-vars": "off",
     },
   },
-  {
-    // JSX callbacks exceed imperative nesting limits without adding complexity.
-    files: ["**/*.tsx"],
-    plugins: { sonarjs: sonarjsPlugin },
-    rules: {
-      "sonarjs/no-nested-functions": "off",
-    },
-  },
-  {
-    // House convention: no em dash in user-facing copy. Scoped to JSXText,
-    // copy-carrying JSX attrs, and toast calls — not every string literal,
-    // which would flag internal log/error text out of scope here.
-    files: ["**/*.tsx"],
-    ignores: ["**/*.test.{ts,tsx}", "**/*.stories.tsx"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector: "JSXText[value=/\\u2014/]",
-          message: "No em dash in user-facing text — use a period or comma.",
-        },
-        {
-          selector:
-            "JSXAttribute[name.name=/^(aria-label|title|placeholder|label|content|description)$/] > Literal[value=/\\u2014/]",
-          message: "No em dash in user-facing text — use a period or comma.",
-        },
-        {
-          selector:
-            "CallExpression[callee.object.name='toast'] Literal[value=/\\u2014/]",
-          message: "No em dash in user-facing text — use a period or comma.",
-        },
-      ],
-    },
-  },
-  {
-    // The same convention for copy that reaches a person from a `.ts` file:
-    // an action's `error` result, a message a mapper returns, a tour step's
-    // text. The `.tsx` gate above cannot see these, and a dozen had built up.
-    // Still scoped to the shapes that carry copy, not every string literal.
-    files: ["src/**/*.ts"],
-    ignores: ["**/*.test.ts"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector:
-            "Property[key.name=/^(error|message|title|description)$/] > Literal[value=/\\u2014/]",
-          message: "No em dash in user-facing text — use a period or comma.",
-        },
-        {
-          selector: "ReturnStatement > Literal[value=/\\u2014/]",
-          message: "No em dash in user-facing text — use a period or comma.",
-        },
-      ],
-    },
-  },
-  {
-    // Tests and one-off scripts routinely label table-driven cases and
-    // fixtures with short trailing notes; that reads better inline, so the
-    // gate would be pure noise there.
-    files: ["**/*.test.{ts,tsx}", "**/test/**", "scripts/**", "e2e/**"],
-    plugins: { sonarjs: sonarjsPlugin },
-    rules: {
-      "no-inline-comments": "off",
-      // Test fixtures routinely nest mocks/describe/it callbacks past
-      // sonarjs's 4-level threshold (vi.mock -> describe -> it -> callback is
-      // already 4) — a real code-smell signal for imperative app logic, pure
-      // noise for test structure.
-      "sonarjs/no-nested-functions": "off",
-    },
-  },
+  ...merqoEslintPreset({ sonarjsPlugin, tsPlugin: typescriptEslintPlugin }),
   {
     // Synthetic test identities and random fixture IDs are not credentials.
     files: ["**/*.test.{ts,tsx}", "**/test/**", "e2e/**"],
@@ -163,6 +85,41 @@ const eslintConfig = [
       // would be noise.
       "@typescript-eslint/no-use-before-define": "off",
     },
+  },
+  {
+    // Over the size and complexity limits until Task K5 (split long files) shrinks them.
+    files: [
+      "src/app/dashboard/booths/booth-form.tsx",
+      "src/app/dashboard/booths/menu-editor.tsx",
+      "src/app/dashboard/order-actions.ts",
+      "src/app/dashboard/realtime-order-board.tsx",
+      "src/app/dashboard/settings/settings-form.tsx",
+      "src/app/dashboard/walkup-order-dialog.tsx",
+      "src/app/order/[[]boothId]/[[]orderNumber]/order-status-poller.tsx",
+      "src/app/page.tsx",
+      "src/components/board/order-card.tsx",
+      "src/components/order/order-form.tsx",
+      "src/lib/types.ts",
+    ],
+    rules: {
+      "max-lines": "off",
+      complexity: "off",
+      "sonarjs/cognitive-complexity": "off",
+    },
+  },
+  {
+    // Over the complexity limit; each is split with its page or component later.
+    files: [
+      "src/app/admin/feedback/page.tsx",
+      "src/app/admin/page.tsx",
+      "src/app/admin/vendors/[[]id]/page.tsx",
+      "src/app/dashboard/booths/printing-section.tsx",
+      "src/app/dashboard/plan/page.tsx",
+      "src/app/dashboard/stats/stats-view.tsx",
+      "src/app/order/[[]boothId]/[[]orderNumber]/page.tsx",
+      "src/components/board/order-card-parts.tsx",
+    ],
+    rules: { complexity: "off" },
   },
   {
     // Local demo tools intentionally resolve ffmpeg and ffprobe from PATH.

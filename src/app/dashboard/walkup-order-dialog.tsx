@@ -136,14 +136,12 @@ export function WalkupOrderDialog({
   // last walk-up order has no business surviving into the next one.
   useEffect(() => {
     if (!open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the form resets when the dialog opens
     setBoothId(initialBoothId ?? booths[0]?.id ?? "");
     setCart(new Map());
     setCustomerName("");
     setPayStep(null);
-    // Only the dialog's own open transition should reset — booths/
-    // initialBoothId are stable-ish props, not per-keystroke deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the open transition resets the dialog
   }, [open]);
 
   useEffect(() => {
@@ -151,7 +149,7 @@ export function WalkupOrderDialog({
     let active = true;
     menuRequest.current += 1;
     const request = menuRequest.current;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the loading flag is set before the async menu fetch
     setLoadingMenu(true);
     setCart(new Map());
 
@@ -355,11 +353,12 @@ export function WalkupOrderDialog({
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{item.name}</p>
-                {item.price_cents != null && (
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {formatPrice(item.price_cents)}
-                  </p>
-                )}
+                {item.price_cents !== null &&
+                  item.price_cents !== undefined && (
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {formatPrice(item.price_cents)}
+                    </p>
+                  )}
                 {left !== null && (
                   <p className="text-xs text-muted-foreground">
                     {soldOut ? "Sold out" : `${left} left`}

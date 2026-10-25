@@ -28,6 +28,7 @@ import {
 } from "@/lib/menu-csv";
 import type { Entitlement } from "@/lib/plan";
 import type { MenuCategory } from "@/lib/types";
+import { isNil } from "@/lib/utils";
 
 interface Props {
   vendorId: string;
@@ -46,9 +47,9 @@ function formatImportRow(row: CsvMenuRow): string {
   if (row.error) return row.error;
   const parts = [row.name];
   if (row.description) parts.push(`(${row.description})`);
-  if (row.price_cents != null)
+  if (!isNil(row.price_cents))
     parts.push(`$${(row.price_cents / 100).toFixed(2)}`);
-  if (row.cost_cents != null)
+  if (!isNil(row.cost_cents))
     parts.push(`(cost $${(row.cost_cents / 100).toFixed(2)})`);
   return parts.join(" ");
 }
@@ -57,7 +58,10 @@ function formatChoiceRow(choice: CsvChoiceRow): string {
   if (choice.error) return choice.error;
   const parts = [`${choice.groupName}: ${choice.choiceLabel}`];
   if (choice.groupType === "any") parts.push("(pick any)");
-  if (choice.choicePrice_cents != null)
+  if (
+    choice.choicePrice_cents !== null &&
+    choice.choicePrice_cents !== undefined
+  )
     parts.push(`+$${(choice.choicePrice_cents / 100).toFixed(2)}`);
   return parts.join(" ");
 }

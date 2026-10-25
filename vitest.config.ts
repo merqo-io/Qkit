@@ -24,7 +24,11 @@ export default defineConfig({
     },
     testTimeout: 30000,
     setupFiles: ["./test/setup.ts"],
-    include: ["test/**/*.{test,spec}.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
+    include: [
+      "test/**/*.{test,spec}.{ts,tsx}",
+      "src/**/*.test.{ts,tsx}",
+      "eslint.config.test.ts",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "json-summary"],

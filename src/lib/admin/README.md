@@ -18,7 +18,7 @@ names.
   rollups) for the `/admin` overview.
 - `vendor-health.test.ts` — tests status classification rules and the
   health-map rollup.
-- `vendor-health.ts` — `vendorStatus`/`buildVendorHealth`: classifies each
+- `vendor-health.ts` — `vendorStatus`/`buildVendorHealth({ vendors, booths, orders, openMessageVendorIds }, nowMs)`: classifies each
   vendor into a banded `VendorStatus` (`attention`/`expiring`/`stuck`/`quiet`/
   `new`/`healthy`, first-match-wins) plus `statusRank` (triage sort key) and
   `passHoursLeft`; deliberately not a synthetic numeric score.

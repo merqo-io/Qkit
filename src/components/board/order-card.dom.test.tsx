@@ -1371,4 +1371,23 @@ describe("OrderCard waiting time placement", () => {
     });
     expect(screen.queryByTitle("Time since the order arrived")).toBeNull();
   });
+
+  it.each([
+    ["preparing", "Mark Ready"],
+    ["ready", "Mark Picked Up"],
+  ] as const)(
+    "exposes %s actions as named buttons with no unnamed button on the card",
+    (status, action) => {
+      render(<OrderCard order={makeOrder({ status })} />, {
+        wrapper: TooltipProvider,
+      });
+
+      expect(screen.getByRole("button", { name: action }).tagName).toBe(
+        "BUTTON",
+      );
+      for (const button of screen.getAllByRole("button")) {
+        expect(button).toHaveAccessibleName();
+      }
+    },
+  );
 });

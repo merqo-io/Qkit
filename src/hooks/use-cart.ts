@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cartKey, sumOptionDeltas } from "@/lib/cart";
 import type { CartItem, MenuItem, SelectedOption } from "@/lib/types";
+import { isNil } from "@/lib/utils";
 
 type CartMap = Map<string, CartItem>;
 
@@ -46,7 +47,7 @@ export function useCart() {
     const delta = sumOptionDeltas(item, options);
     const combined = (item.price_cents ?? 0) + delta;
     const price_cents =
-      item.price_cents == null && delta === 0 ? undefined : combined;
+      isNil(item.price_cents) && delta === 0 ? undefined : combined;
     update(cartKey(item.id, options), (existing) => ({
       menuItemId: item.id,
       name: item.name,

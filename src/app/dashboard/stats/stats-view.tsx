@@ -11,6 +11,7 @@ import { ExportButton } from "./export-button";
 import { BusyHeatmap } from "./busy-heatmap";
 import { OptionsBreakdown } from "./options-breakdown";
 import { MarginTable } from "./margin-table";
+import { isNil } from "@/lib/utils";
 
 // Lazy-loaded: each pulls in recharts, the heaviest dep on this page. Code-split
 // out of the initial bundle rather than paid on every stats-page visit.
@@ -149,7 +150,7 @@ export function StatsView({
           allTime={allTime ?? undefined}
         />
 
-        {(bestSeller || busiestHour !== null || avgWait != null) && (
+        {(bestSeller || busiestHour !== null || !isNil(avgWait)) && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {bestSeller && (
               <StatTile
@@ -167,7 +168,7 @@ export function StatsView({
               />
             )}
             {/* Avg wait as a tile only where there's no Service chart (free). */}
-            {!pro && avgWait != null && (
+            {!pro && avgWait !== null && avgWait !== undefined && (
               <StatTile label="Avg wait" value={waitClock(avgWait)} />
             )}
           </div>

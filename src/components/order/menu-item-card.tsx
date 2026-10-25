@@ -96,7 +96,7 @@ export function MenuItemCard({
               {item.description}
             </p>
           )}
-          {item.price_cents != null && (
+          {item.price_cents !== null && item.price_cents !== undefined && (
             <p className="mt-1 font-mono text-sm font-semibold text-primary">
               {formatPrice(item.price_cents)}
             </p>

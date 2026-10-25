@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 
 // Minimal stand-in for paykit's live `/api/v1/checkout*` surface (see
 // src/lib/paykit/client.ts), so e2e can exercise the real checkout-cutover
@@ -96,9 +96,15 @@ class MockStore {
   getOrCreate(
     orderRef: string,
     vendorId: string,
-    amountCents: number,
-    returnUrl: string | null,
-    expiresAt: string | null,
+    {
+      amountCents,
+      returnUrl,
+      expiresAt,
+    }: {
+      amountCents: number;
+      returnUrl: string | null;
+      expiresAt: string | null;
+    },
   ): MockTransaction {
     let tx = this.byOrderRef.get(orderRef);
     if (!tx) {
@@ -143,13 +149,11 @@ function handleCreateCheckout(store: MockStore, chunks: Buffer[], send: Send) {
     send(400, { error: "vendor_id is required" });
     return;
   }
-  const tx = store.getOrCreate(
-    orderRef,
-    parsed.vendor_id,
-    parsed.amount_cents ?? 0,
-    parsed.return_url ?? null,
-    parsed.expires_at ?? null,
-  );
+  const tx = store.getOrCreate(orderRef, parsed.vendor_id, {
+    amountCents: parsed.amount_cents ?? 0,
+    returnUrl: parsed.return_url ?? null,
+    expiresAt: parsed.expires_at ?? null,
+  });
   // PayNow QR payload — any non-empty string satisfies the client's schema;
   // content isn't asserted on by the e2e specs.
   send(200, {
@@ -228,6 +232,62 @@ function handleLookup(store: MockStore, orderRef: string | null, send: Send) {
   send(200, statusBody(tx));
 }
 
+/** Handles the JSON API routes; false when the path is not one of them. */
+function handleApi(
+  store: MockStore,
+  { method, url, chunks }: { method: string; url: URL; chunks: Buffer[] },
+  send: Send,
+): boolean {
+  if (url.pathname === "/api/v1/checkout") {
+    if (method === "POST") handleCreateCheckout(store, chunks, send);
+    else if (method === "GET")
+      handleLookup(store, url.searchParams.get("order_ref"), send);
+    else return false;
+    return true;
+  }
+  const confirmMatch = /^\/api\/v1\/checkout\/([^/]+)\/confirm$/.exec(
+    url.pathname,
+  );
+  const evidenceMatch = /^\/api\/v1\/checkout\/([^/]+)\/evidence$/.exec(
+    url.pathname,
+  );
+  const statusMatch = /^\/api\/v1\/checkout\/([^/]+)$/.exec(url.pathname);
+  if (method === "GET" && evidenceMatch) {
+    handleEvidence(store, evidenceMatch[1], send);
+  } else if (method === "POST" && confirmMatch) {
+    handleConfirm(store, confirmMatch[1], send);
+  } else if (method === "GET" && statusMatch) {
+    handleStatus(store, statusMatch[1], send);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+/** Handles the hosted pay page and its claim; false when the path is not one of them. */
+function handlePay(
+  store: MockStore,
+  method: string,
+  url: URL,
+  res: ServerResponse,
+): boolean {
+  const payMatch = /^\/pay\/([^/]+)$/.exec(url.pathname);
+  const payClaimMatch = /^\/pay\/([^/]+)\/claim$/.exec(url.pathname);
+  const payTx = store.getById((payMatch ?? payClaimMatch)?.[1] ?? "");
+  if (method === "GET" && payMatch && payTx) {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(payPageHtml(payTx));
+    return true;
+  }
+  if (method === "POST" && payClaimMatch && payTx) {
+    claimTransaction(payTx);
+    res.writeHead(303, { Location: payTx.returnUrl ?? "/" });
+    res.end();
+    return true;
+  }
+  return false;
+}
+
 export function startPaykitMock(): {
   server: Server;
   close: () => Promise<void>;
@@ -244,50 +304,12 @@ export function startPaykitMock(): {
         res.end(JSON.stringify(body));
       };
 
-      if (req.method === "POST" && url.pathname === "/api/v1/checkout") {
-        handleCreateCheckout(store, chunks, send);
+      const method = req.method ?? "GET";
+      if (
+        handleApi(store, { method, url, chunks }, send) ||
+        handlePay(store, method, url, res)
+      )
         return;
-      }
-
-      if (req.method === "GET" && url.pathname === "/api/v1/checkout") {
-        handleLookup(store, url.searchParams.get("order_ref"), send);
-        return;
-      }
-
-      const payMatch = /^\/pay\/([^/]+)$/.exec(url.pathname);
-      const payClaimMatch = /^\/pay\/([^/]+)\/claim$/.exec(url.pathname);
-      const confirmMatch = /^\/api\/v1\/checkout\/([^/]+)\/confirm$/.exec(
-        url.pathname,
-      );
-      const evidenceMatch = /^\/api\/v1\/checkout\/([^/]+)\/evidence$/.exec(
-        url.pathname,
-      );
-      const statusMatch = /^\/api\/v1\/checkout\/([^/]+)$/.exec(url.pathname);
-
-      const payTx = store.getById((payMatch ?? payClaimMatch)?.[1] ?? "");
-      if (req.method === "GET" && payMatch && payTx) {
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        res.end(payPageHtml(payTx));
-        return;
-      }
-      if (req.method === "POST" && payClaimMatch && payTx) {
-        claimTransaction(payTx);
-        res.writeHead(303, { Location: payTx.returnUrl ?? "/" });
-        res.end();
-        return;
-      }
-      if (req.method === "GET" && evidenceMatch) {
-        handleEvidence(store, evidenceMatch[1], send);
-        return;
-      }
-      if (req.method === "POST" && confirmMatch) {
-        handleConfirm(store, confirmMatch[1], send);
-        return;
-      }
-      if (req.method === "GET" && statusMatch) {
-        handleStatus(store, statusMatch[1], send);
-        return;
-      }
 
       send(404, { error: "Not found" });
     });

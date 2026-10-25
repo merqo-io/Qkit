@@ -240,10 +240,13 @@ export function BoothForm({
   // Both limits are kept as the raw text the vendor typed, so clearing a
   // field reads as "no limit" rather than 0. Converted at submit.
   const [dailyCupCap, setDailyCupCap] = useState(
-    initial?.daily_cup_cap != null ? String(initial.daily_cup_cap) : "",
+    initial?.daily_cup_cap !== null && initial?.daily_cup_cap !== undefined
+      ? String(initial.daily_cup_cap)
+      : "",
   );
   const [maxItemsPerOrder, setMaxItemsPerOrder] = useState(
-    initial?.max_items_per_order != null
+    initial?.max_items_per_order !== null &&
+      initial?.max_items_per_order !== undefined
       ? String(initial.max_items_per_order)
       : "",
   );
@@ -522,14 +525,16 @@ export function BoothForm({
 
             {/* Keyed on the saved limit, not the field: a limit typed but not
                 yet saved has no count behind it to reset. */}
-            {initial?.boothId && initial.daily_cup_cap != null && (
-              <div className="flex justify-end">
-                <StartServiceButton
-                  boothId={initial.boothId}
-                  boothName={initial.name}
-                />
-              </div>
-            )}
+            {initial?.boothId &&
+              initial.daily_cup_cap !== null &&
+              initial.daily_cup_cap !== undefined && (
+                <div className="flex justify-end">
+                  <StartServiceButton
+                    boothId={initial.boothId}
+                    boothName={initial.name}
+                  />
+                </div>
+              )}
 
             <LimitField
               id="max-items-per-order"

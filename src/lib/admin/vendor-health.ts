@@ -120,29 +120,28 @@ export function vendorStatus(s: Signals, nowMs: number): VendorStatus {
   return "quiet";
 }
 
-/**
- * Roll raw admin-overview rows into a per-vendor health map. Pure: no DB, no
- * clock. Orders are keyed to their vendor via the booth map; cancelled orders
- * don't count as activity. O(booths + orders + vendors).
- */
-export function buildVendorHealth(
-  vendors: VendorLite[],
-  booths: BoothLite[],
-  orders: OrderLite[],
-  openMessageVendorIds: Set<string>,
-  nowMs: number,
-): Map<string, VendorHealthRow> {
+function bump(counts: Map<string, number>, key: string): void {
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function rollUpBooths(booths: BoothLite[]) {
   const boothToVendor = new Map<string, string>();
   const boothCount = new Map<string, number>();
   const firstBoothAt = new Map<string, string>();
   for (const b of booths) {
     boothToVendor.set(b.id, b.vendor_id);
-    boothCount.set(b.vendor_id, (boothCount.get(b.vendor_id) ?? 0) + 1);
+    bump(boothCount, b.vendor_id);
     const cur = firstBoothAt.get(b.vendor_id);
     if (!cur || b.created_at < cur) firstBoothAt.set(b.vendor_id, b.created_at);
   }
+  return { boothToVendor, boothCount, firstBoothAt };
+}
 
-  const cutoff7d = nowMs - 7 * MS_PER_DAY;
+function rollUpOrders(
+  orders: OrderLite[],
+  boothToVendor: Map<string, string>,
+  cutoff7d: number,
+) {
   const orderCount = new Map<string, number>();
   const orders7d = new Map<string, number>();
   const lastOrderAt = new Map<string, string>();
@@ -150,12 +149,39 @@ export function buildVendorHealth(
     if (o.status === "cancelled") continue;
     const vid = boothToVendor.get(o.booth_id);
     if (!vid) continue;
-    orderCount.set(vid, (orderCount.get(vid) ?? 0) + 1);
-    if (Date.parse(o.created_at) >= cutoff7d)
-      orders7d.set(vid, (orders7d.get(vid) ?? 0) + 1);
+    bump(orderCount, vid);
+    if (Date.parse(o.created_at) >= cutoff7d) bump(orders7d, vid);
     const cur = lastOrderAt.get(vid);
     if (!cur || o.created_at > cur) lastOrderAt.set(vid, o.created_at);
   }
+  return { orderCount, orders7d, lastOrderAt };
+}
+
+/**
+ * Roll raw admin-overview rows into a per-vendor health map. Pure: no DB, no
+ * clock. Orders are keyed to their vendor via the booth map; cancelled orders
+ * don't count as activity. O(booths + orders + vendors).
+ */
+export function buildVendorHealth(
+  {
+    vendors,
+    booths,
+    orders,
+    openMessageVendorIds,
+  }: {
+    vendors: VendorLite[];
+    booths: BoothLite[];
+    orders: OrderLite[];
+    openMessageVendorIds: Set<string>;
+  },
+  nowMs: number,
+): Map<string, VendorHealthRow> {
+  const { boothToVendor, boothCount, firstBoothAt } = rollUpBooths(booths);
+  const { orderCount, orders7d, lastOrderAt } = rollUpOrders(
+    orders,
+    boothToVendor,
+    nowMs - 7 * MS_PER_DAY,
+  );
 
   const out = new Map<string, VendorHealthRow>();
   for (const v of vendors) {

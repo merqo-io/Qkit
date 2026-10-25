@@ -109,7 +109,9 @@ export default async function AdminFeedbackPage() {
     .limit(200);
   const vendorFeedback = vendorFeedbackRows ?? [];
   const nps = npsBreakdown(
-    vendorFeedback.map((f) => f.nps).filter((n): n is number => n != null),
+    vendorFeedback
+      .map((f) => f.nps)
+      .filter((n): n is number => n !== null && n !== undefined),
   );
   const npsComments = vendorFeedback.filter((f) => f.message?.trim());
 
@@ -141,7 +143,13 @@ export default async function AdminFeedbackPage() {
   );
   const perVendor = new Map<string, { sum: number; count: number }>();
   for (const f of all) {
-    if (f.source !== "customer" || f.rating == null || !f.booth_id) continue;
+    if (
+      f.source !== "customer" ||
+      f.rating === null ||
+      f.rating === undefined ||
+      !f.booth_id
+    )
+      continue;
     const vid = boothVendor.get(f.booth_id);
     if (!vid) continue;
     const cur = perVendor.get(vid) ?? { sum: 0, count: 0 };
@@ -212,7 +220,7 @@ export default async function AdminFeedbackPage() {
                   className="border-b border-border/60 py-3 last:border-b-0"
                 >
                   <div className="mb-1 flex items-center justify-between gap-3">
-                    {f.nps != null && (
+                    {f.nps !== null && f.nps !== undefined && (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
                         NPS {f.nps}
                       </span>

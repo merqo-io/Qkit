@@ -1,3 +1,4 @@
+import { isNil } from "@/lib/utils";
 // Aggregate customer order feedback into the rating stats a vendor sees about
 // their own booths.
 
@@ -34,7 +35,12 @@ export function summarizeReviews(
   let sum = 0;
   let count = 0;
   for (const r of rows) {
-    if (r.rating != null && r.rating >= 1 && r.rating <= 5) {
+    if (
+      r.rating !== null &&
+      r.rating !== undefined &&
+      r.rating >= 1 &&
+      r.rating <= 5
+    ) {
       distribution[r.rating as 1 | 2 | 3 | 4 | 5]++;
       sum += r.rating;
       count++;
@@ -43,7 +49,7 @@ export function summarizeReviews(
   const average = count ? Math.round((sum / count) * 10) / 10 : null;
 
   const recent = [...rows]
-    .filter((r) => r.message?.trim() || r.rating != null)
+    .filter((r) => r.message?.trim() || !isNil(r.rating))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
     .slice(0, recentLimit);
 

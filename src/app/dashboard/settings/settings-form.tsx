@@ -82,15 +82,23 @@ function BackupPrepHelpText({
 }
 
 /** Validate local settings, then persist only the section's owned fields. */
-function saveBoardSettingsSection(
-  parsed: ReturnType<typeof boardSettingsSchema.safeParse>,
-  setError: (message: string | null) => void,
-  fallbackErrorMessage: string,
-  run: (fn: () => Promise<void>) => Promise<void>,
-  successMessage: string,
-  router: ReturnType<typeof useRouter>,
-  keys: (keyof BoardSettingsInput)[],
-) {
+function saveBoardSettingsSection({
+  parsed,
+  setError,
+  fallbackErrorMessage,
+  run,
+  successMessage,
+  router,
+  keys,
+}: {
+  parsed: ReturnType<typeof boardSettingsSchema.safeParse>;
+  setError: (message: string | null) => void;
+  fallbackErrorMessage: string;
+  run: (fn: () => Promise<void>) => Promise<void>;
+  successMessage: string;
+  router: ReturnType<typeof useRouter>;
+  keys: (keyof BoardSettingsInput)[];
+}) {
   if (!parsed.success) {
     setError(parsed.error.issues[0]?.message ?? fallbackErrorMessage);
     return;
@@ -293,7 +301,8 @@ export function SettingsForm({
   const [overdueMin, setOverdueMin] = useState(String(initial.overdue_min));
   const [undoSeconds, setUndoSeconds] = useState(String(initial.undo_seconds));
   const [readyAutoClearMin, setReadyAutoClearMin] = useState(
-    initial.ready_auto_clear_min != null
+    initial.ready_auto_clear_min !== null &&
+      initial.ready_auto_clear_min !== undefined
       ? String(initial.ready_auto_clear_min)
       : "",
   );
@@ -331,7 +340,8 @@ export function SettingsForm({
     initial.show_wait_estimate,
   );
   const [defaultPrepMin, setDefaultPrepMin] = useState(
-    initial.default_prep_minutes != null
+    initial.default_prep_minutes !== null &&
+      initial.default_prep_minutes !== undefined
       ? String(initial.default_prep_minutes)
       : "",
   );
@@ -393,15 +403,20 @@ export function SettingsForm({
   }
 
   function saveThresholds() {
-    return saveBoardSettingsSection(
-      boardSettingsSchema.safeParse(currentSettings()),
-      setThresholdError,
-      "Check the thresholds",
-      runThresholds,
-      "Timing saved",
+    return saveBoardSettingsSection({
+      parsed: boardSettingsSchema.safeParse(currentSettings()),
+      setError: setThresholdError,
+      fallbackErrorMessage: "Check the thresholds",
+      run: runThresholds,
+      successMessage: "Timing saved",
       router,
-      ["aging_min", "overdue_min", "undo_seconds", "ready_auto_clear_min"],
-    );
+      keys: [
+        "aging_min",
+        "overdue_min",
+        "undo_seconds",
+        "ready_auto_clear_min",
+      ],
+    });
   }
 
   function chooseSound(id: SoundId) {
@@ -430,15 +445,15 @@ export function SettingsForm({
   }
 
   function saveDisplay() {
-    return saveBoardSettingsSection(
-      boardSettingsSchema.safeParse(currentSettings()),
-      setDisplayError,
-      "Check the wait estimate",
-      runDisplay,
-      "Backup time saved",
+    return saveBoardSettingsSection({
+      parsed: boardSettingsSchema.safeParse(currentSettings()),
+      setError: setDisplayError,
+      fallbackErrorMessage: "Check the wait estimate",
+      run: runDisplay,
+      successMessage: "Backup time saved",
       router,
-      ["default_prep_minutes"],
-    );
+      keys: ["default_prep_minutes"],
+    });
   }
 
   const thresholdsUnchanged =
@@ -446,13 +461,15 @@ export function SettingsForm({
     overdueMin === String(initial.overdue_min) &&
     undoSeconds === String(initial.undo_seconds) &&
     readyAutoClearMin ===
-      (initial.ready_auto_clear_min != null
+      (initial.ready_auto_clear_min !== null &&
+      initial.ready_auto_clear_min !== undefined
         ? String(initial.ready_auto_clear_min)
         : "");
 
   const displayUnchanged =
     defaultPrepMin ===
-    (initial.default_prep_minutes != null
+    (initial.default_prep_minutes !== null &&
+    initial.default_prep_minutes !== undefined
       ? String(initial.default_prep_minutes)
       : "");
 
@@ -711,7 +728,7 @@ export function SettingsForm({
               <span className="flex items-center gap-1.5 text-sm font-medium">
                 Simple daily order number
                 <InfoTooltip
-                  content="Customers and staff see a small ticket number like #003 instead of #0847. Records, receipts, and reports still use the permanent number underneath."
+                  content="Customers and staff see a short ticket number like 003 instead of 0847. Records, receipts, and reports still use the permanent number underneath."
                   ariaLabel="About daily order numbers"
                   trigger="tap"
                 />

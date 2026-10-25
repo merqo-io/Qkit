@@ -106,7 +106,11 @@ function BoothDetail({ summary }: { summary: ReviewSummary }) {
               className="rounded-lg border border-border bg-background p-3 text-sm"
             >
               <div className="mb-1 flex items-center justify-between gap-2">
-                {r.rating != null ? <Stars value={r.rating} /> : <span />}
+                {r.rating !== null && r.rating !== undefined ? (
+                  <Stars value={r.rating} />
+                ) : (
+                  <span />
+                )}
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {shortDateTime(r.created_at)}
                 </span>

@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- renders without the app stylesheet, so colours stay literal */
 "use client";
 
 // Root error boundary. Next renders this ONLY when the root layout itself throws

@@ -57,8 +57,8 @@ hasPendingRequest)`: pure decision (`not_found`/`already_pending`/`create`)
 - `vendor-activity.test.ts` — tests the 30d order/revenue rollup, the
   zeroed-fresh-vendor case, and that an open message/expiring pass surface
   the same `attention`/`expiring` statuses the admin console shows.
-- `vendor-activity.ts` — `computeVendorActivity(vendor, booths, orders,
-passExpiresAt, hasOpenMessage, nowMs)`: pure aggregation behind `GET
+- `vendor-activity.ts` — `computeVendorActivity(vendor, { booths, orders,
+passExpiresAt, hasOpenMessage }, nowMs)`: pure aggregation behind `GET
 /api/merqo/vendor-activity` — orders/revenue (30d) and booth counts, plus a
   `status` delegated to `admin-vendor-health.ts`'s `buildVendorHealth` so it
   matches the admin console's own triage rather than re-deriving it.
@@ -79,3 +79,5 @@ passExpiresAt, hasOpenMessage, nowMs)`: pure aggregation behind `GET
 ## Parent
 
 [lib](../README.md)
+
+- `vendor-lookup.ts` — `findVendorByEmail(supabase, tag, email)`: the vendor row for an auth email, `vendor: null` when none, `ok: false` when an upstream read failed. Shared by the upgrade and downgrade request routes.

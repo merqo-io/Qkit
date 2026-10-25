@@ -57,8 +57,10 @@ function sortReadyForDisplay(orders: ActiveOrderRow[]): ActiveOrderRow[] {
 // screen anyone near the booth can see).
 function sortForDisplay(orders: ActiveOrderRow[]): ActiveOrderRow[] {
   return [...orders].sort((a, b) => {
-    const aBumped = a.priority_bumped_at != null;
-    const bBumped = b.priority_bumped_at != null;
+    const aBumped =
+      a.priority_bumped_at !== null && a.priority_bumped_at !== undefined;
+    const bBumped =
+      b.priority_bumped_at !== null && b.priority_bumped_at !== undefined;
     if (aBumped !== bBumped) return aBumped ? -1 : 1;
     if (aBumped && bBumped) {
       return (
@@ -157,13 +159,17 @@ export async function getBoothQueueDisplay(
   // board to clear, the queue does not.
   const nonNullOrders = (orders ?? [])
     .filter(
-      (o): o is typeof o & { order_number: string } => o.order_number != null,
+      (o): o is typeof o & { order_number: string } =>
+        o.order_number !== null && o.order_number !== undefined,
     )
     .filter((o) => !isStaleOrderView(o.created_at, Date.now()))
     .filter((o) => {
       if (o.status !== "completed") return true;
       if (o.auto_completed !== true) return false;
-      const at = o.completed_at == null ? NaN : Date.parse(o.completed_at);
+      const at =
+        o.completed_at === null || o.completed_at === undefined
+          ? NaN
+          : Date.parse(o.completed_at);
       return Number.isNaN(at) ? false : at >= cutoff;
     });
   const shownReady = (o: ActiveOrderRow) =>
