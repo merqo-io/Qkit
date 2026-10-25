@@ -36,8 +36,8 @@ export default defineConfig({
   // need this to reach the "payment sent" / rendered-booth states.
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
-    // CI tests the production build, where the nonce CSP is active.
-    command: process.env.CI
+    // E2E_PROD (the public-smoke job) tests the production build, where the nonce CSP is active.
+    command: process.env.E2E_PROD
       ? `pnpm build && pnpm start --port ${E2E_PORT}`
       : `pnpm dev --port ${E2E_PORT}`,
     url: E2E_BASE_URL,

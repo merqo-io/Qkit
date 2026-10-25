@@ -96,6 +96,7 @@ export async function signInSeedVendor(
     if (adminError) throw new Error(`admins: ${adminError.message}`);
     const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
       factorType: "totp",
+      friendlyName: `e2e-${Date.now()}`,
     });
     if (enrolError || !factor) throw new Error("mfa enroll failed");
     const { error: verifyError } = await ssr.auth.mfa.challengeAndVerify({

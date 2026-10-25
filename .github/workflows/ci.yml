@@ -66,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Boots the app with dummy Supabase values; no live database is needed.
+      E2E_PROD: "1"
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_dummy
       SUPABASE_SECRET_KEY: sb_secret_ci_dummy

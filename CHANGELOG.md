@@ -20,7 +20,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Signed-in render smoke and CSP e2e specs; CI e2e serves the production build.
+- Signed-in render smoke and CSP e2e specs; the public-smoke e2e job serves the production build.
 - `docs/security/2026-10-24-data-inventory.md`.
 
 ## [0.1.3] - 2026-10-24

@@ -11,10 +11,10 @@ function watchCsp(page: Page) {
   return problems;
 }
 
-// Dev keeps the static policy (React needs eval); CI serves the production build.
+// Dev keeps the static policy (React needs eval); the public-smoke job serves the production build.
 test.describe("nonce CSP", () => {
   // Intentional, conditional skip: the nonce policy only exists in a production build.
-  test.skip(!process.env.CI, "nonce CSP is production-only");
+  test.skip(!process.env.E2E_PROD, "nonce CSP is production-only");
 
   for (const path of ["/", "/login"]) {
     test(`${path} runs its scripts under a nonce CSP`, async ({ page }) => {
