@@ -67,7 +67,9 @@ the current (non-legacy) customer ordering entry point.
   callback route landing first can never be overwritten back to `'queued'`
   — so the column doesn't lie about a job that's genuinely in progress for
   the whole window before that callback lands. Logs (doesn't discard) an
-  update failure too. Both functions are `export`ed so
+  update failure too. Every failure log is a fixed string, an error name, or
+  printkit's numeric status, never the booth id, order number, or response text
+  (CodeQL `js/log-injection`). Both functions are `export`ed so
   `order/[boothId]/[orderNumber]/finalize-paid-order.ts`'s `finalizePaidOrder` can
   fire the same two calls at claim time for a payment-required order
   (numbering + vendor notification are deferred to a successful claim
@@ -75,7 +77,8 @@ the current (non-legacy) customer ordering entry point.
 - `notify.test.ts` — `notifyPrintkit` run again for one order: printkit's 409
   ("a job already exists") is not logged as a failure and the guarded
   `print_status` write is still made; any other failure logs and writes
-  nothing.
+  nothing. A second block asserts no failure log carries a forged newline
+  string from the booth id, order number, printkit response, or a thrown error.
 - `actions.place-order.test.ts` — unit tests (RPC mocked) covering: the
   expired-code message mapping, a successful order, the action-level flood
   guard rejecting before `place_order` is ever called, fail-open behaviour

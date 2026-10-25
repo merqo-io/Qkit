@@ -6,7 +6,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.3] - 2026-10-24
+## [0.1.4] - 2026-10-24
 
 ### Changed
 
@@ -14,6 +14,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Eleven functions take a grouped argument instead of five or more positional ones; the upgrade and downgrade request routes share one vendor lookup; null checks use an `isNil` helper. No behaviour change.
 - Order board test asserts `Mark Ready` and `Mark Picked Up` are named buttons and every card button has an accessible name.
 - The daily-order-number tooltip and tour example read `003`/`0847`/`No. 118` without a leading `#`.
+
+## [0.1.3] - 2026-10-24
+
+### Security
+
+- `notifyVendorTelegram` and `notifyPrintkit` no longer log the booth id, order number, printkit response text or database error messages. Failures log a fixed message plus the error name (CodeQL `js/log-injection`, 2 alerts), so a forged newline in a request value cannot write a fake log line.
 
 ## [0.1.2] - 2026-10-24
 
