@@ -238,6 +238,7 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   pending/payment-status matrix.
 - `push/` — order-ready web push: subscription schema and push-host
   allowlist, the server-side sender, and the browser subscribe helper.
+- `loopkit/` — `earn-offer.ts`: `getEarnOffer`, the service-role RPC behind the order page's "Earn a stamp" link.
 - `paykit/` — server-only HTTP client for paykit's `/api/v1/*` checkout API
   (vendor config upsert + full read-back, checkout create/claim/unclaim/
   confirm/status); see its own README. Replaced the local PayNow QR builder

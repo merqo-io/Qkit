@@ -18,6 +18,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Zod parsing for the auth callback query and the legal-accept redirect; `select("*")` replaced by explicit columns.
 - `no-restricted-imports` keeps the service-role client to `src/lib` and `src/app/api`; every other import states why.
 
+### Fixed
+
+- The order page's "Earn a stamp" link never showed: it called loopkit's `/api/merqo/qkit-earn-config` with qkit's metrics secret, but the per-kit secrets differ. It now reads loopkit's `qkit_earn_offer` RPC (loopkit migration `0062`) with the service client, still failing closed.
+
 ### Added
 
 - Signed-in render smoke and CSP e2e specs; the public-smoke e2e job serves the production build.

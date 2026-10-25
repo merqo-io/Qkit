@@ -31,14 +31,13 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   completed/invalid-ref/rate-limited branches, plus the update-race
   ("Order changed") and update-error paths.
 - `earn-link.tsx` — `EarnLink({ orderId, vendorId, loopkitBaseUrl })` (async
-  server component): fetches the vendor's LoopKit earn-program config from
-  `NEXT_PUBLIC_LOOPKIT_URL` (bearer-authed with `MERQO_METRICS_SECRET`,
-  3s timeout, fails closed to `{ enabled: false }` on any error/timeout) and
-  renders an "Earn a stamp" link to `loopkit/earn?order=<id>` only when
-  enabled. No fallback host: with `NEXT_PUBLIC_LOOPKIT_URL` unset it renders
-  nothing and makes no request.
-- `earn-link.dom.test.tsx` — RTL tests for `EarnLink`'s enabled/disabled/
-  fetch-failure branches, and the unset-URL case (no fetch, no link).
+  server component): asks `getEarnOffer` (`@/lib/loopkit/earn-offer`, a
+  service-role RPC on loopkit's `qkit_earn_offer`, failing closed to
+  `{ enabled: false }`) whether the vendor offers stamps, and renders an
+  "Earn a stamp" link to `loopkit/earn?order=<id>` only when enabled. No fallback host: with `NEXT_PUBLIC_LOOPKIT_URL` unset it renders
+  nothing and asks nothing.
+- `earn-link.dom.test.tsx` — RTL tests for `EarnLink`'s enabled, disabled
+  and unnamed-program branches, and the unset-URL case (no lookup, no link).
 - `telegram-connect.tsx` — `TelegramConnect({ orderId, vendorId })` (async
   server component, same shape as `EarnLink`): mints a single-order-scoped
   connect token from merqo (`mintCustomerConnectToken`,
@@ -319,7 +318,7 @@ Past that gate, `page.tsx` composes `OrderStatusPoller` (polls
 — both bypass RLS via the service client since the customer is anonymous and
 the per-order `access_token` is the sole authorization. `payment-actions.ts`
 calls out to paykit's checkout API (`@/lib/paykit/client`) for the claim/
-unclaim transitions; `EarnLink` calls out to the separate LoopKit service,
+unclaim transitions; `EarnLink` reads loopkit's earn offer over a service-role RPC,
 and `TelegramConnect` calls out to merqo's `customer-connect-token`
 endpoint (`@/lib/merqo/customer-notify`) — the first kit → merqo HTTP
 direction in this codebase. `collect-actions.ts`'s `confirmCollection` is
