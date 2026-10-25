@@ -45,6 +45,20 @@ grant usage on schema merqo to authenticated, service_role;
 revoke all on function merqo.get_or_create_vendor_profile(uuid, text) from public, anon;
 grant execute on function merqo.get_or_create_vendor_profile(uuid, text) to authenticated, service_role;
 
+-- The admin pages count and read merqo.support_messages with the service
+-- client (src/app/admin/layout.tsx), so the signed-in smoke needs the table.
+create table if not exists merqo.support_messages (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null,
+  kit_slug   text not null,
+  category   text not null default 'other',
+  body       text not null default '',
+  status     text not null default 'open',
+  created_at timestamptz not null default now()
+);
+alter table merqo.support_messages enable row level security;
+grant select, update on merqo.support_messages to service_role;
+
 -- PostgREST serves only the schemas in supabase/config.toml ([api] schemas),
 -- which leaves merqo out on purpose: listing a schema that qkit's own
 -- migrations never create would break the API for every other local use.
