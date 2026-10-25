@@ -11,8 +11,10 @@ export async function readAllRows<T>(
   const rows: T[] = [];
   while (true) {
     const { data, error } = await page(rows.length, rows.length + 999);
-    if (error || !data)
+    if (error || !data) {
+      console.error("readAllRows: page failed", error?.message ?? "no data");
       throw new Error("Could not load complete query results");
+    }
     if (data.length === 0) return rows;
     rows.push(...data);
   }

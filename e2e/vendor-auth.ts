@@ -46,6 +46,7 @@ async function sessionCookies(
   env: ReturnType<typeof localSupabaseEnv>,
   admin: Admin,
   email: string,
+  userId: string,
   { mfa }: { mfa: boolean },
 ): Promise<[string, string][]> {
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
@@ -70,6 +71,13 @@ async function sessionCookies(
   });
   if (otpError) throw new Error(`verifyOtp: ${otpError.message}`);
   if (mfa) {
+    // A retry finds the factor of the last attempt, and a new one needs aal2.
+    const { data: existing } = await admin.auth.admin.mfa.listFactors({
+      userId,
+    });
+    for (const old of existing?.factors ?? []) {
+      await admin.auth.admin.mfa.deleteFactor({ id: old.id, userId });
+    }
     const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
       factorType: "totp",
       friendlyName: `e2e-${Date.now()}`,
@@ -120,7 +128,9 @@ export async function signInSeedVendor(
     .eq("id", SEED_VENDOR_ID);
   if (tourError) throw new Error(`vendors.tours_seen: ${tourError.message}`);
 
-  const cookies = await sessionCookies(env, admin, email, { mfa: false });
+  const cookies = await sessionCookies(env, admin, email, SEED_VENDOR_ID, {
+    mfa: false,
+  });
   await context.addCookies(
     cookies.map(([name, value]) => ({ name, value, url: baseURL })),
   );
@@ -162,7 +172,9 @@ export async function signInSeedAdmin(
     .upsert({ user_id: adminId });
   if (adminError) throw new Error(`admins: ${adminError.message}`);
 
-  const cookies = await sessionCookies(env, admin, ADMIN_EMAIL, { mfa });
+  const cookies = await sessionCookies(env, admin, ADMIN_EMAIL, adminId, {
+    mfa,
+  });
   await context.addCookies(
     cookies.map(([name, value]) => ({ name, value, url: baseURL })),
   );
