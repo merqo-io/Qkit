@@ -29,20 +29,72 @@ function localSupabaseEnv() {
   return { url, publishableKey, secretKey };
 }
 
+function serviceClient(env: ReturnType<typeof localSupabaseEnv>) {
+  return createClient(env.url, env.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 /**
- * Signs `context` in as the seed booth's vendor, past the dashboard's gates.
- * With `asAdmin` the vendor also becomes an admin and clears a TOTP challenge,
- * so /admin (which needs `aal2`) opens.
+ * Redeems a magic link for `email` and returns the auth cookies
+ * `@supabase/ssr` would have written. With `mfa` it first enrols and verifies
+ * a TOTP factor, so the session reaches `aal2`.
  */
+type Admin = ReturnType<typeof serviceClient>;
+
+async function sessionCookies(
+  env: ReturnType<typeof localSupabaseEnv>,
+  admin: Admin,
+  email: string,
+  { mfa }: { mfa: boolean },
+): Promise<[string, string][]> {
+  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkError) throw new Error(`generateLink: ${linkError.message}`);
+
+  // Later writes win: the TOTP upgrade re-issues the same cookie names.
+  const cookies = new Map<string, string>();
+  const ssr = createServerClient(env.url, env.publishableKey, {
+    cookies: {
+      getAll: () => [],
+      setAll: (set) => {
+        for (const { name, value } of set) cookies.set(name, value);
+      },
+    },
+  });
+  const { error: otpError } = await ssr.auth.verifyOtp({
+    type: "magiclink",
+    token_hash: link.properties.hashed_token,
+  });
+  if (otpError) throw new Error(`verifyOtp: ${otpError.message}`);
+  if (mfa) {
+    const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: `e2e-${Date.now()}`,
+    });
+    if (enrolError || !factor) {
+      throw new Error(`mfa enroll: ${enrolError?.message ?? "no factor"}`);
+    }
+    const { error: verifyError } = await ssr.auth.mfa.challengeAndVerify({
+      factorId: factor.id,
+      code: totpCode(factor.totp.secret),
+    });
+    if (verifyError) throw new Error(`mfa verify: ${verifyError.message}`);
+  }
+  const live = [...cookies].filter(([, value]) => value !== "");
+  if (live.length === 0) throw new Error("Sign-in wrote no auth cookie");
+  return live;
+}
+
+/** Signs `context` in as the seed booth's vendor, past the dashboard's gates. */
 export async function signInSeedVendor(
   context: BrowserContext,
   baseURL: string,
-  { asAdmin = false }: { asAdmin?: boolean } = {},
 ): Promise<void> {
   const env = localSupabaseEnv();
-  const admin = createClient(env.url, env.secretKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const admin = serviceClient(env);
 
   const { data: found, error: findError } =
     await admin.auth.admin.getUserById(SEED_VENDOR_ID);
@@ -68,47 +120,50 @@ export async function signInSeedVendor(
     .eq("id", SEED_VENDOR_ID);
   if (tourError) throw new Error(`vendors.tours_seen: ${tourError.message}`);
 
-  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-  });
-  if (linkError) throw new Error(`generateLink: ${linkError.message}`);
-
-  // Later writes win: the TOTP upgrade re-issues the same cookie names.
-  const cookies = new Map<string, string>();
-  const ssr = createServerClient(env.url, env.publishableKey, {
-    cookies: {
-      getAll: () => [],
-      setAll: (set) => {
-        for (const { name, value } of set) cookies.set(name, value);
-      },
-    },
-  });
-  const { error: otpError } = await ssr.auth.verifyOtp({
-    type: "magiclink",
-    token_hash: link.properties.hashed_token,
-  });
-  if (otpError) throw new Error(`verifyOtp: ${otpError.message}`);
-  if (asAdmin) {
-    const { error: adminError } = await qkit
-      .from("admins")
-      .upsert({ user_id: SEED_VENDOR_ID });
-    if (adminError) throw new Error(`admins: ${adminError.message}`);
-    const { data: factor, error: enrolError } = await ssr.auth.mfa.enroll({
-      factorType: "totp",
-      friendlyName: `e2e-${Date.now()}`,
-    });
-    if (enrolError || !factor) throw new Error("mfa enroll failed");
-    const { error: verifyError } = await ssr.auth.mfa.challengeAndVerify({
-      factorId: factor.id,
-      code: totpCode(factor.totp.secret),
-    });
-    if (verifyError) throw new Error(`mfa verify: ${verifyError.message}`);
-  }
-  const live = [...cookies].filter(([, value]) => value !== "");
-  if (live.length === 0) throw new Error("Sign-in wrote no auth cookie");
-
+  const cookies = await sessionCookies(env, admin, email, { mfa: false });
   await context.addCookies(
-    live.map(([name, value]) => ({ name, value, url: baseURL })),
+    cookies.map(([name, value]) => ({ name, value, url: baseURL })),
+  );
+}
+
+const ADMIN_EMAIL = "e2e-admin@qkit.test";
+
+/**
+ * Signs `context` in as a dedicated admin (not the seed vendor, whose
+ * dashboard other specs use in parallel). With `mfa` the session clears a
+ * TOTP challenge, so /admin (which needs `aal2`) opens; without it the
+ * session stays at `aal1`.
+ */
+export async function signInSeedAdmin(
+  context: BrowserContext,
+  baseURL: string,
+  { mfa = true }: { mfa?: boolean } = {},
+): Promise<void> {
+  const env = localSupabaseEnv();
+  const admin = serviceClient(env);
+
+  const created = await admin.auth.admin.createUser({
+    email: ADMIN_EMAIL,
+    email_confirm: true,
+  });
+  let adminId = created.data.user?.id;
+  if (!adminId) {
+    const { data: list, error: listError } = await admin.auth.admin.listUsers({
+      perPage: 1000,
+    });
+    if (listError) throw new Error(`listUsers: ${listError.message}`);
+    adminId = list.users.find((u) => u.email === ADMIN_EMAIL)?.id;
+  }
+  if (!adminId) throw new Error("Could not create or find the e2e admin");
+
+  const { error: adminError } = await admin
+    .schema("qkit")
+    .from("admins")
+    .upsert({ user_id: adminId });
+  if (adminError) throw new Error(`admins: ${adminError.message}`);
+
+  const cookies = await sessionCookies(env, admin, ADMIN_EMAIL, { mfa });
+  await context.addCookies(
+    cookies.map(([name, value]) => ({ name, value, url: baseURL })),
   );
 }
