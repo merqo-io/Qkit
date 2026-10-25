@@ -6,11 +6,25 @@ vi.mock("next/font/google", () => ({
   Hanken_Grotesk: () => ({ variable: "hanken" }),
   Space_Mono: () => ({ variable: "space" }),
 }));
+const { headersMock } = vi.hoisted(() => ({ headersMock: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: headersMock }));
 vi.mock("@/lib/supabase/server", () => ({ createServerClient: createClient }));
 import RootLayout from "./layout";
 import { forgetPlatformSettings } from "@/lib/platform-settings";
 
-beforeEach(() => forgetPlatformSettings());
+beforeEach(() => {
+  forgetPlatformSettings();
+  headersMock.mockResolvedValue(new Headers());
+});
+
+describe("root layout nonce", () => {
+  it("hands the proxy nonce to the theme script", async () => {
+    headersMock.mockResolvedValue(new Headers({ "x-nonce": "abc123" }));
+    createClient.mockRejectedValueOnce(new Error("Offline"));
+    const root = await RootLayout({ children: "Content" });
+    expect(root.props.children.props.children[2].props.nonce).toBe("abc123");
+  });
+});
 
 describe("optional root maintenance banner", () => {
   it("keeps the application available when client creation rejects", async () => {

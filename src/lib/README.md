@@ -238,6 +238,7 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   pending/payment-status matrix.
 - `push/` — order-ready web push: subscription schema and push-host
   allowlist, the server-side sender, and the browser subscribe helper.
+- `loopkit/` — `earn-offer.ts`: `getEarnOffer`, the service-role RPC behind the order page's "Earn a stamp" link.
 - `paykit/` — server-only HTTP client for paykit's `/api/v1/*` checkout API
   (vendor config upsert + full read-back, checkout create/claim/unclaim/
   confirm/status); see its own README. Replaced the local PayNow QR builder
@@ -534,5 +535,9 @@ the client. A payment QR image is uploaded in paykit, not here.
 Menu CSV records preserve quoted LF, CRLF, and CR newlines on export/import.
 Option statistics key group and choice as a tuple so different pairs cannot collide.
 Restored carts recompute current option surcharges, including options on unpriced items.
+
+`security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.
+
+`security-headers.ts` also allows the Vercel toolbar origin (`vercel.live`) outside production.
 
 `utils.ts` also exports `isNil(value)`, the type guard for `null` or `undefined` used wherever the code checks a nullable column.

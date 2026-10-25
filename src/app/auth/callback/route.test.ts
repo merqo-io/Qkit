@@ -64,4 +64,14 @@ describe("authentication callback", () => {
       if (next === "/reset-password") expect(destination.pathname).toBe(next);
     },
   );
+
+  it("rejects an oversized authorization code without calling Supabase", async () => {
+    const response = await GET(
+      new Request(`https://x.example/auth/callback?code=${"a".repeat(513)}`),
+    );
+    expect(response.headers.get("location")).toBe(
+      "https://x.example/login?error=oauth",
+    );
+    expect(exchange).not.toHaveBeenCalled();
+  });
 });

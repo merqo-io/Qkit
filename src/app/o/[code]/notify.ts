@@ -10,6 +10,7 @@
 // orderNumber/customerName, bypassing placeOrder's own validation and rate
 // limit entirely).
 
+// eslint-disable-next-line no-restricted-imports -- vendor alert runs for an anonymous customer order, outside any vendor session
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyVendor } from "@/lib/merqo/customer-notify";
 import { createPrintJob } from "@/lib/printkit/client";

@@ -19,3 +19,5 @@ The Next.js application source.
 ## Parent
 
 [qkit](../README.md)
+
+`proxy.ts` sets the nonce CSP and, off production, `X-Robots-Tag: noindex`; see `lib/security-headers.ts`.

@@ -43,3 +43,5 @@ referenced directly from `AGENTS.md`'s "RLS isolation" note.
 ## Parent
 
 [qkit](../README.md)
+
+`config.toml` enables TOTP enrol and verify so the e2e admin flow can clear MFA locally.

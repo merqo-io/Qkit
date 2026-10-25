@@ -43,3 +43,5 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 ## Parent
 
 [src](../README.md)
+
+`mfa/` is the TOTP enrol/verify page that `requireAdmin()` redirects password-only admins to. `robots.ts` disallows crawling except on production. The root layout hands the proxy nonce to the theme script.

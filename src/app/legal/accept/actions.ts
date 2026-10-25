@@ -3,7 +3,9 @@
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+// eslint-disable-next-line no-restricted-imports -- legal_check_state has no client write policy; the vendor is verified first
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
+import { z } from "zod";
 import { safeRedirectPath } from "@merqo/ui";
 import { clientIp } from "@/lib/rate-limit";
 import { getLegalDocSource, LEGAL_VERSIONS } from "@merqo/ui/legal";
@@ -95,5 +97,6 @@ export async function acceptLegalTerms(formData: FormData): Promise<void> {
     console.error("legal acceptance cache update failed");
   }
 
-  redirect(safeRedirectPath(String(formData.get("next") || ""), "/dashboard"));
+  const next = z.string().max(512).catch("").parse(formData.get("next"));
+  redirect(safeRedirectPath(next, "/dashboard"));
 }

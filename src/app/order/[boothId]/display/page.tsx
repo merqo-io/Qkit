@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+// eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServiceClient } from "@/lib/supabase/server";
 import { getBoothQueueDisplay } from "./actions";
 import { QueueDisplay } from "./queue-display";

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { headers } from "next/headers";
+// eslint-disable-next-line no-restricted-imports -- event rows have no client write policy; input is validated first
 import { createServiceClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { Json } from "@/lib/types";

@@ -1,5 +1,6 @@
 "use server";
 
+// eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServiceClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { clientIp, rateLimit } from "@/lib/rate-limit";

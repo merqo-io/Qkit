@@ -66,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Boots the app with dummy Supabase values; no live database is needed.
+      E2E_PROD: "1"
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_dummy
       SUPABASE_SECRET_KEY: sb_secret_ci_dummy
@@ -78,7 +79,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test e2e/auth-guard.spec.ts e2e/smoke.spec.ts
+      - run: pnpm exec playwright test e2e/auth-guard.spec.ts e2e/smoke.spec.ts e2e/csp.spec.ts
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
@@ -131,7 +132,7 @@ jobs:
             | grep -E '^(NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|SUPABASE_SECRET_KEY)=' \
             >> "$GITHUB_ENV"
       # Playwright's webServer boots `pnpm dev`, which inherits the env above.
-      - run: pnpm exec playwright test e2e/customer-order.spec.ts e2e/order-code.spec.ts e2e/vendor-fulfillment.spec.ts
+      - run: pnpm exec playwright test e2e/customer-order.spec.ts e2e/order-code.spec.ts e2e/vendor-fulfillment.spec.ts e2e/signed-in-smoke.spec.ts
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:

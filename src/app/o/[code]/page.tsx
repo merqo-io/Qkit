@@ -1,4 +1,5 @@
 import { z } from "zod";
+// eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import {
   parseMenuItems,

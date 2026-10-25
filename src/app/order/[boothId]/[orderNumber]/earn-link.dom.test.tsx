@@ -1,73 +1,46 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+const { getEarnOffer } = vi.hoisted(() => ({ getEarnOffer: vi.fn() }));
+vi.mock("@/lib/loopkit/earn-offer", () => ({ getEarnOffer }));
+
 import { EarnLink } from "./earn-link";
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllEnvs();
-});
+beforeEach(() =>
+  getEarnOffer.mockReset().mockResolvedValue({ enabled: false }),
+);
+afterEach(() => vi.unstubAllEnvs());
+
+const props = {
+  orderId: "o1",
+  vendorId: "v1",
+  loopkitBaseUrl: "https://loopkit.example",
+};
 
 describe("EarnLink", () => {
-  it.each([
-    { enabled: "false" },
-    { enabled: true, program_name: {} },
-    { enabled: true, program_name: "x".repeat(201) },
-  ])("fails closed for malformed upstream config %j", async (body) => {
-    const fetch = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
-    render(
-      await EarnLink({
-        orderId: "o1",
-        vendorId: "v1",
-        loopkitBaseUrl: "https://loopkit.example",
-      }),
-    );
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/^https:\/\/loopkit\.example\/api\/merqo\//),
-      expect.objectContaining({ redirect: "error" }),
-    );
-  });
-  it("renders nothing and never fetches when NEXT_PUBLIC_LOOPKIT_URL is unset", async () => {
+  it("renders nothing and never asks loopkit when NEXT_PUBLIC_LOOPKIT_URL is unset", async () => {
     vi.stubEnv("NEXT_PUBLIC_LOOPKIT_URL", "");
-    const fetch = vi.spyOn(globalThis, "fetch");
     const result = await EarnLink({ orderId: "o1", vendorId: "v1" });
+
     expect(result).toBeNull();
-    expect(fetch).not.toHaveBeenCalled();
+    expect(getEarnOffer).not.toHaveBeenCalled();
   });
 
-  it("renders nothing when loopkit says not enabled", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ enabled: false }), { status: 200 }),
-    );
-    render(
-      await EarnLink({
-        orderId: "o1",
-        vendorId: "v1",
-        loopkitBaseUrl: "https://loopkit.example",
-      }),
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole("link")).not.toBeInTheDocument(),
-    );
+  it("renders nothing when the vendor does not offer stamps", async () => {
+    render((await EarnLink(props)) ?? <></>);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(getEarnOffer).toHaveBeenCalledWith("v1");
   });
 
   it("renders a link with the program name when enabled", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ enabled: true, program_name: "Coffee Stamps" }),
-        { status: 200 },
-      ),
-    );
-    render(
-      await EarnLink({
-        orderId: "o1",
-        vendorId: "v1",
-        loopkitBaseUrl: "https://loopkit.example",
-      }),
-    );
+    getEarnOffer.mockResolvedValue({
+      enabled: true,
+      program_name: "Coffee Stamps",
+    });
+    render((await EarnLink(props)) ?? <></>);
+
     const link = await screen.findByRole("link");
     expect(link).toHaveAttribute(
       "href",
@@ -76,17 +49,10 @@ describe("EarnLink", () => {
     expect(link).toHaveTextContent(/coffee stamps/i);
   });
 
-  it("renders nothing when the fetch fails (fail closed, never blocks the order page)", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
-    render(
-      await EarnLink({
-        orderId: "o1",
-        vendorId: "v1",
-        loopkitBaseUrl: "https://loopkit.example",
-      }),
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole("link")).not.toBeInTheDocument(),
-    );
+  it("renders a link without a name when the program has none", async () => {
+    getEarnOffer.mockResolvedValue({ enabled: true });
+    render((await EarnLink(props)) ?? <></>);
+
+    expect(await screen.findByRole("link")).toHaveTextContent("Earn a stamp →");
   });
 });

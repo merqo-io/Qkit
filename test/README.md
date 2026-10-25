@@ -81,3 +81,5 @@ test file in the project, including tests colocated elsewhere (e.g.
 ## Parent
 
 [qkit](../README.md)
+
+`next-config-headers.test.ts` now covers only `X-Frame-Options`; the CSP and its dev `frame-ancestors` rule are tested in `src/proxy.test.ts`.

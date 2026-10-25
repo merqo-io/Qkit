@@ -84,3 +84,5 @@ upload step, including on a deployed prod site.
 ## Parent
 
 [supabase](../README.md)
+
+`e2e-merqo-stub.sql` also stubs `merqo.support_messages`, which the admin pages read with the service client.

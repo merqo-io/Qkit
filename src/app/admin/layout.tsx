@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin/access";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";

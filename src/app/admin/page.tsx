@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditLogEntry } from "@merqo/ui";
 import { requireAdmin } from "@/lib/admin/access";
+// eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
 import {

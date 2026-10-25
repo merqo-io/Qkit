@@ -33,3 +33,5 @@ names.
 ## Parent
 
 [lib](../README.md)
+
+`access.ts`: `requireAdmin()` also requires a verified second factor (`aal2`) and redirects to `/mfa`; `requireAdminMember()` is the membership-only check the MFA page uses.

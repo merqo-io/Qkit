@@ -15,3 +15,5 @@ Reached by clicking the link in a Supabase-sent email (OAuth redirect or passwor
 ## Parent
 
 [auth](../README.md)
+
+The `code` and `next` query values are parsed with `authCallbackQuerySchema` and `redirectPathSchema`.

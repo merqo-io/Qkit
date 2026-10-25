@@ -45,3 +45,5 @@ Fleet queries read all API pages in stable order. An incomplete page fails the r
 ## Parent
 
 [app](../README.md)
+
+Every page and action is gated by `requireAdmin()`, which needs `aal2`; a password-only session is redirected to `/mfa`. Service-client imports carry an eslint-disable reason.
