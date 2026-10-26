@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Daily ticket numbers keep their numeric baseline when the lifetime counter crosses 9,999; lost-response checkout errors now explain that the order may already exist and must be recovered with the same details.
+
+### Added
+
+- NCS November 6 readiness checklist covering shared-number incident capture, retries, venue Wi-Fi, a 200-cup rehearsal and the Ops lead handoff.
+
 ## [0.2.0] - 2026-10-24
 
 ### Security

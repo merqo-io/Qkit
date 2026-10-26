@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   firstOrderNumberToday,
+  firstOrderNumbersToday,
   vendorFacingOrderNumber,
 } from "./daily-order-number";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
+import { displayOrderNumber } from "@/lib/orders";
 
 type Client = Parameters<typeof firstOrderNumberToday>[0];
 
@@ -68,6 +70,62 @@ describe("firstOrderNumberToday", () => {
       "created_at",
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     );
+  });
+});
+
+describe("daily numbering at the lifetime counter boundary", () => {
+  function boundaryClient(
+    rows = [
+      { booth_id: "b1", order_number: "10000" },
+      { booth_id: "b1", order_number: "9999" },
+    ],
+  ) {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      in: () => query,
+      gte: () => query,
+      order: () => query,
+      limit: () => query,
+      maybeSingle: async () => ({ data: rows[0], error: null }),
+      range: async (from: number, to: number) => ({
+        data: rows.slice(from, to + 1),
+        error: null,
+      }),
+    };
+    return { from: () => query } as unknown as Client;
+  }
+
+  it("keeps the same numeric baseline on customer tracking after order 10000 arrives", async () => {
+    const before = await firstOrderNumberToday(
+      boundaryClient([{ booth_id: "b1", order_number: "9999" }]),
+      "b1",
+    );
+    const after = await firstOrderNumberToday(boundaryClient(), "b1");
+    expect(after).toBe("9999");
+    expect(displayOrderNumber("9999", before)).toBe("001");
+    expect(displayOrderNumber("10000", after)).toBe("002");
+  });
+
+  it("uses the same numeric baseline on the vendor board", async () => {
+    expect(await firstOrderNumbersToday(boundaryClient(), ["b1"])).toEqual({
+      b1: "9999",
+    });
+  });
+
+  it("finds the numeric minimum beyond the API page cap without mixing booths", async () => {
+    const client = boundaryClient([
+      ...Array.from({ length: 1000 }, (_, index) => ({
+        booth_id: "b1",
+        order_number: String(10000 + index),
+      })),
+      { booth_id: "b1", order_number: "9999" },
+      { booth_id: "b2", order_number: "0007" },
+    ]);
+    expect(await firstOrderNumbersToday(client, ["b1", "b2"])).toEqual({
+      b1: "9999",
+      b2: "0007",
+    });
   });
 });
 

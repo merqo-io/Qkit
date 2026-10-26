@@ -11,10 +11,10 @@ type Client = Awaited<ReturnType<typeof createServiceClient>>;
  * order yet today. This is the baseline `displayOrderNumber` ranks against
  * when a vendor has daily numbering on.
  *
- * One query, shared by every server path that shows a ticket number for a
+ * Shared by every server path that shows a ticket number for a
  * single booth (the customer's status page, the TV display, the printed
  * label, the Telegram alert), so they cannot drift apart. The order board
- * reads many booths at once and has its own query.
+ * reads many booths at once through the batched helper below.
  */
 export async function firstOrderNumberToday(
   client: Client,
@@ -28,7 +28,10 @@ export async function firstOrderNumberToday(
     .order("order_number", { ascending: true })
     .limit(1)
     .maybeSingle();
-  return data?.order_number ?? null;
+  const first = data?.order_number ?? null;
+  // Text order stops matching numeric order when the lifetime counter grows.
+  if (first === null || first.length <= 4) return first;
+  return (await firstOrderNumbersToday(client, [boothId]))[boothId] ?? null;
 }
 
 /**
@@ -57,9 +60,10 @@ export async function firstOrderNumbersToday(
       );
       for (const o of todaysOrders) {
         if (
-          !(o.booth_id in baselines) &&
           o.order_number !== null &&
-          o.order_number !== undefined
+          o.order_number !== undefined &&
+          (!(o.booth_id in baselines) ||
+            Number(o.order_number) < Number(baselines[o.booth_id]))
         ) {
           baselines[o.booth_id] = o.order_number;
         }

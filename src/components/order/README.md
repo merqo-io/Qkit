@@ -18,7 +18,9 @@ stale QR code.
 closed, remaining })`: the full menu + cart + checkout UI. Seeds the cart on
   mount from either a `takeReorder` handoff (explicit reorder intent, wins)
   or a persisted `loadCart` (in-progress cart from a prior visit),
-  reconciling either against the live menu/stock (`reconcileReorder`).
+  reconciling either against the live menu/stock (`reconcileReorder`). Lost
+  responses are described as unconfirmed; retrying the same details recovers
+  the saved attempt rather than asserting that nothing was placed.
   Tracks a `Map<string, CartItem>` cart keyed by `cartKey(menuItemId,
 options)`, persists it on every change (`saveCart`), enforces per-item
   stock caps (`remainingFor`/`blockedByStock`), and opens `ItemCustomizer` for

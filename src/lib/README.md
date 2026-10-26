@@ -52,14 +52,18 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   booth's first `order_number` of the SGT day, the baseline
   `displayOrderNumber` ranks against. `vendorFacingOrderNumber(client,
 vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
-  numbering on, the permanent number otherwise. One query for every server
+  numbering on, the permanent number otherwise. Shared by every server
   path that shows a single booth's ticket number (status page, TV display,
   printed label, Telegram alert), which each used to carry their own copy.
   `firstOrderNumbersToday(client, boothIds)` is the same baseline for many
   booths at once, keyed by booth id: the order board and the Completed page.
+  Baselines use numeric comparison across pages. A single-booth lookup keeps
+  its fast path for four-digit numbers and scans today's numbers when text
+  ordering could put a longer number first.
 - `daily-order-number.test.ts` — the first order found, none today, the SGT
   day window, and `vendorFacingOrderNumber` with daily numbering on, off,
-  unreadable settings, and no order yet today.
+  unreadable settings, and no order yet today; numeric baseline stability at
+  the 9,999 boundary and across the API page cap.
 - `cart.ts` — `cartKey(menuItemId, options)` (stable dedup key sorted by
   option group so selection order doesn't matter) and `cartTotal`.
 - `cart.test.ts` — tests cart-key stability and total summation.
