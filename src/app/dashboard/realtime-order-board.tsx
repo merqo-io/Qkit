@@ -479,11 +479,13 @@ export function RealtimeOrderBoard({
   const tickedReady = readyIds.filter((id) => selectedIds.has(id));
   // What a batch undo hands back to revertOrderAdvance for each order.
   const paymentById = new Map(visible.map((o) => [o.id, o.payment_status]));
-  // Split the board so an order the vendor hasn't accepted yet (no printer
-  // connected, or the booth waits for the customer's own arrival tap) can't
-  // get buried under everything already being worked on.
-  const incoming = visible.filter((o) => o.status === "pending");
-  const accepted = visible.filter((o) => o.status !== "pending");
+  // Arrival alone does not accept an order into preparation.
+  const incoming = visible.filter(
+    (o) => o.status === "pending" || o.status === "confirmed",
+  );
+  const accepted = visible.filter(
+    (o) => o.status !== "pending" && o.status !== "confirmed",
+  );
   // Incoming orders one tap can start together: nothing to check on them
   // first. An order whose payment is unconfirmed needs a look at its proof,
   // and a booth that waits for the customer's arrival is waiting on purpose.
@@ -494,7 +496,7 @@ export function RealtimeOrderBoard({
     .filter(
       (o) =>
         !needsPaymentReview(o.status, o.payment_status) &&
-        !waitsForArrival.has(o.booth_id),
+        (o.status === "confirmed" || !waitsForArrival.has(o.booth_id)),
     )
     .map((o) => o.id);
 
@@ -527,7 +529,9 @@ export function RealtimeOrderBoard({
         selectable={selectMode && isBatchable(order)}
         selected={selectedIds.has(order.id)}
         onToggleSelect={toggleSelect}
-        awaitingArrival={waitsForArrival.has(order.booth_id)}
+        awaitingArrival={
+          order.status === "pending" && waitsForArrival.has(order.booth_id)
+        }
       />
     );
   }

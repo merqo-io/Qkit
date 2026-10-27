@@ -7,6 +7,7 @@ import {
   uuidSchema,
 } from "@/lib/schemas";
 import { createCheckout, type CheckoutView } from "@/lib/paykit/client";
+import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { paymentDeadline } from "@/lib/orders";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -143,6 +144,8 @@ export async function placeWalkupOrder(
       error: "Could not place order. Please try again.",
     };
   }
+
+  if (paid) await notifyPrintkit(boothId, out.data.order_number);
 
   return {
     success: true,

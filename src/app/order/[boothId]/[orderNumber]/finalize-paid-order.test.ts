@@ -104,15 +104,15 @@ afterEach(() => {
 });
 
 describe("finalizePaidOrder", () => {
-  it("assigns the number, then notifies, then writes the mirror last", async () => {
+  it("assigns the number, alerts and mirrors a claim without printing", async () => {
     const result = await finalizePaidOrder(ORDER, { status: "claimed" });
     expect(result).toEqual({ ok: true, orderNumber: "0007" });
-    expect(calls).toEqual(["assign", "alert", "print", "mirror"]);
+    expect(calls).toEqual(["assign", "alert", "mirror"]);
     expect(rpcMock).toHaveBeenCalledWith("assign_order_number", {
       p_order_id: "o1",
     });
     expect(alertMock).toHaveBeenCalledWith("b1", "0007");
-    expect(printMock).toHaveBeenCalledWith("b1", "0007");
+    expect(printMock).not.toHaveBeenCalled();
     expect(updateMock).toHaveBeenCalledWith({ payment_status: "claimed" });
   });
 
@@ -121,9 +121,9 @@ describe("finalizePaidOrder", () => {
     expect(rateLimitMock).toHaveBeenCalledWith("paid-order-alert:o1", 1, 3_600);
   });
 
-  it("run twice in a row: same number, one vendor alert, the print request repeated", async () => {
-    const first = await finalizePaidOrder(ORDER, { status: "claimed" });
-    const second = await finalizePaidOrder(ORDER, { status: "claimed" });
+  it("confirmed retries use the same number and repeat an idempotent print request", async () => {
+    const first = await finalizePaidOrder(ORDER, { status: "confirmed" });
+    const second = await finalizePaidOrder(ORDER, { status: "confirmed" });
     expect(first).toEqual({ ok: true, orderNumber: "0007" });
     expect(second).toEqual({ ok: true, orderNumber: "0007" });
     expect(rpcMock).toHaveBeenCalledTimes(2);
@@ -139,15 +139,15 @@ describe("finalizePaidOrder", () => {
     expect(a).toEqual({ ok: true, orderNumber: "0007" });
     expect(b).toEqual({ ok: true, orderNumber: "0007" });
     expect(alertMock).toHaveBeenCalledTimes(1);
-    expect(printMock).toHaveBeenCalledTimes(2);
+    expect(printMock).not.toHaveBeenCalled();
   });
 
   it("still sends the print request and writes the mirror when the alert was already sent", async () => {
     rateLimitMock.mockReset().mockResolvedValue(false);
-    const result = await finalizePaidOrder(ORDER, { status: "claimed" });
+    const result = await finalizePaidOrder(ORDER, { status: "confirmed" });
     expect(result).toEqual({ ok: true, orderNumber: "0007" });
     expect(alertMock).not.toHaveBeenCalled();
-    expect(calls).toEqual(["assign", "print", "mirror"]);
+    expect(calls).toEqual(["assign", "mirror", "print"]);
   });
 
   it.each([

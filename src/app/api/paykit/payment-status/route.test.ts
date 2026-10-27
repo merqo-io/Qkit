@@ -1,3 +1,9 @@
+const { notifyPrintkitMock } = vi.hoisted(() => ({
+  notifyPrintkitMock: vi.fn(),
+}));
+vi.mock("@/app/o/[code]/notify", () => ({
+  notifyPrintkit: notifyPrintkitMock,
+}));
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { POST } from "./route";
 
@@ -142,6 +148,7 @@ function expectNothingApplied() {
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  notifyPrintkitMock.mockReset().mockResolvedValue(undefined);
   bearerOkMock.mockReset().mockReturnValue(true);
   rateLimitMock.mockReset().mockResolvedValue(true);
   orderMaybeSingle
@@ -358,7 +365,7 @@ describe("POST /api/paykit/payment-status: applying the status", () => {
   });
 
   it.each(["claimed", "confirmed"] as const)(
-    "only moves the mirror for an order that already has a number (%s): no second alert, no print job",
+    "updates the mirror and only prints a confirmed numbered order (%s)",
     async (status) => {
       orderMaybeSingle.mockResolvedValue({
         data: order({ order_number: "0007", status: "preparing" }),
@@ -369,6 +376,11 @@ describe("POST /api/paykit/payment-status: applying the status", () => {
       expect(res.status).toBe(200);
       expect(finalizePaidOrderMock).not.toHaveBeenCalled();
       expect(writePaidMirrorMock).toHaveBeenCalledTimes(1);
+      expect(notifyPrintkitMock).toHaveBeenCalledTimes(
+        status === "confirmed" ? 1 : 0,
+      );
+      if (status === "confirmed")
+        expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH_ID, "0007");
       expect(writePaidMirrorMock).toHaveBeenCalledWith(
         expect.anything(),
         ORDER_ID,

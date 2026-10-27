@@ -70,25 +70,10 @@ export async function writePaidMirror(
 }
 
 /**
- * Everything an order needs once paykit holds a payment for it: its number,
- * the vendor's alert, the print job, and the local mirror. In that order, and
- * the order matters: the mirror is written last so the customer's pay page
- * never sees "paid" on an order that has no number yet.
- *
- * Safe to run more than once for one order, including at the same moment,
- * which is the normal case: paykit's callback arrives while the customer's
- * own claim is still running.
- *  - The number: qkit.assign_order_number returns the existing one.
- *  - The vendor alert: sent only by the run the limiter allows, once per
- *    order per clock hour. The limiter fails open, so a limiter outage can
- *    repeat an alert. The run that is allowed is the only one that tries: if
- *    its send fails, no later run retries it.
- *  - The print job: printkit keeps one per order, so notifyPrintkit is
- *    attempted every time and prints once.
- *  - The mirror: see writePaidMirror.
- *
- * It does not check that the order is still live. Callers do that before
- * they ask paykit for anything.
+ * Assigns the order number before writing the payment mirror. Claims alert
+ * the vendor but do not print. Confirmed payments print after the mirror;
+ * notifyPrintkit rechecks the stored payment and fulfillment state.
+ * Number assignment and printkit's order key make retries idempotent.
  */
 export async function finalizePaidOrder(
   order: { id: string; boothId: string },
@@ -113,14 +98,11 @@ export async function finalizePaidOrder(
     1,
     ALERT_ONCE_WINDOW_SECONDS,
   );
-  await Promise.all([
-    firstAlert
-      ? notifyVendorTelegram(order.boothId, orderNumber)
-      : Promise.resolve(),
-    notifyPrintkit(order.boothId, orderNumber),
-  ]);
+  if (firstAlert) await notifyVendorTelegram(order.boothId, orderNumber);
 
   await writePaidMirror(supabase, order.id, payment);
+  if (payment.status === "confirmed")
+    await notifyPrintkit(order.boothId, orderNumber);
 
   return { ok: true, orderNumber };
 }

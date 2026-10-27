@@ -1,5 +1,7 @@
 # board
 
+Arrival-confirmed orders retain Start now until the vendor starts preparation. Printing happens after that action for non-payment orders; payment labels require confirmed payment.
+
 ## Purpose
 
 The vendor's order ticket and what hangs off it: the status badge and the

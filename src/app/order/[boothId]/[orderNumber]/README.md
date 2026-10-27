@@ -1,5 +1,7 @@
 # [orderNumber]
 
+Printing policy (2026-10-27): placement and payment claims never queue labels. Confirmed payments queue after the local payment mirror is written; non-payment orders queue after vendor Start. The helper rechecks current status and printing opt-in. Migration `0107` makes new printing-enabled non-payment orders wait for Start, including walk-ups. Customer arrival records `confirmed` fulfillment on these booths so Start stays available. Printkit deduplicates by order UUID. See `docs/meta/2026-10-27-printing-stage-gate.md`.
+
 ## Purpose
 
 Live customer order-status page — the page a customer lands on right after
@@ -219,8 +221,8 @@ subscription)`: saves the customer's web push subscription for the
 - `finalize-paid-order.ts` — **not** a `"use server"` file (same reason as
   `src/app/o/[code]/notify.ts`). `finalizePaidOrder(order, payment)` is the
   order half of a payment: assign the number (`qkit.assign_order_number`,
-  which returns an existing one), alert the vendor, send the print job, write
-  the `orders.payment_status` mirror last. Called by `loadPreClaimContext` here (the customer's return from
+  which returns an existing one), alert the vendor, write
+  the `orders.payment_status` mirror, then print only for confirmed payment. Called by `loadPreClaimContext` here (the customer's return from
   paykit's pay page) and by the paykit callback route (`src/app/api/paykit/payment-status/route.ts`),
   usually for the same order at the same moment, so it is built to run twice:
   the vendor alert is sent only by the run the limiter allows

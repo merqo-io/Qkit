@@ -1,3 +1,9 @@
+const { notifyPrintkitMock } = vi.hoisted(() => ({
+  notifyPrintkitMock: vi.fn(),
+}));
+vi.mock("@/app/o/[code]/notify", () => ({
+  notifyPrintkit: notifyPrintkitMock,
+}));
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   advanceOrder,
@@ -141,6 +147,7 @@ vi.mock("@/lib/audit", () => ({
 const ID = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
+  notifyPrintkitMock.mockReset().mockResolvedValue(undefined);
   getUserMock.mockReset().mockResolvedValue({ id: "v1" });
   maybeSingle.mockReset();
   update.mockClear();
@@ -1375,5 +1382,90 @@ describe("sweepAbandonedPayments", () => {
     getUserMock.mockResolvedValue(null);
     await sweepAbandonedPayments();
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("print dispatch after vendor actions", () => {
+  const boothId = "00000000-0000-4000-8000-000000000002";
+  it.each(["pending", "confirmed"])(
+    "starts a non-payment %s order before printing",
+    async (status) => {
+      maybeSingle.mockResolvedValue({
+        data: {
+          id: ID,
+          booth_id: boothId,
+          order_number: "0007",
+          status,
+          payment_status: "not_required",
+        },
+      });
+      expect(await advanceOrder(ID)).toEqual({
+        success: true,
+        status: "preparing",
+      });
+      expect(notifyPrintkitMock).toHaveBeenCalledWith(boothId, "0007");
+      expect(update.mock.invocationCallOrder[0]).toBeLessThan(
+        notifyPrintkitMock.mock.invocationCallOrder[0],
+      );
+    },
+  );
+  it("does not print when vendor Start loses a race", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        booth_id: boothId,
+        order_number: "0007",
+        status: "pending",
+        payment_status: "not_required",
+      },
+    });
+    updateSelect.mockResolvedValue({ data: [], error: null });
+    expect((await advanceOrder(ID)).success).toBe(false);
+    expect(notifyPrintkitMock).not.toHaveBeenCalled();
+  });
+  it.each(["confirm", "confirm-and-start"])(
+    "prints after successful payment %s",
+    async (action) => {
+      maybeSingle.mockResolvedValue({
+        data: {
+          id: ID,
+          booth_id: boothId,
+          order_number: "0007",
+          status: "pending",
+          payment_status: "claimed",
+          total_cents: 800,
+          created_at: new Date().toISOString(),
+        },
+      });
+      const result =
+        action === "confirm"
+          ? await confirmOrderPayment(ID)
+          : await confirmPaymentAndStart(ID);
+      expect(result.success).toBe(true);
+      expect(notifyPrintkitMock).toHaveBeenCalledWith(boothId, "0007");
+      expect(confirmCheckoutMock.mock.invocationCallOrder[0]).toBeLessThan(
+        notifyPrintkitMock.mock.invocationCallOrder[0],
+      );
+    },
+  );
+  it("does not print when paykit refuses confirmation", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        booth_id: boothId,
+        order_number: "0007",
+        status: "pending",
+        payment_status: "claimed",
+        total_cents: 800,
+        created_at: new Date().toISOString(),
+      },
+    });
+    confirmCheckoutMock.mockResolvedValue({
+      ok: false,
+      status: 503,
+      error: "Unavailable",
+    });
+    expect((await confirmPaymentAndStart(ID)).success).toBe(false);
+    expect(notifyPrintkitMock).not.toHaveBeenCalled();
   });
 });

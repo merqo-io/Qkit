@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Labels wait for confirmed payment on payment orders, and vendor Start on non-payment orders. Printing-enabled QR and walk-up orders no longer automatically start; customer arrival leaves them awaiting vendor Start. Requires owner-applied migration `0107`.
+
 ## [0.2.0] - 2026-10-24
 
 ### Security

@@ -60,9 +60,14 @@ beforeEach(() => {
   boothsMaybeSingle
     .mockReset()
     .mockResolvedValue({ data: { vendor_id: "v1", print_enabled: true } });
-  ordersMaybeSingle
-    .mockReset()
-    .mockResolvedValue({ data: { id: "o1", customer_name: "Ann" } });
+  ordersMaybeSingle.mockReset().mockResolvedValue({
+    data: {
+      id: "o1",
+      customer_name: "Ann",
+      status: "preparing",
+      payment_status: "confirmed",
+    },
+  });
   createPrintJobMock
     .mockReset()
     .mockResolvedValue({ ok: true, data: { id: "job1" } });
@@ -197,5 +202,27 @@ describe("failure logging never carries caller or remote text", () => {
       "TypeError",
     );
     expect(logged()).not.toContain("FORGED");
+  });
+});
+
+describe("printing eligibility", () => {
+  it.each([
+    ["pending", "pending", false],
+    ["preparing", "claimed", false],
+    ["ready", "claimed", false],
+    ["pending", "not_required", false],
+    ["confirmed", "not_required", false],
+    ["preparing", "not_required", true],
+    ["pending", "confirmed", true],
+    ["preparing", "confirmed", true],
+    ["ready", "confirmed", true],
+    ["cancelled", "confirmed", false],
+    ["completed", "confirmed", false],
+  ])("%s / %s prints: %s", async (status, payment_status, eligible) => {
+    ordersMaybeSingle.mockResolvedValue({
+      data: { id: "o1", customer_name: "Ann", status, payment_status },
+    });
+    await notifyPrintkit(BOOTH, "0007");
+    expect(createPrintJobMock).toHaveBeenCalledTimes(eligible ? 1 : 0);
   });
 });

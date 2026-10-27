@@ -1,5 +1,7 @@
 # payment-status
 
+Printing policy (2026-10-27): placement and payment claims never queue labels. Confirmed payments queue after the local payment mirror is written; non-payment orders queue after vendor Start. The helper rechecks current status and printing opt-in. Migration `0107` makes new printing-enabled non-payment orders wait for Start, including walk-ups. Customer arrival records `confirmed` fulfillment on these booths so Start stays available. Printkit deduplicates by order UUID. See `docs/meta/2026-10-27-printing-stage-gate.md`.
+
 ## Purpose
 
 Inbound callback paykit fires after a claim, unclaim or confirm commits, so an
@@ -17,9 +19,9 @@ by paykit, and a payment paykit confirms by itself.
   vendor differs from the order's booth's vendor or whose amount differs from
   the order's total, and applies the status paykit answered with:
   - `claimed` or `confirmed` on an order with no number: `finalizePaidOrder`
-    (number, vendor alert, print job, mirror).
-  - `claimed` or `confirmed` on a numbered order: `writePaidMirror` only.
-    `confirmed` sets `paid_at`.
+    (number, vendor alert, mirror, then print only when confirmed).
+  - `claimed` or `confirmed` on a numbered order: `writePaidMirror`.
+    `confirmed` sets `paid_at` and queues an eligible label.
   - `pending`: a `claimed` mirror goes back to `pending`.
   - A cancelled order, and an order that never took payment, are left alone
     and logged.

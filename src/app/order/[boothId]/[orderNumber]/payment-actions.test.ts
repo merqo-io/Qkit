@@ -325,7 +325,9 @@ describe("loadPreClaimContext", () => {
         p_order_id: "order-1",
       });
       expect(notifyVendorTelegramMock).toHaveBeenCalledWith(BOOTH, "0007");
-      expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
+      if (status === "confirmed")
+        expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
+      else expect(notifyPrintkitMock).not.toHaveBeenCalled();
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({ payment_status: status }),
       );
@@ -344,7 +346,7 @@ describe("loadPreClaimContext", () => {
       orderNumber: "0007",
     });
     expect(notifyVendorTelegramMock).not.toHaveBeenCalled();
-    expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH, "0007");
+    expect(notifyPrintkitMock).not.toHaveBeenCalled();
   });
 
   it("is unavailable, and changes nothing, when numbering fails", async () => {
