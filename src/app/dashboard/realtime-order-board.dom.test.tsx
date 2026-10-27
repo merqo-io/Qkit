@@ -316,6 +316,7 @@ describe("RealtimeOrderBoard phone section switcher", () => {
         booths={BOOTHS}
         initialOrders={[
           order({ id: "arrived", status: "confirmed" }),
+          order({ id: "waiting", status: "pending" }),
           order({ id: "making", status: "preparing" }),
         ]}
         boardSettings={DEFAULT_BOARD_SETTINGS}
@@ -323,8 +324,11 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       { wrapper: TooltipProvider },
     );
     expect(
-      screen.getByRole("button", { name: "Incoming (1)" }),
+      screen.getByRole("button", { name: "Incoming (2)" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /start all/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Accepted (1)" }),
     ).toBeInTheDocument();

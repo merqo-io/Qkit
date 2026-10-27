@@ -495,8 +495,9 @@ export function RealtimeOrderBoard({
   const startableIds = incoming
     .filter(
       (o) =>
+        o.status === "pending" &&
         !needsPaymentReview(o.status, o.payment_status) &&
-        (o.status === "confirmed" || !waitsForArrival.has(o.booth_id)),
+        !waitsForArrival.has(o.booth_id),
     )
     .map((o) => o.id);
 
