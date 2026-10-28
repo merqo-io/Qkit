@@ -20,6 +20,7 @@ import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { sendOrderReadyPush } from "@/lib/push/send";
+import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
 import type { ActionResult } from "@/lib/action-result";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
@@ -50,7 +51,7 @@ async function loadOwnOrder(orderId: string) {
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "id, status, payment_status, auto_completed, total_cents, created_at",
+      "id, booth_id, order_number, status, payment_status, auto_completed, total_cents, created_at",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -179,6 +180,8 @@ export async function advanceOrder(
   }
 
   if (adv.next === "ready") await notifyOrderReady(supabase, orderId, userId);
+  if (adv.next === "preparing" && order.order_number)
+    await notifyPrintkit(order.booth_id, order.order_number);
 
   return { success: true, status: adv.next };
 }
@@ -336,6 +339,8 @@ export async function confirmPaymentAndStart(
       current.status !== "cancelled" &&
       current.payment_status === "confirmed"
     ) {
+      if (order.order_number)
+        await notifyPrintkit(order.booth_id, order.order_number);
       return { success: true, status: current.status, prevPaymentStatus };
     }
     return { success: false, error: "Order changed -- please refresh." };
@@ -356,6 +361,8 @@ export async function confirmPaymentAndStart(
     });
   }
 
+  if (order.order_number)
+    await notifyPrintkit(order.booth_id, order.order_number);
   return { success: true, status: "preparing", prevPaymentStatus };
 }
 
@@ -492,7 +499,11 @@ export async function confirmOrderPayment(
   if (!supabase || !order || !userId)
     return { success: false, error: "Order not found" };
 
-  if (order.payment_status === "confirmed") return { success: true };
+  if (order.payment_status === "confirmed") {
+    if (order.order_number)
+      await notifyPrintkit(order.booth_id, order.order_number);
+    return { success: true };
+  }
   if (order.payment_status === "not_required")
     return { success: false, error: "This order doesn't take payment" };
   if (order.status === "cancelled")
@@ -534,6 +545,9 @@ export async function confirmOrderPayment(
       "confirmOrderPayment: local mirror update failed",
       error.message,
     );
+
+  if (order.order_number)
+    await notifyPrintkit(order.booth_id, order.order_number);
 
   // Covers both the QR and walk-up paths — a walk-up order taken unpaid at
   // the counter and settled later goes through this same confirm action.

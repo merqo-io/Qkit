@@ -1,5 +1,7 @@
 # [code]
 
+Printing policy (2026-10-27): placement and payment claims never queue labels. Confirmed payments queue after the local payment mirror is written; non-payment orders queue after vendor Start. The helper rechecks current status and printing opt-in. Migration `0107` makes new printing-enabled non-payment orders wait for Start, including walk-ups. Customer arrival records `confirmed` fulfillment on these booths so Start stays available. Printkit deduplicates by order UUID. See `docs/meta/2026-10-27-printing-stage-gate.md`.
+
 ## Purpose
 
 Customer menu + cart + checkout for a booth, keyed by its short QR code —
@@ -19,7 +21,7 @@ the current (non-legacy) customer ordering entry point.
   `ORDER_ITEM_UNAVAILABLE`/`ORDER_RATE_LIMITED`) to customer-facing messages
   via `messageFor()`, logs only the genuinely-unexpected failures, and on
   success fires the `order_placed` analytics event, then fires
-  `notifyVendorTelegram`/`notifyPrintkit` (from `./notify.ts`, see below) and
+  `notifyVendorTelegram` (from `./notify.ts`, see below) and
   returns `{ orderNumber, boothId, accessToken }`.
 - `notify.ts` — **not** a `"use server"` file, deliberately: every export of
   a `"use server"` file becomes its own independently client-callable Server
@@ -44,7 +46,7 @@ the current (non-legacy) customer ordering entry point.
   `docs/superpowers/specs/2026-08-16-vendor-telegram-connect-design.md`
   (Phase A2 — supersedes qkit's own retired bot, formerly
   `docs/superpowers/specs/2026-08-16-telegram-order-alerts-design.md`).
-  `notifyPrintkit(boothId, orderNumber)` fires on success — same
+  `notifyPrintkit(boothId, orderNumber)` fires after vendor Start or confirmed payment — same
   best-effort, wrapped-in-its-own-try/catch contract. It looks up the
   booth's `vendor_id` and `print_enabled`, returning silently (no log) when
   printing isn't enabled for that booth — before doing the order lookup, so
@@ -93,14 +95,9 @@ the current (non-legacy) customer ordering entry point.
   booth's `vendor_id` and a message containing the order number/total,
   skips silently when the booth can't be resolved, and a `notifyVendor`
   rejection doesn't change `placeOrder`'s own returned result; and a
-  "printkit notify" block with the same shape: `createPrintJob` called with
-  the booth's `vendor_id`, the order's real `id`, `boothId`, and the order
-  number/customer name, `orders.print_status` set to `'queued'` only on a
-  successful job creation (not touched on failure), skipped silently when
-  the order id can't be resolved, a `createPrintJob` rejection never
-  changing `placeOrder`'s own returned result, and — the `print_enabled`
-  gate — `createPrintJob` never called (and the order lookup itself
-  skipped) when the booth's `print_enabled` is false.
+  regression proving placement never calls `createPrintJob` or changes
+  `print_status`. Print eligibility and terminal-state guards are tested in
+  `notify.test.ts`; confirmation and Start dispatch have their own action tests.
 - `page.tsx` — `OrderEntryPage` (route entry, `revalidate=0`): resolves the
   booth via `get_booth_for_order(p_short_code)` (public-safe — omits
   `cost_cents`/`short_code`), distinguishes a real RPC error (shows a
@@ -152,7 +149,7 @@ navigates to `/order/[boothId]/[orderNumber]?t=<accessToken>` for live status.
 `placeOrder` also calls `@/lib/merqo/customer-notify`'s `notifyVendor` via its
 own `notifyVendorTelegram` helper — merqo's shared bot resolves the vendor's
 linked chat itself; a vendor connects that link once via merqo's own
-`/profile` page, not through anything in this repo. It likewise calls
+`/profile` page, not through anything in this repo. Vendor Start and confirmed-payment actions call
 `@/lib/printkit/client`'s `createPrintJob` via its own `notifyPrintkit`
 helper, gated on the booth's `print_enabled` flag (`booths.print_enabled`)
 — an order for a booth that hasn't opted into printing never fires this

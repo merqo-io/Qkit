@@ -103,7 +103,7 @@ export async function notifyPrintkit(
 
     const { data: order } = await service
       .from("orders")
-      .select("id, customer_name")
+      .select("id, customer_name, status, payment_status")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -111,6 +111,14 @@ export async function notifyPrintkit(
       console.error("notifyPrintkit: order lookup found nothing");
       return;
     }
+
+    // A customer claim is not payment confirmation or a vendor start.
+    if (order.status === "cancelled" || order.status === "completed") return;
+    if (
+      order.payment_status !== "confirmed" &&
+      !(order.payment_status === "not_required" && order.status === "preparing")
+    )
+      return;
 
     // Print the SAME number the vendor's board, the TV display, and the
     // customer's own status page all show. Printing the raw permanent number

@@ -11,6 +11,7 @@ import {
   finalizePaidOrder,
   writePaidMirror,
 } from "@/app/order/[boothId]/[orderNumber]/finalize-paid-order";
+import { notifyPrintkit } from "@/app/o/[code]/notify";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
@@ -40,11 +41,9 @@ function conflict(error: string) {
 
 /**
  * Applies the status paykit holds to one live, payment-taking order.
- *  - claimed or confirmed, no number yet: finalizePaidOrder (number, alert,
- *    print job, mirror).
- *  - claimed or confirmed, already numbered: the mirror only. Finalizing
- *    again would alert and could print for an order that was announced long
- *    ago.
+ *  - claimed or confirmed, no number yet: finalizePaidOrder assigns the
+ *    number, alerts the vendor, and writes the mirror. Only confirmed prints.
+ *  - already numbered: write the mirror, then print only if confirmed.
  *  - pending: a claimed mirror goes back to pending, the same write the
  *    customer's own undo makes.
  */
@@ -73,6 +72,8 @@ async function applyPaykitStatus(
   const payment = { status: held.status, confirmedAt: held.confirmedAt };
   if (order.order_number) {
     await writePaidMirror(supabase, order.id, payment);
+    if (payment.status === "confirmed")
+      await notifyPrintkit(order.booth_id, order.order_number);
     return NextResponse.json({ ok: true });
   }
 

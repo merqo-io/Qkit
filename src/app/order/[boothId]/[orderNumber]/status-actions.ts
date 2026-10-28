@@ -62,8 +62,8 @@ export async function getOrderStatus(
 
 /**
  * Customer-triggered arrival confirmation: flips a booth-gated order from
- * 'pending' (see migration 0064's place_order branch) to 'preparing',
- * starting prep. Token-gated and rate-limited exactly like unclaimPayment
+ * 'pending' to 'confirmed' when printing is enabled, leaving vendor Start
+ * as the preparation trigger. Other booths still move to 'preparing'. Token-gated and rate-limited exactly like unclaimPayment
  * (payment-actions.ts) — both are unauthenticated, customer-initiated state
  * flips on the same order row.
  */
@@ -93,7 +93,7 @@ export async function confirmArrival(
   // must not be self-servable by the customer.
   const { data: booth } = await supabase
     .from("booths")
-    .select("requires_arrival_confirm")
+    .select("requires_arrival_confirm, print_enabled")
     .eq("id", boothId)
     .maybeSingle();
   if (!booth?.requires_arrival_confirm)
@@ -101,7 +101,7 @@ export async function confirmArrival(
 
   const { data: rows, error } = await supabase
     .from("orders")
-    .update({ status: "preparing" })
+    .update({ status: booth.print_enabled ? "confirmed" : "preparing" })
     .eq("booth_id", boothId)
     .eq("order_number", orderNumber)
     .eq("access_token", token)

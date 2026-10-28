@@ -1,3 +1,9 @@
+const { notifyPrintkitMock } = vi.hoisted(() => ({
+  notifyPrintkitMock: vi.fn(),
+}));
+vi.mock("@/app/o/[code]/notify", () => ({
+  notifyPrintkit: notifyPrintkitMock,
+}));
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { placeWalkupOrder } from "./walkup-actions";
 import type { PlaceOrderInput } from "@/lib/schemas";
@@ -48,6 +54,7 @@ function makeInput(over: Partial<PlaceOrderInput> = {}): PlaceOrderInput {
 }
 
 beforeEach(() => {
+  notifyPrintkitMock.mockReset().mockResolvedValue(undefined);
   rpcMock.mockReset();
   createServerClientMock.mockClear();
   orderLookupMock.mockReset();
@@ -177,6 +184,7 @@ describe("placeWalkupOrder", () => {
     const res = await placeWalkupOrder(BOOTH_ID, makeInput(), true);
 
     expect(res).toMatchObject({ success: true, payment: null });
+    expect(notifyPrintkitMock).toHaveBeenCalledWith(BOOTH_ID, "0001");
     expect(orderLookupMock).not.toHaveBeenCalled();
   });
 
