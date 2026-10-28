@@ -847,6 +847,22 @@ describe("OrderCard — reconciled payment+start", () => {
     ).toBeInTheDocument();
   });
 
+  it("lets the vendor start an arrived non-payment order", async () => {
+    const user = userEvent.setup();
+    advanceOrder.mockResolvedValueOnce({ success: true, status: "preparing" });
+    render(
+      <OrderCard
+        order={makeOrder({
+          status: "confirmed",
+          payment_status: "not_required",
+        })}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await user.click(screen.getByRole("button", { name: /start now/i }));
+    expect(advanceOrder).toHaveBeenCalledWith("o1", "confirmed");
+  });
+
   it("shows the plain Start now button, not the merged one, once payment is already settled", () => {
     render(
       <OrderCard

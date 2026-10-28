@@ -29,7 +29,7 @@ const serviceFrom = vi.fn((table: string) => {
   }
   if (table === "vendors") {
     // Defaults to no row -> boardSettingsSchema fails to parse ->
-    // notifyPrintkit falls back to the raw order_number, matching every
+    // notifyVendorTelegram falls back to the raw order_number, matching every
     // existing expectation in this suite. Individual tests can push a real
     // board_settings row to exercise the daily-reset relabeling instead.
     return {
@@ -103,9 +103,7 @@ const validInput = {
 };
 const IDEM = "11111111-1111-1111-8111-111111111111";
 
-// Shared by the vendor-alert and printkit-notify describe blocks below —
-// both exercise a redundant post-order notify channel off the same
-// successful place_order RPC response.
+// A successful placement can alert the vendor without creating a print job.
 function mockSuccessfulRpc() {
   rpc.mockImplementation((name: string) => {
     if (name === "check_rate_limit") return Promise.resolve({ data: true });
@@ -431,159 +429,13 @@ describe("placeOrder", () => {
     });
   });
 
-  describe("printkit notify (redundant channel — must never affect the result)", () => {
-    it("calls createPrintJob with the booth's vendor_id, order id, boothId, order number, and customer name", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } }, // consumed by notifyVendorTelegram
-        { data: { vendor_id: "vendor-1", print_enabled: true } }, // consumed by notifyPrintkit
-      ];
-      orderQueue = [
-        { data: { total_cents: 700 } }, // consumed by notifyVendorTelegram
-        { data: { id: "order-uuid-1", customer_name: "Ada" } }, // consumed by notifyPrintkit
-      ];
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      expect(createPrintJob).toHaveBeenCalledTimes(1);
-      expect(createPrintJob).toHaveBeenCalledWith({
-        vendorId: "vendor-1",
-        orderId: "order-uuid-1",
-        boothId: "booth-1",
-        customerName: validInput.customerName,
-        orderNumber: "0007",
-      });
-    });
-
-    it("marks the order's print_status 'queued' when createPrintJob succeeds", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } },
-        { data: { vendor_id: "vendor-1", print_enabled: true } },
-      ];
-      orderQueue = [
-        { data: { total_cents: 700 } },
-        { data: { id: "order-uuid-1", customer_name: "Ada" } },
-      ];
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      expect(orderUpdateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ print_status: "queued" }),
-      );
-    });
-
-    it("prints the vendor-facing daily-reset number, not the raw permanent one, when board_settings.daily_order_number_reset is on", async () => {
-      mockSuccessfulRpc(); // order_number "0007"
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } },
-        { data: { vendor_id: "vendor-1", print_enabled: true } },
-      ];
-      const resetOn = {
-        data: {
-          board_settings: {
-            ...DEFAULT_BOARD_SETTINGS,
-            daily_order_number_reset: true,
-          },
-        },
-      };
-      // Both channels read the vendor's settings and the day's first order.
-      vendorQueue = [resetOn, resetOn];
-      orderQueue = [
-        { data: { total_cents: 700 } }, // notifyVendorTelegram
-        { data: { id: "order-uuid-1", customer_name: "Ada" } }, // notifyPrintkit's order lookup
-        { data: { order_number: "0005" } }, // today's first order, for the alert
-        { data: { order_number: "0005" } }, // and again for the label
-      ];
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      // rank = 7 - 5 + 1 = 3, zero-padded -> "003" -- the same number the
-      // board/TV/customer status page would show, not the raw "0007".
-      expect(createPrintJob).toHaveBeenCalledWith(
-        expect.objectContaining({ orderNumber: "003" }),
-      );
-      // The alert and the label name the order the same way.
-      expect(notifyVendor).toHaveBeenCalledWith(
-        "vendor-1",
-        "New order #003 · $7.00",
-      );
-    });
-
-    it("does not touch print_status when createPrintJob fails", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } },
-        { data: { vendor_id: "vendor-1", print_enabled: true } },
-      ];
-      orderQueue = [
-        { data: { total_cents: 700 } },
-        { data: { id: "order-uuid-1", customer_name: "Ada" } },
-      ];
-      createPrintJob.mockResolvedValueOnce({
-        ok: false,
-        status: 503,
-        error: "printkit down",
-      });
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      expect(orderUpdateMock).not.toHaveBeenCalled();
-    });
-
-    it("skips silently when the order id can't be resolved", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } },
-        { data: { vendor_id: "vendor-1", print_enabled: true } },
-      ];
-      orderQueue = [{ data: { total_cents: 700 } }, { data: null }];
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      expect(createPrintJob).not.toHaveBeenCalled();
-    });
-
-    it("a createPrintJob failure doesn't change placeOrder's own result", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } },
-        { data: { vendor_id: "vendor-1", print_enabled: true } },
-      ];
-      orderQueue = [
-        { data: { total_cents: 700 } },
-        { data: { id: "order-uuid-1", customer_name: "Ada" } },
-      ];
-      createPrintJob.mockRejectedValueOnce(new Error("printkit down"));
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-    });
-
-    it("does not call createPrintJob when the booth has print_enabled false", async () => {
-      mockSuccessfulRpc();
-      boothQueue = [
-        { data: { vendor_id: "vendor-1" } }, // consumed by notifyVendorTelegram
-        { data: { vendor_id: "vendor-1", print_enabled: false } }, // consumed by notifyPrintkit
-      ];
-      orderQueue = [{ data: { total_cents: 700 } }]; // only notifyVendorTelegram's lookup
-
-      const res = await placeOrder("code123", validInput, IDEM);
-
-      expect(res.success).toBe(true);
-      expect(createPrintJob).not.toHaveBeenCalled();
-      // The order lookup itself must be skipped once the gate fires — only
-      // notifyVendorTelegram's "orders" query should have run.
-      expect(
-        serviceFrom.mock.calls.filter(([table]) => table === "orders"),
-      ).toHaveLength(1);
-    });
+  it("does not print when a customer places an order", async () => {
+    mockSuccessfulRpc();
+    boothQueue = [{ data: { vendor_id: "vendor-1", print_enabled: true } }];
+    orderQueue = [{ data: { total_cents: 700 } }];
+    expect((await placeOrder("code123", validInput, IDEM)).success).toBe(true);
+    expect(createPrintJob).not.toHaveBeenCalled();
+    expect(orderUpdateMock).not.toHaveBeenCalled();
   });
 });
 

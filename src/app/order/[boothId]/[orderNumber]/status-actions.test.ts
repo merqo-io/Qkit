@@ -465,6 +465,16 @@ describe("confirmArrival", () => {
       .mockResolvedValue({ data: { requires_arrival_confirm: true } });
   });
 
+  it("records arrival without starting a printing order", async () => {
+    boothRead2.mockResolvedValue({
+      data: { requires_arrival_confirm: true, print_enabled: true },
+    });
+    expect(await confirmArrival(BOOTH, ORDER, TOKEN)).toEqual({
+      success: true,
+    });
+    expect(update2).toHaveBeenCalledWith({ status: "confirmed" });
+  });
+
   it("starts a pending order (update runs, returns success)", async () => {
     const res = await confirmArrival(BOOTH, ORDER, TOKEN);
     expect(res).toEqual({ success: true });

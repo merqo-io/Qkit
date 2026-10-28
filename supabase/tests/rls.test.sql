@@ -542,7 +542,7 @@ update qkit.booths set payment = null
 -- printer connected (0086) — the earlier happy-path order above already
 -- exercised this default (print_enabled defaults false) without asserting
 -- status; assert it explicitly here, then flip print_enabled on and confirm
--- the order auto-starts into 'preparing' as before.
+-- the order waits for vendor Start even when a printer is connected.
 select is(
   (select status::text from qkit.orders
    where booth_id = '00000000-0000-0000-0000-0000000b0004'
@@ -561,8 +561,8 @@ select is(
   (select status::text from qkit.orders
    where booth_id = '00000000-0000-0000-0000-0000000b0004'
      and idempotency_key = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-  'preparing',
-  'a QR order auto-starts into preparing once the booth has a printer connected');
+  'pending',
+  'a printing QR order waits for vendor Start');
 update qkit.booths set print_enabled = false
   where id = '00000000-0000-0000-0000-0000000b0004';
 

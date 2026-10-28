@@ -1,5 +1,7 @@
 # dashboard
 
+Printing policy (2026-10-27): placement and payment claims never queue labels. Confirmed payments queue after the local payment mirror is written; non-payment orders queue after vendor Start. The helper rechecks current status and printing opt-in. Migration `0107` makes new printing-enabled non-payment orders wait for Start, including walk-ups. Customer arrival records `confirmed` fulfillment on these booths so Start stays available. Printkit deduplicates by order UUID. See `docs/meta/2026-10-27-printing-stage-gate.md`.
+
 ## Purpose
 
 The authenticated vendor area — a shared header/nav shell wrapping the live order board plus sub-routes for booth management, order history, billing, account, board preferences, analytics, and support.

@@ -310,6 +310,30 @@ describe("RealtimeOrderBoard phone section switcher", () => {
     ];
   }
 
+  it("keeps an arrived order in Incoming until vendor Start", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({ id: "arrived", status: "confirmed" }),
+          order({ id: "waiting", status: "pending" }),
+          order({ id: "making", status: "preparing" }),
+        ]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByRole("button", { name: "Incoming (2)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /start all/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Accepted (1)" }),
+    ).toBeInTheDocument();
+  });
+
   it("offers both sections with their counts, so neither can be missed", () => {
     render(
       <RealtimeOrderBoard

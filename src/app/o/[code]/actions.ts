@@ -10,7 +10,7 @@ import {
 } from "@/lib/schemas";
 import { logEvent } from "@/app/actions/events";
 import type { ActionResult } from "@/lib/action-result";
-import { notifyVendorTelegram, notifyPrintkit } from "./notify";
+import { notifyVendorTelegram } from "./notify";
 
 type Result = ActionResult<{
   orderNumber: string | null;
@@ -134,14 +134,8 @@ export async function placeOrder(
   await logEvent("order_placed", { boothId: out.data.booth_id });
   await releaseHold(supabase, out.data.booth_id, holdSession);
 
-  // Redundant vendor alert + printing job — both fire-and-forget, run
-  // concurrently so a slow/unreachable one doesn't add its timeout on top
-  // of the other's before the customer gets a response.
   if (out.data.order_number) {
-    await Promise.all([
-      notifyVendorTelegram(out.data.booth_id, out.data.order_number),
-      notifyPrintkit(out.data.booth_id, out.data.order_number),
-    ]);
+    await notifyVendorTelegram(out.data.booth_id, out.data.order_number);
   }
 
   return {

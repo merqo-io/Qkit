@@ -15,12 +15,19 @@ test("every dashboard page renders signed in", async ({ browser, baseURL }) => {
   await signInSeedVendor(context, baseURL ?? E2E_BASE_URL);
   const page = await context.newPage();
 
+  // The free seeded vendor already owns a booth. Wait for the streamed
+  // plan redirect before starting another navigation.
+  await page.goto("/dashboard/booths/new");
+  await expect(page).toHaveURL(/\/dashboard\/plan$/);
+  await expect(
+    page.getByRole("heading", { name: "Plan", exact: true }),
+  ).toBeVisible();
+
   // Dynamic: Playwright loads specs as CJS and the helper is ESM-only.
   const { renderSmoke } = await import("@merqo/ui/testing");
   const failures = await renderSmoke(page, [
     "/dashboard",
     "/dashboard/booths",
-    "/dashboard/booths/new",
     `/dashboard/booths/${BOOTH}`,
     `/dashboard/booths/${BOOTH}/menu`,
     `/dashboard/booths/${BOOTH}/qr`,

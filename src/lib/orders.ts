@@ -27,6 +27,7 @@ export const ADVANCE: Partial<
   Record<OrderStatus, { next: OrderStatus; label: string }>
 > = {
   pending: { next: "preparing", label: "Start now" },
+  confirmed: { next: "preparing", label: "Start now" },
   preparing: { next: "ready", label: "Mark Ready" },
   ready: { next: "completed", label: "Mark Picked Up" },
 };
