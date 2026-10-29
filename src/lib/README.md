@@ -174,6 +174,20 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
 - `nps.ts` — `npsBreakdown(scores)`: Net Promoter Score classification
   (promoters 9-10 / passives 7-8 / detractors 0-6) and the -100..100 score.
 - `nps.test.ts` — tests the breakdown math and the empty-responses case.
+- `ops-events.ts` — the `qkit.ops_events` failure log (migration `0108`,
+  service-role only, 30-day purge). `recordOpsEvent(supabase, e)` inserts one
+  `{vendorId, kind, ref, code}` row and never throws (logs
+  `ops_events insert failed` plus an error code). `recordOrderIncident(kind,
+orderId, code)` opens its own service client, resolves the vendor from the
+  order's booth in qkit's own tables, and records nothing for a non-uuid or
+  unknown order. `summarizeIncidents(supabase, vendorId, sinceHours = 72)`
+  returns counts per kind (most frequent first) and the newest 10 rows, or
+  `null` when the read fails. Kinds come from `@merqo/ui/contracts`; qkit
+  writes only `webhook_rejected` and `action_error`. No PII: `ref` is an order
+  id, `code` a short machine code or action name.
+- `ops-events.test.ts` — insert shape, insert error and client throw both
+  resolve, 64-char truncation, vendor resolution, grouping, the recent cap and
+  newest-first order, and a failed read.
 - `order-alerts.ts` — customer/vendor "order ready"/"new order" alerting:
   `isNotifySupported`/`notifyPermission`/`requestNotifyPermission`,
   `readyNotificationContent` (the ready popup's title, body and tag, shared

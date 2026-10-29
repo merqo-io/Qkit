@@ -12,6 +12,7 @@ import {
   writePaidMirror,
 } from "@/app/order/[boothId]/[orderNumber]/finalize-paid-order";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
+import { recordOpsEvent, recordOrderIncident } from "@/lib/ops-events";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
@@ -101,14 +102,38 @@ async function readBody(request: Request) {
 }
 
 /**
+ * Logs a call with a wrong secret against the vendor that owns the named
+ * order. The order_ref is unverified, so the vendor comes from qkit's own
+ * tables and a separate limiter caps the reads an unauthenticated caller
+ * can cause. A body without a usable order_ref records nothing.
+ */
+async function recordRejectedSecret(request: Request) {
+  const allowed = await rateLimit(
+    `paykit-payment-status-rejected:${clientIp(request.headers)}`,
+    20,
+    60,
+  );
+  if (!allowed) return;
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return;
+  await recordOrderIncident(
+    "webhook_rejected",
+    parsed.data.order_ref,
+    "signature_invalid",
+  );
+}
+
+/**
  * paykit calls this after a payment's status changes. The body is a hint
  * that something changed for one order; what changed is read back from
  * paykit. Nothing is applied unless paykit can be reached and the
  * transaction it holds matches this order's vendor and total.
  */
 export async function POST(request: Request) {
-  if (!paykitCallbackBearerOk(request))
+  if (!paykitCallbackBearerOk(request)) {
+    await recordRejectedSecret(request);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   // The secret is the real gate. This blunts a leaked one: every accepted
   // call costs a request to paykit.
@@ -165,9 +190,14 @@ export async function POST(request: Request) {
       held.status,
       held.error,
     );
-    return held.status === 404
-      ? conflict("paykit holds no payment for this order")
-      : unavailable();
+    if (held.status !== 404) return unavailable();
+    await recordOpsEvent(supabase, {
+      vendorId: booth.vendor_id,
+      kind: "webhook_rejected",
+      ref: order.id,
+      code: "transaction_missing",
+    });
+    return conflict("paykit holds no payment for this order");
   }
   if (
     held.data.vendorId !== booth.vendor_id ||
@@ -177,6 +207,12 @@ export async function POST(request: Request) {
       "paykit payment-status callback: transaction does not match the order",
       order.id,
     );
+    await recordOpsEvent(supabase, {
+      vendorId: booth.vendor_id,
+      kind: "webhook_rejected",
+      ref: order.id,
+      code: "transaction_mismatch",
+    });
     return conflict("Payment does not match this order");
   }
 
