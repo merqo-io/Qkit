@@ -13,6 +13,7 @@
 // eslint-disable-next-line no-restricted-imports -- vendor alert runs for an anonymous customer order, outside any vendor session
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyVendor } from "@/lib/merqo/customer-notify";
+import { orderLabels } from "@/lib/printkit/labels";
 import { createPrintJob } from "@/lib/printkit/client";
 import { vendorFacingOrderNumber } from "@/lib/daily-order-number";
 
@@ -103,7 +104,7 @@ export async function notifyPrintkit(
 
     const { data: order } = await service
       .from("orders")
-      .select("id, customer_name, status, payment_status")
+      .select("id, customer_name, status, payment_status, items")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -119,6 +120,21 @@ export async function notifyPrintkit(
       !(order.payment_status === "not_required" && order.status === "preparing")
     )
       return;
+
+    const labels = orderLabels(order.items);
+    if (labels === null) {
+      console.error("notifyPrintkit: invalid or oversized order items");
+      await service
+        .from("orders")
+        .update({
+          print_status: "failed",
+          print_status_updated_at: new Date().toISOString(),
+        })
+        .eq("id", order.id)
+        .eq("print_status", "not_required");
+      return;
+    }
+    if (labels.length === 0) return;
 
     // Print the SAME number the vendor's board, the TV display, and the
     // customer's own status page all show. Printing the raw permanent number
@@ -142,14 +158,11 @@ export async function notifyPrintkit(
       // arbitrary text under that order's identity.
       customerName: order.customer_name,
       orderNumber: labelOrderNumber,
+      labels,
     });
 
-    // printkit keeps one job per order id and answers 409 to a repeat, so a
-    // second call for the same order prints nothing. That makes this function
-    // safe to run again for an order (the payment callback and the customer's
-    // own claim can both reach it). On a 409, fall through to the guarded
-    // write below: it repairs a first call that died before marking the order
-    // queued, and changes nothing otherwise.
+    // Identical batch retries reuse their children. A 409 means a legacy
+    // single-label job already owns this reference and must be preserved.
     if (!result.ok && result.status !== 409) {
       console.error("notifyPrintkit: createPrintJob failed", result.status);
       return;

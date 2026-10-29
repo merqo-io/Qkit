@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased: multi-drink label batches
+
+- Expand eligible persisted item quantities into bounded Printkit label batches after the existing Start/payment gates, with explicit handling for empty and invalid snapshots. Requires Printkit migration 0011 and physical staging verification.
+
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

@@ -356,3 +356,34 @@ describe("printkitConfigured", () => {
     },
   );
 });
+
+describe("batch request compatibility", () => {
+  afterEach(() => {
+    global.fetch = originalFetch;
+    process.env = { ...originalEnv };
+  });
+  it("uses a distinct job type so older Printkit cannot silently print a single label", async () => {
+    process.env.PRINTKIT_KIT_SECRET = "test";
+    process.env.NEXT_PUBLIC_PRINTKIT_URL = "https://printkit.test";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "batch" }), { status: 201 }),
+      );
+    global.fetch = fetchMock;
+    const labels = [{ item_name: "Kopi" }, { item_name: "Tea" }];
+    await createPrintJob({
+      vendorId: "v",
+      orderId: "o",
+      boothId: "b",
+      customerName: "Ann",
+      orderNumber: "007",
+      labels,
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      job_type: "label_batch",
+      labels,
+      source_ref: "o",
+    });
+  });
+});

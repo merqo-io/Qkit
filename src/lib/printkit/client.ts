@@ -155,6 +155,7 @@ export async function createPrintJob(args: {
   boothId: string;
   customerName: string;
   orderNumber: string;
+  labels?: { item_name: string; item_options?: string }[];
 }): Promise<PrintkitResult<{ id: string }>> {
   return printkitRequest("/api/v1/print-jobs", createPrintJobResponseSchema, {
     method: "POST",
@@ -164,6 +165,7 @@ export async function createPrintJob(args: {
         customer_name: args.customerName,
         order_number: args.orderNumber,
       },
+      ...(args.labels ? { job_type: "label_batch", labels: args.labels } : {}),
       source_ref: args.orderId,
       location_ref: args.boothId,
     }),
