@@ -431,7 +431,7 @@ export function OrderForm({
         result = await submit();
       } catch {
         setSubmitError(
-          "We couldn't reach the stall. Your order has not gone through. It is safe to try again: it can't be placed twice.",
+          "We couldn't confirm whether your order went through. Keep this page open and retry with the same details to recover it.",
         );
         setSubmitting(false);
         return;
