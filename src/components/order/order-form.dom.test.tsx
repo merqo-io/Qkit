@@ -561,7 +561,7 @@ describe("OrderForm cart", () => {
     );
     await waitFor(() =>
       expect(within(dialog).getByRole("alert")).toHaveTextContent(
-        /couldn't reach the stall.*safe to try again/i,
+        /couldn't confirm whether your order went through.*same details to recover it/i,
       ),
     );
     const name = within(dialog).getByLabelText("Your name");
