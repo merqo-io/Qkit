@@ -22,6 +22,7 @@ import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { sendOrderReadyPush } from "@/lib/push/send";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
+import { recordOrderIncident } from "@/lib/ops-events";
 import type { ActionResult } from "@/lib/action-result";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
 
@@ -41,6 +42,16 @@ import type { OrderStatus, PaymentStatus } from "@/lib/types";
 // only logged, never surfaced to the caller.
 
 type StatusResult = ActionResult<{ status: OrderStatus }>;
+
+/** A generic failure the vendor cannot act on, logged to ops_events for Merqo support. */
+async function failWithIncident(
+  action: string,
+  orderId: string,
+  error: string,
+): Promise<{ success: false; error: string }> {
+  await recordOrderIncident("action_error", orderId, action);
+  return { success: false, error };
+}
 
 /** Load the current order (RLS-scoped to the caller's booths) for a gated vendor. */
 async function loadOwnOrder(orderId: string) {
@@ -159,7 +170,7 @@ export async function advanceOrder(
     .select("id");
   if (error) {
     console.error("advanceOrder failed", error.message);
-    return { success: false, error: "Failed to update order" };
+    return failWithIncident("advanceOrder", orderId, "Failed to update order");
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed. Please refresh." };
@@ -234,7 +245,7 @@ export async function revertOrderAdvance(
     .select("id");
   if (error) {
     console.error("revertOrderAdvance failed", error.message);
-    return { success: false, error: "Failed to undo" };
+    return failWithIncident("revertOrderAdvance", orderId, "Failed to undo");
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed. Please refresh." };
@@ -298,7 +309,11 @@ export async function confirmPaymentAndStart(
       "confirmPaymentAndStart: paykit transaction lookup failed",
       transaction.error,
     );
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmPaymentAndStart",
+      orderId,
+      "Failed to confirm payment",
+    );
   }
   const confirm = await confirmCheckout(transaction.data);
   if (!confirm.ok) {
@@ -306,10 +321,18 @@ export async function confirmPaymentAndStart(
       "confirmPaymentAndStart: paykit confirm failed",
       confirm.error,
     );
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmPaymentAndStart",
+      orderId,
+      "Failed to confirm payment",
+    );
   }
   if (confirm.data.status !== "confirmed")
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmPaymentAndStart",
+      orderId,
+      "Failed to confirm payment",
+    );
 
   const { data: rows, error } = await supabase
     .from("orders")
@@ -319,7 +342,11 @@ export async function confirmPaymentAndStart(
     .select("id");
   if (error) {
     console.error("confirmPaymentAndStart failed", error.message);
-    return { success: false, error: "Failed to update order" };
+    return failWithIncident(
+      "confirmPaymentAndStart",
+      orderId,
+      "Failed to update order",
+    );
   }
   if (!rows || rows.length === 0) {
     // paykit's confirm above already happened for real -- a lost race here
@@ -395,7 +422,11 @@ export async function revertPaymentAndStart(
     .select("id");
   if (error) {
     console.error("revertPaymentAndStart failed", error.message);
-    return { success: false, error: "Failed to revert order" };
+    return failWithIncident(
+      "revertPaymentAndStart",
+      orderId,
+      "Failed to revert order",
+    );
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed -- please refresh." };
@@ -447,7 +478,11 @@ export async function restoreAutoCompleted(
     .select("id");
   if (error) {
     console.error("restoreAutoCompleted failed", error.message);
-    return { success: false, error: "Failed to restore order" };
+    return failWithIncident(
+      "restoreAutoCompleted",
+      orderId,
+      "Failed to restore order",
+    );
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed. Please refresh." };
@@ -520,15 +555,27 @@ export async function confirmOrderPayment(
       "confirmOrderPayment: paykit transaction lookup failed",
       transaction.error,
     );
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmOrderPayment",
+      orderId,
+      "Failed to confirm payment",
+    );
   }
   const confirm = await confirmCheckout(transaction.data);
   if (!confirm.ok) {
     console.error("confirmOrderPayment: paykit confirm failed", confirm.error);
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmOrderPayment",
+      orderId,
+      "Failed to confirm payment",
+    );
   }
   if (confirm.data.status !== "confirmed")
-    return { success: false, error: "Failed to confirm payment" };
+    return failWithIncident(
+      "confirmOrderPayment",
+      orderId,
+      "Failed to confirm payment",
+    );
 
   // Guard on the payment_status we read so a concurrent flip (double-tap, or a
   // cancel) makes this a no-op rather than a lost update. paykit already
@@ -596,17 +643,29 @@ export async function declinePaymentClaim(
       "declinePaymentClaim: paykit transaction lookup failed",
       transaction.error,
     );
-    return { success: false, error: "Failed to decline payment" };
+    return failWithIncident(
+      "declinePaymentClaim",
+      orderId,
+      "Failed to decline payment",
+    );
   }
   const unclaim = await unclaimCheckout(transaction.data);
   if (!unclaim.ok) {
     console.error("declinePaymentClaim: paykit unclaim failed", unclaim.error);
-    return { success: false, error: "Failed to decline payment" };
+    return failWithIncident(
+      "declinePaymentClaim",
+      orderId,
+      "Failed to decline payment",
+    );
   }
   if (unclaim.data.status === "confirmed")
     return { success: false, error: "This payment was already confirmed" };
   if (unclaim.data.status !== "pending")
-    return { success: false, error: "Failed to decline payment" };
+    return failWithIncident(
+      "declinePaymentClaim",
+      orderId,
+      "Failed to decline payment",
+    );
 
   const { error } = await supabase
     .from("orders")
@@ -658,7 +717,7 @@ export async function bumpOrder(orderId: string): Promise<ActionResult> {
     .select("id");
   if (error) {
     console.error("bumpOrder failed", error.message);
-    return { success: false, error: "Failed to bump order" };
+    return failWithIncident("bumpOrder", orderId, "Failed to bump order");
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed. Please refresh." };
@@ -708,7 +767,7 @@ export async function cancelOrder(orderId: string): Promise<ActionResult> {
     .select("id");
   if (error) {
     console.error("cancelOrder failed", error.message);
-    return { success: false, error: "Failed to cancel order" };
+    return failWithIncident("cancelOrder", orderId, "Failed to cancel order");
   }
   if (!rows || rows.length === 0)
     return { success: false, error: "Order changed. Please refresh." };
