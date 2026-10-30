@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 export const MAX_ORDER_LABELS = 100;
+// Matches printkit's label_batch item_options max.
+const MAX_OPTIONS_LENGTH = 240;
 const itemsSchema = z
   .array(
     z.object({
@@ -29,7 +31,11 @@ export function orderLabels(
       .join(", ");
     return { item, options };
   });
-  if (prepared.some(({ options }) => options && options.length > 240))
+  if (
+    prepared.some(
+      ({ options }) => options && options.length > MAX_OPTIONS_LENGTH,
+    )
+  )
     return null;
   return prepared.flatMap(({ item, options }) => {
     return Array.from({ length: item.quantity }, () => ({
