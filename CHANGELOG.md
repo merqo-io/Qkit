@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- Expand eligible persisted item quantities into bounded Printkit label batches after the existing Start/payment gates, with explicit handling for empty and invalid snapshots. Requires Printkit migration 0011 and physical staging verification.
+
 ## [0.3.0] - 2026-10-29
 
 ### Fixed
