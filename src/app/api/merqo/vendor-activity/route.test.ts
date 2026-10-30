@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { vendorActivityPayloadSchema } from "@merqo/ui/contracts";
 
 const bearerOkMock = vi.fn();
 
@@ -23,6 +24,7 @@ function chainable(result: { data: unknown; error: unknown }) {
   obj.select = self;
   obj.eq = self;
   obj.in = self;
+  obj.gte = self;
   obj.order = self;
   obj.range = (from: number, to: number) =>
     chainable({
@@ -56,12 +58,14 @@ type Fixtures = {
     total_cents: number;
     created_at: string;
   }[];
+  opsEvents?: { kind: string; ref: string; code: string; created_at: string }[];
   errorTable?:
     | "vendors"
     | "booths"
     | "licenses"
     | "support_messages"
-    | "orders";
+    | "orders"
+    | "ops_events";
   rateLimited?: boolean;
 };
 
@@ -73,6 +77,7 @@ function makeSupabase(fx: Fixtures) {
     licenses: fx.licenses ?? [],
     support_messages: fx.messages ?? [],
     orders: fx.orders ?? [],
+    ops_events: fx.opsEvents ?? [],
   };
   const supabase = {
     auth: {
@@ -260,5 +265,60 @@ describe("GET /api/merqo/vendor-activity", () => {
     const res = await GET(requestWith("vendor@example.com"));
 
     expect(res.status).toBe(503);
+  });
+  it("returns incidents and recent that parse with the contract schema", async () => {
+    bearerOkMock.mockReturnValue(true);
+    const at = new Date().toISOString();
+    fixtures = {
+      users: [{ id: "u1", email: "vendor@example.com" }],
+      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      opsEvents: [
+        {
+          kind: "webhook_rejected",
+          ref: "o1",
+          code: "signature_invalid",
+          created_at: at,
+        },
+        {
+          kind: "action_error",
+          ref: "o2",
+          code: "advanceOrder",
+          created_at: at,
+        },
+        { kind: "action_error", ref: "o3", code: "bumpOrder", created_at: at },
+      ],
+    };
+
+    const res = await GET(requestWith("vendor@example.com"));
+    const body = vendorActivityPayloadSchema.parse(await res.json());
+
+    expect(res.status).toBe(200);
+    expect(body.incidents).toEqual([
+      { kind: "action_error", count: 2, lastAt: at },
+      { kind: "webhook_rejected", count: 1, lastAt: at },
+    ]);
+    expect(body.recent).toHaveLength(3);
+    expect(body.recent?.[0]).toEqual({
+      kind: "webhook_rejected",
+      ref: "o1",
+      code: "signature_invalid",
+      at,
+    });
+  });
+
+  it("omits incidents when the ops_events read fails", async () => {
+    bearerOkMock.mockReturnValue(true);
+    fixtures = {
+      users: [{ id: "u1", email: "vendor@example.com" }],
+      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      errorTable: "ops_events",
+    };
+
+    const res = await GET(requestWith("vendor@example.com"));
+    const body = vendorActivityPayloadSchema.parse(await res.json());
+
+    expect(res.status).toBe(200);
+    expect(body.incidents).toBeUndefined();
+    expect(body.recent).toBeUndefined();
   });
 });
