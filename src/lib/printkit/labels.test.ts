@@ -40,14 +40,15 @@ describe("order label expansion", () => {
   );
   it("allows exactly 100 units", () =>
     expect(orderLabels([{ name: "Tea", quantity: 100 }])).toHaveLength(100));
-  it("bounds verbose modifiers", () =>
-    expect(
-      orderLabels([
-        {
-          name: "Tea",
-          quantity: 1,
-          options: [{ group: "x", choice: "x".repeat(500) }],
-        },
-      ])?.[0].item_options,
-    ).toHaveLength(240));
+  const withOptions = (total: number) => [
+    {
+      name: "Tea",
+      quantity: 1,
+      options: [{ group: "g", choice: "x".repeat(total - 3) }],
+    },
+  ];
+  it("passes options of exactly 240 characters intact", () =>
+    expect(orderLabels(withOptions(240))?.[0].item_options).toHaveLength(240));
+  it("rejects options of 241 characters instead of truncating", () =>
+    expect(orderLabels(withOptions(241))).toBeNull());
 });
