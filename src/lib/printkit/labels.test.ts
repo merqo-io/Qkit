@@ -40,7 +40,7 @@ describe("order label expansion", () => {
   );
   it("allows exactly 100 units", () =>
     expect(orderLabels([{ name: "Tea", quantity: 100 }])).toHaveLength(100));
-  it("bounds verbose modifiers", () =>
+  it("rejects verbose modifiers instead of silently dropping preparation details", () =>
     expect(
       orderLabels([
         {
@@ -48,6 +48,6 @@ describe("order label expansion", () => {
           quantity: 1,
           options: [{ group: "x", choice: "x".repeat(500) }],
         },
-      ])?.[0].item_options,
-    ).toHaveLength(240));
+      ]),
+    ).toBeNull());
 });

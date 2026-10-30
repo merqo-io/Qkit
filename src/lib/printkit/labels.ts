@@ -23,13 +23,18 @@ export function orderLabels(
     parsed.data.reduce((sum, item) => sum + item.quantity, 0) > MAX_ORDER_LABELS
   )
     return null;
-  return parsed.data.flatMap((item) => {
+  const prepared = parsed.data.map((item) => {
     const options = item.options
       ?.map((option) => `${option.group}: ${option.choice}`)
       .join(", ");
+    return { item, options };
+  });
+  if (prepared.some(({ options }) => options && options.length > 240))
+    return null;
+  return prepared.flatMap(({ item, options }) => {
     return Array.from({ length: item.quantity }, () => ({
       item_name: item.name,
-      ...(options ? { item_options: options.slice(0, 240) } : {}),
+      ...(options ? { item_options: options } : {}),
     }));
   });
 }

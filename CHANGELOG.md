@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Mark label printing as failed when drink options exceed Printkit limits instead of silently truncating preparation details.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added
