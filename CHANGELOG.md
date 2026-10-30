@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-30
+
+### Changed
+
+- Index the five foreign key columns the Supabase advisor flagged as unindexed (migration 0109) and add pgTAP coverage for index presence, RLS on every table and own-vendor-only payments reads.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added
