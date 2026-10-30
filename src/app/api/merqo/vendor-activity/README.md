@@ -26,10 +26,16 @@ this repo) for the cross-kit design.
 page.tsx` — merqo's own RLS on that table gates on `merqo_team` membership,
   not qkit admin membership; the authenticated machine endpoint uses its service role to bypass that RLS), then that vendor's `orders` (scoped to
   those booth ids), and delegates the actual aggregation to
-  `computeVendorActivity` (`@/lib/merqo/vendor-activity`).
+  `computeVendorActivity` (`@/lib/merqo/vendor-activity`). In parallel it
+  reads the last 72 hours of `ops_events` through `summarizeIncidents`
+  (`@/lib/ops-events`) and adds `incidents` (per kind: count, `lastAt`) and
+  `recent` (newest 10: kind, ref, code, at) per `vendorActivityPayloadSchema`
+  in `@merqo/ui/contracts`. If that read fails (for example before migration
+  `0108` is applied) both fields are omitted and the rest still returns 200.
 - `route.test.ts` — tests the 401/400/404/200/503 status branches against a
-  mocked Supabase client, and that an open support message surfaces as
-  `status: "attention"`.
+  mocked Supabase client, that an open support message surfaces as
+  `status: "attention"`, that `incidents`/`recent` parse with the contract
+  schema, and that a failed `ops_events` read omits them.
 
 ## Connectivity
 

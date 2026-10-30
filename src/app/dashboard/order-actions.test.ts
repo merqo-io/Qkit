@@ -144,6 +144,13 @@ vi.mock("@/lib/audit", () => ({
   recordOrderStatusEvent: recordOrderStatusEventMock,
 }));
 
+const { recordOrderIncidentMock } = vi.hoisted(() => ({
+  recordOrderIncidentMock: vi.fn(),
+}));
+vi.mock("@/lib/ops-events", () => ({
+  recordOrderIncident: recordOrderIncidentMock,
+}));
+
 const ID = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
@@ -178,6 +185,7 @@ beforeEach(() => {
   sweepSelect.mockReset().mockResolvedValue({ data: [], error: null });
   recordAuditMock.mockReset().mockResolvedValue(undefined);
   recordOrderStatusEventMock.mockReset().mockResolvedValue(undefined);
+  recordOrderIncidentMock.mockReset().mockResolvedValue(undefined);
   createCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
     data: { type: "qr", transactionId: "tx1", payload: "0002" },
@@ -1467,5 +1475,92 @@ describe("print dispatch after vendor actions", () => {
     });
     expect((await confirmPaymentAndStart(ID)).success).toBe(false);
     expect(notifyPrintkitMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("action_error incidents", () => {
+  const dbError = () =>
+    updateSelect.mockResolvedValue({ data: null, error: { message: "boom" } });
+  const order = (overrides: Record<string, unknown>) =>
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: ID,
+        booth_id: "b1",
+        order_number: "0001",
+        status: "preparing",
+        payment_status: "pending",
+        auto_completed: false,
+        total_cents: 800,
+        created_at: new Date().toISOString(),
+        ...overrides,
+      },
+      error: null,
+    });
+  const paykitConfirmFails = () =>
+    confirmCheckoutMock.mockResolvedValue({ ok: false, error: "down" });
+
+  it.each([
+    ["advanceOrder", () => (order({}), dbError()), () => advanceOrder(ID)],
+    [
+      "revertOrderAdvance",
+      () => (order({ status: "ready" }), dbError()),
+      () => revertOrderAdvance(ID, "preparing", "ready", "pending"),
+    ],
+    [
+      "confirmPaymentAndStart",
+      () => (
+        order({ status: "pending", payment_status: "claimed" }),
+        paykitConfirmFails()
+      ),
+      () => confirmPaymentAndStart(ID),
+    ],
+    [
+      "revertPaymentAndStart",
+      () => (order({}), dbError()),
+      () => revertPaymentAndStart(ID, "claimed"),
+    ],
+    [
+      "restoreAutoCompleted",
+      () => (order({ status: "completed", auto_completed: true }), dbError()),
+      () => restoreAutoCompleted(ID),
+    ],
+    [
+      "confirmOrderPayment",
+      () => (order({ payment_status: "claimed" }), paykitConfirmFails()),
+      () => confirmOrderPayment(ID),
+    ],
+    [
+      "declinePaymentClaim",
+      () => (
+        order({ payment_status: "claimed" }),
+        unclaimCheckoutMock.mockResolvedValue({ ok: false, error: "down" })
+      ),
+      () => declinePaymentClaim(ID),
+    ],
+    ["bumpOrder", () => (order({}), dbError()), () => bumpOrder(ID)],
+    ["cancelOrder", () => (order({}), dbError()), () => cancelOrder(ID)],
+  ])(
+    "%s records an action_error on a generic failure",
+    async (name, arrange, act) => {
+      arrange();
+      const res = await act();
+      expect(res.success).toBe(false);
+      expect(recordOrderIncidentMock).toHaveBeenCalledWith(
+        "action_error",
+        ID,
+        name,
+      );
+    },
+  );
+
+  it("records nothing for a failure the vendor can act on", async () => {
+    order({});
+    updateSelect.mockResolvedValue({ data: [], error: null });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({
+      success: false,
+      error: "Order changed. Please refresh.",
+    });
+    expect(recordOrderIncidentMock).not.toHaveBeenCalled();
   });
 });

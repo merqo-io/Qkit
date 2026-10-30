@@ -188,3 +188,7 @@ cup counters run with bounded concurrency and cannot fail the board.
 `eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand-icon.tsx` and `src/app/global-error.tsx`.
 
 Staging printing rehearsal: [candidate QA and release prerequisites](docs/meta/2026-10-27-staging-print-qa.md).
+
+## Multi-drink label candidate
+
+Eligible orders send one label per persisted item unit to Printkit using its `label_batch` contract. Empty walk-up orders do not print; the default includes non-drink items because stored order items have no drink flag. See [the specification](docs/superpowers/specs/2026-10-29-multi-drink-labels.md) for Printkit migration/rollout order, partial failure and pending Kopitiam Cart physical verification.

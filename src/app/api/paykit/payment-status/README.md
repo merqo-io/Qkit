@@ -25,9 +25,18 @@ by paykit, and a payment paykit confirms by itself.
   - `pending`: a `claimed` mirror goes back to `pending`.
   - A cancelled order, and an order that never took payment, are left alone
     and logged.
+  - Rejections are recorded as `webhook_rejected` in `ops_events` (ref = order
+    id): `transaction_missing` (paykit holds no payment) and
+    `transaction_mismatch` (vendor or amount differs), both against the booth's
+    vendor. A wrong secret records `signature_invalid` only when the unverified
+    body names a real qkit order; the vendor is read from qkit's own tables,
+    never the body, behind a separate 20 a minute limiter. A body without a
+    valid `order_ref` (the only schema failure) has no vendor and records
+    nothing.
 - `route.test.ts` — the gate (401, 429, 400, 404, 503), the read-back
   (paykit unreachable, no transaction, vendor mismatch, amount mismatch, a
-  forged or stale body), each rule above, and a repeated callback.
+  forged or stale body), each rule above, a repeated callback, and each
+  `webhook_rejected` record.
 
 ## Connectivity
 

@@ -753,6 +753,41 @@ export interface Database {
           },
         ];
       };
+      // Service-role only (migration 0108): select + insert, 30-day purge.
+      ops_events: {
+        Row: {
+          id: number;
+          vendor_id: string;
+          kind: "webhook_rejected" | "action_error";
+          ref: string;
+          code: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: never;
+          vendor_id: string;
+          kind: "webhook_rejected" | "action_error";
+          ref: string;
+          code: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: never;
+          vendor_id?: string;
+          kind?: "webhook_rejected" | "action_error";
+          ref?: string;
+          code?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ops_events_vendor_id_fkey";
+            columns: ["vendor_id"];
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

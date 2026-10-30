@@ -13,6 +13,7 @@ import { computeVendorActivity } from "@/lib/merqo/vendor-activity";
 import type { Plan } from "@/lib/types";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { summarizeIncidents } from "@/lib/ops-events";
 
 export const revalidate = 0;
 
@@ -141,10 +142,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { booths, licenses, messages, orders } = await readActivityData(
-      supabase,
-      vendor.id,
-    );
+    const [{ booths, licenses, messages, orders }, incidents] =
+      await Promise.all([
+        readActivityData(supabase, vendor.id),
+        summarizeIncidents(supabase, vendor.id),
+      ]);
 
     const nowMs = Date.now();
     const passExpiresAt =
@@ -161,7 +163,9 @@ export async function GET(request: Request) {
       nowMs,
     );
 
-    return NextResponse.json(payload);
+    return NextResponse.json(
+      incidents ? { ...payload, ...incidents } : payload,
+    );
   } catch (error) {
     console.error("merqo vendor-activity: read failed", error);
     return NextResponse.json(

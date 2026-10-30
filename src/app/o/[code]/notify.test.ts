@@ -64,6 +64,10 @@ beforeEach(() => {
     data: {
       id: "o1",
       customer_name: "Ann",
+      items: [
+        { name: "Kopi", quantity: 2 },
+        { name: "Tea", quantity: 1 },
+      ],
       status: "preparing",
       payment_status: "confirmed",
     },
@@ -86,6 +90,11 @@ describe("notifyPrintkit run more than once for one order", () => {
       boothId: BOOTH,
       customerName: "Ann",
       orderNumber: "007",
+      labels: [
+        { item_name: "Kopi" },
+        { item_name: "Kopi" },
+        { item_name: "Tea" },
+      ],
     });
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({ print_status: "queued" }),
@@ -220,9 +229,48 @@ describe("printing eligibility", () => {
     ["completed", "confirmed", false],
   ])("%s / %s prints: %s", async (status, payment_status, eligible) => {
     ordersMaybeSingle.mockResolvedValue({
-      data: { id: "o1", customer_name: "Ann", status, payment_status },
+      data: {
+        id: "o1",
+        customer_name: "Ann",
+        items: [{ name: "Kopi", quantity: 1 }],
+        status,
+        payment_status,
+      },
     });
     await notifyPrintkit(BOOTH, "0007");
     expect(createPrintJobMock).toHaveBeenCalledTimes(eligible ? 1 : 0);
+  });
+});
+
+describe("order label snapshots", () => {
+  it("does not queue an empty walk-up order", async () => {
+    ordersMaybeSingle.mockResolvedValue({
+      data: {
+        id: "o1",
+        customer_name: "Ann",
+        status: "preparing",
+        payment_status: "not_required",
+        items: [],
+      },
+    });
+    await notifyPrintkit(BOOTH, "0007");
+    expect(createPrintJobMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+  it("marks invalid quantities failed without printing", async () => {
+    ordersMaybeSingle.mockResolvedValue({
+      data: {
+        id: "o1",
+        customer_name: "Ann",
+        status: "preparing",
+        payment_status: "not_required",
+        items: [{ name: "Tea", quantity: -2 }],
+      },
+    });
+    await notifyPrintkit(BOOTH, "0007");
+    expect(createPrintJobMock).not.toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ print_status: "failed" }),
+    );
   });
 });

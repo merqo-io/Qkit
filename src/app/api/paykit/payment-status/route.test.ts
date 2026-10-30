@@ -79,6 +79,14 @@ vi.mock("@/lib/supabase/server", () => ({
       },
     }),
 }));
+const { recordOpsEventMock, recordOrderIncidentMock } = vi.hoisted(() => ({
+  recordOpsEventMock: vi.fn(),
+  recordOrderIncidentMock: vi.fn(),
+}));
+vi.mock("@/lib/ops-events", () => ({
+  recordOpsEvent: recordOpsEventMock,
+  recordOrderIncident: recordOrderIncidentMock,
+}));
 vi.mock("@/lib/paykit/client", () => ({
   getCheckoutByOrderRef: getCheckoutByOrderRefMock,
 }));
@@ -167,6 +175,8 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ ok: true, orderNumber: "0007" });
   writePaidMirrorMock.mockReset().mockResolvedValue(undefined);
+  recordOpsEventMock.mockReset().mockResolvedValue(undefined);
+  recordOrderIncidentMock.mockReset().mockResolvedValue(undefined);
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -174,13 +184,47 @@ afterEach(() => {
 });
 
 describe("POST /api/paykit/payment-status: the gate", () => {
-  it("401s without the callback secret, before reading anything", async () => {
+  it("401s without the callback secret, before reading the order or calling paykit", async () => {
     bearerOkMock.mockReturnValue(false);
     const res = await callback();
     expect(res.status).toBe(401);
-    expect(rateLimitMock).not.toHaveBeenCalled();
+    expect(rateLimitMock).not.toHaveBeenCalledWith(
+      "paykit-payment-status:203.0.113.5",
+      120,
+      60,
+    );
     expect(orderMaybeSingle).not.toHaveBeenCalled();
     expect(getCheckoutByOrderRefMock).not.toHaveBeenCalled();
+  });
+
+  it("records a rejected secret against the order's own vendor", async () => {
+    bearerOkMock.mockReturnValue(false);
+    await callback();
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      "paykit-payment-status-rejected:203.0.113.5",
+      20,
+      60,
+    );
+    expect(recordOrderIncidentMock).toHaveBeenCalledWith(
+      "webhook_rejected",
+      ORDER_ID,
+      "signature_invalid",
+    );
+  });
+
+  it("records nothing for a rejected secret once its limiter refuses", async () => {
+    bearerOkMock.mockReturnValue(false);
+    rateLimitMock.mockResolvedValue(false);
+    const res = await callback();
+    expect(res.status).toBe(401);
+    expect(recordOrderIncidentMock).not.toHaveBeenCalled();
+  });
+
+  it("records nothing for a rejected secret whose body has no order_ref", async () => {
+    bearerOkMock.mockReturnValue(false);
+    const res = await post({ order_ref: "A-001" });
+    expect(res.status).toBe(401);
+    expect(recordOrderIncidentMock).not.toHaveBeenCalled();
   });
 
   it("429s when the limiter refuses, before reading the order or calling paykit", async () => {
@@ -217,6 +261,8 @@ describe("POST /api/paykit/payment-status: the gate", () => {
   it("accepts a body that carries only order_ref", async () => {
     const res = await post({ order_ref: ORDER_ID });
     expect(res.status).toBe(200);
+    expect(recordOpsEventMock).not.toHaveBeenCalled();
+    expect(recordOrderIncidentMock).not.toHaveBeenCalled();
   });
 
   it("404s for an order qkit does not have, without calling paykit", async () => {
@@ -289,6 +335,12 @@ describe("POST /api/paykit/payment-status: reading the status back", () => {
     const res = await callback("confirmed");
     expect(res.status).toBe(409);
     expectNothingApplied();
+    expect(recordOpsEventMock).toHaveBeenCalledWith(expect.anything(), {
+      vendorId: "v1",
+      kind: "webhook_rejected",
+      ref: ORDER_ID,
+      code: "transaction_missing",
+    });
   });
 
   it("changes nothing and 409s when the transaction belongs to another vendor", async () => {
@@ -297,6 +349,12 @@ describe("POST /api/paykit/payment-status: reading the status back", () => {
     expect(res.status).toBe(409);
     expectNothingApplied();
     expect(errorSpy).toHaveBeenCalled();
+    expect(recordOpsEventMock).toHaveBeenCalledWith(expect.anything(), {
+      vendorId: "v1",
+      kind: "webhook_rejected",
+      ref: ORDER_ID,
+      code: "transaction_mismatch",
+    });
   });
 
   it("changes nothing and 409s when the transaction's amount differs from the order's total", async () => {

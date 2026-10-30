@@ -67,3 +67,5 @@ location on the booth id.
 ## Parent
 
 [lib](../README.md)
+
+`labels.ts` validates the persisted order snapshot and expands one label per item unit, bounded at 100 total. `createPrintJob` can send the new `label_batch` contract; old calls without labels retain the legacy single-label body. See the multi-drink specification for the item-classification default, Printkit migration dependency and physical acceptance steps.

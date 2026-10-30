@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-30
+
+### Changed
+
+- Index the five foreign key columns the Supabase advisor flagged as unindexed (migration 0109) and add pgTAP coverage for index presence, RLS on every table and own-vendor-only payments reads.
+
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- Expand eligible persisted item quantities into bounded Printkit label batches after the existing Start/payment gates, with explicit handling for empty and invalid snapshots. Requires Printkit migration 0011 and physical staging verification.
+
+## [0.3.0] - 2026-10-29
+
 ### Fixed
 
 - Daily ticket numbers keep their numeric baseline when the lifetime counter crosses 9,999; lost-response checkout errors now explain that the order may already exist and must be recovered with the same details.
@@ -13,6 +27,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `qkit.ops_events` failure log (migration `0108`, service-role only, purged after 30 days). Rejected paykit callbacks are recorded as `webhook_rejected` (`signature_invalid`, `transaction_missing`, `transaction_mismatch`) and generic order-board action failures as `action_error` (code = action name). `GET /api/merqo/vendor-activity` now returns `incidents` and `recent` for the last 72 hours. Requires owner-applied migration `0108`.
 - NCS November 6 readiness checklist covering shared-number incident capture, retries, venue Wi-Fi, a 200-cup rehearsal and the Ops lead handoff.
 
 ## [0.2.0] - 2026-10-24

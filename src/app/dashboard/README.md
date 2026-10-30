@@ -19,7 +19,8 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 - `order-actions.test.ts` — mocked boundary and concurrency regressions for
   fulfillment, payment confirmation, cancellation and sweeps. Assertions check
   exact conditional writes, Paykit response state, payment isolation on pickup
-  and undo, and best-effort notification behavior. Database RLS is tested separately.
+  and undo, and best-effort notification behavior, plus one `action_error`
+  incident test per action. Database RLS is tested separately.
 - `order-actions.ts` — validated vendor actions using the authenticated client
   and RLS. `advanceOrder` and `revertOrderAdvance` condition writes on the expected
   status and modify only fulfillment state/timestamps; the ready transition sends
@@ -33,6 +34,10 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
   reliable reconciliation after that failure remains outstanding.
   `declinePaymentClaim` sends a claimed payment back to unpaid through Paykit's
   unclaim, then mirrors `pending`; it never reverts a confirmed payment.
+  Every generic "Failed to ..." return goes through `failWithIncident`, which
+  records an `action_error` row in `ops_events` (code = the action name, ref =
+  the order id) for Merqo support; failures the vendor can act on ("Order
+  changed", "Order not found") record nothing.
   Cancellation rejects confirmed payments and manually closed orders, while
   allowing unpaid auto-completed orders. `bumpOrder` changes queue priority;
   ready/abandoned sweeps affect only eligible orders in the vendor's RLS scope.
