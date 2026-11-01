@@ -82,7 +82,8 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("./booths/actions", () => ({ toggleBoothActive: vi.fn() }));
 vi.mock("./walkup-menu-actions", () => ({ getWalkupMenu: vi.fn() }));
 vi.mock("./walkup-actions", () => ({ placeWalkupOrder: vi.fn() }));
@@ -567,6 +568,36 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       />,
     );
     expect(screen.getByText("0/200 items")).toBeInTheDocument();
+  });
+
+  it("refreshes the server data at most once per 5s, with a trailing call", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      render(
+        <RealtimeOrderBoard
+          booths={BOOTHS}
+          initialOrders={[]}
+          boardSettings={DEFAULT_BOARD_SETTINGS}
+        />,
+        { wrapper: TooltipProvider },
+      );
+      for (const n of ["0001", "0002", "0003"]) {
+        act(() =>
+          realtime.emit?.({
+            eventType: "INSERT",
+            new: order({ id: n, order_number: n }),
+            old: {},
+          }),
+        );
+      }
+      expect(router.refresh).toHaveBeenCalledTimes(1);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(router.refresh).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not re-read for a booth with no cap", () => {

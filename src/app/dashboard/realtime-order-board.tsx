@@ -105,6 +105,7 @@ const SORT_ORDERS: { value: AgeSortOrder; label: string }[] = [
   { value: "latest", label: "Latest" },
 ];
 const HEADER_BUTTON = "rounded-full";
+const REFRESH_MIN_GAP_MS = 5000;
 
 /**
  * "New orders while away" tab-title badge: bumps a counter when the vendor's
@@ -267,11 +268,35 @@ export function RealtimeOrderBoard({
     return ownWalkups.current.delete(`${order.booth_id}:${order.order_number}`);
   }
 
+  // booths is not in the realtime publication, so another device's Start new
+  // service only reaches this board through a server re-read. Throttled with a
+  // trailing call so a burst of orders costs one render and the last still lands.
+  const lastRefreshAt = useRef(0);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    },
+    [],
+  );
+  function refreshThrottled() {
+    const wait = REFRESH_MIN_GAP_MS - (Date.now() - lastRefreshAt.current);
+    if (wait <= 0) {
+      lastRefreshAt.current = Date.now();
+      router.refresh();
+      return;
+    }
+    if (refreshTimer.current) return;
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      lastRefreshAt.current = Date.now();
+      router.refresh();
+    }, wait);
+  }
+
   function handleNewOrder(order: BoardOrder) {
     if (isNil(order.order_number)) return;
-    // booths is not in the realtime publication, so another device's Start new
-    // service only reaches this board through a server re-read.
-    router.refresh();
+    refreshThrottled();
     if (order.source === "walkup") {
       if (claimOwnWalkup(order)) return;
       if (walkupsInFlight.current > 0) {

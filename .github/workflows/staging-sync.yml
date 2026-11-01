@@ -2,6 +2,7 @@ name: staging sync
 
 # Keeps the long-lived `staging` branch (the staging Vercel deployment) on main's
 # exact commit. Fast-forward only: a diverged `staging` fails here instead of being overwritten.
+# Pushes use the merqo-staging-sync app token: a ruleset limits staging pushes to that app.
 on:
   push:
     branches: [main]
@@ -19,12 +20,21 @@ jobs:
     name: fast-forward staging to main
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.STAGING_SYNC_APP_ID }}
+          private-key: ${{ secrets.STAGING_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
       - run: git push origin HEAD:refs/heads/staging
       # Vercel skips a git deploy for a commit it already built (main's production
       # deploy), so the staging deploy is triggered through the project's deploy hook.
