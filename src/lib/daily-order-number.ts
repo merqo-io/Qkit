@@ -34,11 +34,15 @@ export async function firstOrderNumberToday(
   client: Client,
   boothId: string,
 ): Promise<string | null> {
-  const { data: booth } = await client
+  const { data: booth, error: boothError } = await client
     .from("booths")
     .select("cap_reset_at")
     .eq("id", boothId)
     .maybeSingle();
+  if (boothError) {
+    console.error("daily-baseline booth read failed", boothError.message);
+    return null;
+  }
   const { data } = await client
     .from("orders")
     .select("order_number")

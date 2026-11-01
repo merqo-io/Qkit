@@ -175,6 +175,24 @@ describe("Start new service restarts the display number", () => {
     expect(displayOrderNumber("0011", b1)).toBe("002");
   });
 
+  it("single-booth lookup gives no baseline when the booth read fails", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { message: "boom" },
+            }),
+          }),
+        }),
+      }),
+    } as unknown as Client;
+    expect(await firstOrderNumberToday(client, "b1")).toBeNull();
+    spy.mockRestore();
+  });
+
   it("single-booth lookup asks only for orders since the reset", async () => {
     const reset = new Date(Date.now() + 60_000).toISOString();
     const { client, gte } = fakeClient({

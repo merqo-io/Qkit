@@ -269,6 +269,9 @@ export function RealtimeOrderBoard({
 
   function handleNewOrder(order: BoardOrder) {
     if (isNil(order.order_number)) return;
+    // booths is not in the realtime publication, so another device's Start new
+    // service only reaches this board through a server re-read.
+    router.refresh();
     if (order.source === "walkup") {
       if (claimOwnWalkup(order)) return;
       if (walkupsInFlight.current > 0) {

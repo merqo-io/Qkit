@@ -247,6 +247,32 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("ignores orders before a mid-day Start new service when deriving the baseline", () => {
+    const before = new Date(Date.now() - 20 * 60_000).toISOString();
+    const restart = new Date(Date.now() - 10 * 60_000).toISOString();
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({ id: "old", order_number: "0010", created_at: before }),
+          order({ id: "new", order_number: "0011", created_at: TODAY }),
+        ]}
+        boardSettings={{
+          ...DEFAULT_BOARD_SETTINGS,
+          daily_order_number_reset: true,
+        }}
+        numberingStarts={{ b1: restart }}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByText(byOrderNumber("#001"), ORDER_NUMBER_OPTS),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(byOrderNumber("#0010"), ORDER_NUMBER_OPTS),
+    ).toBeInTheDocument();
+  });
+
   it("derives a baseline per booth, not one across booths", () => {
     render(
       <RealtimeOrderBoard

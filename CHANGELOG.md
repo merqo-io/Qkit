@@ -10,7 +10,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- "Start new service" now restarts the displayed order number at #001 (board, TV display, status page, labels, alerts), not only the daily item count. Orders placed before the restart keep their permanent number instead of showing 000 or a negative rank. The permanent order number sequence is unchanged and no migration is needed.
+- "Start new service" now restarts the displayed order number at #001 (board, TV display, status page, labels, alerts), not only the daily item count. Orders placed before the restart keep their permanent number instead of showing 000 or a negative rank. The permanent order number sequence is unchanged and no migration is needed. Other open boards re-read the server when an order arrives, so they pick up the restart without a reload.
 
 ## [0.4.2] - 2026-10-31
 
