@@ -183,10 +183,10 @@ z.boolean().default(true)` — a vendor-side opt-out for the `ready`-transition
 
 | Skill               | What it does                                                 |
 | ------------------- | ------------------------------------------------------------ |
-| `/next-verify`      | typecheck + lint + test in one pass                          |
+| `/next-verify`      | typecheck + lint + test + build in one pass                  |
 | `/supabase-migrate` | apply `supabase/migrations` + regenerate types (safety gate) |
 | `/security-scan`    | local secret scan (gitleaks) + dependency audit before push  |
-| `/changelog`        | append a Keep-a-Changelog entry under `[Unreleased]`         |
+| `/changelog`        | changelog entry under `[Unreleased]` or bumped version       |
 
 ### templateCentral plugin skills
 
