@@ -78,7 +78,7 @@ export async function placeOrder(
 
   const supabase = await createServerClient();
 
-  // Per-session key stops shared venue Wi-Fi sharing one bucket; per-IP cap catches cookie-dropping clients.
+  // Per-session key keeps shared venue Wi-Fi apart; per-IP cap bounds cookie-dropping clients.
   const ip = clientIp(await headers());
   const sid = await orderSessionId();
   const allowed =

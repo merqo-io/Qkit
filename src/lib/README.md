@@ -319,7 +319,8 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
 - `order-session.ts` — `orderSessionId()`: reads or mints (and sets) the httpOnly,
   SameSite=Lax `qkit_order_sid` cookie (Secure in production), a server-made
   UUID that keys the per-browser order rate limit so customers behind one
-  venue IP do not share a bucket. A client can never choose it.
+  venue IP do not share a bucket. Server-minted; the per-IP cap bounds
+  clients that forge or drop it.
 - `order-session.test.ts` — cookie created when absent, reused when valid,
   replaced when malformed.
 - `realtime-orders.ts` — `parseRealtimeOrderEvent`/`applyRealtimeOrderEvent`:
