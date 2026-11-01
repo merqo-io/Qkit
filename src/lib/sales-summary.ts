@@ -1,4 +1,4 @@
-import type { StatsSummary } from "@/lib/stats";
+import type { ItemTotals, StatsSummary } from "@/lib/stats";
 import { spreadsheetText } from "./spreadsheet-text";
 import { centsToDollarString } from "@/lib/utils";
 
@@ -85,14 +85,26 @@ function csvCell(value: string | number): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+export type CsvItems = {
+  items: SalesSummaryV1["top_items"];
+  totals: ItemTotals;
+};
+
+function sumItems(items: SalesSummaryV1["top_items"]): ItemTotals {
+  return {
+    quantity: items.reduce((n, it) => n + it.quantity, 0),
+    revenue_cents: items.reduce((n, it) => n + it.revenue_cents, 0),
+    profit_cents: items.reduce((n, it) => n + it.profit_cents, 0),
+  };
+}
+
 /**
- * CSV: summary block, then items plus a total row. `items` defaults to the
- * bounded v1 slice; the dashboard passes the full set so Quantity sums right.
+ * CSV: summary block, then items plus a total row. `full` carries the
+ * uncapped totals; without it the bounded v1 slice is used.
  */
-export function salesSummaryToCsv(
-  s: SalesSummaryV1,
-  items: SalesSummaryV1["top_items"] = s.top_items,
-): string {
+export function salesSummaryToCsv(s: SalesSummaryV1, full?: CsvItems): string {
+  const items = full?.items ?? s.top_items;
+  const totals = full?.totals ?? sumItems(items);
   const rows: (string | number)[][] = [
     ["Metric", "Value"],
     ["Generated at", spreadsheetText(s.generated_at)],
@@ -120,13 +132,11 @@ export function salesSummaryToCsv(
       centsToDollarString(it.profit_cents),
     ]);
   }
-  const sum = (pick: (it: (typeof items)[number]) => number) =>
-    items.reduce((n, it) => n + pick(it), 0);
   rows.push([
     "Total items",
-    sum((it) => it.quantity),
-    centsToDollarString(sum((it) => it.revenue_cents)),
-    centsToDollarString(sum((it) => it.profit_cents)),
+    totals.quantity,
+    centsToDollarString(totals.revenue_cents),
+    centsToDollarString(totals.profit_cents),
   ]);
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }

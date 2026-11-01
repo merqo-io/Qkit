@@ -25,6 +25,7 @@ function summary(over: Partial<StatsSummary> = {}): StatsSummary {
         profit_cents: 300,
       },
     ],
+    itemTotals: { quantity: 2, revenue_cents: 400, profit_cents: 300 },
     hourly: [],
     busiestHour: null,
     dayHour: [],
@@ -96,7 +97,7 @@ describe("toSalesSummaryV1", () => {
 describe("salesSummaryToCsv", () => {
   it("lists every supplied item and a Total items row, while top_items stays at 10", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({
-      label: `Item ${i}`,
+      label: i === 10 ? "=cmd" : `Item ${i}`,
       quantity: 12 - i,
       revenue_cents: 100,
       cost_cents: 40,
@@ -104,10 +105,19 @@ describe("salesSummaryToCsv", () => {
     }));
     const v1 = toSalesSummaryV1(summary({ topItems: many }), meta);
     expect(v1.top_items).toHaveLength(10);
-    const lines = salesSummaryToCsv(v1, many).split("\n");
+    const totals = { quantity: 99, revenue_cents: 5000, profit_cents: 3000 };
+    const lines = salesSummaryToCsv(v1, { items: many, totals }).split("\n");
     const start = lines.indexOf("Item,Quantity,Revenue,Profit");
     expect(lines.slice(start + 1)).toHaveLength(13);
-    expect(lines.at(-1)).toBe("Total items,78,12.00,7.20");
+    expect(lines).toContain("'=cmd,2,1.00,0.60");
+    expect(lines.at(-1)).toBe("Total items,99,50.00,30.00");
+  });
+
+  it("totals the bounded top_items when no full list is given", () => {
+    const v1 = toSalesSummaryV1(summary(), meta);
+    expect(salesSummaryToCsv(v1).split("\n").at(-1)).toBe(
+      "Total items,2,4.00,3.00",
+    );
   });
 
   it("emits a summary block then an items table", () => {
