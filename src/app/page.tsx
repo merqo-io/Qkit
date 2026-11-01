@@ -7,12 +7,14 @@ import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel"
 import { BackToTop } from "@merqo/ui";
 import { Ticket } from "@/components/widgets/ticket";
 import { createServerClient } from "@/lib/supabase/server";
-import { DEFAULT_PRICING } from "@/lib/pricing";
-import { formatPrice } from "@/lib/utils";
 
 export const revalidate = 0;
 
-const TRUST = ["No app", "No hardware", "Free to start"];
+const TRUST = ["No app", "No hardware", "Open signup"];
+
+// The charge condition must stay beside the free claim, so both are one string.
+const PRICING_LINE =
+  "Free during the pilot. If we start charging, you'll get at least 30 days' notice first.";
 
 const STEPS = [
   {
@@ -28,7 +30,7 @@ const STEPS = [
   {
     icon: Bell,
     title: "Watch orders land",
-    body: "Orders hit your live board in real time. Move them preparing → ready → done.",
+    body: "Orders hit your order board in real time. Move them preparing → ready → done.",
   },
 ];
 
@@ -53,61 +55,6 @@ const MOAT = [
 type FaqAnswer = string | { lead?: string; bullets?: string[]; note?: string };
 
 type FaqEntry = { q: string; a: FaqAnswer };
-
-// Sentinels for the two answers that depend on whether prices are set in
-// /admin. Home swaps them for the entry that matches, so the FAQ cannot say
-// "free" beside a pricing section that shows a price.
-const FAQ_COST: FaqEntry = { q: "How much does it cost?", a: "" };
-const FAQ_PLANS: FaqEntry = {
-  q: "Event pass or monthly: what's the difference?",
-  a: "",
-};
-
-const PLAN_DIFFERENCES = [
-  "Event pass: unlocks the full kit for a single event, great for the occasional market.",
-  "Monthly: keeps it on plus full sales history and trends across events, better if you trade most weeks.",
-];
-
-/** The pricing answers, worded for the prices the pricing section shows. */
-function pricingAnswers(
-  passPrice: string | null,
-  monthlyPrice: string | null,
-): Map<FaqEntry, FaqAnswer> {
-  const paid = passPrice !== null || monthlyPrice !== null;
-  const prices = [
-    passPrice && `Event pass: ${passPrice} a day.`,
-    monthlyPrice && `Monthly: ${monthlyPrice} a month.`,
-  ].filter((line): line is string => Boolean(line));
-  return new Map<FaqEntry, FaqAnswer>([
-    [
-      FAQ_COST,
-      {
-        lead: "Start free with one booth (up to 6 items) and today's stats.",
-        bullets: [
-          "The full kit adds extra booths, customization, auto-close hours, and sold-out caps.",
-          ...(paid
-            ? prices
-            : [
-                "It's free while we're in beta: just ask and we'll unlock it for your next event.",
-              ]),
-        ],
-        note: paid
-          ? "Pay by PayNow or cash. Card payment is not available yet."
-          : "Per-event and monthly prices come later.",
-      },
-    ],
-    [
-      FAQ_PLANS,
-      {
-        lead: "Same full features either way.",
-        bullets: PLAN_DIFFERENCES,
-        note: paid
-          ? "See the pricing section above for today's prices."
-          : "Both are free during beta.",
-      },
-    ],
-  ]);
-}
 
 const FAQ: FaqEntry[] = [
   {
@@ -134,15 +81,17 @@ const FAQ: FaqEntry[] = [
       note: "qkit never holds your money. Online card payment is not available yet.",
     },
   },
-  FAQ_COST,
-  FAQ_PLANS,
+  {
+    q: "How much does it cost?",
+    a: PRICING_LINE,
+  },
   {
     q: "Can orders stop when I sell out?",
-    a: "Yes. Set a stock limit per item and qkit counts it down as orders come in, then marks it sold out so customers can't order what you've run out of. Included with the event pass and monthly.",
+    a: "Yes. Set a stock limit per item and qkit counts it down as orders come in, then marks it sold out so customers can't order what you've run out of.",
   },
   {
     q: "Can I schedule when my booth takes orders?",
-    a: "Yes. Set open/close hours and orders stop automatically outside them, no need to pause the booth by hand. Included with the event pass and monthly.",
+    a: "Yes. Set open/close hours and orders stop automatically outside them, no need to pause the booth by hand.",
   },
   {
     q: "Does it work for non-food booths?",
@@ -167,7 +116,7 @@ const VENDOR_FAQ: FaqEntry[] = [
   {
     q: "New orders stopped appearing on my board.",
     a: {
-      lead: "The board updates live and reconnects on its own.",
+      lead: "The board updates in real time and reconnects on its own.",
       bullets: [
         "If the connection drops (tab asleep, patchy wifi) you'll see a Reconnecting notice, then it re-syncs any missed orders once it's back.",
         "If it still looks stuck, reload the page.",
@@ -188,11 +137,11 @@ const VENDOR_FAQ: FaqEntry[] = [
   {
     q: "My booth is Open but customers see 'not taking orders'.",
     a: {
-      lead: "A booth serves only when all three are true: it's Open (not paused), within its set hours, and within your plan's serve limit.",
+      lead: "A booth serves only when all three are true: it's Open (not paused), within its set hours, and within your account's booth limit.",
       bullets: [
-        "The free plan serves one live booth at a time.",
-        "If you have more (say, after an event pass ended), only your oldest open booth serves and the rest show as Over plan limit.",
-        "Renew a pass or go Pro to serve them all, or pause the extras.",
+        "An account serves one booth at a time unless extra booths are unlocked.",
+        "If you have more open booths than that, only your oldest open booth serves and the rest are held back.",
+        "Pause the extras, or ask us about unlocking more booths.",
       ],
     },
   },
@@ -202,7 +151,7 @@ const VENDOR_FAQ: FaqEntry[] = [
       lead: "Two things to check.",
       bullets: [
         "Scheduled hours are always read in Singapore time (SGT), so check them against SGT.",
-        "Hours are a pass or Pro feature. On the free plan any saved hours are cleared, and a free booth takes orders whenever it is Open and stops when you pause it.",
+        "Scheduled hours need extra features unlocked on your account. Without them any saved hours are cleared, and a booth takes orders whenever it is Open and stops when you pause it.",
       ],
     },
   },
@@ -212,12 +161,12 @@ const VENDOR_FAQ: FaqEntry[] = [
       lead: "Usual causes:",
       bullets: [
         "The QR or short code was regenerated, so they need to rescan.",
-        "The booth stopped serving (paused, over the plan limit, or outside SGT hours).",
+        "The booth stopped serving (paused, over the booth limit, or outside SGT hours).",
         "An item sold out or went unavailable mid-order.",
         "A line exceeded 20 of one item.",
         "More than 8 orders came from the same network within a minute (clears after 60s).",
       ],
-      note: "Ask them to rescan and retry. Orders are atomic with an idempotency key, so a failed or retried attempt never double-charges or duplicates.",
+      note: "Ask them to rescan and retry. Orders are atomic with an idempotency key, so a failed or retried attempt never creates a duplicate order.",
     },
   },
   {
@@ -244,10 +193,10 @@ const VENDOR_FAQ: FaqEntry[] = [
   {
     q: "My stats only show the last 24 hours.",
     a: {
-      lead: "The 7-, 30-, and 90-day trend ranges are Pro-only.",
+      lead: "The 7-, 30-, and 90-day trend ranges need extra features unlocked on your account.",
       bullets: [
-        "An event pass unlocks the operational features (extra booths, unlimited items, stock caps, auto-close hours), but its stats still show the 24-hour view.",
-        "Go monthly Pro for longitudinal trends across events.",
+        "Without them, stats show the 24-hour view.",
+        "Ask us if you want longer trends across events.",
       ],
     },
   },
@@ -315,33 +264,9 @@ function FaqItem({ q, a }: FaqEntry) {
 
 export default async function LandingPage() {
   const supabase = await createServerClient();
-  const [
-    {
-      data: { user },
-    },
-    { data: pricingRow },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("pricing")
-      .select("event_pass_cents, monthly_cents, currency")
-      .eq("id", 1)
-      .maybeSingle(),
-  ]);
-
-  const pricing = pricingRow ?? DEFAULT_PRICING;
-  // Prices unset (= pre-Stripe beta) → the pass is a free trial granted on
-  // request. Set prices in /admin to flip the page to paid/PayNow framing.
-  const passPrice =
-    pricing.event_pass_cents > 0 ? formatPrice(pricing.event_pass_cents) : null;
-  const monthlyPrice =
-    pricing.monthly_cents > 0 ? formatPrice(pricing.monthly_cents) : null;
-  const paidMode = passPrice !== null || monthlyPrice !== null;
-  const pricingAnswer = pricingAnswers(passPrice, monthlyPrice);
-  const faq = FAQ.map((entry) => ({
-    q: entry.q,
-    a: pricingAnswer.get(entry) ?? entry.a,
-  }));
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const primaryHref = user ? "/dashboard" : "/login?mode=signup";
   const primaryLabel = user ? "Go to dashboard" : "Get started";
@@ -354,12 +279,20 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-5 pb-10 pt-10 sm:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div className="text-center lg:text-left">
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 lg:justify-start">
+              <span className="rounded-full border border-primary/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Piloting
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Running with a few vendors
+              </span>
+            </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
               <ScanLine className="size-3.5" />
               Scan · order · track
             </span>
             <h1 className="font-display mt-6 text-5xl font-semibold leading-[1.05] sm:text-6xl">
-              Live booth ordering,
+              Booth ordering,
               <br />
               minus the queue.
             </h1>
@@ -452,7 +385,7 @@ export default async function LandingPage() {
       {/* Why / moat */}
       <section className="mx-auto max-w-5xl px-5 py-14">
         <h2 className="font-display mb-10 text-center text-3xl font-semibold">
-          Why vendors pick qkit
+          What qkit does
         </h2>
         <div className="grid gap-5 sm:grid-cols-3">
           {MOAT.map((m) => (
@@ -470,119 +403,11 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing teaser */}
-      <section className="mx-auto max-w-5xl px-5 py-14">
-        <h2 className="font-display mb-3 text-center text-3xl font-semibold">
-          Pricing that fits how you trade
-        </h2>
-        <p className="mx-auto mb-10 max-w-xl text-center text-sm text-muted-foreground">
-          Run free, pay per day for the events you need the full kit, or go
-          monthly if you trade most weeks.
+      <section className="mx-auto max-w-5xl px-5 py-14 text-center">
+        <p className="mx-auto max-w-xl text-base font-semibold text-foreground">
+          {PRICING_LINE}
         </p>
-        <div className="grid gap-5 sm:grid-cols-3">
-          {/* Free */}
-          <Ticket
-            shadow="none"
-            className="p-6 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-24px_oklch(0.4_0.06_45/0.5)]"
-          >
-            <p className="font-display text-2xl font-semibold">Free</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try it with one booth.
-            </p>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li>1 booth · up to 6 items</li>
-              <li>Live order board</li>
-              <li>QR poster + customization</li>
-              <li>Today&apos;s stats</li>
-              <li>Unlimited orders</li>
-            </ul>
-          </Ticket>
-
-          {/* Event pass */}
-          <Ticket
-            shadow="none"
-            className="p-6 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-24px_oklch(0.4_0.06_45/0.5)]"
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="font-display text-2xl font-semibold">Event pass</p>
-              <span
-                className={
-                  passPrice
-                    ? "font-mono text-sm font-bold"
-                    : "text-xs font-semibold text-primary"
-                }
-              >
-                {passPrice ? (
-                  <>
-                    {passPrice}
-                    <span className="font-normal text-muted-foreground">
-                      {" "}
-                      /day
-                    </span>
-                  </>
-                ) : (
-                  "Free in beta"
-                )}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Full kit, priced per day.
-            </p>
-            {passPrice && (
-              <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                Founding price
-              </span>
-            )}
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li>Extra booths</li>
-              <li>Unlimited items &amp; customization</li>
-              <li>Scheduled auto-close hours</li>
-              <li>Sold-out stock caps</li>
-              <li>That event&apos;s stats</li>
-            </ul>
-          </Ticket>
-
-          {/* Monthly Pro */}
-          <Ticket
-            shadow="none"
-            className="border-primary/40 bg-primary/[0.04] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_18px_44px_-24px_oklch(0.4_0.09_45/0.55)]"
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="font-display text-2xl font-semibold text-primary">
-                Monthly Pro
-              </p>
-              <span
-                className={
-                  monthlyPrice
-                    ? "font-mono text-sm font-bold text-primary"
-                    : "text-xs font-semibold text-muted-foreground"
-                }
-              >
-                {monthlyPrice ?? "Coming soon"}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              For trading most weeks.
-            </p>
-            {monthlyPrice && (
-              <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                Founding price
-              </span>
-            )}
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li>Everything in the pass</li>
-              <li>Full history: 7 / 30 / 90-day</li>
-              <li>Busy-times heatmap &amp; trends</li>
-              <li>Profit margin per item + CSV</li>
-            </ul>
-          </Ticket>
-        </div>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          {paidMode
-            ? "Founding price for early vendors, locks in while we're in beta. Pay by PayNow or cash; card payments coming soon."
-            : "Free while we're in beta. Ask for a pass to unlock the full kit for your next event."}
-        </p>
-        <div className="mt-6 text-center">
+        <div className="mt-6">
           <LandingCta
             href={primaryHref}
             event={user ? undefined : "landing_cta"}
@@ -610,7 +435,7 @@ export default async function LandingPage() {
               What most vendors ask before their first event.
             </p>
             <div className="mt-6 space-y-3">
-              {faq.map((item) => (
+              {FAQ.map((item) => (
                 <FaqItem key={item.q} q={item.q} a={item.a} />
               ))}
             </div>
