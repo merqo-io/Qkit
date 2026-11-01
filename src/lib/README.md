@@ -354,7 +354,9 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
 - `reviews.test.ts` — tests distribution/average math and per-booth grouping.
 - `sales-summary.ts` — `SalesSummaryV1` (the FROZEN, versioned, snake_case
   external contract returned by `/api/v1/sales/summary`), `toSalesSummaryV1`
-  (maps the internal `StatsSummary`), `salesSummaryToCsv`.
+  (maps the internal `StatsSummary`), `salesSummaryToCsv` (takes an optional
+  full item list; defaults to the bounded `top_items`; ends with a
+  `Total items` row).
 - `sales-summary.test.ts` — tests the v1 mapping and CSV serialization
   (including cell-quoting of values containing commas/quotes/newlines).
 - `schemas.ts` — the Zod schema library for every form/action/JSONB boundary:

@@ -94,6 +94,22 @@ describe("toSalesSummaryV1", () => {
 });
 
 describe("salesSummaryToCsv", () => {
+  it("lists every supplied item and a Total items row, while top_items stays at 10", () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      label: `Item ${i}`,
+      quantity: 12 - i,
+      revenue_cents: 100,
+      cost_cents: 40,
+      profit_cents: 60,
+    }));
+    const v1 = toSalesSummaryV1(summary({ topItems: many }), meta);
+    expect(v1.top_items).toHaveLength(10);
+    const lines = salesSummaryToCsv(v1, many).split("\n");
+    const start = lines.indexOf("Item,Quantity,Revenue,Profit");
+    expect(lines.slice(start + 1)).toHaveLength(13);
+    expect(lines.at(-1)).toBe("Total items,78,12.00,7.20");
+  });
+
   it("emits a summary block then an items table", () => {
     const csv = salesSummaryToCsv(toSalesSummaryV1(summary(), meta));
     expect(csv).toContain("Metric,Value");

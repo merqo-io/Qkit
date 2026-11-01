@@ -86,11 +86,16 @@ function csvCell(value: string | number): string {
 }
 
 /**
- * Serialise a sales summary to CSV: a key/value summary block, then the
- * top-items table. Monetary values are plain decimals (no "$") so spreadsheets
+ * Serialise a sales summary to CSV: a key/value summary block, then the items
+ * table with a closing total row. `items` defaults to the bounded v1 slice;
+ * the dashboard export passes the full set so the Quantity column sums to the
+ * real cup count. Monetary values are plain decimals (no "$") so spreadsheets
  * treat them as numbers.
  */
-export function salesSummaryToCsv(s: SalesSummaryV1): string {
+export function salesSummaryToCsv(
+  s: SalesSummaryV1,
+  items: SalesSummaryV1["top_items"] = s.top_items,
+): string {
   const rows: (string | number)[][] = [
     ["Metric", "Value"],
     ["Generated at", spreadsheetText(s.generated_at)],
@@ -110,7 +115,7 @@ export function salesSummaryToCsv(s: SalesSummaryV1): string {
   }
   rows.push([]);
   rows.push(["Item", "Quantity", "Revenue", "Profit"]);
-  for (const it of s.top_items) {
+  for (const it of items) {
     rows.push([
       spreadsheetText(it.label),
       it.quantity,
@@ -118,5 +123,13 @@ export function salesSummaryToCsv(s: SalesSummaryV1): string {
       centsToDollarString(it.profit_cents),
     ]);
   }
+  const sum = (pick: (it: (typeof items)[number]) => number) =>
+    items.reduce((n, it) => n + pick(it), 0);
+  rows.push([
+    "Total items",
+    sum((it) => it.quantity),
+    centsToDollarString(sum((it) => it.revenue_cents)),
+    centsToDollarString(sum((it) => it.profit_cents)),
+  ]);
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }

@@ -37,7 +37,9 @@ feedback reads. The live review list keeps its explicit 500-row recent limit.
   `?event=<id>`; each row can be renamed inline via `renameEvent`.
 - `export-button.tsx` — `ExportButton({ summary, range, boothId })`: builds a
   `SalesSummaryV1` via `@/lib/sales-summary` and downloads it as a CSV blob
-  named `qkit-sales-<range>.csv`.
+  named `qkit-sales-<range>.csv`. The items table lists every item in
+  `summary.topItems` (capped at 50 by `computeStats`, not the v1 top 10) plus a
+  `Total items` row.
 - `tile-layout.ts` — `WIDE_ON_PHONE`: the class that gives a tile the whole
   row on a phone. The strip is two tiles across there, about 118px of text
   each, which cut the revenue figure ("$1,804.…") and the best seller's name

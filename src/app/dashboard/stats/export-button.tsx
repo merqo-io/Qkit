@@ -19,7 +19,7 @@ export function ExportButton({
       boothId,
       generatedAt: new Date().toISOString(),
     });
-    const blob = new Blob([salesSummaryToCsv(v1)], {
+    const blob = new Blob([salesSummaryToCsv(v1, summary.topItems)], {
       type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
