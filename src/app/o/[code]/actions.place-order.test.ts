@@ -84,8 +84,9 @@ vi.mock("next/headers", () => ({
   headers: async () => new Map<string, string>(),
   cookies: async () => ({ get: () => undefined, set: () => undefined }),
 }));
+const SID = "22222222-2222-4222-8222-222222222222";
 vi.mock("@/lib/order-session", () => ({
-  orderSessionId: async () => "22222222-2222-4222-8222-222222222222",
+  orderSessionId: async () => SID,
 }));
 
 import { placeOrder } from "./actions";
@@ -198,11 +199,11 @@ describe("placeOrder", () => {
     });
     await placeOrder("code123", validInput, IDEM);
     expect(calls).toEqual([
-      { key: "order:code123:unknown", limit: 60 },
       {
-        key: "order:code123:unknown:22222222-2222-4222-8222-222222222222",
+        key: `order:code123:unknown:${SID}`,
         limit: 8,
       },
+      { key: "order:code123:unknown", limit: 60 },
     ]);
   });
 
@@ -210,12 +211,27 @@ describe("placeOrder", () => {
     rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
       if (name === "check_rate_limit")
         return Promise.resolve({
-          data: !(args.p_key as string).includes(":2222"),
+          data: args.p_key !== `order:code123:unknown:${SID}`,
         });
       throw new Error(`unexpected rpc: ${name}`);
     });
     const res = await placeOrder("code123", validInput, IDEM);
     expect(res.success).toBe(false);
+  });
+
+  it("does not consume the IP bucket when the session is refused", async () => {
+    const keys: string[] = [];
+    rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      if (name === "check_rate_limit") {
+        keys.push(args.p_key as string);
+        return Promise.resolve({ data: false });
+      }
+      throw new Error(`unexpected rpc: ${name}`);
+    });
+    await placeOrder("code123", validInput, IDEM);
+    expect(keys.filter((k) => k.startsWith("order:"))).toEqual([
+      `order:code123:unknown:${SID}`,
+    ]);
   });
 
   it("refuses when the outer IP bucket is exhausted", async () => {

@@ -78,14 +78,12 @@ export async function placeOrder(
 
   const supabase = await createServerClient();
 
-  // Anti-flood (best-effort, fails open). Venue Wi-Fi shares one IP, so the
-  // tight limit is per browser session; the looser per-IP cap stops a client
-  // that drops its cookie. place_order also has a booth-scoped limiter.
+  // Per-session key stops shared venue Wi-Fi sharing one bucket; per-IP cap catches cookie-dropping clients.
   const ip = clientIp(await headers());
   const sid = await orderSessionId();
   const allowed =
-    (await rateLimit(`order:${code}:${ip}`, 60, 60)) &&
-    (await rateLimit(`order:${code}:${ip}:${sid}`, 8, 60));
+    (await rateLimit(`order:${code}:${ip}:${sid}`, 8, 60)) &&
+    (await rateLimit(`order:${code}:${ip}`, 60, 60));
   if (!allowed)
     return {
       success: false,

@@ -16,7 +16,7 @@ export async function orderSessionId(): Promise<string> {
   const sid = crypto.randomUUID();
   store.set(COOKIE, sid, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE_SECONDS,

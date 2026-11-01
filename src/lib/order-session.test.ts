@@ -25,7 +25,7 @@ describe("orderSessionId", () => {
       sid,
       expect.objectContaining({
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
       }),
     );
