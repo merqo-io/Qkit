@@ -82,6 +82,10 @@ vi.mock("@/lib/printkit/client", () => ({
 }));
 vi.mock("next/headers", () => ({
   headers: async () => new Map<string, string>(),
+  cookies: async () => ({ get: () => undefined, set: () => undefined }),
+}));
+vi.mock("@/lib/order-session", () => ({
+  orderSessionId: async () => "22222222-2222-4222-8222-222222222222",
 }));
 
 import { placeOrder } from "./actions";
@@ -174,6 +178,54 @@ describe("placeOrder", () => {
     });
     // place_order must NOT be reached once the limiter denies.
     expect(seen).toEqual(["check_rate_limit"]);
+  });
+
+  it("limits per session (8/60s) and per IP (60/60s) with distinct keys", async () => {
+    const calls: { key: string; limit: number }[] = [];
+    rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      if (name === "check_rate_limit") {
+        if ((args.p_key as string).startsWith("order:"))
+          calls.push({
+            key: args.p_key as string,
+            limit: args.p_limit as number,
+          });
+        return Promise.resolve({ data: true });
+      }
+      return Promise.resolve({
+        data: { order_number: "1", booth_id: "b1", access_token: "t" },
+        error: null,
+      });
+    });
+    await placeOrder("code123", validInput, IDEM);
+    expect(calls).toEqual([
+      { key: "order:code123:unknown", limit: 60 },
+      {
+        key: "order:code123:unknown:22222222-2222-4222-8222-222222222222",
+        limit: 8,
+      },
+    ]);
+  });
+
+  it("refuses when only the session bucket is exhausted", async () => {
+    rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      if (name === "check_rate_limit")
+        return Promise.resolve({
+          data: !(args.p_key as string).includes(":2222"),
+        });
+      throw new Error(`unexpected rpc: ${name}`);
+    });
+    const res = await placeOrder("code123", validInput, IDEM);
+    expect(res.success).toBe(false);
+  });
+
+  it("refuses when the outer IP bucket is exhausted", async () => {
+    rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      if (name === "check_rate_limit")
+        return Promise.resolve({ data: args.p_limit !== 60 });
+      throw new Error(`unexpected rpc: ${name}`);
+    });
+    const res = await placeOrder("code123", validInput, IDEM);
+    expect(res.success).toBe(false);
   });
 
   it("fails open when the limiter errors (data null) and proceeds to place_order", async () => {

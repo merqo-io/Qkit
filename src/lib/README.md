@@ -316,6 +316,8 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
   on limiter failure so a degraded limiter never blocks real customers.
 - `rate-limit.test.ts` — tests the fail-open behavior and IP extraction.
+- `order-session.ts` — `orderSessionId()`: reads or mints (and sets) the httpOnly, Secure, SameSite=Lax `qkit_order_sid` cookie, a server-made UUID that keys the per-browser order rate limit so customers behind one venue IP do not share a bucket. A client can never choose it.
+- `order-session.test.ts` — cookie created when absent, reused when valid, replaced when malformed.
 - `realtime-orders.ts` — `parseRealtimeOrderEvent`/`applyRealtimeOrderEvent`:
   validates untrusted Supabase Realtime payloads via `orderRowSchema`, strips
   `access_token` before it reaches client state (Postgres replication

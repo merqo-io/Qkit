@@ -3,6 +3,7 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { createServerClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { orderSessionId } from "@/lib/order-session";
 import {
   placeOrderSchema,
   type PlaceOrderInput,
@@ -77,11 +78,14 @@ export async function placeOrder(
 
   const supabase = await createServerClient();
 
-  // Anti-flood (best-effort). Fails open. This
-  // is the honest-path per-IP guard; place_order also carries a booth-scoped
-  // limiter so a direct RPC call that skips this action is still bounded.
+  // Anti-flood (best-effort, fails open). Venue Wi-Fi shares one IP, so the
+  // tight limit is per browser session; the looser per-IP cap stops a client
+  // that drops its cookie. place_order also has a booth-scoped limiter.
   const ip = clientIp(await headers());
-  const allowed = await rateLimit(`order:${code}:${ip}`, 8, 60);
+  const sid = await orderSessionId();
+  const allowed =
+    (await rateLimit(`order:${code}:${ip}`, 60, 60)) &&
+    (await rateLimit(`order:${code}:${ip}:${sid}`, 8, 60));
   if (!allowed)
     return {
       success: false,
