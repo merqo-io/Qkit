@@ -90,21 +90,12 @@ export type CsvItems = {
   totals: ItemTotals;
 };
 
-function sumItems(items: SalesSummaryV1["top_items"]): ItemTotals {
-  return {
-    quantity: items.reduce((n, it) => n + it.quantity, 0),
-    revenue_cents: items.reduce((n, it) => n + it.revenue_cents, 0),
-    profit_cents: items.reduce((n, it) => n + it.profit_cents, 0),
-  };
-}
-
 /**
  * CSV: summary block, then items plus a total row. `full` carries the
- * uncapped totals; without it the bounded v1 slice is used.
+ * uncapped item list and totals.
  */
-export function salesSummaryToCsv(s: SalesSummaryV1, full?: CsvItems): string {
-  const items = full?.items ?? s.top_items;
-  const totals = full?.totals ?? sumItems(items);
+export function salesSummaryToCsv(s: SalesSummaryV1, full: CsvItems): string {
+  const { items, totals } = full;
   const rows: (string | number)[][] = [
     ["Metric", "Value"],
     ["Generated at", spreadsheetText(s.generated_at)],

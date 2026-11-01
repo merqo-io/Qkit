@@ -94,6 +94,20 @@ describe("toSalesSummaryV1", () => {
   });
 });
 
+// Totals mirror the v1 slice; the full-list path is covered by its own test.
+function csvOf(v1: SalesSummaryV1): string {
+  const sum = (pick: (it: SalesSummaryV1["top_items"][number]) => number) =>
+    v1.top_items.reduce((n, it) => n + pick(it), 0);
+  return salesSummaryToCsv(v1, {
+    items: v1.top_items,
+    totals: {
+      quantity: sum((it) => it.quantity),
+      revenue_cents: sum((it) => it.revenue_cents),
+      profit_cents: sum((it) => it.profit_cents),
+    },
+  });
+}
+
 describe("salesSummaryToCsv", () => {
   it("lists every supplied item and a Total items row, while top_items stays at 10", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({
@@ -113,15 +127,8 @@ describe("salesSummaryToCsv", () => {
     expect(lines.at(-1)).toBe("Total items,99,50.00,30.00");
   });
 
-  it("totals the bounded top_items when no full list is given", () => {
-    const v1 = toSalesSummaryV1(summary(), meta);
-    expect(salesSummaryToCsv(v1).split("\n").at(-1)).toBe(
-      "Total items,2,4.00,3.00",
-    );
-  });
-
   it("emits a summary block then an items table", () => {
-    const csv = salesSummaryToCsv(toSalesSummaryV1(summary(), meta));
+    const csv = csvOf(toSalesSummaryV1(summary(), meta));
     expect(csv).toContain("Metric,Value");
     expect(csv).toContain("Revenue,5.00");
     expect(csv).toContain("Gross margin %,72");
@@ -130,7 +137,7 @@ describe("salesSummaryToCsv", () => {
   });
 
   it("quotes cells containing commas", () => {
-    const csv = salesSummaryToCsv(
+    const csv = csvOf(
       toSalesSummaryV1(
         summary({
           topItems: [
@@ -150,7 +157,7 @@ describe("salesSummaryToCsv", () => {
   });
 
   it("escapes embedded quotes and newlines in a cell", () => {
-    const csv = salesSummaryToCsv(
+    const csv = csvOf(
       toSalesSummaryV1(
         summary({
           topItems: [
@@ -179,7 +186,7 @@ it("neutralizes untrusted CSV text while keeping negative money numeric and quot
   ];
   out.range = "  +SUM(1)";
   out.booth_id = "@formula";
-  const csv = salesSummaryToCsv(out);
+  const csv = csvOf(out);
   expect(csv).toContain("'=1+1,1,1.00,-1.00");
   expect(csv).toContain("Range,'  +SUM(1)");
   expect(csv).toContain("Booth,'@formula");
