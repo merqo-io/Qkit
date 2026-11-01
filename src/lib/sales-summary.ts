@@ -86,11 +86,8 @@ function csvCell(value: string | number): string {
 }
 
 /**
- * Serialise a sales summary to CSV: a key/value summary block, then the items
- * table with a closing total row. `items` defaults to the bounded v1 slice;
- * the dashboard export passes the full set so the Quantity column sums to the
- * real cup count. Monetary values are plain decimals (no "$") so spreadsheets
- * treat them as numbers.
+ * CSV: summary block, then items plus a total row. `items` defaults to the
+ * bounded v1 slice; the dashboard passes the full set so Quantity sums right.
  */
 export function salesSummaryToCsv(
   s: SalesSummaryV1,
