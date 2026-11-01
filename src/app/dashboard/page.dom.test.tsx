@@ -39,7 +39,9 @@ beforeEach(() => {
     let selected = "";
     let afterId: string | null = null;
     const result = () =>
-      fixtures[selected === "booth_id, order_number" ? "baselines" : table] ?? {
+      fixtures[
+        selected === "booth_id, order_number, created_at" ? "baselines" : table
+      ] ?? {
         data: null,
       };
     const chain = {
@@ -119,6 +121,7 @@ beforeEach(() => {
     return chain;
   });
 });
+const NOW_ISO = new Date().toISOString();
 const booths = [
   { id: "a", name: "Coffee", is_active: true, hours: null, daily_cup_cap: 20 },
   { id: "b", name: "Tea", is_active: false, hours: null, daily_cup_cap: null },
@@ -273,10 +276,10 @@ describe("dashboard initial load", () => {
     fixtures.booths = { data: booths };
     fixtures.baselines = {
       data: [
-        { booth_id: "a", order_number: null },
-        { booth_id: "a", order_number: "A001" },
-        { booth_id: "a", order_number: "A002" },
-        { booth_id: "b", order_number: "B003" },
+        { booth_id: "a", order_number: null, created_at: NOW_ISO },
+        { booth_id: "a", order_number: "A001", created_at: NOW_ISO },
+        { booth_id: "a", order_number: "A002", created_at: NOW_ISO },
+        { booth_id: "b", order_number: "B003", created_at: NOW_ISO },
       ],
     };
     render(await DashboardPage());

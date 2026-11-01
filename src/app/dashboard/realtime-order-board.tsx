@@ -90,6 +90,10 @@ interface Props {
   // seenFirstNumbers). With the setting off the map stays empty and no fallback
   // is computed, so every card shows its real, permanent number.
   dailyOrderNumberBaselines?: Record<string, string>;
+  // Each booth's ISO time its daily numbering last restarted (SGT midnight or
+  // Start new service), keyed by booth id. Orders before it do not count
+  // towards the live fallback baseline.
+  numberingStarts?: Record<string, string>;
   // Each booth's short codes for option choices, keyed by booth id (see
   // buildOptionCodes in @/lib/ticket). A booth with none is simply absent, and
   // its tickets print every choice in full.
@@ -139,6 +143,7 @@ export function RealtimeOrderBoard({
   boardSettings,
   loadError = false,
   dailyOrderNumberBaselines = {},
+  numberingStarts = {},
   optionCodes = {},
 }: Props) {
   const router = useRouter();
@@ -348,7 +353,9 @@ export function RealtimeOrderBoard({
     const dayStart = Date.parse(sgtStartOfDayIso());
     for (const o of orders) {
       if (isNil(o.order_number)) continue;
-      if (Date.parse(o.created_at) < dayStart) continue;
+      const start = numberingStarts[o.booth_id];
+      const since = start ? Math.max(dayStart, Date.parse(start)) : dayStart;
+      if (Date.parse(o.created_at) < since) continue;
       const seen = lowest[o.booth_id];
       if (
         seen === null ||
@@ -359,7 +366,7 @@ export function RealtimeOrderBoard({
       }
     }
     return lowest;
-  }, [orders, boardSettings.daily_order_number_reset]);
+  }, [orders, boardSettings.daily_order_number_reset, numberingStarts]);
 
   // Toasts, the desktop notification and the walk-up dialog all name an order
   // the moment it is placed, and used to name it by its permanent number

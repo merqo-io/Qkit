@@ -51,8 +51,10 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 - `pending-order.test.ts` — recovery metadata isolation, payload normalization,
   corrupt data rejection and unavailable storage regressions.
 - `daily-order-number.ts` — `firstOrderNumberToday(client, boothId)`: the
-  booth's first `order_number` of the SGT day, the baseline
-  `displayOrderNumber` ranks against. `vendorFacingOrderNumber(client,
+  booth's first `order_number` since its numbering last restarted (SGT
+  midnight or "Start new service", `numberingStartIso`), the baseline
+  `displayOrderNumber` ranks against. Orders placed before a mid-day restart
+  rank at or below zero, so they keep their permanent number. `vendorFacingOrderNumber(client,
 vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   numbering on, the permanent number otherwise. Shared by every server
   path that shows a single booth's ticket number (status page, TV display,
@@ -63,7 +65,8 @@ vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
   its fast path for four-digit numbers and scans today's numbers when text
   ordering could put a longer number first.
 - `daily-order-number.test.ts` — the first order found, none today, the SGT
-  day window, and `vendorFacingOrderNumber` with daily numbering on, off,
+  day window, the Start new service restart (001 after it, permanent number
+  before it, setting off), and `vendorFacingOrderNumber` with daily numbering on, off,
   unreadable settings, and no order yet today; numeric baseline stability at
   the 9,999 boundary and across the API page cap.
 - `cart.ts` — `cartKey(menuItemId, options)` (stable dedup key sorted by
