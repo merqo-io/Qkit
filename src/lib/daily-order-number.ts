@@ -7,9 +7,23 @@ import { sgtStartOfDayIso } from "@/lib/tz";
 type Client = Awaited<ReturnType<typeof createServiceClient>>;
 
 /**
- * The booth's first order_number of the SGT day, or null when it has had no
- * order yet today. This is the baseline `displayOrderNumber` ranks against
- * when a vendor has daily numbering on.
+ * When a booth's daily numbering last restarted: the later of the SGT day
+ * start and its "Start new service" stamp (booths.cap_reset_at).
+ */
+export function numberingStartIso(capResetAt: string | null | undefined) {
+  const dayStart = sgtStartOfDayIso();
+  if (!capResetAt || Number.isNaN(Date.parse(capResetAt))) return dayStart;
+  return Date.parse(capResetAt) > Date.parse(dayStart)
+    ? new Date(capResetAt).toISOString()
+    : dayStart;
+}
+
+/**
+ * The booth's first order_number since its numbering last restarted (SGT
+ * midnight or Start new service), or null when it has had no order since.
+ * This is the baseline `displayOrderNumber` ranks against when a vendor has
+ * daily numbering on. Orders placed before a mid-day restart rank at or below
+ * zero against it, so they keep their permanent number.
  *
  * Shared by every server path that shows a ticket number for a
  * single booth (the customer's status page, the TV display, the printed
@@ -20,11 +34,20 @@ export async function firstOrderNumberToday(
   client: Client,
   boothId: string,
 ): Promise<string | null> {
+  const { data: booth, error: boothError } = await client
+    .from("booths")
+    .select("cap_reset_at")
+    .eq("id", boothId)
+    .maybeSingle();
+  if (boothError) {
+    console.error("daily-baseline booth read failed", boothError.message);
+    return null;
+  }
   const { data } = await client
     .from("orders")
     .select("order_number")
     .eq("booth_id", boothId)
-    .gte("created_at", sgtStartOfDayIso())
+    .gte("created_at", numberingStartIso(booth?.cap_reset_at))
     .order("order_number", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -48,10 +71,23 @@ export async function firstOrderNumbersToday(
   if (boothIds.length === 0) return baselines;
   try {
     for (let offset = 0; offset < boothIds.length; offset += 100) {
+      const chunk = boothIds.slice(offset, offset + 100);
+      const { data: boothRows, error: boothError } = await client
+        .from("booths")
+        .select("id, cap_reset_at")
+        .in("id", chunk);
+      if (boothError) throw boothError;
+      const starts = new Map(
+        (boothRows ?? []).map((b) => [
+          b.id,
+          Date.parse(numberingStartIso(b.cap_reset_at)),
+        ]),
+      );
+      const dayStartMs = Date.parse(sgtStartOfDayIso());
       const query = client
         .from("orders")
-        .select("booth_id, order_number")
-        .in("booth_id", boothIds.slice(offset, offset + 100))
+        .select("booth_id, order_number, created_at")
+        .in("booth_id", chunk)
         .gte("created_at", sgtStartOfDayIso())
         .order("order_number", { ascending: true })
         .order("id");
@@ -60,6 +96,7 @@ export async function firstOrderNumbersToday(
       );
       for (const o of todaysOrders) {
         if (
+          Date.parse(o.created_at) >= (starts.get(o.booth_id) ?? dayStartMs) &&
           o.order_number !== null &&
           o.order_number !== undefined &&
           (!(o.booth_id in baselines) ||
