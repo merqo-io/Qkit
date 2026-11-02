@@ -21,7 +21,7 @@ export function LandingBoard({ board }: { board: LandingBoardData }) {
       <div className="mb-3 flex items-center justify-between px-1">
         <div className="min-w-0">
           <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Live orders
+            Sample orders
           </p>
           <p className="truncate font-display text-sm font-semibold leading-tight">
             {board.title}

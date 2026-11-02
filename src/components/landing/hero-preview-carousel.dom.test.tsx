@@ -21,10 +21,18 @@ afterEach(() => {
 });
 
 describe("HeroPreviewCarousel", () => {
+  it("shows no price, em dash or readiness claim on any board", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(/\$/);
+    expect(text).not.toMatch(/\u2014/);
+    expect(text).not.toMatch(/\b(live|now|available today|proven)\b/i);
+  });
   it("renders all 4 boards and 4 dots", () => {
     mockMatchMedia(false);
     const { container } = render(<HeroPreviewCarousel />);
-    expect(screen.getAllByText(/Live orders/i)).toHaveLength(4);
+    expect(screen.getAllByText(/Sample orders/i)).toHaveLength(4);
     expect(container.querySelectorAll("[data-dot]")).toHaveLength(4);
   });
   it("does not auto-advance the active dot under reduced motion", () => {

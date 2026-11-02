@@ -23,9 +23,6 @@ export type LandingTicketData = {
   payment?: "unpaid" | "claimed" | "paid";
   age?: { label: string; tone: "normal" | "aging" | "overdue" };
   lines: TicketLine[];
-  // What the order comes to. Like the real card, it is printed only where it
-  // is being checked: on the button that confirms a payment.
-  total?: string;
   action?: string;
 };
 
@@ -147,11 +144,6 @@ export function LandingTicket({ t }: { t: LandingTicketData }) {
         <div className="px-3 pb-3">
           <span className="flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
             {t.action}
-            {t.payment === "claimed" && t.total && (
-              <span className="ml-auto pl-2 font-mono tabular-nums">
-                {t.total}
-              </span>
-            )}
           </span>
         </div>
       )}

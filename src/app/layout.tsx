@@ -35,10 +35,10 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Qkit | Live Queueing",
+  title: "qkit | Booth ordering",
   description: "Scan, order, and track from any food booth in real time.",
   // iOS standalone PWA chrome (status bar + home-screen title).
-  appleWebApp: { capable: true, title: "Qkit", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "qkit", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -50,7 +50,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Anonymous-safe (same client shape as the public order page) — read errors
+  // Anonymous-safe (same client shape as the public order page): read errors
   // fail closed to "no banner" (DEFAULT_PLATFORM_SETTINGS) rather than
   // breaking every single page load site-wide over a display-only feature.
   // The client is still made on every request: it reads the cookies, which

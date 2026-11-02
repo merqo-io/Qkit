@@ -2,15 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-const { getUser, pricing, nav } = vi.hoisted(() => ({
+const { getUser, nav } = vi.hoisted(() => ({
   getUser: vi.fn(),
-  pricing: vi.fn(),
   nav: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({
     auth: { getUser },
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: pricing }) }) }),
   }),
 }));
 vi.mock("@/components/landing/nav", () => ({
@@ -38,11 +36,10 @@ import LandingPage from "./page";
 beforeEach(() => {
   vi.clearAllMocks();
   getUser.mockResolvedValue({ data: { user: null } });
-  pricing.mockResolvedValue({ data: null });
 });
 
 describe("public landing page", () => {
-  it("offers signup with fallback pricing when no pricing row exists", async () => {
+  it("offers signup", async () => {
     render(await LandingPage());
     for (const link of screen.getAllByRole("link", { name: "Get started" }))
       expect(link).toHaveAttribute("href", "/login?mode=signup");
@@ -61,19 +58,6 @@ describe("public landing page", () => {
       expect(link).toHaveAttribute("href", "/dashboard");
     expect(nav).toHaveBeenCalledWith({ authed: true });
   });
-  it("shows explicit beta availability when both paid prices are unset", async () => {
-    pricing.mockResolvedValue({
-      data: { event_pass_cents: 0, monthly_cents: 0, currency: "SGD" },
-    });
-    render(await LandingPage());
-    expect(screen.getByText("Free in beta")).toBeInTheDocument();
-    expect(screen.getByText("Coming soon")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Free while we're in beta. Ask for a pass to unlock the full kit for your next event.",
-      ),
-    ).toBeInTheDocument();
-  });
   it("says PayNow checkout exists and that qkit does not hold the money", async () => {
     render(await LandingPage());
     expect(
@@ -81,43 +65,35 @@ describe("public landing page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
   });
-  it("keeps the beta wording out of the FAQ once a price is set", async () => {
-    pricing.mockResolvedValue({
-      data: { event_pass_cents: 1200, monthly_cents: 2500, currency: "SGD" },
-    });
+  it("shows the pilot badge and keeps open signup", async () => {
     render(await LandingPage());
-    expect(screen.getByText("Event pass: $12.00 a day.")).toBeInTheDocument();
-    expect(screen.getByText("Monthly: $25.00 a month.")).toBeInTheDocument();
-    expect(screen.queryByText(/free while we're in beta/i)).toBeNull();
-    expect(screen.queryByText(/free during beta/i)).toBeNull();
-  });
-  it("says the full kit is free in the FAQ while no price is set", async () => {
-    pricing.mockResolvedValue({
-      data: { event_pass_cents: 0, monthly_cents: 0, currency: "SGD" },
-    });
-    render(await LandingPage());
+    expect(screen.getByText("Piloting")).toBeInTheDocument();
+    expect(screen.getByText("Running with a few vendors")).toBeInTheDocument();
     expect(
-      screen.getByText(/It's free while we're in beta: just ask/),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Both are free during beta.")).toBeInTheDocument();
+      screen.getAllByRole("link", { name: "Get started" }).length,
+    ).toBeGreaterThan(0);
   });
-  it.each([
-    [1200, 2500],
-    [0, 2500],
-    [1200, 0],
-  ])(
-    "renders independently configured pass/month prices %s/%s",
-    async (event_pass_cents, monthly_cents) => {
-      pricing.mockResolvedValue({
-        data: { event_pass_cents, monthly_cents, currency: "SGD" },
-      });
-      render(await LandingPage());
-      if (event_pass_cents)
-        expect(screen.getByText("$12.00")).toBeInTheDocument();
-      if (monthly_cents) expect(screen.getByText("$25.00")).toBeInTheDocument();
-      expect(
-        screen.getByText(/Founding price for early vendors/),
-      ).toBeInTheDocument();
-    },
-  );
+  it("shows the free-during-pilot line with its 30-day notice condition", async () => {
+    render(await LandingPage());
+    const line =
+      "Free during the pilot. If we start charging, you'll get at least 30 days' notice first.";
+    expect(screen.getAllByText(line).length).toBeGreaterThan(0);
+  });
+  it("shows no prices, plan names or day-pass copy", async () => {
+    const { container } = render(await LandingPage());
+    const text = container.textContent ?? "";
+    expect(text).not.toContain("$");
+    expect(text).not.toMatch(/\bPro\b/);
+    expect(text).not.toMatch(/event pass|monthly|day pass|beta|free plan/i);
+    expect(text).not.toContain("—");
+  });
+  it("makes no readiness, other-kit or company claims", async () => {
+    const { container } = render(await LandingPage());
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(
+      /\b(live|now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
+    );
+    expect(text).not.toContain("QKit");
+    expect(text).not.toContain("Qkit");
+  });
 });
