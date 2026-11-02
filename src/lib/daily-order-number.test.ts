@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   numberingBaselines,
   numberingBaselinesByBooth,
@@ -171,9 +171,20 @@ describe("baselineFor", () => {
 });
 
 describe("Start new service restarts the display number", () => {
-  const now = Date.now();
+  // Pinned to mid-day SGT so the fixtures (up to 2h before "now") never
+  // straddle the Singapore business-day boundary, whatever time the suite runs.
+  const now = Date.parse("2026-10-11T04:00:00.000Z");
   const at = (minutesAgo: number) =>
     new Date(now - minutesAgo * 60_000).toISOString();
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function batchClient(
     capResetAt: string | null,
