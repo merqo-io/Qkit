@@ -18,6 +18,7 @@ function chain(result: { data: unknown; error: unknown }) {
   const self = () => obj;
   obj.select = self;
   obj.eq = self;
+  obj.in = self;
   obj.gte = self;
   obj.not = self;
   obj.or = self;
@@ -209,10 +210,18 @@ describe("getBoothQueueDisplay", () => {
           error: null,
         }),
       ) // vendor
-      .mockReturnValueOnce(chain({ data: { cap_reset_at: null }, error: null })) // numbering restart
       .mockReturnValueOnce(
-        chain({ data: { order_number: "0100" }, error: null }),
-      ) // first-today baseline
+        chain({ data: [{ id: BOOTH, cap_reset_at: null }], error: null }),
+      ) // booth restart stamp
+      .mockReturnValueOnce(chain({ data: [], error: null })) // restart log
+      .mockReturnValueOnce(
+        chain({
+          data: [
+            { booth_id: BOOTH, order_number: "0100", created_at: PLACED_FIRST },
+          ],
+          error: null,
+        }),
+      ) // today's orders for the baseline
       .mockReturnValueOnce(chain({ data: active, error: null })); // orders
 
     const res = await getBoothQueueDisplay(BOOTH);

@@ -286,8 +286,8 @@ describe("dashboard initial load", () => {
     expect(board).toHaveBeenCalledWith(
       expect.objectContaining({
         dailyOrderNumberBaselines: {
-          a: expect.objectContaining({ day: "A001", service: "A001" }),
-          b: expect.objectContaining({ day: "B003", service: "B003" }),
+          a: expect.objectContaining({ day: "A001", services: [] }),
+          b: expect.objectContaining({ day: "B003", services: [] }),
         },
       }),
     );

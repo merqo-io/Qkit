@@ -1,6 +1,8 @@
 import type { createServiceClient } from "@/lib/supabase/server";
 import {
+  accumulateBaseline,
   baselineFor,
+  emptyServices,
   type NumberingBaselines,
 } from "@/lib/numbering-baselines";
 import { displayOrderNumber } from "@/lib/orders";
@@ -11,28 +13,85 @@ import { sgtStartOfDayIso } from "@/lib/tz";
 type Client = Awaited<ReturnType<typeof createServiceClient>>;
 
 /**
- * When a booth's daily numbering last restarted: the later of the SGT day
- * start and its "Start new service" stamp (booths.cap_reset_at).
+ * Today's "Start new service" times per booth, ascending. Read from the
+ * booth_service_starts log (migration 0110), plus booths.cap_reset_at when it
+ * falls today, so a database without that table yet still restarts numbering
+ * at the latest start. Throws only when the booths cannot be read.
  */
-export function numberingStartIso(capResetAt: string | null | undefined) {
+export async function serviceStartsByBooth(
+  client: Client,
+  boothIds: string[],
+): Promise<Record<string, string[]>> {
+  const starts: Record<string, Set<string>> = {};
   const dayStart = sgtStartOfDayIso();
-  if (!capResetAt || Number.isNaN(Date.parse(capResetAt))) return dayStart;
-  return Date.parse(capResetAt) > Date.parse(dayStart)
-    ? new Date(capResetAt).toISOString()
-    : dayStart;
+  const add = (boothId: string, iso: string | null | undefined) => {
+    if (!iso || Number.isNaN(Date.parse(iso))) return;
+    if (Date.parse(iso) < Date.parse(dayStart)) return;
+    const set = starts[boothId] ?? new Set<string>();
+    set.add(new Date(iso).toISOString());
+    starts[boothId] = set;
+  };
+  for (let offset = 0; offset < boothIds.length; offset += 100) {
+    const chunk = boothIds.slice(offset, offset + 100);
+    const { data: boothRows, error: boothError } = await client
+      .from("booths")
+      .select("id, cap_reset_at")
+      .in("id", chunk);
+    if (boothError) throw boothError;
+    for (const b of boothRows ?? []) add(b.id, b.cap_reset_at);
+    const { data: logRows, error: logError } = await client
+      .from("booth_service_starts")
+      .select("booth_id, started_at")
+      .in("booth_id", chunk)
+      .gte("started_at", dayStart);
+    if (logError) {
+      console.error("service-start log read failed", logError.message);
+      continue;
+    }
+    for (const r of logRows ?? []) add(r.booth_id, r.started_at);
+  }
+  return Object.fromEntries(
+    Object.entries(starts).map(([id, set]) => [id, [...set].sort()]),
+  );
+}
+
+async function readBaselines(
+  client: Client,
+  boothIds: string[],
+): Promise<Record<string, NumberingBaselines>> {
+  const baselines: Record<string, NumberingBaselines> = {};
+  if (boothIds.length === 0) return baselines;
+  const startsByBooth = await serviceStartsByBooth(client, boothIds);
+  const dayStart = sgtStartOfDayIso();
+  for (let offset = 0; offset < boothIds.length; offset += 100) {
+    const chunk = boothIds.slice(offset, offset + 100);
+    const query = client
+      .from("orders")
+      .select("booth_id, order_number, created_at")
+      .in("booth_id", chunk)
+      .gte("created_at", dayStart)
+      .order("order_number", { ascending: true })
+      .order("id");
+    const todaysOrders = await readAllRows((from, to) => query.range(from, to));
+    for (const o of todaysOrders) {
+      if (o.order_number === null || o.order_number === undefined) continue;
+      const entry = (baselines[o.booth_id] ??= {
+        day: null,
+        services: emptyServices(startsByBooth[o.booth_id] ?? []),
+      });
+      accumulateBaseline(entry, o.order_number, o.created_at);
+    }
+  }
+  return baselines;
 }
 
 /**
- * The booth's two display-number baselines (see NumberingBaselines): its first
- * order_number since SGT midnight and its first since the latest "Start new
- * service". `baselineFor` picks between them by an order's created_at, so an
- * order still open across a restart keeps the number it showed. Returns null
- * only when the booth cannot be read; a booth with no orders yet gets null
- * baselines, and every order then shows its permanent number.
- *
- * Exact for one restart in a day. After several, orders from services before
- * the latest one rank from SGT midnight instead of their own restart; a log of
- * restarts would be needed to be exact.
+ * The booth's display-number baselines (see NumberingBaselines): its first
+ * order_number since SGT midnight and since each "Start new service" today.
+ * `baselineFor` picks one by an order's created_at, so an order keeps the
+ * number it showed however many restarts follow it. Returns null only when
+ * the booth cannot be read; a booth with no orders yet gets null baselines,
+ * and every order then shows its permanent number.
  *
  * Shared by every server path that shows a ticket number for a
  * single booth (the customer's status page, the TV display, the printed
@@ -43,42 +102,15 @@ export async function numberingBaselines(
   client: Client,
   boothId: string,
 ): Promise<NumberingBaselines | null> {
-  const { data: booth, error: boothError } = await client
-    .from("booths")
-    .select("cap_reset_at")
-    .eq("id", boothId)
-    .maybeSingle();
-  if (boothError) {
-    console.error("daily-baseline booth read failed", boothError.message);
+  try {
+    const found = (await readBaselines(client, [boothId]))[boothId];
+    if (found) return found;
+    const starts = (await serviceStartsByBooth(client, [boothId]))[boothId];
+    return { day: null, services: emptyServices(starts ?? []) };
+  } catch {
+    console.error("daily-baseline read failed");
     return null;
   }
-  const dayStart = sgtStartOfDayIso();
-  const serviceStart = numberingStartIso(booth?.cap_reset_at);
-  const firstSince = async (since: string): Promise<string | null> => {
-    const { data } = await client
-      .from("orders")
-      .select("order_number")
-      .eq("booth_id", boothId)
-      .gte("created_at", since)
-      .order("order_number", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    return data?.order_number ?? null;
-  };
-  const day = await firstSince(dayStart);
-  const service =
-    serviceStart === dayStart ? day : await firstSince(serviceStart);
-  // Text order stops matching numeric order when the lifetime counter grows.
-  if ((day?.length ?? 0) > 4 || (service?.length ?? 0) > 4) {
-    return (
-      (await numberingBaselinesByBooth(client, [boothId]))[boothId] ?? {
-        day: null,
-        service: null,
-        serviceStart,
-      }
-    );
-  }
-  return { day, service, serviceStart };
 }
 
 /**
@@ -91,52 +123,12 @@ export async function numberingBaselinesByBooth(
   client: Client,
   boothIds: string[],
 ): Promise<Record<string, NumberingBaselines>> {
-  const baselines: Record<string, NumberingBaselines> = {};
-  if (boothIds.length === 0) return baselines;
-  const lower = (current: string | null, candidate: string) =>
-    current === null || Number(candidate) < Number(current)
-      ? candidate
-      : current;
   try {
-    for (let offset = 0; offset < boothIds.length; offset += 100) {
-      const chunk = boothIds.slice(offset, offset + 100);
-      const { data: boothRows, error: boothError } = await client
-        .from("booths")
-        .select("id, cap_reset_at")
-        .in("id", chunk);
-      if (boothError) throw boothError;
-      const serviceStarts = new Map(
-        (boothRows ?? []).map((b) => [b.id, numberingStartIso(b.cap_reset_at)]),
-      );
-      const dayStart = sgtStartOfDayIso();
-      const query = client
-        .from("orders")
-        .select("booth_id, order_number, created_at")
-        .in("booth_id", chunk)
-        .gte("created_at", dayStart)
-        .order("order_number", { ascending: true })
-        .order("id");
-      const todaysOrders = await readAllRows((from, to) =>
-        query.range(from, to),
-      );
-      for (const o of todaysOrders) {
-        if (o.order_number === null || o.order_number === undefined) continue;
-        const serviceStart = serviceStarts.get(o.booth_id) ?? dayStart;
-        const entry = (baselines[o.booth_id] ??= {
-          day: null,
-          service: null,
-          serviceStart,
-        });
-        entry.day = lower(entry.day, o.order_number);
-        if (Date.parse(o.created_at) >= Date.parse(serviceStart))
-          entry.service = lower(entry.service, o.order_number);
-      }
-    }
+    return await readBaselines(client, boothIds);
   } catch {
     console.error("daily-baseline read failed");
     return {};
   }
-  return baselines;
 }
 
 /**

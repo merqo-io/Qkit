@@ -278,7 +278,9 @@ export async function regenerateShortCode(
  * start_new_service RPC (migration 0106) stamps booths.cap_reset_at itself and
  * checks the booth is the caller's, so a non-owner gets "not found".
  */
-export async function startNewService(boothId: string): Promise<ActionResult> {
+export async function startNewService(
+  boothId: string,
+): Promise<ActionResult<{ startedAt: string | null }>> {
   if (!z.uuid().safeParse(boothId).success)
     return { success: false, error: "Invalid booth" };
 
@@ -297,8 +299,16 @@ export async function startNewService(boothId: string): Promise<ActionResult> {
   }
   if (!reset) return { success: false, error: "Booth not found" };
 
+  // The RPC stamped cap_reset_at with the same now() it logged; handing it
+  // back lets the board rank orders from the new service before its refresh.
+  const { data: booth } = await supabase
+    .from("booths")
+    .select("cap_reset_at")
+    .eq("id", boothId)
+    .maybeSingle();
+
   revalidatePath("/dashboard", "layout");
-  return { success: true };
+  return { success: true, startedAt: booth?.cap_reset_at ?? null };
 }
 
 // Bounds the client-supplied list of images a save uploaded. A booth form

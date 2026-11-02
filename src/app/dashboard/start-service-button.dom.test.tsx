@@ -72,6 +72,31 @@ describe("StartServiceButton", () => {
     expect(startNewService).not.toHaveBeenCalled();
   });
 
+  it("hands the stamped time to onStarted before refreshing", async () => {
+    const onStarted = vi.fn();
+    startNewService.mockResolvedValue({
+      success: true,
+      startedAt: "2026-10-11T04:00:00.000Z",
+    });
+    render(
+      <StartServiceButton
+        boothId="b-1"
+        boothName="Kopi Cart"
+        compact
+        onStarted={onStarted}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Start a new service for Kopi Cart" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Start new service" }),
+    );
+    expect(onStarted).toHaveBeenCalledWith("b-1", "2026-10-11T04:00:00.000Z");
+    expect(refresh).toHaveBeenCalled();
+  });
+
   it("shows the action's error and does not refresh", async () => {
     startNewService.mockResolvedValue({
       success: false,

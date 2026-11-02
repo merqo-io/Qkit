@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Display numbers stay put across several "Start new service" taps in one day: every order ranks from the latest restart at or before it, so an order never changes number later. Restarts are now logged in `booth_service_starts` (migration 0110, apply it before deploying; until then the app keeps the previous behaviour, exact for one restart a day). The board also rolls over at SGT midnight without a reload and ranks from the new service the moment Start new service succeeds.
 - An order still open across "Start new service" keeps the number it showed instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Orders placed after the restart still start at #001. This is exact for one restart a day; after several, orders from the earlier services show their number counted from midnight. No migration.
 
 ### Changed
