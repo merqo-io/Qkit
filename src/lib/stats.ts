@@ -53,6 +53,12 @@ export type GrossMargin = {
   marginPct: number;
 };
 
+export type ItemTotals = {
+  quantity: number;
+  revenue_cents: number;
+  profit_cents: number;
+};
+
 export type StatsSummary = {
   revenue_cents: number;
   orderCount: number;
@@ -72,6 +78,8 @@ export type StatsSummary = {
   // profit, the sales export by its own bound) so a low-volume but
   // high-revenue/high-margin item is never dropped before they see it.
   topItems: TopItem[];
+  // Sums over every item, taken before the ITEM_CAP slice so exports stay exact.
+  itemTotals: ItemTotals;
   // always 24 entries, hour 0..23
   hourly: HourBucket[];
   // hour with the most orders, null if none
@@ -509,7 +517,16 @@ export function computeStats(orders: StatsOrder[], topN = 10): StatsSummary {
 
   // Quantity-sorted (revenue tiebreak) so topItems[0] is the best seller by
   // volume, but the WHOLE set (capped) is returned — no single-metric slice.
-  const topItems = [...byLabel.values()]
+  const allItems = [...byLabel.values()];
+  const itemTotals = allItems.reduce<ItemTotals>(
+    (t, it) => ({
+      quantity: t.quantity + it.quantity,
+      revenue_cents: t.revenue_cents + it.revenue_cents,
+      profit_cents: t.profit_cents + it.profit_cents,
+    }),
+    { quantity: 0, revenue_cents: 0, profit_cents: 0 },
+  );
+  const topItems = allItems
     .sort(
       (a, b) => b.quantity - a.quantity || b.revenue_cents - a.revenue_cents,
     )
@@ -544,6 +561,7 @@ export function computeStats(orders: StatsOrder[], topN = 10): StatsSummary {
     refundCount,
     fulfilmentRate,
     topItems,
+    itemTotals,
     hourly,
     busiestHour,
     dayHour,

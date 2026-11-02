@@ -29,6 +29,7 @@ function summary(over: Partial<StatsSummary> = {}): StatsSummary {
     refundCount: 0,
     fulfilmentRate: 0.9,
     topItems: [],
+    itemTotals: { quantity: 0, revenue_cents: 0, profit_cents: 0 },
     hourly: [],
     busiestHour: null,
     dayHour: Array.from({ length: 7 }, () =>

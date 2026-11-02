@@ -25,6 +25,7 @@ function summary(over: Partial<StatsSummary> = {}): StatsSummary {
         profit_cents: 300,
       },
     ],
+    itemTotals: { quantity: 2, revenue_cents: 400, profit_cents: 300 },
     hourly: [],
     busiestHour: null,
     dayHour: [],
@@ -93,9 +94,41 @@ describe("toSalesSummaryV1", () => {
   });
 });
 
+// Totals mirror the v1 slice; the full-list path is covered by its own test.
+function csvOf(v1: SalesSummaryV1): string {
+  const sum = (pick: (it: SalesSummaryV1["top_items"][number]) => number) =>
+    v1.top_items.reduce((n, it) => n + pick(it), 0);
+  return salesSummaryToCsv(v1, {
+    items: v1.top_items,
+    totals: {
+      quantity: sum((it) => it.quantity),
+      revenue_cents: sum((it) => it.revenue_cents),
+      profit_cents: sum((it) => it.profit_cents),
+    },
+  });
+}
+
 describe("salesSummaryToCsv", () => {
+  it("lists every supplied item and a Total items row, while top_items stays at 10", () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      label: i === 10 ? "=cmd" : `Item ${i}`,
+      quantity: 12 - i,
+      revenue_cents: 100,
+      cost_cents: 40,
+      profit_cents: 60,
+    }));
+    const v1 = toSalesSummaryV1(summary({ topItems: many }), meta);
+    expect(v1.top_items).toHaveLength(10);
+    const totals = { quantity: 99, revenue_cents: 5000, profit_cents: 3000 };
+    const lines = salesSummaryToCsv(v1, { items: many, totals }).split("\n");
+    const start = lines.indexOf("Item,Quantity,Revenue,Profit");
+    expect(lines.slice(start + 1)).toHaveLength(13);
+    expect(lines).toContain("'=cmd,2,1.00,0.60");
+    expect(lines.at(-1)).toBe("Total items,99,50.00,30.00");
+  });
+
   it("emits a summary block then an items table", () => {
-    const csv = salesSummaryToCsv(toSalesSummaryV1(summary(), meta));
+    const csv = csvOf(toSalesSummaryV1(summary(), meta));
     expect(csv).toContain("Metric,Value");
     expect(csv).toContain("Revenue,5.00");
     expect(csv).toContain("Gross margin %,72");
@@ -104,7 +137,7 @@ describe("salesSummaryToCsv", () => {
   });
 
   it("quotes cells containing commas", () => {
-    const csv = salesSummaryToCsv(
+    const csv = csvOf(
       toSalesSummaryV1(
         summary({
           topItems: [
@@ -124,7 +157,7 @@ describe("salesSummaryToCsv", () => {
   });
 
   it("escapes embedded quotes and newlines in a cell", () => {
-    const csv = salesSummaryToCsv(
+    const csv = csvOf(
       toSalesSummaryV1(
         summary({
           topItems: [
@@ -153,7 +186,7 @@ it("neutralizes untrusted CSV text while keeping negative money numeric and quot
   ];
   out.range = "  +SUM(1)";
   out.booth_id = "@formula";
-  const csv = salesSummaryToCsv(out);
+  const csv = csvOf(out);
   expect(csv).toContain("'=1+1,1,1.00,-1.00");
   expect(csv).toContain("Range,'  +SUM(1)");
   expect(csv).toContain("Booth,'@formula");

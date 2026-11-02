@@ -1,4 +1,4 @@
-import type { StatsSummary } from "@/lib/stats";
+import type { ItemTotals, StatsSummary } from "@/lib/stats";
 import { spreadsheetText } from "./spreadsheet-text";
 import { centsToDollarString } from "@/lib/utils";
 
@@ -85,12 +85,17 @@ function csvCell(value: string | number): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+export type CsvItems = {
+  items: SalesSummaryV1["top_items"];
+  totals: ItemTotals;
+};
+
 /**
- * Serialise a sales summary to CSV: a key/value summary block, then the
- * top-items table. Monetary values are plain decimals (no "$") so spreadsheets
- * treat them as numbers.
+ * CSV: summary block, then items plus a total row. `full` carries the
+ * uncapped item list and totals.
  */
-export function salesSummaryToCsv(s: SalesSummaryV1): string {
+export function salesSummaryToCsv(s: SalesSummaryV1, full: CsvItems): string {
+  const { items, totals } = full;
   const rows: (string | number)[][] = [
     ["Metric", "Value"],
     ["Generated at", spreadsheetText(s.generated_at)],
@@ -110,7 +115,7 @@ export function salesSummaryToCsv(s: SalesSummaryV1): string {
   }
   rows.push([]);
   rows.push(["Item", "Quantity", "Revenue", "Profit"]);
-  for (const it of s.top_items) {
+  for (const it of items) {
     rows.push([
       spreadsheetText(it.label),
       it.quantity,
@@ -118,5 +123,11 @@ export function salesSummaryToCsv(s: SalesSummaryV1): string {
       centsToDollarString(it.profit_cents),
     ]);
   }
+  rows.push([
+    "Total items",
+    totals.quantity,
+    centsToDollarString(totals.revenue_cents),
+    centsToDollarString(totals.profit_cents),
+  ]);
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }

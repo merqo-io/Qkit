@@ -191,6 +191,8 @@ describe("computeStats", () => {
     }));
     const s = computeStats([order("completed", 0, items)]);
     expect(s.topItems).toHaveLength(50); // ITEM_CAP
+    expect(s.itemTotals.quantity).toBe((60 * 61) / 2);
+    expect(s.itemTotals.revenue_cents).toBe(((60 * 61) / 2) * 100);
   });
 
   it("breaks a busiest-hour tie toward the earlier hour (stable)", () => {
