@@ -1,7 +1,7 @@
 // Sample data for the 4 landing-hero scenario boards: two that take money (a
 // coffee cart, a payment-claim flow) and two queue-only ice cream carts with
 // topping options and no payment: one calm, one a rush with an overdue and an
-// aging ticket. A ticket's `total` is the amount a payment is checked against.
+// aging ticket.
 
 import type { LandingBoardData } from "./landing-board";
 
@@ -18,7 +18,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         age: { label: "4m", tone: "aging" },
         payment: "unpaid",
         lines: [{ q: 2, name: "Kopi", opt: "Iced" }],
-        total: "$3.60",
         action: "Mark Ready",
       },
       {
@@ -29,7 +28,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
           { q: 1, name: "Milo", opt: "Hot" },
           { q: 3, name: "Teh", opt: "Less sugar" },
         ],
-        total: "$7.60",
         action: "Mark Picked Up",
       },
     ],
@@ -84,7 +82,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         status: "preparing",
         payment: "claimed",
         lines: [{ q: 1, name: "Kopi", opt: "Iced" }],
-        total: "$1.80",
         action: "Confirm payment received",
       },
       {
@@ -93,7 +90,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         status: "completed",
         payment: "paid",
         lines: [{ q: 2, name: "Teh" }],
-        total: "$3.60",
       },
     ],
   },

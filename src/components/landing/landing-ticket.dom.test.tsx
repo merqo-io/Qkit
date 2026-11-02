@@ -10,7 +10,6 @@ const priced: LandingTicketData = {
   payment: "unpaid",
   age: { label: "4m", tone: "aging" },
   lines: [{ q: 2, name: "Kopi", opt: "Iced" }],
-  total: "$7.20",
   action: "Mark Ready",
 };
 const queueOnly: LandingTicketData = {
@@ -61,7 +60,7 @@ describe("LandingTicket", () => {
     ).toBeNull();
   });
 
-  it("a claimed payment gets the alert wash, the check line, and the amount on the button", () => {
+  it("a claimed payment gets the alert wash, and the check line, with no amount", () => {
     const { container } = render(
       <LandingTicket
         t={{
@@ -76,7 +75,7 @@ describe("LandingTicket", () => {
       screen.getByText("Says paid. Check the payment"),
     ).toBeInTheDocument();
     expect(container.querySelector(".ticket-alert")).not.toBeNull();
-    expect(screen.getByText("$7.20")).toBeInTheDocument();
+    expect(screen.queryByText(/\$/)).toBeNull();
   });
 
   it("shows every option on one line, with nothing to expand", () => {

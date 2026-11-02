@@ -45,8 +45,8 @@ inline mark used on the login page.
   number and name, every option on one line with nothing to expand, a single
   attention line ("Not paid yet", "Says paid. Check the payment", same wording
   as `ticketAttention`), a status badge only past preparing, the aging wash,
-  and one action button that carries the amount when it confirms a payment.
-  No prices or total, as on the live board. No server actions, purely
+  and one action button.
+  No prices or totals. No server actions, purely
   decorative sample data.
 - `landing-ticket.dom.test.tsx` — RTL test for `LandingTicket` rendering
   across status/payment/age combinations, the single attention line, and

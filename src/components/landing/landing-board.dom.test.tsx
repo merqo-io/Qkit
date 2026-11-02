@@ -13,10 +13,9 @@ describe("LANDING_BOARDS", () => {
       "rush",
     ]);
   });
-  it("icecream board is queue-only (no ticket has a total or payment)", () => {
+  it("icecream board is queue-only (no ticket has a payment)", () => {
     const ice = LANDING_BOARDS.find((b) => b.key === "icecream")!;
     for (const t of ice.tickets) {
-      expect(t.total).toBeUndefined();
       expect(t.payment).toBeUndefined();
     }
   });
@@ -35,10 +34,10 @@ describe("LANDING_BOARDS", () => {
   });
   it("has 2 priced (money) boards and 2 queue-only boards", () => {
     const priced = LANDING_BOARDS.filter((b) =>
-      b.tickets.some((t) => t.total !== undefined),
+      b.tickets.some((t) => t.payment !== undefined),
     ).map((b) => b.key);
     const queueOnly = LANDING_BOARDS.filter((b) =>
-      b.tickets.every((t) => t.total === undefined && t.payment === undefined),
+      b.tickets.every((t) => t.payment === undefined),
     ).map((b) => b.key);
     expect(priced).toEqual(["coffee", "payment"]);
     expect(queueOnly).toEqual(["icecream", "rush"]);
