@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.
 
 ## [0.4.4] - 2026-11-02

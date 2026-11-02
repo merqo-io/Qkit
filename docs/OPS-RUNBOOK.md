@@ -36,8 +36,10 @@ Before merging a PR that adds a file under `supabase/migrations/`:
    checkout, with `STAGING_DB_URL` set to the staging session pooler URI
    (merqo's `docs/STAGING.md`, setup step 2):
    `docker run --rm -e STAGING_DB_URL -v "${PWD}:/repo:ro" postgres:17.6-alpine sh /repo/scripts/staging-migrate.sh supabase/migrations/<new-file>.sql`
-2. Check the PR's own Vercel preview end to end. Its `Preview` env vars
-   already point at the staging project and merqo's staging host.
+2. Check the PR's preview end to end. Git no longer deploys branches (only
+   `main` deploys), so deploy the branch on demand with the `vercel` CLI, see
+   `docs/DEPLOY.md`. Its `Preview` env vars already point at the staging
+   project and merqo's staging host.
 3. Merge the PR.
 4. Apply the same file to production the usual way (Supabase SQL Editor).
 
