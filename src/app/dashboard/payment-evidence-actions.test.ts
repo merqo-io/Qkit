@@ -120,8 +120,15 @@ beforeEach(() => {
   shownNumberMock
     .mockReset()
     .mockImplementation(
-      (_client: unknown, _vendor: string, _booth: string, number: string) =>
-        Promise.resolve(number === "0024" ? "001" : number),
+      (
+        _client: unknown,
+        _vendor: string,
+        _booth: string,
+        order: { orderNumber: string },
+      ) =>
+        Promise.resolve(
+          order.orderNumber === "0024" ? "001" : order.orderNumber,
+        ),
     );
 });
 
@@ -218,7 +225,7 @@ describe("getOrderPaymentProof: an order claimed before screenshots moved", () =
       expect.anything(),
       VENDOR,
       OTHER_BOOTH,
-      "0024",
+      { orderNumber: "0024", createdAt: expect.any(String) },
     );
     expect(legacyUrlMock).toHaveBeenCalledWith(ORDER);
     expect(legacyDuplicateMock).toHaveBeenCalledWith(ORDER);
@@ -295,7 +302,7 @@ describe("getOrderPaymentProof: from paykit", () => {
       expect.anything(),
       VENDOR,
       OTHER_BOOTH,
-      "0024",
+      { orderNumber: "0024", createdAt: expect.any(String) },
     );
   });
 

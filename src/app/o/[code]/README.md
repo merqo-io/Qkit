@@ -39,7 +39,7 @@ the current (non-legacy) customer ordering entry point.
   try/catch: it resolves the booth's `vendor_id`, looks up the order's
   `total_cents` for the message text (both via the service-role client — no
   vendor session exists in this customer-facing action), names the order by
-  `vendorFacingOrderNumber` from `@/lib/daily-order-number` (the day's ticket number when the vendor has
+  `vendorFacingOrderNumber` from `@/lib/daily-order-number`, given the order's `created_at` (the day's ticket number when the vendor has
   daily reset on, so the alert reads "#002" like the ticket and not the
   permanent "#0847"; the same helper `notifyPrintkit` labels with), then calls
   `@/lib/merqo/customer-notify`'s `notifyVendor(vendorId, message)` — a
@@ -60,7 +60,7 @@ the current (non-legacy) customer ordering entry point.
   calls `@/lib/printkit/client`'s `createPrintJob` — with the label's own
   `orderNumber` rebased through `displayOrderNumber` (`@/lib/orders`) using
   the vendor's `board_settings.daily_order_number_reset` and the booth's
-  first order of the SGT day as baseline, same as the board/TV/customer
+  baseline for the order's `created_at` (`baselineFor`, so an order placed before a "Start new service" keeps its earlier number), same as the board/TV/customer
   status page, when that setting is on (2026-09-15 fix: it used to print the
   raw permanent number regardless, so a printed ticket's last digit could
   disagree with what everyone actually sees on screen — undermining a

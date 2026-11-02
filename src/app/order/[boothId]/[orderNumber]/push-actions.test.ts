@@ -47,10 +47,14 @@ function readChain(result: { data: unknown; error: unknown }) {
 }
 
 function setup({
-  order = { id: ORDER_ID, status: "preparing" },
+  order = {
+    id: ORDER_ID,
+    status: "preparing",
+    created_at: "2026-11-02T01:00:00Z",
+  },
   existing = [] as { endpoint: string }[],
 }: {
-  order?: { id: string; status: string } | null;
+  order?: { id: string; status: string; created_at?: string } | null;
   existing?: { endpoint: string }[];
 } = {}) {
   fromMock.mockImplementation((table: string) => {
@@ -92,7 +96,7 @@ describe("savePushSubscription", () => {
       expect.anything(),
       BOOTH,
       "v1",
-      "0042",
+      { orderNumber: "0042", createdAt: "2026-11-02T01:00:00Z" },
     );
   });
 

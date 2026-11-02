@@ -4,6 +4,10 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { OrderCard } from "@/components/board/order-card";
 import { displayOrderNumber } from "@/lib/orders";
+import {
+  baselineFor,
+  type NumberingBaselines,
+} from "@/lib/numbering-baselines";
 import { Ticket } from "@/components/widgets/ticket";
 import { Paginated } from "@/components/widgets/paginated";
 import { SegmentedControl } from "@/components/widgets/segmented-control";
@@ -61,9 +65,9 @@ export function CompletedOrdersList({
   loadError: boolean;
   historyLimit: number;
   todayStartIso: string;
-  // Each booth's first order number of the SGT day, when the vendor numbers
-  // from 1 each day. Empty otherwise.
-  dailyOrderNumberBaselines?: Record<string, string>;
+  // Each booth's day and service baselines, when the vendor numbers from 1
+  // each day. Empty otherwise.
+  dailyOrderNumberBaselines?: Record<string, NumberingBaselines>;
 }) {
   const boothName = new Map(booths.map((b) => [b.id, b.name]));
   const multiBooth = booths.length > 1;
@@ -71,19 +75,19 @@ export function CompletedOrdersList({
   const [query, setQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange>("today");
 
-  // Today's tickets carry the number the board showed for them. An earlier
-  // day's baseline is not loaded, and a daily number repeats across days, so
-  // older tickets keep their permanent number.
-  const todayStartMs = Date.parse(todayStartIso);
+  // Today's tickets carry the number the board showed for them, whichever side
+  // of a "Start new service" they were placed on. An earlier day's baseline is
+  // not loaded, and a daily number repeats across days, so older tickets keep
+  // their permanent number.
   function shownNumber(o: BoardOrder): string | undefined {
-    const baseline = dailyOrderNumberBaselines[o.booth_id];
-    if (
-      o.order_number === null ||
-      o.order_number === undefined ||
-      baseline === undefined
-    )
+    if (o.order_number === null || o.order_number === undefined)
       return undefined;
-    if (Date.parse(o.created_at) < todayStartMs) return undefined;
+    const baseline = baselineFor(
+      o.created_at,
+      dailyOrderNumberBaselines[o.booth_id],
+      todayStartIso,
+    );
+    if (baseline === null) return undefined;
     return displayOrderNumber(o.order_number, baseline);
   }
 

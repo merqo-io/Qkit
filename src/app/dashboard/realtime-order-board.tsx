@@ -34,6 +34,10 @@ import {
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useCupsToday } from "@/hooks/use-cups-today";
 import { sgtStartOfDayIso } from "@/lib/tz";
+import {
+  baselineFor,
+  type NumberingBaselines,
+} from "@/lib/numbering-baselines";
 import type { OptionCodes } from "@/lib/ticket";
 import { OrderCard } from "@/components/board/order-card";
 import { Ticket } from "@/components/widgets/ticket";
@@ -83,13 +87,13 @@ interface Props {
   // The initial server-side read errored — the board may be missing in-flight
   // orders, so warn instead of silently showing "All clear".
   loadError?: boolean;
-  // Each booth's first order_number of the SGT day, keyed by booth id — only
+  // Each booth's day and service baselines, keyed by booth id — only
   // populated (by the server page) when boardSettings.daily_order_number_reset
   // is on. A booth is missing from it when it had no order yet at page load;
   // the board then falls back to the first number it sees live (see
-  // seenFirstNumbers). With the setting off the map stays empty and no fallback
+  // baselinesByBooth). With the setting off the map stays empty and no fallback
   // is computed, so every card shows its real, permanent number.
-  dailyOrderNumberBaselines?: Record<string, string>;
+  dailyOrderNumberBaselines?: Record<string, NumberingBaselines>;
   // Each booth's ISO time its daily numbering last restarted (SGT midnight or
   // Start new service), keyed by booth id. Orders before it do not count
   // towards the live fallback baseline.
@@ -355,56 +359,72 @@ export function RealtimeOrderBoard({
     refreshCups,
   );
 
-  // dailyOrderNumberBaselines is each booth's first order_number of the SGT
-  // day, read once by the server page. It has no entry for a booth that had no
-  // order yet when the board was opened, which is the normal case at an event:
-  // staff open the board while setting up. Fall back to the lowest
-  // order_number this board has seen for the booth, so that window is covered
-  // too. Without it the whole service runs on permanent numbers (#0847) while
-  // the customer's status page, the TV queue display and the printed label each
-  // recompute the daily rank (#001) live per request, and staff call a number
-  // no customer is holding.
+  // dailyOrderNumberBaselines is each booth's day and service baselines, read
+  // once by the server page. It has no entry for a booth that had no order yet
+  // when the board was opened, which is the normal case at an event: staff open
+  // the board while setting up. Fill those from the lowest order_number this
+  // board has seen for the booth since each window opened, so that window is
+  // covered too. Without it the whole service runs on permanent numbers (#0847)
+  // while the customer's status page, the TV queue display and the printed
+  // label each recompute the daily rank (#001) live per request, and staff call
+  // a number no customer is holding.
   // Derived from the full `orders` list, not just the cards on screen: a
-  // terminal or hidden pending-payment order still counts towards the day's
-  // first number, which is what the server-side query counts too. The list is
+  // terminal or hidden pending-payment order still counts towards the first
+  // number, which is what the server-side query counts too. The list is
   // append-only in practice (useRealtimeOrders merges rather than replaces, and
   // terminal orders are filtered at render), so this does not drift upwards as
-  // the day's early orders clear. A realtime DELETE of the day's first order
-  // would move it, which no code path in qkit does.
-  const seenFirstNumbers = useMemo(() => {
-    const lowest: Record<string, string> = {};
-    if (!boardSettings.daily_order_number_reset) return lowest;
+  // the day's early orders clear. A realtime DELETE of the first order would
+  // move it, which no code path in qkit does.
+  const baselinesByBooth = useMemo(() => {
+    const merged: Record<string, NumberingBaselines> = {};
+    if (!boardSettings.daily_order_number_reset) return merged;
     // Only today's orders count, the same SGT window the server query uses. An
     // order still in progress from an earlier day would otherwise become the
     // baseline and rebase itself to #001, while the customer's status page, the
     // TV display and the printed label all still show its permanent number.
-    const dayStart = Date.parse(sgtStartOfDayIso());
+    const dayStartIso = sgtStartOfDayIso();
+    const dayStart = Date.parse(dayStartIso);
+    const lower = (current: string | null, candidate: string) =>
+      current === null || Number(candidate) < Number(current)
+        ? candidate
+        : current;
     for (const o of orders) {
       if (isNil(o.order_number)) continue;
-      const start = numberingStarts[o.booth_id];
-      const since = start ? Math.max(dayStart, Date.parse(start)) : dayStart;
-      if (Date.parse(o.created_at) < since) continue;
-      const seen = lowest[o.booth_id];
-      if (
-        seen === null ||
-        seen === undefined ||
-        Number(o.order_number) < Number(seen)
-      ) {
-        lowest[o.booth_id] = o.order_number;
-      }
+      const placed = Date.parse(o.created_at);
+      if (placed < dayStart) continue;
+      const entry = (merged[o.booth_id] ??= {
+        day: null,
+        service: null,
+        serviceStart: numberingStarts[o.booth_id] ?? dayStartIso,
+      });
+      entry.day = lower(entry.day, o.order_number);
+      if (placed >= Date.parse(entry.serviceStart))
+        entry.service = lower(entry.service, o.order_number);
     }
-    return lowest;
-  }, [orders, boardSettings.daily_order_number_reset, numberingStarts]);
+    for (const [boothId, server] of Object.entries(dailyOrderNumberBaselines)) {
+      const seen = merged[boothId];
+      merged[boothId] = {
+        day: server.day ?? seen?.day ?? null,
+        service: server.service ?? seen?.service ?? null,
+        serviceStart: server.serviceStart,
+      };
+    }
+    return merged;
+  }, [
+    orders,
+    boardSettings.daily_order_number_reset,
+    numberingStarts,
+    dailyOrderNumberBaselines,
+  ]);
 
   // Toasts, the desktop notification and the walk-up dialog all name an order
   // the moment it is placed, and used to name it by its permanent number
   // (#0847) while its ticket said #002. An order placed just now with no
-  // baseline yet for its booth is the day's first, so it is its own baseline.
-  // That shortcut is for a new order only: a ticket carried over from
+  // baseline yet for its booth is the service's first, so it is its own
+  // baseline. That shortcut is for a new order only: a ticket carried over from
   // yesterday must keep its permanent number, so the cards do not use it.
   function newOrderNumber(boothId: string, orderNumber: string) {
-    const baseline =
-      dailyOrderNumberBaselines[boothId] ?? seenFirstNumbers[boothId] ?? null;
+    const baseline = baselinesByBooth[boothId]?.service ?? null;
     const ownBaseline = boardSettings.daily_order_number_reset
       ? orderNumber
       : null;
@@ -544,9 +564,7 @@ export function RealtimeOrderBoard({
         order={order}
         displayNumber={displayOrderNumber(
           order.order_number,
-          dailyOrderNumberBaselines[order.booth_id] ??
-            seenFirstNumbers[order.booth_id] ??
-            null,
+          baselineFor(order.created_at, baselinesByBooth[order.booth_id]),
         )}
         overtaken={overtaken.has(order.id)}
         optionCodes={optionCodes[order.booth_id]}

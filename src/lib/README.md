@@ -50,25 +50,39 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   initial ordering remains available with a keep-page-open warning.
 - `pending-order.test.ts` — recovery metadata isolation, payload normalization,
   corrupt data rejection and unavailable storage regressions.
-- `daily-order-number.ts` — `firstOrderNumberToday(client, boothId)`: the
-  booth's first `order_number` since its numbering last restarted (SGT
-  midnight or "Start new service", `numberingStartIso`), the baseline
-  `displayOrderNumber` ranks against. Orders placed before a mid-day restart
-  rank at or below zero, so they keep their permanent number. `vendorFacingOrderNumber(client,
-vendorId, boothId, orderNumber)`: the day's rank when the vendor has daily
-  numbering on, the permanent number otherwise. Shared by every server
+- `numbering-baselines.ts` — `NumberingBaselines` (`day`, `service`,
+  `serviceStart`) and `baselineFor(createdAt, baselines)`: the one place that
+  picks which baseline an order's display number ranks against, by when it was
+  placed. After the latest "Start new service" it uses the service baseline
+  (restarts at #001); earlier the same SGT day it uses the day baseline, so an
+  order still open across a restart keeps the number it showed; an earlier
+  day's order gets none and shows its permanent number. Exact for one restart
+  per day. After several, orders from services before the latest one rank from
+  SGT midnight instead of their own restart; recording each restart would be
+  needed to fix that, and is not built. Client-safe, so the vendor board uses
+  it for realtime orders.
+- `daily-order-number.ts` — `numberingBaselines(client, boothId)`: the booth's
+  `day` baseline (first `order_number` since SGT midnight) and `service`
+  baseline (first since "Start new service", `numberingStartIso`), which
+  `baselineFor` chooses between. `vendorFacingOrderNumber(client,
+vendorId, boothId, orderNumber, createdAt?)`: the day's rank when the vendor has daily
+  numbering on, the permanent number otherwise; reads the order's `created_at`
+  itself when the caller has none, and shows the permanent number if that read
+  fails. Shared by every server
   path that shows a single booth's ticket number (status page, TV display,
   printed label, Telegram alert), which each used to carry their own copy.
-  `firstOrderNumbersToday(client, boothIds)` is the same baseline for many
+  `numberingBaselinesByBooth(client, boothIds)` is the same pair for many
   booths at once, keyed by booth id: the order board and the Completed page.
   Baselines use numeric comparison across pages. A single-booth lookup keeps
   its fast path for four-digit numbers and scans today's numbers when text
   ordering could put a longer number first.
-- `daily-order-number.test.ts` — the first order found, none today, the SGT
-  day window, the Start new service restart (001 after it, permanent number
-  before it, setting off), and `vendorFacingOrderNumber` with daily numbering on, off,
-  unreadable settings, and no order yet today; numeric baseline stability at
-  the 9,999 boundary and across the API page cap.
+- `daily-order-number.test.ts` — both baselines returned, none today, the SGT
+  day window, `baselineFor` (after the restart, before it the same day, an
+  earlier day, no restart today, bad input), the Start new service restart
+  (001 after it, the earlier number kept before it, setting off), and
+  `vendorFacingOrderNumber` with daily numbering on, off, unreadable settings,
+  an unreadable order date and no order yet today; numeric baseline stability
+  at the 9,999 boundary and across the API page cap.
 - `cart.ts` — `cartKey(menuItemId, options)` (stable dedup key sorted by
   option group so selection order doesn't matter) and `cartTotal`.
 - `cart.test.ts` — tests cart-key stability and total summation.

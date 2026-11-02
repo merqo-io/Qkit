@@ -1,4 +1,8 @@
 import type { createServiceClient } from "@/lib/supabase/server";
+import {
+  baselineFor,
+  type NumberingBaselines,
+} from "@/lib/numbering-baselines";
 import { displayOrderNumber } from "@/lib/orders";
 import { boardSettingsSchema } from "@/lib/schemas";
 import { readAllRows } from "@/lib/supabase/read-all";
@@ -19,21 +23,26 @@ export function numberingStartIso(capResetAt: string | null | undefined) {
 }
 
 /**
- * The booth's first order_number since its numbering last restarted (SGT
- * midnight or Start new service), or null when it has had no order since.
- * This is the baseline `displayOrderNumber` ranks against when a vendor has
- * daily numbering on. Orders placed before a mid-day restart rank at or below
- * zero against it, so they keep their permanent number.
+ * The booth's two display-number baselines (see NumberingBaselines): its first
+ * order_number since SGT midnight and its first since the latest "Start new
+ * service". `baselineFor` picks between them by an order's created_at, so an
+ * order still open across a restart keeps the number it showed. Returns null
+ * only when the booth cannot be read; a booth with no orders yet gets null
+ * baselines, and every order then shows its permanent number.
+ *
+ * Exact for one restart in a day. After several, orders from services before
+ * the latest one rank from SGT midnight instead of their own restart; a log of
+ * restarts would be needed to be exact.
  *
  * Shared by every server path that shows a ticket number for a
  * single booth (the customer's status page, the TV display, the printed
  * label, the Telegram alert), so they cannot drift apart. The order board
  * reads many booths at once through the batched helper below.
  */
-export async function firstOrderNumberToday(
+export async function numberingBaselines(
   client: Client,
   boothId: string,
-): Promise<string | null> {
+): Promise<NumberingBaselines | null> {
   const { data: booth, error: boothError } = await client
     .from("booths")
     .select("cap_reset_at")
@@ -43,32 +52,51 @@ export async function firstOrderNumberToday(
     console.error("daily-baseline booth read failed", boothError.message);
     return null;
   }
-  const { data } = await client
-    .from("orders")
-    .select("order_number")
-    .eq("booth_id", boothId)
-    .gte("created_at", numberingStartIso(booth?.cap_reset_at))
-    .order("order_number", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const first = data?.order_number ?? null;
+  const dayStart = sgtStartOfDayIso();
+  const serviceStart = numberingStartIso(booth?.cap_reset_at);
+  const firstSince = async (since: string): Promise<string | null> => {
+    const { data } = await client
+      .from("orders")
+      .select("order_number")
+      .eq("booth_id", boothId)
+      .gte("created_at", since)
+      .order("order_number", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return data?.order_number ?? null;
+  };
+  const day = await firstSince(dayStart);
+  const service =
+    serviceStart === dayStart ? day : await firstSince(serviceStart);
   // Text order stops matching numeric order when the lifetime counter grows.
-  if (first === null || first.length <= 4) return first;
-  return (await firstOrderNumbersToday(client, [boothId]))[boothId] ?? null;
+  if ((day?.length ?? 0) > 4 || (service?.length ?? 0) > 4) {
+    return (
+      (await numberingBaselinesByBooth(client, [boothId]))[boothId] ?? {
+        day: null,
+        service: null,
+        serviceStart,
+      }
+    );
+  }
+  return { day, service, serviceStart };
 }
 
 /**
- * firstOrderNumberToday for many booths at once, keyed by booth id: the
+ * numberingBaselines for many booths at once, keyed by booth id: the
  * vendor's order board and their Completed page. A booth with no numbered
  * order yet today has no key. A failed read returns nothing, so tickets fall
  * back to their permanent numbers instead of the page failing over a number.
  */
-export async function firstOrderNumbersToday(
+export async function numberingBaselinesByBooth(
   client: Client,
   boothIds: string[],
-): Promise<Record<string, string>> {
-  const baselines: Record<string, string> = {};
+): Promise<Record<string, NumberingBaselines>> {
+  const baselines: Record<string, NumberingBaselines> = {};
   if (boothIds.length === 0) return baselines;
+  const lower = (current: string | null, candidate: string) =>
+    current === null || Number(candidate) < Number(current)
+      ? candidate
+      : current;
   try {
     for (let offset = 0; offset < boothIds.length; offset += 100) {
       const chunk = boothIds.slice(offset, offset + 100);
@@ -77,33 +105,31 @@ export async function firstOrderNumbersToday(
         .select("id, cap_reset_at")
         .in("id", chunk);
       if (boothError) throw boothError;
-      const starts = new Map(
-        (boothRows ?? []).map((b) => [
-          b.id,
-          Date.parse(numberingStartIso(b.cap_reset_at)),
-        ]),
+      const serviceStarts = new Map(
+        (boothRows ?? []).map((b) => [b.id, numberingStartIso(b.cap_reset_at)]),
       );
-      const dayStartMs = Date.parse(sgtStartOfDayIso());
+      const dayStart = sgtStartOfDayIso();
       const query = client
         .from("orders")
         .select("booth_id, order_number, created_at")
         .in("booth_id", chunk)
-        .gte("created_at", sgtStartOfDayIso())
+        .gte("created_at", dayStart)
         .order("order_number", { ascending: true })
         .order("id");
       const todaysOrders = await readAllRows((from, to) =>
         query.range(from, to),
       );
       for (const o of todaysOrders) {
-        if (
-          Date.parse(o.created_at) >= (starts.get(o.booth_id) ?? dayStartMs) &&
-          o.order_number !== null &&
-          o.order_number !== undefined &&
-          (!(o.booth_id in baselines) ||
-            Number(o.order_number) < Number(baselines[o.booth_id]))
-        ) {
-          baselines[o.booth_id] = o.order_number;
-        }
+        if (o.order_number === null || o.order_number === undefined) continue;
+        const serviceStart = serviceStarts.get(o.booth_id) ?? dayStart;
+        const entry = (baselines[o.booth_id] ??= {
+          day: null,
+          service: null,
+          serviceStart,
+        });
+        entry.day = lower(entry.day, o.order_number);
+        if (Date.parse(o.created_at) >= Date.parse(serviceStart))
+          entry.service = lower(entry.service, o.order_number);
       }
     }
   } catch {
@@ -119,13 +145,17 @@ export async function firstOrderNumbersToday(
  * order_number otherwise. Anything that names an order to the vendor from
  * the server has to go through this, or it names a number nobody is looking
  * at.
+ *
+ * Pass `createdAt` when the caller already has the order row; otherwise it is
+ * read here. Any failure to read it shows the permanent number.
  */
 export async function vendorFacingOrderNumber(
   client: Client,
   vendorId: string,
   boothId: string,
-  orderNumber: string,
+  order: { orderNumber: string; createdAt?: string | null },
 ): Promise<string> {
+  const { orderNumber, createdAt } = order;
   const { data: vendor } = await client
     .from("vendors")
     .select("board_settings")
@@ -135,8 +165,23 @@ export async function vendorFacingOrderNumber(
   if (!settings.success || !settings.data.daily_order_number_reset)
     return orderNumber;
 
-  return displayOrderNumber(
-    orderNumber,
-    await firstOrderNumberToday(client, boothId),
-  );
+  try {
+    let placedAt = createdAt;
+    if (!placedAt) {
+      const { data: order } = await client
+        .from("orders")
+        .select("created_at")
+        .eq("booth_id", boothId)
+        .eq("order_number", orderNumber)
+        .maybeSingle();
+      placedAt = order?.created_at;
+    }
+    return displayOrderNumber(
+      orderNumber,
+      baselineFor(placedAt, await numberingBaselines(client, boothId)),
+    );
+  } catch {
+    console.error("vendor-facing order number read failed");
+    return orderNumber;
+  }
 }

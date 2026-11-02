@@ -65,7 +65,7 @@ async function nameDuplicate(
       supabase,
       vendorId,
       other.booth_id,
-      other.order_number,
+      { orderNumber: other.order_number, createdAt: other.created_at },
     ),
     duplicateOrderDay: null,
     duplicateElsewhere: false,

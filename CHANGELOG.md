@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- An order still open across "Start new service" keeps the number it showed instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Orders placed after the restart still start at #001. This is exact for one restart a day; after several, orders from the earlier services show their number counted from midnight. No migration.
+
 ### Changed
 
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.

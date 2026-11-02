@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { playSound } from "@/lib/order-alerts";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
 import type { BoardOrder } from "@/lib/types";
+import type { NumberingBaselines } from "@/lib/numbering-baselines";
+import { sgtStartOfDayIso } from "@/lib/tz";
+
+const SERVICE_START = sgtStartOfDayIso();
 
 function order(overrides: Partial<BoardOrder> = {}): BoardOrder {
   return {
@@ -248,7 +252,7 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("ignores orders before a mid-day Start new service when deriving the baseline", () => {
+  it("keeps the number an open order showed before a mid-day Start new service", () => {
     const before = new Date(Date.now() - 20 * 60_000).toISOString();
     const restart = new Date(Date.now() - 10 * 60_000).toISOString();
     render(
@@ -267,10 +271,42 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
       { wrapper: TooltipProvider },
     );
     expect(
-      screen.getByText(byOrderNumber("#001"), ORDER_NUMBER_OPTS),
+      screen.getAllByText(byOrderNumber("#001"), ORDER_NUMBER_OPTS),
+    ).toHaveLength(2);
+    expect(
+      screen.queryByText(byOrderNumber("#0010"), ORDER_NUMBER_OPTS),
+    ).not.toBeInTheDocument();
+  });
+
+  it("ranks an order after the restart from the service baseline when the server supplied both", () => {
+    const restart = new Date(Date.now() - 10 * 60_000).toISOString();
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({
+            id: "old",
+            order_number: "0010",
+            created_at: new Date(Date.now() - 20 * 60_000).toISOString(),
+          }),
+          order({ id: "new", order_number: "0013", created_at: TODAY }),
+        ]}
+        boardSettings={{
+          ...DEFAULT_BOARD_SETTINGS,
+          daily_order_number_reset: true,
+        }}
+        dailyOrderNumberBaselines={{
+          b1: { day: "0008", service: "0012", serviceStart: restart },
+        }}
+        numberingStarts={{ b1: restart }}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByText(byOrderNumber("#003"), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(byOrderNumber("#0010"), ORDER_NUMBER_OPTS),
+      screen.getByText(byOrderNumber("#002"), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
   });
 
@@ -311,12 +347,16 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
-        initialOrders={[order({ order_number: "0847" })]}
+        initialOrders={[
+          order({ order_number: "0847", created_at: new Date().toISOString() }),
+        ]}
         boardSettings={{
           ...DEFAULT_BOARD_SETTINGS,
           daily_order_number_reset: true,
         }}
-        dailyOrderNumberBaselines={{ b1: "0845" }}
+        dailyOrderNumberBaselines={{
+          b1: { day: "0845", service: "0845", serviceStart: SERVICE_START },
+        }}
       />,
       { wrapper: TooltipProvider },
     );
@@ -938,19 +978,21 @@ describe("RealtimeOrderBoard event-mode (walkup_default)", () => {
     {
       name: "the day's rank when the booth already has a baseline",
       reset: true,
-      baselines: { b1: "0845" } as Record<string, string>,
+      baselines: {
+        b1: { day: "0845", service: "0845", serviceStart: SERVICE_START },
+      } as Record<string, NumberingBaselines>,
       expected: "Order #003 added to the board",
     },
     {
       name: "#001 for the booth's first order of the day",
       reset: true,
-      baselines: {} as Record<string, string>,
+      baselines: {} as Record<string, NumberingBaselines>,
       expected: "Order #001 added to the board",
     },
     {
       name: "the permanent number when daily reset is off",
       reset: false,
-      baselines: {} as Record<string, string>,
+      baselines: {} as Record<string, NumberingBaselines>,
       expected: "Order #0847 added to the board",
     },
   ])(

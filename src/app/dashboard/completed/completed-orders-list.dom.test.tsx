@@ -354,18 +354,47 @@ describe("CompletedOrdersList", () => {
       completed_at: "2026-10-10T03:10:00.000Z",
     });
 
-    function renderList() {
+    function renderList(
+      baselines = { day: "0041", service: "0041", serviceStart: TODAY_ISO },
+      orders = [today, yesterday],
+    ) {
       render(
         <CompletedOrdersList
           booths={BOOTHS}
-          orders={[today, yesterday]}
+          orders={orders}
           loadError={false}
           historyLimit={500}
           todayStartIso={TODAY_ISO}
-          dailyOrderNumberBaselines={{ b1: "0041" }}
+          dailyOrderNumberBaselines={{ b1: baselines }}
         />,
       );
     }
+
+    it("keeps the pre-restart number on a ticket placed before Start new service", () => {
+      renderList(
+        {
+          day: "0041",
+          service: "0042",
+          serviceStart: "2026-10-11T02:00:00.000Z",
+        },
+        [
+          makeOrder({
+            id: "o-before",
+            order_number: "0041",
+            customer_name: "Cy",
+            created_at: "2026-10-11T01:00:00.000Z",
+            completed_at: "2026-10-11T01:10:00.000Z",
+          }),
+          today,
+        ],
+      );
+      expect(
+        screen.getByText(byOrderNumber("#001"), ORDER_NUMBER_OPTS),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(byOrderNumber("#002"), ORDER_NUMBER_OPTS),
+      ).toBeInTheDocument();
+    });
 
     it("shows today's ticket under the number the board gave it", () => {
       renderList();
