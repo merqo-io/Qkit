@@ -55,12 +55,17 @@ export async function serviceStartsByBooth(
   );
 }
 
+type NumberingState = {
+  baselines: Record<string, NumberingBaselines>;
+  starts: Record<string, string[]>;
+};
+
 async function readBaselines(
   client: Client,
   boothIds: string[],
-): Promise<Record<string, NumberingBaselines>> {
+): Promise<NumberingState> {
   const baselines: Record<string, NumberingBaselines> = {};
-  if (boothIds.length === 0) return baselines;
+  if (boothIds.length === 0) return { baselines, starts: {} };
   const startsByBooth = await serviceStartsByBooth(client, boothIds);
   const dayStart = sgtStartOfDayIso();
   for (let offset = 0; offset < boothIds.length; offset += 100) {
@@ -82,7 +87,24 @@ async function readBaselines(
       accumulateBaseline(entry, o.order_number, o.created_at);
     }
   }
-  return baselines;
+  return { baselines, starts: startsByBooth };
+}
+
+/**
+ * The board's numbering inputs in one read: baselines (as
+ * numberingBaselinesByBooth) and today's restart times per booth, which a booth
+ * with no order yet has only here. A failed read returns both empty.
+ */
+export async function numberingStateByBooth(
+  client: Client,
+  boothIds: string[],
+): Promise<NumberingState> {
+  try {
+    return await readBaselines(client, boothIds);
+  } catch {
+    console.error("daily-baseline read failed");
+    return { baselines: {}, starts: {} };
+  }
 }
 
 /**
@@ -103,10 +125,13 @@ export async function numberingBaselines(
   boothId: string,
 ): Promise<NumberingBaselines | null> {
   try {
-    const found = (await readBaselines(client, [boothId]))[boothId];
-    if (found) return found;
-    const starts = (await serviceStartsByBooth(client, [boothId]))[boothId];
-    return { day: null, services: emptyServices(starts ?? []) };
+    const { baselines, starts } = await readBaselines(client, [boothId]);
+    return (
+      baselines[boothId] ?? {
+        day: null,
+        services: emptyServices(starts[boothId] ?? []),
+      }
+    );
   } catch {
     console.error("daily-baseline read failed");
     return null;
@@ -123,12 +148,7 @@ export async function numberingBaselinesByBooth(
   client: Client,
   boothIds: string[],
 ): Promise<Record<string, NumberingBaselines>> {
-  try {
-    return await readBaselines(client, boothIds);
-  } catch {
-    console.error("daily-baseline read failed");
-    return {};
-  }
+  return (await numberingStateByBooth(client, boothIds)).baselines;
 }
 
 /**
