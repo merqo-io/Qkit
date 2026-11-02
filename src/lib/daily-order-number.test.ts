@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   numberingBaselines,
   numberingBaselinesByBooth,
+  numberingStateByBooth,
   serviceStartsByBooth,
   vendorFacingOrderNumber,
 } from "./daily-order-number";
@@ -174,6 +175,51 @@ describe("serviceStartsByBooth", () => {
   it("ignores a cap_reset_at from an earlier day", async () => {
     const { client } = fakeClient({ capResetAt: "2000-01-01T00:00:00Z" });
     expect(await serviceStartsByBooth(client, ["b1"])).toEqual({});
+  });
+});
+
+describe("numberingStateByBooth", () => {
+  it("returns a booth's restarts even when it has no order yet", async () => {
+    const start = soon(100);
+    const { client } = fakeClient({ starts: [start] });
+    expect(await numberingStateByBooth(client, ["b1"])).toEqual({
+      baselines: {},
+      starts: { b1: [start] },
+    });
+  });
+
+  it("returns baselines and starts from one read", async () => {
+    const start = soon(100);
+    const { client } = fakeClient({
+      orders: [order("0010", soon(10)), order("0011", soon(150))],
+      starts: [start],
+    });
+    expect(await numberingStateByBooth(client, ["b1"])).toEqual({
+      baselines: {
+        b1: { day: "0010", services: [{ start, baseline: "0011" }] },
+      },
+      starts: { b1: [start] },
+    });
+  });
+
+  it("is empty and logs the reason when a read fails", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client } = fakeClient({ boothError: true });
+    expect(await numberingStateByBooth(client, ["b1"])).toEqual({
+      baselines: {},
+      starts: {},
+    });
+    expect(spy).toHaveBeenCalledWith("daily-baseline read failed", "boom");
+    spy.mockRestore();
+  });
+
+  it("is empty for no booths without reading", async () => {
+    const { client, from } = fakeClient({});
+    expect(await numberingStateByBooth(client, [])).toEqual({
+      baselines: {},
+      starts: {},
+    });
+    expect(from).not.toHaveBeenCalled();
   });
 });
 

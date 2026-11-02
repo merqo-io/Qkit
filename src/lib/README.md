@@ -72,8 +72,11 @@ vendorId, boothId, orderNumber, createdAt?)`: the day's rank when the vendor has
   fails. Shared by every server
   path that shows a single booth's ticket number (status page, TV display,
   printed label, Telegram alert), which each used to carry their own copy.
-  `numberingBaselinesByBooth(client, boothIds)` is the same pair for many
-  booths at once, keyed by booth id: the order board and the Completed page.
+  `numberingStateByBooth(client, boothIds)` is the one read behind every
+  caller: it returns `{ baselines, starts }` keyed by booth id (starts also
+  covers a booth with no order yet), empty on failure. The order board uses it
+  directly; `numberingBaselinesByBooth` is its baselines half, for the
+  Completed page.
   Baselines use numeric comparison across pages; a single-booth lookup uses
   the same batched read.
 - `daily-order-number.test.ts` — day and per-service baselines, none today, the

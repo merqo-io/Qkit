@@ -101,8 +101,13 @@ export async function numberingStateByBooth(
 ): Promise<NumberingState> {
   try {
     return await readBaselines(client, boothIds);
-  } catch {
-    console.error("daily-baseline read failed");
+  } catch (error) {
+    console.error(
+      "daily-baseline read failed",
+      error instanceof Error
+        ? error.message
+        : (error as { message?: string } | null)?.message,
+    );
     return { baselines: {}, starts: {} };
   }
 }
