@@ -9,7 +9,7 @@
   "richReadme": true,
   "seeded_files": {
     "AGENTS.md": {
-      "origin_hash": "b184497008cf3826cc0f73ae53b6f396da782d514c8decc675cc9b3d4ea45de7",
+      "origin_hash": "b93175117749231f8f5b8a936e6c37634cb4bbde8646a0534e6bb0fb98308399",
       "path": "AGENTS.md"
     },
     "CLAUDE.md": {
@@ -33,7 +33,7 @@
       "path": ".claude/hooks/protect-files.sh"
     },
     ".claude/hooks/block-no-verify.sh": {
-      "origin_hash": "e780da8322bc56be0eb517637aa4593257ef9b8c02e98e3c4d8c60f689544a1b",
+      "origin_hash": "00ccbbd921a8233f086be173d37f32046c1adcb95a39104d655d64af466c9301",
       "path": ".claude/hooks/block-no-verify.sh"
     },
     ".claude/hooks/user-prompt-guard.cjs": {
@@ -65,7 +65,7 @@
       "path": ".claude/hooks/skill-usage-log.sh"
     },
     ".claude/skills/next-verify/SKILL.md": {
-      "origin_hash": "bce9095dcc32ca4e80409d009e99c3980d9cf52664bfbe8ba74d97e48fe31a80",
+      "origin_hash": "caa2e9e2d55900c156fe7aad36d0d9d4a22f77c2f68fe3cfadf15bb89a3d0179",
       "path": ".claude/skills/next-verify/SKILL.md"
     },
     ".claude/skills/supabase-migrate/SKILL.md": {
