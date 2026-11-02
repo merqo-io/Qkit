@@ -6,7 +6,10 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import { firstOrderNumbersToday } from "@/lib/daily-order-number";
+import {
+  firstOrderNumbersToday,
+  numberingStartIso,
+} from "@/lib/daily-order-number";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import type { BoardOrder } from "@/lib/types";
 
@@ -51,7 +54,7 @@ export default async function DashboardPage() {
   const boothQuery = supabase
     .from("booths")
     .select(
-      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm",
+      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm, cap_reset_at",
     )
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: true })
@@ -135,6 +138,9 @@ export default async function DashboardPage() {
     .daily_order_number_reset
     ? await firstOrderNumbersToday(supabase, boothIds)
     : {};
+  const numberingStarts = Object.fromEntries(
+    (booths ?? []).map((b) => [b.id, numberingStartIso(b.cap_reset_at)]),
+  );
 
   return (
     <RealtimeOrderBoard
@@ -143,6 +149,7 @@ export default async function DashboardPage() {
       boardSettings={vendor.board_settings}
       loadError={loadError}
       dailyOrderNumberBaselines={dailyOrderNumberBaselines}
+      numberingStarts={numberingStarts}
       optionCodes={optionCodes}
     />
   );

@@ -13,7 +13,9 @@ the current (non-legacy) customer ordering entry point.
   (the optional last argument is the basket's hold session; a placed order
   releases that hold, best-effort) server action:
   validates `code`/`idempotencyKey`/`input` (`placeOrderSchema`), applies a
-  best-effort per-IP flood guard (`rateLimit`, 8/60s, fails open), normalizes
+  best-effort flood guard (`rateLimit`, fails open: 8/60s per IP and
+  server-set session cookie from `orderSessionId`, plus 60/60s per IP overall,
+  so shared venue Wi-Fi is not throttled as one customer), normalizes
   a blank/whitespace-only `customerPhone` to `undefined` (so "left blank" and
   "never typed" are indistinguishable to the RPC), then calls the
   `place_order` RPC with `p_customer_phone`. Maps known Postgres `RAISE`

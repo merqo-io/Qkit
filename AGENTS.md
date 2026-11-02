@@ -183,10 +183,10 @@ z.boolean().default(true)` — a vendor-side opt-out for the `ready`-transition
 
 | Skill               | What it does                                                 |
 | ------------------- | ------------------------------------------------------------ |
-| `/next-verify`      | typecheck + lint + test in one pass                          |
+| `/next-verify`      | typecheck + lint + test + build in one pass                  |
 | `/supabase-migrate` | apply `supabase/migrations` + regenerate types (safety gate) |
 | `/security-scan`    | local secret scan (gitleaks) + dependency audit before push  |
-| `/changelog`        | append a Keep-a-Changelog entry under `[Unreleased]`         |
+| `/changelog`        | changelog entry under `[Unreleased]` or bumped version       |
 
 ### templateCentral plugin skills
 
@@ -549,7 +549,7 @@ still-draft customer-facing
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

@@ -209,6 +209,7 @@ describe("getBoothQueueDisplay", () => {
           error: null,
         }),
       ) // vendor
+      .mockReturnValueOnce(chain({ data: { cap_reset_at: null }, error: null })) // numbering restart
       .mockReturnValueOnce(
         chain({ data: { order_number: "0100" }, error: null }),
       ) // first-today baseline

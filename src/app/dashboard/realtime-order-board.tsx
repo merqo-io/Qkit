@@ -90,6 +90,10 @@ interface Props {
   // seenFirstNumbers). With the setting off the map stays empty and no fallback
   // is computed, so every card shows its real, permanent number.
   dailyOrderNumberBaselines?: Record<string, string>;
+  // Each booth's ISO time its daily numbering last restarted (SGT midnight or
+  // Start new service), keyed by booth id. Orders before it do not count
+  // towards the live fallback baseline.
+  numberingStarts?: Record<string, string>;
   // Each booth's short codes for option choices, keyed by booth id (see
   // buildOptionCodes in @/lib/ticket). A booth with none is simply absent, and
   // its tickets print every choice in full.
@@ -101,6 +105,7 @@ const SORT_ORDERS: { value: AgeSortOrder; label: string }[] = [
   { value: "latest", label: "Latest" },
 ];
 const HEADER_BUTTON = "rounded-full";
+const REFRESH_MIN_GAP_MS = 5000;
 
 /**
  * "New orders while away" tab-title badge: bumps a counter when the vendor's
@@ -139,6 +144,7 @@ export function RealtimeOrderBoard({
   boardSettings,
   loadError = false,
   dailyOrderNumberBaselines = {},
+  numberingStarts = {},
   optionCodes = {},
 }: Props) {
   const router = useRouter();
@@ -262,8 +268,35 @@ export function RealtimeOrderBoard({
     return ownWalkups.current.delete(`${order.booth_id}:${order.order_number}`);
   }
 
+  // booths is not in the realtime publication, so another device's Start new
+  // service only reaches this board through a server re-read. Throttled with a
+  // trailing call so a burst of orders costs one render and the last still lands.
+  const lastRefreshAt = useRef(0);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    },
+    [],
+  );
+  function refreshThrottled() {
+    const wait = REFRESH_MIN_GAP_MS - (Date.now() - lastRefreshAt.current);
+    if (wait <= 0) {
+      lastRefreshAt.current = Date.now();
+      router.refresh();
+      return;
+    }
+    if (refreshTimer.current) return;
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      lastRefreshAt.current = Date.now();
+      router.refresh();
+    }, wait);
+  }
+
   function handleNewOrder(order: BoardOrder) {
     if (isNil(order.order_number)) return;
+    refreshThrottled();
     if (order.source === "walkup") {
       if (claimOwnWalkup(order)) return;
       if (walkupsInFlight.current > 0) {
@@ -348,7 +381,9 @@ export function RealtimeOrderBoard({
     const dayStart = Date.parse(sgtStartOfDayIso());
     for (const o of orders) {
       if (isNil(o.order_number)) continue;
-      if (Date.parse(o.created_at) < dayStart) continue;
+      const start = numberingStarts[o.booth_id];
+      const since = start ? Math.max(dayStart, Date.parse(start)) : dayStart;
+      if (Date.parse(o.created_at) < since) continue;
       const seen = lowest[o.booth_id];
       if (
         seen === null ||
@@ -359,7 +394,7 @@ export function RealtimeOrderBoard({
       }
     }
     return lowest;
-  }, [orders, boardSettings.daily_order_number_reset]);
+  }, [orders, boardSettings.daily_order_number_reset, numberingStarts]);
 
   // Toasts, the desktop notification and the walk-up dialog all name an order
   // the moment it is placed, and used to name it by its permanent number
