@@ -21,7 +21,7 @@ inline mark used on the login page.
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
   link targets.
-- `wordmark.tsx` — `Wordmark({ className })`: the standalone "QKit" mark (no
+- `wordmark.tsx` — `Wordmark({ className })`: the standalone "qkit" mark (no
   link, no nav chrome) used by the login page's two panels, where the nav
   shell itself doesn't apply.
 - `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the landing hero's

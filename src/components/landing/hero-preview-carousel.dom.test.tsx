@@ -24,7 +24,7 @@ describe("HeroPreviewCarousel", () => {
   it("renders all 4 boards and 4 dots", () => {
     mockMatchMedia(false);
     const { container } = render(<HeroPreviewCarousel />);
-    expect(screen.getAllByText(/Live orders/i)).toHaveLength(4);
+    expect(screen.getAllByText(/Sample orders/i)).toHaveLength(4);
     expect(container.querySelectorAll("[data-dot]")).toHaveLength(4);
   });
   it("does not auto-advance the active dot under reduced motion", () => {

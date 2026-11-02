@@ -50,7 +50,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Anonymous-safe (same client shape as the public order page) — read errors
+  // Anonymous-safe (same client shape as the public order page): read errors
   // fail closed to "no banner" (DEFAULT_PLATFORM_SETTINGS) rather than
   // breaking every single page load site-wide over a display-only feature.
   // The client is still made on every request: it reads the cookies, which

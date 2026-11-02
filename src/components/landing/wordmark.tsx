@@ -5,10 +5,8 @@ export function Wordmark({ className }: { className?: string }) {
     <span
       className={cn("font-display font-semibold tracking-tight", className)}
     >
-      <span className="text-primary" aria-hidden>
-        Q
-      </span>
-      Kit
+      <span className="text-primary">q</span>
+      kit
     </span>
   );
 }

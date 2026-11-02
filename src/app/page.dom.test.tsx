@@ -87,4 +87,13 @@ describe("public landing page", () => {
     expect(text).not.toMatch(/event pass|monthly|day pass|beta|free plan/i);
     expect(text).not.toContain("—");
   });
+  it("makes no readiness, other-kit or company claims", async () => {
+    const { container } = render(await LandingPage());
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(
+      /\b(live|now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
+    );
+    expect(text).not.toContain("QKit");
+    expect(text).not.toContain("Qkit");
+  });
 });

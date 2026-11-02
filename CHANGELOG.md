@@ -15,6 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Landing: show a Piloting badge, drop the public pricing section and plan names for a single free-during-the-pilot line with 30 days' notice, and reword FAQ, metadata and manifest copy (lowercase qkit, no em dash).
+- Landing wordmark renders as lowercase qkit, and the hero carousel label now reads Sample orders.
 
 ## [0.4.2] - 2026-10-31
 
