@@ -316,12 +316,10 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   );
 
   const headingNumber = booth?.vendor_id
-    ? await resolveOrderDisplay(
-        supabase,
-        boothId,
-        booth.vendor_id,
-        order.order_number,
-      )
+    ? await resolveOrderDisplay(supabase, boothId, booth.vendor_id, {
+        orderNumber: order.order_number,
+        createdAt: order.created_at,
+      })
     : order.order_number;
 
   // Self-checkout pickup is set per booth (migration 0104).

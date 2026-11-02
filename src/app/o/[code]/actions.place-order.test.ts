@@ -403,7 +403,7 @@ describe("placeOrder", () => {
         },
       ];
       orderQueue = [
-        { data: { total_cents: 700 } },
+        { data: { total_cents: 700, created_at: new Date().toISOString() } },
         { data: { order_number: "0005" } }, // today's first order (baseline)
       ];
 

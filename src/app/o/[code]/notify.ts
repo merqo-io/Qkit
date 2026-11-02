@@ -45,7 +45,7 @@ export async function notifyVendorTelegram(
 
     const { data: order } = await service
       .from("orders")
-      .select("total_cents")
+      .select("total_cents, created_at")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -59,7 +59,7 @@ export async function notifyVendorTelegram(
       service,
       booth.vendor_id,
       boothId,
-      orderNumber,
+      { orderNumber, createdAt: order?.created_at },
     );
 
     await notifyVendor(booth.vendor_id, `New order #${shown}${totalLabel}`);
@@ -104,7 +104,7 @@ export async function notifyPrintkit(
 
     const { data: order } = await service
       .from("orders")
-      .select("id, customer_name, status, payment_status, items")
+      .select("id, customer_name, status, payment_status, items, created_at")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -145,7 +145,7 @@ export async function notifyPrintkit(
       service,
       booth.vendor_id,
       boothId,
-      orderNumber,
+      { orderNumber, createdAt: order.created_at },
     );
 
     const result = await createPrintJob({

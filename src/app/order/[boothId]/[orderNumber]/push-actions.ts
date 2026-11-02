@@ -40,7 +40,7 @@ export async function savePushSubscription(
   const [{ data: order }, { data: booth }] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, status")
+      .select("id, status, created_at")
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .eq("access_token", token)
@@ -69,7 +69,7 @@ export async function savePushSubscription(
     supabase,
     boothId,
     booth.vendor_id,
-    orderNumber,
+    { orderNumber, createdAt: order.created_at },
   );
   const { title, body, tag } = readyNotificationContent(booth.name, display);
 

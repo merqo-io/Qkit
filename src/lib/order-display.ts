@@ -1,7 +1,8 @@
 import type { createServiceClient } from "@/lib/supabase/server";
 import { boardSettingsSchema } from "@/lib/schemas";
 import { displayOrderNumber } from "@/lib/orders";
-import { firstOrderNumberToday } from "@/lib/daily-order-number";
+import { numberingBaselines } from "@/lib/daily-order-number";
+import { baselineFor } from "@/lib/numbering-baselines";
 
 /**
  * board_settings-derived heading number: the daily-reset number (see
@@ -13,8 +14,9 @@ export async function resolveOrderDisplay(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   boothId: string,
   vendorId: string,
-  orderNumber: string,
+  order: { orderNumber: string; createdAt: string },
 ): Promise<string> {
+  const { orderNumber, createdAt } = order;
   try {
     const { data: vendorRow } = await supabase
       .from("vendors")
@@ -25,10 +27,10 @@ export async function resolveOrderDisplay(
     if (!settings.success || !settings.data.daily_order_number_reset)
       return orderNumber;
 
-    const firstToday = await firstOrderNumberToday(supabase, boothId);
-    return firstToday
-      ? displayOrderNumber(orderNumber, firstToday)
-      : orderNumber;
+    return displayOrderNumber(
+      orderNumber,
+      baselineFor(createdAt, await numberingBaselines(supabase, boothId)),
+    );
   } catch (err) {
     console.error(
       "order-status: daily display-number read failed",

@@ -6,7 +6,11 @@ import { headers } from "next/headers";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { boardSettingsSchema, orderBoothIdSchema } from "@/lib/schemas";
 import { displayOrderNumber, isStaleOrderView } from "@/lib/orders";
-import { firstOrderNumberToday } from "@/lib/daily-order-number";
+import { numberingBaselines } from "@/lib/daily-order-number";
+import {
+  baselineFor,
+  type NumberingBaselines,
+} from "@/lib/numbering-baselines";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
 import type { OrderStatus } from "@/lib/types";
 
@@ -110,7 +114,7 @@ export async function getBoothQueueDisplay(
   // same display-only rule the vendor board and customer status page apply
   // (see displayOrderNumber). Decorative: any failure here degrades to the
   // real order_number rather than breaking the page.
-  let baseline: string | null = null;
+  let baselines: NumberingBaselines | null = null;
   const { data: vendor } = await supabase
     .from("vendors")
     .select("board_settings")
@@ -118,7 +122,7 @@ export async function getBoothQueueDisplay(
     .maybeSingle();
   const settings = boardSettingsSchema.safeParse(vendor?.board_settings);
   if (settings.success && settings.data.daily_order_number_reset) {
-    baseline = await firstOrderNumberToday(supabase, boothId);
+    baselines = await numberingBaselines(supabase, boothId);
   }
 
   const cutoff = Date.now() - COLLECTED_GRACE_MS;
@@ -181,7 +185,10 @@ export async function getBoothQueueDisplay(
   ];
   return sorted.map((o) => ({
     orderNumber: o.order_number,
-    displayNumber: displayOrderNumber(o.order_number, baseline),
+    displayNumber: displayOrderNumber(
+      o.order_number,
+      baselineFor(o.created_at, baselines),
+    ),
     status: o.status === "completed" ? "ready" : o.status,
   }));
 }

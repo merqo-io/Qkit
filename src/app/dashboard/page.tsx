@@ -7,7 +7,7 @@ import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
 import {
-  firstOrderNumbersToday,
+  numberingBaselinesByBooth,
   numberingStartIso,
 } from "@/lib/daily-order-number";
 import { RealtimeOrderBoard } from "./realtime-order-board";
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
 
   const dailyOrderNumberBaselines = vendor.board_settings
     .daily_order_number_reset
-    ? await firstOrderNumbersToday(supabase, boothIds)
+    ? await numberingBaselinesByBooth(supabase, boothIds)
     : {};
   const numberingStarts = Object.fromEntries(
     (booths ?? []).map((b) => [b.id, numberingStartIso(b.cap_reset_at)]),
