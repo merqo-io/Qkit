@@ -244,25 +244,35 @@ describe("placeOrder", () => {
     expect(res.success).toBe(false);
   });
 
-  it("fails open when the limiter errors (data null) and proceeds to place_order", async () => {
+  it("fails closed when the limiter errors and never reaches place_order", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const seen: string[] = [];
     rpc.mockImplementation((name: string) => {
+      seen.push(name);
       if (name === "check_rate_limit")
         return Promise.resolve({ data: null, error: { message: "boom" } });
-      if (name === "place_order")
-        return Promise.resolve({
-          data: { order_number: "0009", booth_id: "b1", access_token: "tok9" },
-          error: null,
-        });
       throw new Error(`unexpected rpc: ${name}`);
     });
 
     const res = await placeOrder("code123", validInput, IDEM);
     expect(res).toEqual({
-      success: true,
-      orderNumber: "0009",
-      boothId: "b1",
-      accessToken: "tok9",
+      success: false,
+      error: "Too many orders too fast. Wait a moment and try again.",
     });
+    expect(seen).toEqual(["check_rate_limit"]);
+  });
+
+  it("fails closed when the limiter call throws", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const seen: string[] = [];
+    rpc.mockImplementation((name: string) => {
+      seen.push(name);
+      return Promise.reject(new Error("down"));
+    });
+
+    const res = await placeOrder("code123", validInput, IDEM);
+    expect(res.success).toBe(false);
+    expect(seen).not.toContain("place_order");
   });
 
   it.each([
@@ -281,6 +291,10 @@ describe("placeOrder", () => {
     [
       "ORDER_RATE_LIMITED: booth flood",
       "Too many orders too fast. Wait a moment and try again.",
+    ],
+    [
+      "ORDER_BUSY: too many unpaid orders",
+      "This stall has a lot of orders waiting for payment. Try again in a minute.",
     ],
     [
       "ORDER_INVALID: too many items",

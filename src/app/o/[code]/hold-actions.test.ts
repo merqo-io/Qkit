@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
 const rateLimit = vi.fn();
@@ -8,7 +8,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   clientIp: () => "1.2.3.4",
-  rateLimit: (...args: unknown[]) => rateLimit(...args),
+  rateLimitStrict: (...args: unknown[]) => rateLimit(...args),
 }));
 vi.mock("next/headers", () => ({
   headers: async () => new Map<string, string>(),

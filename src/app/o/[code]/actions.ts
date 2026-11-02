@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { createServerClient } from "@/lib/supabase/server";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimitStrict } from "@/lib/rate-limit";
 import { orderSessionId } from "@/lib/order-session";
 import {
   placeOrderSchema,
@@ -34,6 +34,8 @@ function messageFor(raw: string): string {
     return "This stall has served everything it had.";
   if (raw.includes("ORDER_TOO_LARGE"))
     return "That is more than this stall takes in one order. Remove a few items and try again.";
+  if (raw.includes("ORDER_BUSY"))
+    return "This stall has a lot of orders waiting for payment. Try again in a minute.";
   if (raw.includes("ORDER_RATE_LIMITED"))
     return "Too many orders too fast. Wait a moment and try again.";
   return GENERIC_FAILURE;
@@ -82,8 +84,8 @@ export async function placeOrder(
   const ip = clientIp(await headers());
   const sid = await orderSessionId();
   const allowed =
-    (await rateLimit(`order:${code}:${ip}:${sid}`, 8, 60)) &&
-    (await rateLimit(`order:${code}:${ip}`, 60, 60));
+    (await rateLimitStrict(`order:${code}:${ip}:${sid}`, 8, 60)) &&
+    (await rateLimitStrict(`order:${code}:${ip}`, 60, 60));
   if (!allowed)
     return {
       success: false,

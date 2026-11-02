@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Order limiter hardening (security audit). The client IP now comes from the platform headers (or the last forwarded hop), so a spoofed `X-Forwarded-For` no longer picks the rate-limit bucket. Placing an order, holding a basket and the pay-page actions now refuse when the limiter store is down instead of letting traffic through. Migration 0110 lowers the per-booth basket-hold limit from 600 to 180 a minute and makes a pay-first stall refuse new orders (`ORDER_BUSY`) while 30 are still waiting for payment inside the 30 minute window. Apply 0110 by hand, staging first, then production.
 - An order still open across "Start new service" keeps the number it showed instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Orders placed after the restart still start at #001. This is exact for one restart a day; after several, orders from the earlier services show their number counted from midnight. No migration.
 
 ### Changed

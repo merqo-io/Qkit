@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { createServerClient } from "@/lib/supabase/server";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimitStrict } from "@/lib/rate-limit";
 import { parseAvailability, type Availability } from "@/lib/availability";
 import { uuidSchema } from "@/lib/schemas";
 
@@ -40,7 +40,7 @@ export async function holdCart(
   // whole queue behind one address; hold_cart carries its own booth-scoped
   // guard for a direct RPC call that skips this action.
   const ip = clientIp(await headers());
-  if (!(await rateLimit(`hold:${boothId}:${ip}`, 240, 60))) return null;
+  if (!(await rateLimitStrict(`hold:${boothId}:${ip}`, 240, 60))) return null;
 
   const supabase = await createServerClient();
   const { data, error } = await supabase.rpc("hold_cart", {
