@@ -37,9 +37,13 @@ in its own `qkit` schema.
 
 ## Production vs Preview environment variables
 
-Preview deploys (`*.vercel.app`, one per branch/commit) and Production
-(`*.merqo.io`) share the same Vercel project but must **not** share every
-env var value — some are Production-only by design:
+Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`):
+branch and PR previews are off to stay inside the Hobby plan's daily deployment
+cap. CI's build job still proves every PR builds. To get a preview for a branch,
+run `vercel` from the branch checkout for a one-off `*.vercel.app` deploy, or
+temporarily add the branch to `vercel.json`. Preview deploys (`*.vercel.app`)
+and Production (`*.merqo.io`) share the same Vercel project but must **not**
+share every env var value — some are Production-only by design:
 
 - **`NEXT_PUBLIC_AUTH_COOKIE_DOMAIN`** — set to `.merqo.io` in **Production
   only**. Leave unset for Preview/Development. If set on Preview, the
@@ -56,7 +60,7 @@ env var value — some are Production-only by design:
 
 **Database**: Preview uses a separate staging Supabase project, not
 production. The `staging` branch (kept on `main` by the `staging sync`
-workflow) is served at `qkit-staging.merqo.io`, and every per-PR preview
+workflow) is served at `qkit-staging.merqo.io`, and every Preview deploy
 calls merqo's staging host (`staging.merqo.io`). The setup steps, the
 full list of `Preview` env vars and the end-to-end check live in merqo's
 `docs/STAGING.md`. qkit's `Preview` scope overrides:
