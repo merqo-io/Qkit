@@ -8,7 +8,21 @@ input=$(cat)
 # The hook input's `cwd` is the directory the command actually runs in, so a bare `git commit` from a
 # worktree resolves that worktree's branch rather than the main checkout's.
 in_cwd=$(printf '%s' "$input" | node -e "let b='';process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{try{process.stdout.write(JSON.parse(b||'{}').cwd||'')}catch(e){process.stdout.write('')}})" 2>/dev/null)
-[ -n "$in_cwd" ] && orig_dir=$in_cwd
+sp=$'\001'
+# Claude Code on Windows hands over `C:\x\y`; Git Bash joins and tests paths reliably only as `/c/x/y`.
+# Also restores spaces that were masked inside quoted paths (see the scan step).
+norm_path() {
+  local p=${1//$sp/ } drive
+  if [[ "$p" =~ ^[A-Za-z]:([\\/]|$) ]]; then
+    drive=$(printf '%s' "${p:0:1}" | tr '[:upper:]' '[:lower:]')
+    p="/$drive/${p:3}"
+    p=${p//\\//}
+    p=${p%/}
+    [ -z "$p" ] && p="/$drive"
+  fi
+  printf '%s' "$p"
+}
+[ -n "$in_cwd" ] && orig_dir=$(norm_path "$in_cwd")
 cmd=$(printf '%s' "$input" | node -e "let b='';process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{try{process.stdout.write(((JSON.parse(b||'{}').tool_input)||{}).command||'')}catch(e){process.stdout.write('')}})" 2>/dev/null)
 [ -z "$cmd" ] && exit 0
 # Drop heredoc bodies (a commit message saying "git push --force origin main" is text, not a command):
@@ -32,8 +46,9 @@ cand=("$orig_dir")
 redir=0
 unresolved() { [[ -z "$1" || "$1" == - || "$1" == Q || "$1" == *[\$\`~]* ]]; }
 add_target() {
-  local d=$1 c n=0
+  local d c n=0
   local -a new=()
+  d=$(norm_path "$1")
   # With CDPATH set, a bare relative name may resolve through it rather than through a candidate.
   if unresolved "$d" || { [ -n "${CDPATH:-}" ] && [[ "$d" != /* && "$d" != . && "$d" != .. && "$d" != ./* && "$d" != ../* ]]; }; then
     redir=1; return
@@ -77,9 +92,13 @@ protected_branch() {
 #     -m "…" can't false-trigger. Double quotes are handled before single quotes so an
 #     apostrophe inside "it's done" can't pair with a later ' and swallow real flags.
 sq="'"
+# Quoted absolute paths (drive-letter or `/`) keep their spaces, masked as $sp, so `-C "C:/My Dir/wt"`
+# stays one token instead of collapsing to the Q placeholder and forcing the project-root fallback.
 scan=$(printf '%s' "$cmd" | sed -E \
   -e "s/(^|[[:space:];&|(])(bash|sh|zsh|eval)([[:space:]]+-[a-z]*c)?[[:space:]]+\"([^\"]*)\"/\1 \4 /g" \
   -e "s/(^|[[:space:];&|(])(bash|sh|zsh|eval)([[:space:]]+-[a-z]*c)?[[:space:]]+${sq}([^${sq}]*)${sq}/\1 \4 /g" \
+  -e ":dq" -e "s/(\"([A-Za-z]:[\\\\/]|\/)[^\"\$\`;|&() ]*) /\1${sp}/" -e "tdq" \
+  -e ":sqp" -e "s/(${sq}([A-Za-z]:[\\\\/]|\/)[^${sq}\$\`;|&() ]*) /\1${sp}/" -e "tsqp" \
   -e "s/\"([^\"${sq}[:space:]]+)\"/\1/g" -e "s/\"[^\"]*\"/ Q /g" \
   -e "s/${sq}([^${sq}[:space:]]+)${sq}/\1/g" -e "s/${sq}[^${sq}]*${sq}/ Q /g")
 
@@ -159,7 +178,7 @@ while IFS= read -r seg; do
     case "$o" in
       -C)
         # git applies every -C in turn, each relative to the one before.
-        x="${t[$((i + 1))]:-}"
+        x=$(norm_path "${t[$((i + 1))]:-}")
         if [ -z "$cdir" ] || [[ "$x" == /* ]]; then cdir=$x; else cdir="$cdir/$x"; fi
         i=$((i + 2)); continue ;;
       -c|--config-env)
