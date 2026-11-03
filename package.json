@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "check": "prettier --check . && eslint . && tsc --noEmit",
     "format": "prettier --write .",
+    "demo:paykit": "node scripts/demo/paykit-mock.mjs",
     "demo:record": "node scripts/demo/record.mjs",
     "demo:compose": "node scripts/demo/compose.mjs",
     "prepare": "husky"
