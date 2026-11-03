@@ -23,22 +23,22 @@ alone, so a caption or layout change never needs a re-record.
 `node scripts/demo/record.mjs --list` prints this table. Unknown scene names
 exit non-zero with the list.
 
-| Scene         | Episode | Layout | Status      | Notes                                                                                                                |
-| ------------- | ------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| `tour`        | none    | single | implemented | Full flow. Payment beats need a paykit with PayNow on file.                                                          |
-| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                                                    |
-| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                                        |
-| `paynow`      | 3       | split  | implemented | Needs paykit with PayNow on file. The screenshot upload is on paykit's page and is skipped if absent.                |
-| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                                             |
-| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                                                    |
-| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                                             |
-| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                                              |
-| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                   |
-| `sold-out`    | 9       | single | implemented | Needs Pro (stock limits); see `DEMO_DB_URL`.                                                                         |
-| `stats`       | 10      | single | implemented | Free plan only: no Pro history, trends or margin.                                                                    |
-| `multi-booth` | 11      | single | implemented | Needs Pro (3 booths); see `DEMO_DB_URL`.                                                                             |
-| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                |
-| `come-back`   | 13      | single | skeleton    | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found. |
+| Scene         | Episode | Layout | Status      | Notes                                                                                                                  |
+| ------------- | ------- | ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `tour`        | none    | single | implemented | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                             |
+| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                                                      |
+| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                                          |
+| `paynow`      | 3       | split  | implemented | Runs against the paykit mock (`pnpm demo:paykit`). The screenshot upload is on paykit's page and is skipped if absent. |
+| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                                               |
+| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                                                      |
+| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                                               |
+| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                                                |
+| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                     |
+| `sold-out`    | 9       | single | implemented | Needs Pro (stock limits); see `DEMO_DB_URL`.                                                                           |
+| `stats`       | 10      | single | implemented | Free plan only: no Pro history, trends or margin.                                                                      |
+| `multi-booth` | 11      | single | implemented | Needs Pro (3 booths); see `DEMO_DB_URL`.                                                                               |
+| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                  |
+| `come-back`   | 13      | single | skeleton    | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found.   |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -67,12 +67,16 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    pnpm exec supabase start
    pnpm exec supabase db reset
    ```
-3. **`pnpm dev`** running (http://localhost:3000). Configure its paykit checkout
-   integration to a local fixture or local paykit; the recorder does not start
-   it. `e2e/paykit-mock.ts` covers checkout, claim and confirm but not the
-   vendor payment setup, so `tour` and `paynow` need a paykit that has PayNow on
-   file for the demo vendor (the "Take payment" switch is locked otherwise and
-   the recorder stops with a message). Do not use real payment credentials.
+3. **The paykit mock and `pnpm dev`.** The recorder starts neither. In one
+   terminal run `pnpm demo:paykit` (the e2e mock on 127.0.0.1:4319; it serves
+   checkout, claim, confirm, the pay page and a PayNow vendor config, which
+   unlocks the "Take payment" switch). In another, start the app with the
+   mock in the process env (these override `.env.local`):
+   ```bash
+   NEXT_PUBLIC_PAYKIT_URL=http://127.0.0.1:4319 PAYKIT_KIT_SECRET=e2e-mock-secret pnpm dev
+   ```
+   The mock's pay page is a plain test fixture, not paykit's real page. Do not
+   use real payment credentials.
 4. **ffmpeg** on PATH.
 5. For `sold-out` and `multi-booth` only: `DEMO_DB_URL` set to the local
    Postgres URL (from `pnpm exec supabase status`) and `psql` on PATH. Free
