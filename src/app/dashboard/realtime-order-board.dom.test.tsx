@@ -645,6 +645,7 @@ describe("RealtimeOrderBoard cup cap counter", () => {
 
   it("refreshes the server data at most once per 5s, with a trailing call", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.setSystemTime(PINNED_NOW);
     try {
       render(
         <RealtimeOrderBoard
