@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   numberingBaselines,
   numberingBaselinesByBooth,
@@ -14,7 +14,21 @@ import { displayOrderNumber } from "@/lib/orders";
 type Client = Parameters<typeof numberingBaselines>[0];
 type OrderRow = { booth_id: string; order_number: string; created_at: string };
 
-const dayStartMs = () => Date.parse(sgtStartOfDayIso());
+// Pinned to mid-day SGT so fixtures placed minutes after "SGT midnight" never
+// straddle the Singapore business-day boundary, whatever time the suite runs.
+const PINNED_NOW = Date.parse("2026-10-11T04:00:00.000Z");
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(PINNED_NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+// Fixtures are built while the file is collected, before the clock is pinned,
+// so they derive their day from the pinned instant rather than the live clock.
+const dayStartMs = () => Date.parse(sgtStartOfDayIso(new Date(PINNED_NOW)));
 const soon = (seconds: number) =>
   new Date(dayStartMs() + seconds * 1000).toISOString();
 
