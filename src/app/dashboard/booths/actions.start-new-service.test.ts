@@ -15,6 +15,9 @@ const h = vi.hoisted(() => ({
     error: { message: string } | null;
   },
   rpcSpy: vi.fn(),
+  booth: { cap_reset_at: "2026-10-11T04:00:00.000Z" } as {
+    cap_reset_at: string | null;
+  } | null,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -27,6 +30,13 @@ vi.mock("@/lib/supabase/server", () => ({
         h.rpcSpy(fn, args);
         return Promise.resolve(h.rpcResult);
       },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () => Promise.resolve({ data: h.booth }),
+          }),
+        }),
+      }),
     }),
 }));
 
@@ -40,9 +50,10 @@ beforeEach(() => {
 });
 
 describe("startNewService", () => {
-  it("resets the booth through the RPC and refreshes the dashboard", async () => {
+  it("resets the booth through the RPC, returns the stamped time and refreshes the dashboard", async () => {
     await expect(startNewService(BOOTH_ID)).resolves.toEqual({
       success: true,
+      startedAt: "2026-10-11T04:00:00.000Z",
     });
     expect(h.rpcSpy).toHaveBeenCalledWith("start_new_service", {
       p_booth_id: BOOTH_ID,

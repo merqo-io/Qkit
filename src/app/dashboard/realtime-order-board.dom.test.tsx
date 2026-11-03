@@ -13,9 +13,7 @@ import { playSound } from "@/lib/order-alerts";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
 import type { BoardOrder } from "@/lib/types";
 import type { NumberingBaselines } from "@/lib/numbering-baselines";
-import { sgtStartOfDayIso } from "@/lib/tz";
-
-const SERVICE_START = sgtStartOfDayIso();
+import { startNewService } from "./booths/actions";
 
 function order(overrides: Partial<BoardOrder> = {}): BoardOrder {
   return {
@@ -88,7 +86,10 @@ vi.mock("sonner", () => ({
 }));
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("./booths/actions", () => ({ toggleBoothActive: vi.fn() }));
+vi.mock("./booths/actions", () => ({
+  toggleBoothActive: vi.fn(),
+  startNewService: vi.fn(),
+}));
 vi.mock("./walkup-menu-actions", () => ({ getWalkupMenu: vi.fn() }));
 vi.mock("./walkup-actions", () => ({ placeWalkupOrder: vi.fn() }));
 vi.mock("./order-actions", () => ({
@@ -266,7 +267,7 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
           ...DEFAULT_BOARD_SETTINGS,
           daily_order_number_reset: true,
         }}
-        numberingStarts={{ b1: restart }}
+        serviceStarts={{ b1: [restart] }}
       />,
       { wrapper: TooltipProvider },
     );
@@ -296,9 +297,9 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
           daily_order_number_reset: true,
         }}
         dailyOrderNumberBaselines={{
-          b1: { day: "0008", service: "0012", serviceStart: restart },
+          b1: { day: "0008", services: [{ start: restart, baseline: "0012" }] },
         }}
-        numberingStarts={{ b1: restart }}
+        serviceStarts={{ b1: [restart] }}
       />,
       { wrapper: TooltipProvider },
     );
@@ -354,9 +355,7 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
           ...DEFAULT_BOARD_SETTINGS,
           daily_order_number_reset: true,
         }}
-        dailyOrderNumberBaselines={{
-          b1: { day: "0845", service: "0845", serviceStart: SERVICE_START },
-        }}
+        dailyOrderNumberBaselines={{ b1: { day: "0845", services: [] } }}
       />,
       { wrapper: TooltipProvider },
     );
@@ -979,7 +978,7 @@ describe("RealtimeOrderBoard event-mode (walkup_default)", () => {
       name: "the day's rank when the booth already has a baseline",
       reset: true,
       baselines: {
-        b1: { day: "0845", service: "0845", serviceStart: SERVICE_START },
+        b1: { day: "0845", services: [] },
       } as Record<string, NumberingBaselines>,
       expected: "Order #003 added to the board",
     },
@@ -1923,5 +1922,96 @@ describe("RealtimeOrderBoard booth colours", () => {
     );
     expect(kopi.style.backgroundColor).not.toBe("");
     expect(kopi.style.backgroundColor).not.toBe(teh.style.backgroundColor);
+  });
+});
+
+describe("RealtimeOrderBoard numbering across restarts and midnight", () => {
+  const RESET_ON = {
+    ...DEFAULT_BOARD_SETTINGS,
+    daily_order_number_reset: true,
+  };
+  const shown = () =>
+    screen
+      .getAllByText(byOrderNumber(/^#\d+$/), ORDER_NUMBER_OPTS)
+      .map((el) => el.textContent)
+      .sort();
+  const at = (minutesAgo: number) =>
+    new Date(Date.now() - minutesAgo * 60_000).toISOString();
+
+  it("keeps each earlier order's number across two restarts", () => {
+    render(
+      <RealtimeOrderBoard
+        booths={BOOTHS}
+        initialOrders={[
+          order({ id: "a", order_number: "0010", created_at: at(30) }),
+          order({ id: "b", order_number: "0011", created_at: at(20) }),
+          order({ id: "c", order_number: "0012", created_at: at(5) }),
+          order({ id: "d", order_number: "0013", created_at: at(1) }),
+        ]}
+        boardSettings={RESET_ON}
+        serviceStarts={{ b1: [at(25), at(3)] }}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(shown()).toEqual(["#001", "#001", "#001", "#002"]);
+  });
+
+  it("ranks an order from the new service as soon as Start new service succeeds, before the refresh", async () => {
+    const user = userEvent.setup();
+    vi.mocked(startNewService).mockResolvedValue({
+      success: true,
+      startedAt: at(1),
+    });
+    render(
+      <RealtimeOrderBoard
+        booths={[{ ...BOOTHS[0], daily_cup_cap: 100, cups_today: 3 }]}
+        initialOrders={[
+          order({ id: "a", order_number: "0010", created_at: at(10) }),
+          order({ id: "b", order_number: "0011", created_at: at(0) }),
+        ]}
+        boardSettings={RESET_ON}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(shown()).toEqual(["#001", "#002"]);
+    await user.click(
+      screen.getByRole("button", { name: /Start a new service for Kopi/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Start new service" }));
+    await waitFor(() => expect(shown()).toEqual(["#001", "#001"]));
+    expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("rolls over at SGT midnight without a reload", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-11T15:59:00Z"));
+      render(
+        <RealtimeOrderBoard
+          booths={BOOTHS}
+          initialOrders={[
+            order({
+              id: "a",
+              order_number: "0010",
+              created_at: "2026-10-11T15:58:00Z",
+            }),
+            order({
+              id: "b",
+              order_number: "0011",
+              created_at: "2026-10-11T15:58:30Z",
+            }),
+          ]}
+          boardSettings={RESET_ON}
+        />,
+        { wrapper: TooltipProvider },
+      );
+      expect(shown()).toEqual(["#001", "#002"]);
+      act(() => {
+        vi.advanceTimersByTime(2 * 60_000);
+      });
+      expect(shown()).toEqual(["#0010", "#0011"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

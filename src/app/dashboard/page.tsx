@@ -6,10 +6,8 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import {
-  numberingBaselinesByBooth,
-  numberingStartIso,
-} from "@/lib/daily-order-number";
+import { numberingStateByBooth } from "@/lib/daily-order-number";
+import { sgtStartOfDayIso } from "@/lib/tz";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import type { BoardOrder } from "@/lib/types";
 
@@ -134,13 +132,11 @@ export default async function DashboardPage() {
   // the queue is clear when it isn't. Surface a retry banner instead.
   const loadError = Boolean(boothErr) || Boolean(ordersErr);
 
-  const dailyOrderNumberBaselines = vendor.board_settings
-    .daily_order_number_reset
-    ? await numberingBaselinesByBooth(supabase, boothIds)
-    : {};
-  const numberingStarts = Object.fromEntries(
-    (booths ?? []).map((b) => [b.id, numberingStartIso(b.cap_reset_at)]),
-  );
+  const { baselines: dailyOrderNumberBaselines, starts: serviceStarts } = vendor
+    .board_settings.daily_order_number_reset
+    ? await numberingStateByBooth(supabase, boothIds)
+    : { baselines: {}, starts: {} };
+  const baselinesDayStart = sgtStartOfDayIso();
 
   return (
     <RealtimeOrderBoard
@@ -149,7 +145,8 @@ export default async function DashboardPage() {
       boardSettings={vendor.board_settings}
       loadError={loadError}
       dailyOrderNumberBaselines={dailyOrderNumberBaselines}
-      numberingStarts={numberingStarts}
+      baselinesDayStart={baselinesDayStart}
+      serviceStarts={serviceStarts}
       optionCodes={optionCodes}
     />
   );

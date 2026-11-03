@@ -35,10 +35,14 @@ export function StartServiceButton({
   boothId,
   boothName,
   compact = false,
+  onStarted,
 }: {
   boothId: string;
   boothName: string;
   compact?: boolean;
+  // Called with the stamped time as soon as the action succeeds, before the
+  // page refresh, so the board ranks the next order from the new service.
+  onStarted?: (boothId: string, startedAt: string) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,6 +58,7 @@ export function StartServiceButton({
         }
         toast.success(`New service started. ${boothName} is back to 0 items.`);
         setOpen(false);
+        if (res.startedAt) onStarted?.(boothId, res.startedAt);
         router.refresh();
       } catch {
         toast.error("Could not start a new service. Try again.");

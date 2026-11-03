@@ -147,7 +147,7 @@ BEGIN
       (line - 'price_cents' - 'cost_cents' - 'name')
       || jsonb_build_object('name', menu_item->>'name')
       -- Same "Free" convention as base price: only stamp price_cents when
-      -- the item was priced OR a selected choice added a cost - an unpriced
+      -- the item was priced OR a selected choice added a cost — an unpriced
       -- item with no priced choices stays keyless, not price_cents:0.
       || CASE WHEN v_price IS NOT NULL OR v_option_price_delta > 0
            THEN jsonb_build_object('price_cents', v_combined_price)
@@ -225,7 +225,7 @@ BEGIN
   END IF;
 
   -- Cross-kit customer identity: a genuinely optional convenience, not a
-  -- required identity check - skipped entirely when the customer declined to
+  -- required identity check — skipped entirely when the customer declined to
   -- give a phone, and guarded (see header) for the CI/local Postgres that has
   -- no merqo schema at all.
   IF p_customer_phone IS NOT NULL THEN

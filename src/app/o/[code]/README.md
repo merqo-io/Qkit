@@ -60,7 +60,7 @@ the current (non-legacy) customer ordering entry point.
   calls `@/lib/printkit/client`'s `createPrintJob` — with the label's own
   `orderNumber` rebased through `displayOrderNumber` (`@/lib/orders`) using
   the vendor's `board_settings.daily_order_number_reset` and the booth's
-  baseline for the order's `created_at` (`baselineFor`, so an order placed before a "Start new service" keeps its earlier number), same as the board/TV/customer
+  baseline for the order's `created_at` (`baselineFor`, so an order keeps its number across any number of "Start new service" taps), same as the board/TV/customer
   status page, when that setting is on (2026-09-15 fix: it used to print the
   raw permanent number regardless, so a printed ticket's last digit could
   disagree with what everyone actually sees on screen — undermining a
@@ -131,6 +131,7 @@ the current (non-legacy) customer ordering entry point.
   separately from `get_booth_for_order` to leave that RPC's public-safe shape
   alone, and degraded to "no limits" on any failure, since the triggers are
   the real limits.
+- `placeOrder` and `holdCart` use `rateLimitStrict` (fail closed on a limiter error); `ORDER_BUSY` from `place_order` (migration `0111`) maps to a wait-and-retry message.
 - `hold-actions.ts` — `holdCart(boothId, session, lines)` places or renews the
   basket's hold (`hold_cart`, migration `0096`) behind a per-IP guard and
   returns the availability the customer should see; `readAvailability` only

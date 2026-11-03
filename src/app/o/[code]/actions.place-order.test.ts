@@ -24,6 +24,19 @@ const serviceFrom = vi.fn((table: string) => {
           maybeSingle: () =>
             Promise.resolve(boothQueue.shift() ?? { data: null }),
         }),
+        in: async (_col: string, ids: string[]) => ({
+          data: [{ id: ids[0], cap_reset_at: null }],
+          error: null,
+        }),
+      }),
+    };
+  }
+  if (table === "booth_service_starts") {
+    return {
+      select: () => ({
+        in: () => ({
+          gte: async () => ({ data: [], error: null }),
+        }),
       }),
     };
   }
@@ -49,11 +62,23 @@ const serviceFrom = vi.fn((table: string) => {
             maybeSingle: () =>
               Promise.resolve(orderQueue.shift() ?? { data: null }),
           }),
+        }),
+        in: (_col: string, ids: string[]) => ({
           gte: () => ({
             order: () => ({
-              limit: () => ({
-                maybeSingle: () =>
-                  Promise.resolve(orderQueue.shift() ?? { data: null }),
+              order: () => ({
+                range: async () => {
+                  const next = orderQueue.shift() as
+                    | { data: { order_number: string; created_at: string }[] }
+                    | undefined;
+                  return {
+                    data: (next?.data ?? []).map((r) => ({
+                      ...r,
+                      booth_id: ids[0],
+                    })),
+                    error: null,
+                  };
+                },
               }),
             }),
           }),
@@ -418,7 +443,12 @@ describe("placeOrder", () => {
       ];
       orderQueue = [
         { data: { total_cents: 700, created_at: new Date().toISOString() } },
-        { data: { order_number: "0005" } }, // today's first order (baseline)
+        // today's first order (baseline)
+        {
+          data: [
+            { order_number: "0005", created_at: new Date().toISOString() },
+          ],
+        },
       ];
 
       const res = await placeOrder("code123", validInput, IDEM);

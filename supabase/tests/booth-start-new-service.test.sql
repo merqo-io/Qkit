@@ -56,6 +56,21 @@ reset role;
 
 select is((select cap_reset_at from qkit.booths where id = '30000000-0000-0000-0000-0000000000b1'),
   now(), 'the reset is stamped with the server time');
+select is((select count(*)::int from qkit.booth_service_starts
+           where booth_id = '30000000-0000-0000-0000-0000000000b1' and started_at = now()),
+  1, 'the restart is logged with the same timestamp');
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"30000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+select is((select count(*)::int from qkit.booth_service_starts), 1,
+  'the owner reads their booth''s restarts');
+select set_config('request.jwt.claims','{"sub":"30000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
+select is((select count(*)::int from qkit.booth_service_starts), 0,
+  'another vendor reads none of them');
+select throws_ok(
+  $$ insert into qkit.booth_service_starts (booth_id) values ('30000000-0000-0000-0000-0000000000b1') $$,
+  '42501', null, 'vendors cannot write the log directly');
+reset role;
 select is(qkit.booth_cups_today('30000000-0000-0000-0000-0000000000b1'), 0,
   'orders from before the reset no longer count');
 select is(qkit.booth_cups_left('30000000-0000-0000-0000-0000000000b1'), 5,

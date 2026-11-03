@@ -8,11 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Order limiter hardening (security audit). The client IP now comes from the platform headers (or the last forwarded hop), so a spoofed `X-Forwarded-For` no longer picks the rate-limit bucket. Placing an order, holding a basket and the pay-page actions now refuse when the limiter store is down instead of letting traffic through. Migration 0110 lowers the per-booth basket-hold limit from 600 to 180 a minute and makes a pay-first stall refuse new orders (`ORDER_BUSY`) while 30 are still waiting for payment inside the 30 minute window. Apply 0110 by hand, staging first, then production.
-- An order still open across "Start new service" keeps the number it showed instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Orders placed after the restart still start at #001. This is exact for one restart a day; after several, orders from the earlier services show their number counted from midnight. No migration.
+- Order limiter hardening (security audit). The client IP now comes from the platform headers (or the last forwarded hop), so a spoofed `X-Forwarded-For` no longer picks the rate-limit bucket. Placing an order, holding a basket and the pay-page actions now refuse when the limiter store is down instead of letting traffic through. Migration 0111 lowers the per-booth basket-hold limit from 600 to 180 a minute and makes a pay-first stall refuse new orders (`ORDER_BUSY`) while 30 are still waiting for payment inside the 30 minute window. Apply 0111 by hand, staging first, then production.
+- An order keeps the number it showed across any number of "Start new service" taps in a day, instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Every order ranks from the latest restart at or before it, and the first order after a restart is #001. Restarts are logged in `booth_service_starts` (migration 0110, apply it before deploying); until it is applied only the latest restart counts, so earlier services rank from midnight. The board also rolls over at SGT midnight without a reload and ranks from the new service the moment Start new service succeeds.
+- Internal: the service-restart numbering tests no longer fail when run in the first two hours after Singapore midnight; their clock is now pinned.
+- `block-no-verify.sh` no longer blocks commits made from a git worktree on a feature branch: Windows drive-letter paths (`C:\...`, `C:/...`) in the hook cwd, `cd` and `git -C` targets are normalised for Git Bash, and quoted paths containing spaces stay one token. Regression test: `bash .claude/hooks/block-no-verify.test.sh`.
 
 ### Changed
 
+- Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.
 
 ## [0.4.4] - 2026-11-02

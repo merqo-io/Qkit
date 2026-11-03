@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CompletedOrdersList } from "./completed-orders-list";
 import type { BoardOrder } from "@/lib/types";
+import type { NumberingBaselines } from "@/lib/numbering-baselines";
 
 vi.mock("@/app/dashboard/order-actions", () => ({
   advanceOrder: vi.fn(),
@@ -355,7 +356,7 @@ describe("CompletedOrdersList", () => {
     });
 
     function renderList(
-      baselines = { day: "0041", service: "0041", serviceStart: TODAY_ISO },
+      baselines: NumberingBaselines = { day: "0041", services: [] },
       orders = [today, yesterday],
     ) {
       render(
@@ -374,8 +375,7 @@ describe("CompletedOrdersList", () => {
       renderList(
         {
           day: "0041",
-          service: "0042",
-          serviceStart: "2026-10-11T02:00:00.000Z",
+          services: [{ start: "2026-10-11T02:00:00.000Z", baseline: "0042" }],
         },
         [
           makeOrder({

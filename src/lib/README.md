@@ -50,36 +50,40 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   initial ordering remains available with a keep-page-open warning.
 - `pending-order.test.ts` — recovery metadata isolation, payload normalization,
   corrupt data rejection and unavailable storage regressions.
-- `numbering-baselines.ts` — `NumberingBaselines` (`day`, `service`,
-  `serviceStart`) and `baselineFor(createdAt, baselines)`: the one place that
-  picks which baseline an order's display number ranks against, by when it was
-  placed. After the latest "Start new service" it uses the service baseline
-  (restarts at #001); earlier the same SGT day it uses the day baseline, so an
-  order still open across a restart keeps the number it showed; an earlier
-  day's order gets none and shows its permanent number. Exact for one restart
-  per day. After several, orders from services before the latest one rank from
-  SGT midnight instead of their own restart; recording each restart would be
-  needed to fix that, and is not built. Client-safe, so the vendor board uses
-  it for realtime orders.
-- `daily-order-number.ts` — `numberingBaselines(client, boothId)`: the booth's
-  `day` baseline (first `order_number` since SGT midnight) and `service`
-  baseline (first since "Start new service", `numberingStartIso`), which
-  `baselineFor` chooses between. `vendorFacingOrderNumber(client,
+- `numbering-baselines.ts` — `NumberingBaselines` (`day`, plus `services`: one
+  `{start, baseline}` per "Start new service" today) and `baselineFor(createdAt,
+baselines)`: the one place that picks which baseline an order's display number
+  ranks against, by when it was placed. It ranks from the latest restart at or
+  before the order the same SGT day (restarts at #001), else from midnight, so
+  an order keeps the number it showed however many restarts follow it; an
+  earlier day's order gets none and shows its permanent number. Exact for any
+  number of restarts, given the log in migration 0110. Client-safe, so the
+  vendor board uses it (with `accumulateBaseline` and `emptyServices`) for
+  realtime orders.
+- `daily-order-number.ts` — `serviceStartsByBooth(client, boothIds)`: today's
+  restart times from `booth_service_starts` (0110) plus `booths.cap_reset_at`,
+  so it still works at the latest restart if the table is not applied or
+  unreadable. `numberingBaselines(client, boothId)`: the booth's `day`
+  baseline (first `order_number` since SGT midnight) and one baseline per
+  restart window, which `baselineFor` chooses between. `vendorFacingOrderNumber(client,
 vendorId, boothId, orderNumber, createdAt?)`: the day's rank when the vendor has daily
   numbering on, the permanent number otherwise; reads the order's `created_at`
   itself when the caller has none, and shows the permanent number if that read
   fails. Shared by every server
   path that shows a single booth's ticket number (status page, TV display,
   printed label, Telegram alert), which each used to carry their own copy.
-  `numberingBaselinesByBooth(client, boothIds)` is the same pair for many
-  booths at once, keyed by booth id: the order board and the Completed page.
-  Baselines use numeric comparison across pages. A single-booth lookup keeps
-  its fast path for four-digit numbers and scans today's numbers when text
-  ordering could put a longer number first.
-- `daily-order-number.test.ts` — both baselines returned, none today, the SGT
-  day window, `baselineFor` (after the restart, before it the same day, an
-  earlier day, no restart today, bad input), the Start new service restart
-  (001 after it, the earlier number kept before it, setting off), and
+  `numberingStateByBooth(client, boothIds)` is the one read behind every
+  caller: it returns `{ baselines, starts }` keyed by booth id (starts also
+  covers a booth with no order yet), empty on failure. The order board uses it
+  directly; `numberingBaselinesByBooth` is its baselines half, for the
+  Completed page.
+  Baselines use numeric comparison across pages; a single-booth lookup uses
+  the same batched read.
+- `daily-order-number.test.ts` — day and per-service baselines, none today, the
+  restart log with its `cap_reset_at` fallback, `baselineFor` with 0 to 3
+  restarts, an order at the restart instant, earlier days, bad input, the Start
+  new service restart (001 after it, earlier numbers kept across two
+  restarts, setting off), and
   `vendorFacingOrderNumber` with daily numbering on, off, unreadable settings,
   an unreadable order date and no order yet today; numeric baseline stability
   at the 9,999 boundary and across the API page cap.
@@ -332,6 +336,7 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
   on limiter failure so a degraded limiter never blocks real customers.
+- `rateLimitStrict` (same file) is the fail-CLOSED variant: a limiter error denies the call. Used by the anonymous order, hold and pay-page actions. `clientIp` trusts `x-vercel-forwarded-for`, then `x-real-ip`, then the last `x-forwarded-for` hop.
 - `rate-limit.test.ts` — tests the fail-open behavior and IP extraction.
 - `order-session.ts` — `orderSessionId()`: reads or mints (and sets) the httpOnly,
   SameSite=Lax `qkit_order_sid` cookie (Secure in production), a server-made
