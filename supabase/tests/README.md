@@ -35,6 +35,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 - `order-push-subscriptions.test.sql` — `0105`: no anon/authenticated privilege on push subscriptions, RLS on, and the trigger that drops a completed or cancelled order's rows.
 - `entitlements.test.sql`, `0112`-`0114`: service-role-only `apply_vendor_entitlement`, last-writer-wins by `issued_at` (stale and replayed pushes are no-ops), contract checks, `vendor_effective_tier`/`vendor_pass_running`/`vendor_entitled`/`vendor_has_free_caps` for free, lapsed, running-pass and future-pass vendors, and the free-tier 6-item / 3-option-group menu caps.
 - `db-hygiene.test.sql` — `0109` foreign key indexes, RLS on every table, own-vendor-only `payments` reads, and no anon/authenticated access to `rate_limits` or `booth_item_sold`.
+- `order-limiter-hardening.test.sql` — `0111`: a payment-first booth accepts the 30th open unpaid order and refuses the 31st with `ORDER_BUSY`, an idempotent replay still returns at the cap, counter booths, orders older than 30 minutes and cancelled orders do not count, the basket-hold bucket stores holds through 180 calls a minute and drops the 181st, and `place_order`/`hold_cart` grants, `SECURITY DEFINER` and `search_path`.
 
 These new regression fixtures are prepared but have not been executed in this
 review: Docker Desktop's Linux database engine is unavailable.
