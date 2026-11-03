@@ -402,7 +402,7 @@ export function parseBoothHours(data: unknown): BoothHours {
   return parsed.success ? parsed.data : null;
 }
 
-// ── Admin: pricing + license minting ─────────────────────────────────────────
+// ── Admin: maintenance banner ───────────────────────────────────────────────
 
 export const bannerFormSchema = z.object({
   banner_enabled: z.boolean(),

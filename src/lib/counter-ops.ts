@@ -1,4 +1,4 @@
-import type { createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
@@ -49,4 +49,14 @@ export async function orderHasCounterOps(
     .maybeSingle();
   if (!booth) return false;
   return vendorHasCounterOps(supabase, booth.vendor_id);
+}
+
+/**
+ * Order-keyed check that builds its own service-role client, for server
+ * actions outside `src/lib` that may not import the service client directly.
+ */
+export async function orderHasCounterOpsForAction(
+  orderId: string,
+): Promise<boolean> {
+  return orderHasCounterOps(await createServiceClient(), orderId);
 }

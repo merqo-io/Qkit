@@ -12,6 +12,8 @@ Read-only sales summary export, v1 of the external contract described in `lib/sa
 
 Called by whatever holds the vendor's session cookie (currently same-origin dashboard/browser callers only — no external API-key path exists yet). Depends on `@/lib/supabase/server` (`createServerClient`), `@/lib/supabase/get-entitlement` (`loadEntitlement`), `@/lib/schemas` (`parseOrderItems`), `@/lib/stats` (`computeStats`, `StatsOrder`), `@/lib/sales-summary` (`toSalesSummaryV1`), and `@/lib/utils` (`MS_PER_DAY`).
 
+The `range` query is validated with `isStatsRange`; a vendor whose only upgrade is a running Event Pass cannot see history from before the pass started (`entitlement.statsSince` floors the window).
+
 ## Parent
 
 [sales](../README.md)

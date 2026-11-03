@@ -147,6 +147,8 @@ a customer who was not watching their phone at that moment had nothing left to
 check. Past the window it drops off, so the screen does not accumulate a whole
 service. An order with no `completed_at` is dropped rather than pinned up.
 
+The customer TV display (page and actions) requires the booth vendor's counter ops; without it the page answers not found and the actions fail quietly.
+
 ## Parent
 
 Queue reads page through the API row limit with a stable ID cursor, so earlier

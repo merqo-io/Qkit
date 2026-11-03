@@ -1,8 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-// eslint-disable-next-line no-restricted-imports -- the push gate reads the entitlement cache for the order's vendor, which the vendor session cannot do
-import { createServerClient, createServiceClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/supabase/get-user";
 import {
   boardSettingsSchema,
@@ -21,7 +20,7 @@ import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { sendOrderReadyPush } from "@/lib/push/send";
-import { orderHasCounterOps } from "@/lib/counter-ops";
+import { orderHasCounterOpsForAction } from "@/lib/counter-ops";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
 import { recordOrderIncident } from "@/lib/ops-events";
@@ -114,7 +113,7 @@ async function notifyOrderReady(
   try {
     after(async () => {
       // Order-ready push is a counter-ops feature; skipped silently otherwise.
-      if (await orderHasCounterOps(await createServiceClient(), orderId))
+      if (await orderHasCounterOpsForAction(orderId))
         await sendOrderReadyPush(orderId);
     });
   } catch (err) {

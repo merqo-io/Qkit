@@ -282,21 +282,21 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   confirm/status); see its own README. Replaced the local PayNow QR builder
   and payment-method adapter registry that used to live at `payments/`
   (deleted in the paykit cutover).
-- `counter-ops.ts` — `vendorHasCounterOps(supabase, vendorId)` and
+- `counter-ops.ts`, `vendorHasCounterOps(supabase, vendorId)` and
   `orderHasCounterOps(supabase, orderId)`: the server-side counter-ops check
   (customer TV display, printkit labels, order-ready push) for paths that run
   without the vendor's session. Reads the `vendor_entitlements` cache and
   answers false on a read error.
-- `counter-ops.test.ts` — tiers, running/scheduled/ended passes, lapsed
+- `counter-ops.test.ts`, tiers, running/scheduled/ended passes, lapsed
   expiry, fail-closed read errors and the order-to-vendor lookup.
-- `plan.ts` — the entitlement model: `Tier` (`free | starter | qkit`),
+- `plan.ts`, the entitlement model: `Tier` (`free | starter | qkit`),
   `StoredEntitlement` (the cached merqo push), `resolveEntitlement(stored,
 nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   `storedFromRow`, `canAddBooth`, `canAddMenuItem`, `canHaveOptionGroups`.
   The TS mirror of the SQL helpers in migration 0113.
-- `plan.test.ts` — tier lapse, per-tier caps, Event Pass windows (scheduled,
+- `plan.test.ts`, tier lapse, per-tier caps, Event Pass windows (scheduled,
   running, ended, boundaries) and the cap helpers.
-- `plan.fixtures.ts` — `ENTITLEMENTS`, a resolved entitlement per tier for
+- `plan.fixtures.ts`, `ENTITLEMENTS`, a resolved entitlement per tier for
   tests.
 - `payment-marker.ts` — everything that reads or writes the `{kind}` marker
   on `booths.payment`: `paymentKindOf(data)` (the stored kind, or null),
@@ -476,12 +476,12 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   role) plus entitlement/user/vendor read helpers; see its own README.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration
-  0060 — `PaymentKind`, `MenuItem`, `CartItem`,
+  0060, `PaymentKind`, `MenuItem`, `CartItem`,
   `OrderItem`, `BoardSettings`/`DEFAULT_BOARD_SETTINGS` — now also
   `daily_order_number_reset`/`default_prep_minutes`, migration 0062), and the
   full `Database["qkit"]` `Tables`/`Functions`/`Enums` shape (vendors, admins,
   admin_audit, events, payments, vendor_entitlements, feedback,
-  booths — now also `walkup_default:
+  booths, now also `walkup_default:
 boolean`, migration 0080 — orders, booth_item_sold —
   `vendor_telegram`/`telegram_link_tokens` from migration 0076 were dropped
   again in migration 0077, Phase A2's retirement of qkit's own Telegram bot;

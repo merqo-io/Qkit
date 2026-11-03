@@ -16,7 +16,7 @@ Server actions shared across routes rather than colocated with a single page —
 
 ## Connectivity
 
-Each file is a `"use server"` module imported directly by the client components that trigger it (e.g. feedback forms, the support form) — there is no shared dispatcher. Feedback, purchase and support use the session client and RLS or SECURITY DEFINER RPC authorization. Analytics uses the service client only after validating its public input; the shared rate limiter also uses the service client because its generic RPC is private. `events.ts`'s `logEvent` is also called from the landing page's CTAs and the order flow to track the scan→order conversion funnel that `admin/page.tsx` and `admin/activation-funnel.tsx` summarize.
+Each file is a `"use server"` module imported directly by the client components that trigger it (e.g. feedback forms, the support form), there is no shared dispatcher. Feedback, purchase and support use the session client and RLS or SECURITY DEFINER RPC authorization. Analytics uses the service client only after validating its public input; the shared rate limiter also uses the service client because its generic RPC is private. `events.ts`'s `logEvent` is also called from the landing page's CTAs and the order flow to track the scan→order conversion funnel that `admin/page.tsx` and `admin/activation-funnel.tsx` summarize.
 
 ## Parent
 

@@ -193,3 +193,7 @@ Staging printing rehearsal: [candidate QA and release prerequisites](docs/meta/2
 ## Multi-drink label candidate
 
 Eligible orders send one label per persisted item unit to Printkit using its `label_batch` contract. Empty walk-up orders do not print; the default includes non-drink items because stored order items have no drink flag. See [the specification](docs/superpowers/specs/2026-10-29-multi-drink-labels.md) for Printkit migration/rollout order, partial failure and pending Kopitiam Cart physical verification.
+
+## Plans
+
+Merqo owns subscriptions and billing. qkit caches each vendor's tier (free, starter, qkit, plus an Event Pass window) from `POST /api/merqo/entitlement` and gates features from that cache; the app shows no prices.

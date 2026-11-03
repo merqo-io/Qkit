@@ -1,4 +1,4 @@
--- Demo dataset: the "Test" vendor on the qkit tier with TWO active booths —
+-- Demo dataset: the "Test" vendor on the qkit tier with TWO active booths:
 -- "Kopitiam Cart" (PayNow payment wired) and "Ice Cream Cart" (queue only, no
 -- payment). Use this for the demo video and manual multi-booth testing.
 --

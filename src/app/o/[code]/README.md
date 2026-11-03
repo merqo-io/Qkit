@@ -158,6 +158,8 @@ helper, gated on the booth's `print_enabled` flag (`booths.print_enabled`)
 — an order for a booth that hasn't opted into printing never fires this
 call at all.
 
+`notifyPrintkit` skips labels unless the booth's vendor has counter ops (`vendorHasCounterOps`), failing quietly so the customer's order is never affected.
+
 ## Parent
 
 [o](../README.md)

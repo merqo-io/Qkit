@@ -84,7 +84,7 @@ insert into qkit.vendors (id)
 values ('00000000-0000-0000-0000-00000000000c');
 
 -- Vendor C also holds a FUTURE-dated Event Pass (starts tomorrow) on the free
--- tier — used to prove the entitlement predicate honours the pass start: it
+-- tier, used to prove the entitlement predicate honours the pass start: it
 -- must NOT count yet.
 insert into qkit.vendor_entitlements
   (vendor_id, tier, stats_window, event_pass_starts_at, event_pass_ends_at, issued_at)

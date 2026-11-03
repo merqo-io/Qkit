@@ -40,6 +40,15 @@ select is(qkit.apply_vendor_entitlement('00e10000-0000-0000-0000-000000000002','
 select is((select tier from qkit.vendor_entitlements where vendor_id='00e10000-0000-0000-0000-000000000002'),
   'qkit', 'stale and replayed pushes leave the cache unchanged');
 
+-- A push issued before the backfill ran still applies over a seeded row.
+insert into qkit.vendor_entitlements(vendor_id,tier,founder,stats_window,issued_at) values
+ ('00e10000-0000-0000-0000-000000000001','qkit',true,'90d','1970-01-01T00:00:00Z');
+select is(qkit.apply_vendor_entitlement('00e10000-0000-0000-0000-000000000001','starter',false,'24h',null,null,null,'2026-01-01T00:00:00Z'),
+  true, 'a push older than the migration still beats an epoch-seeded row');
+select is((select tier from qkit.vendor_entitlements where vendor_id='00e10000-0000-0000-0000-000000000001'),
+  'starter', 'the pre-migration push replaced the backfilled row');
+delete from qkit.vendor_entitlements where vendor_id='00e10000-0000-0000-0000-000000000001';
+
 -- Table checks reject out-of-contract values.
 select throws_ok($$ select qkit.apply_vendor_entitlement('00e10000-0000-0000-0000-000000000001','gold',false,'24h',null,null,null,now()) $$,
   null, null, 'an unknown tier is rejected');

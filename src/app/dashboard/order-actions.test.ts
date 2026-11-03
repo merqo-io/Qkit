@@ -128,7 +128,7 @@ const { orderHasCounterOpsMock } = vi.hoisted(() => ({
   orderHasCounterOpsMock: vi.fn(),
 }));
 vi.mock("@/lib/counter-ops", () => ({
-  orderHasCounterOps: orderHasCounterOpsMock,
+  orderHasCounterOpsForAction: orderHasCounterOpsMock,
 }));
 
 const { sendOrderReadyPushMock, afterMock } = vi.hoisted(() => ({

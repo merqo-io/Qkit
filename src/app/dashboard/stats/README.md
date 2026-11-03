@@ -3,7 +3,7 @@
 ## Purpose
 
 Vendor-facing sales analytics: revenue/orders/AOV, trend, margin, busy-hours,
-top items, service speed, and customer reviews — gated by the entitlement
+top items, service speed, and customer reviews, gated by the entitlement
 (24h only unless the cached stats window is 90d; a vendor on an Event Pass alone
 gets every range but nothing from before the pass started).
 
@@ -39,7 +39,7 @@ The live review list keeps its explicit 500-row recent limit.
 allTime })`: renders Revenue/Orders (as `StatBreakdownTile`s with a
     per-item hover/tap breakdown) + Avg order, and (trends only) Fulfilled
     (completed/decided with a cancelled-count tooltip) and Refunds.
-- `margin-table.tsx` — `MarginTable({ summary })` (trends; the Item column wraps,
+- `margin-table.tsx`, `MarginTable({ summary })` (trends; the Item column wraps,
   so a long name no longer pushes Profit and Margin off a phone screen
   behind a sideways scroll): ranks
   `summary.topItems` by `profit_cents` (only where `cost_cents > 0`), shown
@@ -67,7 +67,7 @@ linkable })`: fractional-star `Stars`, a rating `Distribution` bar chart,
   and either one booth's detailed/paged comments (`BoothDetail`) or an
   all-booths overall average + per-booth comparison list.
 - `service-speed-chart.tsx` — `ServiceSpeedChart({ series, range,
-peakThroughput })` (trends): a Recharts `ComposedChart` — order-volume bars
+peakThroughput })` (trends): a Recharts `ComposedChart`, order-volume bars
   plus an average-wait line with a dashed reference line at the mean.
 - `stat-breakdown.tsx` — `StatBreakdownTile`: a `StatTile`-styled button
   wrapping a Radix `Popover` that reveals a per-item breakdown on mouse
@@ -88,7 +88,7 @@ pro, speed, allTime })`: the main render — pinned KPI strip + best-seller/
   animation.
 - `top-items.tsx` — `TopItems({ items, limit })`: a Recharts horizontal bar
   list, toggleable between "By volume" and "By revenue" ranking.
-- `trend-chart.tsx` — `TrendChart({ series, range, title })` (trends): a Recharts
+- `trend-chart.tsx`, `TrendChart({ series, range, title })` (trends): a Recharts
   `AreaChart` of revenue over the window, with an abbreviated Y-axis
   (`shortMoney`) and a full-precision tooltip.
 

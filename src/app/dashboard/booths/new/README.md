@@ -13,6 +13,8 @@ Create-booth page — the plan-gated entry point for a vendor's first (or next) 
 
 Linked from the empty-state "Add your first booth" and "Set up for an event" CTAs on `realtime-order-board.tsx` and the "New booth" button on `booths/page.tsx`; renders the shared `booth-form.tsx`, which calls `saveBooth` in `../actions.ts` on submit and redirects back to `/dashboard/booths`.
 
+The new-booth gate sends vendors on a plan without multi-booth (anything but the qkit tier or a running Event Pass) to the plan page; the plan page has no purchase flow, plans are changed in Merqo.
+
 ## Parent
 
 [booths](../README.md)

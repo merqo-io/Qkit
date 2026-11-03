@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { orderHasCounterOps, vendorHasCounterOps } from "./counter-ops";
+import {
+  orderHasCounterOps,
+  orderHasCounterOpsForAction,
+  vendorHasCounterOps,
+} from "./counter-ops";
+
+const { serviceClient } = vi.hoisted(() => ({ serviceClient: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({
+  createServiceClient: serviceClient,
+}));
 
 type Client = Parameters<typeof vendorHasCounterOps>[0];
 
@@ -109,5 +118,27 @@ describe("orderHasCounterOps", () => {
         "o",
       ),
     ).toBe(false);
+  });
+});
+
+describe("orderHasCounterOpsForAction", () => {
+  it("builds the service client and resolves the order's vendor entitlement", async () => {
+    const tables: Record<string, unknown> = {
+      orders: { booth_id: "b" },
+      booths: { vendor_id: "v" },
+      vendor_entitlements: row({ tier: "qkit" }),
+    };
+    serviceClient.mockResolvedValue({
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({ data: tables[table], error: null }),
+          }),
+        }),
+      }),
+    });
+    expect(await orderHasCounterOpsForAction("o")).toBe(true);
+    expect(serviceClient).toHaveBeenCalledOnce();
   });
 });

@@ -81,6 +81,8 @@ E2E instructions). The `/seed/*.svg` banner images referenced by
 these scripts ship with the app under `public/`, so they resolve without any
 upload step, including on a deployed prod site.
 
+The demo seeds put the Test vendor on the qkit tier through a `vendor_entitlements` row; `vendors.plan` no longer exists.
+
 ## Parent
 
 [supabase](../README.md)

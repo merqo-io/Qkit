@@ -51,7 +51,7 @@ answered.
   unauthenticated requests to `/login`) for `isProtectedPath` routes
   (`/dashboard`, `/onboarding`, `/admin`) — the anonymous, hot customer-
   ordering funnel (`/o`, `/order`) skips the auth round-trip entirely.
-- `server.ts` — `createServerClient()`: cookie-backed server Supabase client
+- `server.ts` — `createServerClient()`: cookie-backed server Supabase client Its cookie-adapter comment now cites entitlement writes (not licence inserts) as the admin writes that a user session would break.
   (Server Components/Actions) built from `publicEnv`, with a `setAll` that
   swallows the read-only-cookie-store error in Server Component contexts (the
   middleware owns session refresh instead). `createServiceClient()`: the
