@@ -22,6 +22,19 @@ export async function serviceStartsByBooth(
   client: Client,
   boothIds: string[],
 ): Promise<Record<string, string[]>> {
+  return (await readServiceStarts(client, boothIds)).starts;
+}
+
+/**
+ * serviceStartsByBooth plus whether the restart log could not be read, in which
+ * case only each booth's latest restart is known and display numbers can be
+ * wrong. Callers that can tell the vendor must surface `degraded`.
+ */
+async function readServiceStarts(
+  client: Client,
+  boothIds: string[],
+): Promise<{ starts: Record<string, string[]>; degraded: boolean }> {
+  let degraded = false;
   const starts: Record<string, Set<string>> = {};
   const dayStart = sgtStartOfDayIso();
   const add = (boothId: string, iso: string | null | undefined) => {
@@ -45,19 +58,28 @@ export async function serviceStartsByBooth(
       .in("booth_id", chunk)
       .gte("started_at", dayStart);
     if (logError) {
-      console.error("service-start log read failed", logError.message);
+      console.error(
+        "service-start log read failed, numbering falls back to the latest restart only",
+        { boothIds: chunk, code: logError.code, message: logError.message },
+      );
+      degraded = true;
       continue;
     }
     for (const r of logRows ?? []) add(r.booth_id, r.started_at);
   }
-  return Object.fromEntries(
-    Object.entries(starts).map(([id, set]) => [id, [...set].sort()]),
-  );
+  return {
+    starts: Object.fromEntries(
+      Object.entries(starts).map(([id, set]) => [id, [...set].sort()]),
+    ),
+    degraded,
+  };
 }
 
-type NumberingState = {
+export type NumberingState = {
   baselines: Record<string, NumberingBaselines>;
   starts: Record<string, string[]>;
+  /** Set only when a read failed and the numbers shown may be wrong. */
+  degraded?: true;
 };
 
 async function readBaselines(
@@ -66,7 +88,10 @@ async function readBaselines(
 ): Promise<NumberingState> {
   const baselines: Record<string, NumberingBaselines> = {};
   if (boothIds.length === 0) return { baselines, starts: {} };
-  const startsByBooth = await serviceStartsByBooth(client, boothIds);
+  const { starts: startsByBooth, degraded } = await readServiceStarts(
+    client,
+    boothIds,
+  );
   const dayStart = sgtStartOfDayIso();
   for (let offset = 0; offset < boothIds.length; offset += 100) {
     const chunk = boothIds.slice(offset, offset + 100);
@@ -87,7 +112,9 @@ async function readBaselines(
       accumulateBaseline(entry, o.order_number, o.created_at);
     }
   }
-  return { baselines, starts: startsByBooth };
+  return degraded
+    ? { baselines, starts: startsByBooth, degraded }
+    : { baselines, starts: startsByBooth };
 }
 
 /**
@@ -108,7 +135,7 @@ export async function numberingStateByBooth(
         ? error.message
         : (error as { message?: string } | null)?.message,
     );
-    return { baselines: {}, starts: {} };
+    return { baselines: {}, starts: {}, degraded: true };
   }
 }
 
