@@ -389,6 +389,12 @@ async function createBooth(page, opts = {}) {
     .then(() => true)
     .catch(() => false);
   if (!saved) {
+    if (!new URL(page.url()).pathname.startsWith("/login")) {
+      throw new Error(
+        `Save menu did not reach the QR page and the browser is not on /login (at ${page.url()}).`,
+      );
+    }
+    console.warn("Save menu bounced to /login; retrying the save once.");
     await glideClick(page, saveMenu);
     await page.waitForURL(qrUrl, { timeout: 45000 });
   }
@@ -454,8 +460,86 @@ async function enablePayment(page, boothId) {
  * land: "status" (numbered status page), "pay" (sent off to paykit's page) or
  * "form" (stop with the checkout sheet's Place order tapped, no wait).
  */
+/** Deterministic QR-looking grid; a visual stand-in, not a scannable code. */
+function fakeQrSvg(seed) {
+  const n = 25;
+  const corners = [
+    [0, 0],
+    [0, n - 7],
+    [n - 7, 0],
+  ];
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  let cells = "";
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const corner = corners.find(
+        ([fr, fc]) => r >= fr && r < fr + 7 && c >= fc && c < fc + 7,
+      );
+      let on;
+      if (corner) {
+        const d = Math.min(
+          r - corner[0],
+          corner[0] + 6 - r,
+          c - corner[1],
+          corner[1] + 6 - c,
+        );
+        on = d === 0 || d >= 2;
+      } else {
+        h = Math.imul(h ^ (r * 31 + c), 16777619) >>> 0;
+        on = (h >>> 7) % 100 < 48;
+      }
+      if (on) cells += `<rect x="${c}" y="${r}" width="1" height="1"/>`;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" width="260" height="260"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#6d1a8b">${cells}</g></svg>`;
+}
+
+/**
+ * The local paykit mock serves a bare test page. For the recording, swap its
+ * GET /pay/:id response for a PayNow-style screen that posts to the same claim
+ * action, so the mock's behaviour is unchanged and only the look differs.
+ */
+async function dressPayPage(page) {
+  await page.route(/\/pay\/[^/?]+(\?.*)?$/, async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const upstream = await route.fetch();
+    const html = await upstream.text();
+    const action = /action="([^"]+)"/.exec(html)?.[1];
+    const amount = /Amount:\s*([\d.]+)/.exec(html)?.[1];
+    if (!action || !amount) return route.fulfill({ response: upstream });
+    const id = /\/pay\/([^/]+)\/claim/.exec(action)?.[1] ?? "demo";
+    const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pay with PayNow</title><style>
+body{margin:0;font-family:system-ui,sans-serif;background:#f6f1fa;color:#1d1226}
+main{max-width:390px;margin:0 auto;padding:28px 20px;text-align:center}
+.brand{font-weight:700;color:#6d1a8b;letter-spacing:.04em}
+h1{font-size:34px;margin:8px 0 2px}
+.sub{color:#6b5a78;font-size:14px;margin-bottom:18px}
+.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 6px 24px rgba(80,30,110,.12)}
+.hint{font-size:13px;color:#6b5a78;margin:12px 0}
+label.up{display:block;border:1.5px dashed #b89acb;border-radius:12px;padding:12px;font-size:14px;color:#6d1a8b;margin:12px 0}
+button{width:100%;border:0;border-radius:14px;background:#6d1a8b;color:#fff;font-size:18px;font-weight:600;padding:15px}
+</style></head><body><main>
+<div class="brand">PayNow</div>
+<h1>S$${amount}</h1>
+<div class="sub">Sunrise Coffee Cart</div>
+<form class="card" method="post" action="${action}" enctype="multipart/form-data">
+${fakeQrSvg(id)}
+<div class="hint">Scan with your banking app, then tap the button.</div>
+<label class="up">Add payment screenshot <input type="file" name="proof" accept="image/*" style="display:block;margin:8px auto 0;max-width:100%"></label>
+<button type="submit">I've paid</button>
+</form></main></body></html>`;
+    return route.fulfill({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body,
+    });
+  });
+}
+
 async function customerOrder(page, boothId, opts) {
   const { name, after = "status", plainIndex = 0 } = opts;
+  if (after === "pay") await dressPayPage(page);
   await page.goto(`${state.baseUrl}/order/${boothId}`, {
     waitUntil: "domcontentloaded",
   });
@@ -1231,8 +1315,8 @@ async function main() {
         2,
       ),
     );
-    console.log(`\nâœ“ Recorded ${videos.map((v) => v.file).join(", ")}`);
-    console.log(`âœ“ ${state.steps.length} captioned beats, steps.json`);
+    console.log(`\n✓ Recorded ${videos.map((v) => v.file).join(", ")}`);
+    console.log(`✓ ${state.steps.length} captioned beats, steps.json`);
     console.log(`Next: node scripts/demo/compose.mjs --scene ${scene.name}\n`);
   } finally {
     await browser.close();
@@ -1240,7 +1324,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("\nâœ— Recording failed:", err.message);
+  console.error("\n✗ Recording failed:", err.message);
   const where = String(err.stack ?? "")
     .split("\n")
     .filter((l) => l.includes("record.mjs"))

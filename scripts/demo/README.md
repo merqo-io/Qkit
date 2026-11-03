@@ -38,7 +38,7 @@ exit non-zero with the list.
 | `stats`       | 10      | single | implemented | Free plan only: no history, trends or margin.                                                                          |
 | `multi-booth` | 11      | single | implemented | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                     |
 | `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                  |
-| `come-back`   | 13      | single | skeleton    | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found.   |
+| `come-back`   | 13      | single | implemented | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`.                           |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -81,12 +81,17 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    use real payment credentials.
    For `come-back` also run `pnpm demo:merqo` (127.0.0.1:4320) and add
    `MERQO_BASE_URL=http://127.0.0.1:4320 MERQO_CUSTOMER_SECRET=demo-merqo-secret`
-   to the dev server env. Without it the Telegram link is absent and the beat times out.
+   to the dev server env. Without it the Telegram link is absent and the beat times out. The link shows
+   only for orders that are not ready yet.
 4. **ffmpeg** on PATH.
 5. For `sold-out`, `multi-booth` and `come-back`: `DEMO_DB_URL` set to the local
    Postgres URL (from `pnpm exec supabase status`) and `psql` on PATH. Free
    plan has no stock limits and one booth, so these scenes run
-   `grant-qkit-tier.sql` after sign-up. Loopback hosts only.
+   `grant-qkit-tier.sql` after sign-up. Loopback hosts only. Without `psql`,
+   the recorder pipes the SQL through `docker exec` into the container named by
+   `DEMO_DB_CONTAINER` (default `supabase_db_qkit`). That fallback ignores
+   `DEMO_DB_URL` for the connection, but the variable must still be set (for
+   example `postgresql://postgres:postgres@127.0.0.1:54322/postgres`).
 
 ## Run
 

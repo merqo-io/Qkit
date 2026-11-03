@@ -87,6 +87,10 @@ describe("caption wrapping", () => {
       "Your customers order.",
       "You just make.",
     ]);
+    expect(wrapCaption("Grab takes 30%. We take 0.", 24)).toEqual([
+      "Grab takes 30%.",
+      "We take 0.",
+    ]);
     expect(wrapCaption("supercalifragilistic", 5)).toEqual([
       "supercalifragilistic",
     ]);
