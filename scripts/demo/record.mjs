@@ -1,53 +1,70 @@
-// qkit demo recorder — drives the REAL app against a LOCAL Supabase, records a
-// vertical (9:16) phone-viewport walkthrough, and emits steps.json (caption +
-// timing per beat) for compose.mjs to burn in.
+// qkit demo recorder: drives the REAL app against a LOCAL Supabase, records one
+// named scene (see scenes.mjs) as vertical phone footage, and writes steps.json
+// (caption + timing per beat, plus each recording's start offset) for
+// compose.mjs to burn in.
 //
 // Prereqs: local Supabase up + migrations applied + `pnpm dev` running, and the
-// demo account wiped (scripts/demo/reset.sql). See scripts/demo/README.md.
+// demo account wiped (scripts/demo/reset.sql) before every run. See README.md.
 //
-// Run: node scripts/demo/record.mjs
-// Out: scripts/demo/out/<video>.webm + scripts/demo/out/steps.json
+// Run: node scripts/demo/record.mjs [--scene <name>] [--list]
+// Out: scripts/demo/out/<scene>/{<role>.webm, steps.json}
 //
-// Selectors are pinned to the current app (login/onboarding/booth-form/menu-
-// editor/order-form/order-card). If a beat times out, the app markup moved —
-// fix the locator, not the timeout.
+// Selectors are pinned to the current app. If a beat times out, the app markup
+// moved: fix the locator, not the timeout.
 
 import { chromium } from "@playwright/test";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { localDemoBaseUrl } from "./base-url.mjs";
+import {
+  assertLoopback,
+  localDemoBaseUrl,
+  localDemoDbUrl,
+} from "./base-url.mjs";
+import { formatSceneList, parseArgs, resolveScene } from "./scenes.mjs";
 
-const BASE = localDemoBaseUrl(process.env.DEMO_BASE_URL);
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "out");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const OUT = path.join(HERE, "out");
 
-// Fixed demo identity — must match scripts/demo/reset.sql.
+// Fixed demo identity. Must match scripts/demo/reset.sql.
 const EMAIL = "demo-cart@qkit.local";
-
 const PASSWORD = "demo-password-123";
 const STALL = "Sunrise Coffee Cart";
-// Event vendors care about customization, not price — so the menu shows options
-// (Milk: Oat/Regular/Soy on the hero item) and no prices. The first item is the
-// customizable one; the rest are plain so the walk-in can one-tap "Add".
+
+// Event vendors care about customization, not price, so the default menu shows
+// options (Milk on the hero item) and no prices. The first item is the
+// customizable one; the rest are plain so a customer can one-tap "Add".
 const ITEMS = [
   {
     name: "Flat White",
-    group: "Milk",
-    choices: ["Oat milk", "Regular", "Soy"],
+    groups: [{ group: "Milk", choices: ["Oat milk", "Regular", "Soy"] }],
   },
   { name: "Cold Brew" },
   { name: "Iced Mocha" },
 ];
-const CUSTOMIZE_PICK = "Soy"; // beat 4: a non-default choice, to show selection
-const CUSTOMER = "Priya"; // beat 4 (recorded, on-camera order)
-const WALK_IN = "Marcus"; // beat 5 (background order → live pop)
-const PAYING_CUSTOMER = "Hana"; // beat 7 (orders after PayNow is enabled → pays)
+// The options episode needs more than one group on the ticket.
+const OPTION_ITEMS = [
+  {
+    name: "Flat White",
+    groups: [
+      { group: "Milk", choices: ["Oat milk", "Regular", "Soy"] },
+      { group: "Sugar", choices: ["Normal", "Less sugar"] },
+    ],
+  },
+  { name: "Cold Brew" },
+  { name: "Iced Mocha" },
+];
+const PLAIN_ITEMS = [{ name: "Cold Brew" }, { name: "Iced Mocha" }];
+const MULTI_BOOTHS = ["Coffee Cart", "Juice Bar", "Waffle Stand"];
 
-const VIEWPORT = { width: 390, height: 844 }; // ~9:16, iPhone-ish
+const CUSTOMER = "Priya";
+const WALK_IN = "Marcus";
+const PAYING_CUSTOMER = "Hana";
+const CROWD = ["Aiden", "Bea", "Chen", "Dina", "Eli", "Faye", "Gus", "Hugo"];
 
-// ── Fake cursor ──────────────────────────────────────────────────────────────
-// Playwright's real clicks are invisible + instant. Inject a dot that follows
-// mousemove, then drive mouse.move(...,{steps}) so it glides before each click.
+const PHONE = { width: 390, height: 844 };
+const TV = { width: 1280, height: 720 };
 const CURSOR_SCRIPT = `
   (() => {
     const add = () => {
@@ -75,216 +92,551 @@ const CURSOR_SCRIPT = `
   })();
 `;
 
-// ── Pacing + timeline ────────────────────────────────────────────────────────
-// Global tempo. <1 = faster: every cosmetic wait (beat) and the typing cadence
-// scale by it, so the whole walkthrough speeds up uniformly without retuning
-// each beat. Real waits (waitForURL / waitFor) are unaffected, so it stays
-// robust. Override with DEMO_SPEED (e.g. 1 = original, 0.6 = snappier).
+// Global tempo. Below 1 is faster: every cosmetic wait and the typing cadence
+// scale by it, while real waits (waitForURL, waitFor) are unaffected, so it
+// stays robust. Override with DEMO_SPEED.
 const SPEED = Number(process.env.DEMO_SPEED ?? 0.75);
-const steps = [];
-let popMs = 0; // when the live order lands — compose drops the chime here
-let t0 = 0;
-const now = () => Date.now() - t0;
+
+// Pages that do unrecorded setup work: no cosmetic waits, no cursor glide, no
+// per-character typing, so a scene's prerequisites cost seconds, not a minute.
+const FAST = new WeakSet();
+
+const state = {
+  steps: [],
+  videos: [],
+  popMs: 0,
+  t0: 0,
+  baseUrl: "",
+};
+const now = () => Date.now() - state.t0;
 const beat = (ms) => new Promise((r) => setTimeout(r, ms * SPEED));
+const pause = (page, ms) => (FAST.has(page) ? Promise.resolve() : beat(ms));
+
+/** The moment the order lands: compose drops the chime here. */
+function markPop() {
+  state.popMs = now();
+}
 
 /** Wrap a narrative beat: records {caption, startMs, endMs} for compose.mjs. */
 async function step(caption, fn) {
   const startMs = now();
   await fn();
-  steps.push({ caption, startMs, endMs: now() });
+  state.steps.push({ caption, startMs, endMs: now() });
 }
 
 /** Glide the cursor to an element's centre, then click it (visible motion). */
 async function glideClick(page, locator) {
   await locator.scrollIntoViewIfNeeded();
-  const box = await locator.boundingBox();
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
-      steps: 18,
-    });
-    await beat(180);
+  if (!FAST.has(page)) {
+    const box = await locator.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
+        steps: 18,
+      });
+      await beat(180);
+    }
   }
   await locator.click();
 }
 
-/** Click a field, then type it character-by-character for a human cadence. */
+/** Click a field, then type it character by character for a human cadence. */
 async function slowType(page, locator, text, perCharMs = 55) {
+  if (FAST.has(page)) {
+    await locator.fill(text);
+    return;
+  }
   await glideClick(page, locator);
   await locator.pressSequentially(text, { delay: perCharMs * SPEED });
   await beat(220);
 }
 
-/** Smooth-scroll a target to the vertical centre of the viewport, so the action
- *  is the focus instead of stuck at the screen edge (matters on the long menu
- *  form, where each new item card appears at the bottom). */
+/** Smooth-scroll a target to the vertical centre of the viewport so the action
+ *  is the focus instead of stuck at the screen edge. */
 async function center(page, locator) {
+  if (FAST.has(page)) {
+    await locator.scrollIntoViewIfNeeded();
+    return;
+  }
   await locator
     .evaluate((el) =>
       el.scrollIntoView({ block: "center", behavior: "smooth" }),
     )
     .catch(() => {});
-  await beat(280); // let the scroll settle before measuring/typing
+  await beat(280);
 }
 
-async function main() {
-  fs.mkdirSync(OUT, { recursive: true });
+/** Smooth-scroll the page by a distance, for the read-only scenes. */
+async function scrollPage(page, px) {
+  await page.evaluate(
+    (y) => window.scrollBy({ top: y, behavior: "smooth" }),
+    px,
+  );
+  await beat(900);
+}
 
-  // Headed by default (crisp cursor + real rendering); DEMO_HEADLESS=1 runs it
-  // headless for validation/CI — recordVideo still captures either way.
-  const browser = await chromium.launch({
-    headless: process.env.DEMO_HEADLESS === "1",
-  });
-  const context = await browser.newContext({
-    viewport: VIEWPORT,
-    deviceScaleFactor: 2,
-    recordVideo: { dir: OUT, size: VIEWPORT },
-  });
-  await context.addInitScript(CURSOR_SCRIPT);
-  const page = await context.newPage();
-  // Turbopack dev keeps an HMR socket open, so "load"/"networkidle" can hang —
-  // navigations below use domcontentloaded. Be generous on first-compile waits.
+// Browser plumbing ---------------------------------------------------------
+
+function newPageDefaults(page) {
+  // Turbopack dev keeps an HMR socket open, so "load"/"networkidle" can hang;
+  // navigations use domcontentloaded. Be generous on first-compile waits.
   page.setDefaultNavigationTimeout(60000);
   page.setDefaultTimeout(45000);
+}
 
-  t0 = Date.now();
+/** A recorded context. startMs is when its video begins on the scene clock. */
+async function openRecorded(browser, sceneDir, role, opts = {}) {
+  const viewport = opts.viewport ?? PHONE;
+  const context = await browser.newContext({
+    viewport,
+    deviceScaleFactor: 2,
+    storageState: opts.storageState,
+    recordVideo: { dir: sceneDir, size: viewport },
+  });
+  await context.addInitScript(CURSOR_SCRIPT);
+  // The scene clock starts at the first recorded context, so unrecorded setup
+  // never shows up as blank lead-in; later contexts get a positive offset.
+  if (state.videos.length === 0) state.t0 = Date.now();
+  const page = await context.newPage();
+  const startMs = now();
+  newPageDefaults(page);
+  state.videos.push({ role, context, page, startMs, viewport });
+  return page;
+}
 
-  // ── Beat 1: register ────────────────────────────────────────────────────────
-  await step("Sign up in seconds", async () => {
-    await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-    await beat(900); // let the login page settle before the cursor moves
+/** An unrecorded context for setup and for the "other person" in a scene. */
+async function openFast(browser, storageState) {
+  const context = await browser.newContext({
+    viewport: PHONE,
+    deviceScaleFactor: 1,
+    storageState,
+  });
+  const page = await context.newPage();
+  newPageDefaults(page);
+  FAST.add(page);
+  return { context, page };
+}
+
+// Shared flows -------------------------------------------------------------
+// Each takes a page that is either recorded (paced, with cursor) or fast.
+
+async function signUp(page) {
+  await page.goto(`${state.baseUrl}/login`, { waitUntil: "domcontentloaded" });
+  await pause(page, 900);
+  await glideClick(
+    page,
+    page.getByRole("button", { name: "Create an account" }),
+  );
+  await pause(page, 300);
+  await slowType(page, page.locator("#email"), EMAIL);
+  await slowType(page, page.locator("#password"), PASSWORD);
+  await glideClick(page, page.getByRole("button", { name: "Create account" }));
+  // enable_confirmations=false, so the session is granted and /dashboard
+  // sends a new vendor to /onboarding.
+  await page.waitForURL(/\/onboarding/, { timeout: 15000 });
+}
+
+async function nameStall(page) {
+  await pause(page, 700);
+  await slowType(page, page.locator("#name"), STALL);
+  await glideClick(page, page.getByRole("button", { name: /Open my stall/ }));
+  await page.waitForURL(/\/dashboard$/, { timeout: 15000 });
+  await pause(page, 800);
+}
+
+const tourPopover = (page) => page.locator(".driver-popover.qkit-tour");
+
+/** Close a first-visit tour popover if one shows; it would swallow clicks. */
+async function dismissTour(page) {
+  const pop = tourPopover(page);
+  try {
+    await pop.waitFor({
+      state: "visible",
+      timeout: FAST.has(page) ? 3000 : 5000,
+    });
+  } catch {
+    return;
+  }
+  await page.keyboard.press("Escape");
+  await pop.waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+}
+
+/** Walk the dashboard's built-in tour to its own conclusion. */
+async function walkTour(page) {
+  const pop = tourPopover(page);
+  try {
+    await pop.waitFor({ state: "visible", timeout: 8000 });
+  } catch {
+    return;
+  }
+  const nextBtn = page.locator(".driver-popover-next-btn");
+  // Up to 5 steps (3 on the phone viewport); the final "Next" is "Done".
+  for (let i = 0; i < 5; i++) {
+    await beat(680);
+    if (!(await nextBtn.isVisible().catch(() => false))) break;
+    await glideClick(page, nextBtn);
+  }
+  if (await pop.isVisible().catch(() => false)) {
+    await page.keyboard.press("Escape");
+  }
+  await pop.waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+  await beat(450);
+}
+
+async function addOptionGroup(page, card, gi, g) {
+  await glideClick(
+    page,
+    card.getByRole("button", { name: /Add option group/ }),
+  );
+  await pause(page, 200);
+  const nameField = card.getByPlaceholder(/Group name/).nth(gi);
+  await center(page, nameField);
+  await slowType(page, nameField, g.group, 40);
+  const choices = card.getByPlaceholder(/^Choice/);
+  // A new group starts with one empty choice; earlier groups' choices come first.
+  const base = await choices.count();
+  await slowType(page, choices.nth(base - 1), g.choices[0], 40);
+  for (let ci = 1; ci < g.choices.length; ci++) {
     await glideClick(
       page,
-      page.getByRole("button", { name: "Create an account" }),
+      card.getByRole("button", { name: /Add choice/ }).nth(gi),
     );
-    await beat(300);
-    await slowType(page, page.locator("#email"), EMAIL);
-    await slowType(page, page.locator("#password"), PASSWORD);
-    await glideClick(
-      page,
-      page.getByRole("button", { name: "Create account" }),
-    );
-    // enable_confirmations=false → session granted → /dashboard → /onboarding.
-    await page.waitForURL(/\/onboarding/, { timeout: 15000 });
-  });
+    await pause(page, 120);
+    await choices.nth(base - 1 + ci).fill(g.choices[ci]);
+    await pause(page, 170);
+  }
+  await pause(page, 300);
+}
 
-  // ── Beat 1b: name the stall ─────────────────────────────────────────────────
-  await step("Name your stall", async () => {
-    await beat(700); // new page — give it a beat before typing starts
-    await slowType(page, page.locator("#name"), STALL);
-    await glideClick(page, page.getByRole("button", { name: /Open my stall/ }));
-    await page.waitForURL(/\/dashboard$/, { timeout: 15000 });
-    await beat(800);
-  });
+async function addMenuItem(page, item) {
+  // The bottom "Add item" button (present once there is at least one item)
+  // keeps the view put; with 0 items only the top one exists, so .last()
+  // resolves to it either way.
+  await glideClick(page, page.getByRole("button", { name: /Add item/ }).last());
+  await pause(page, 150);
+  const card = page.locator("div.bg-card", { hasText: "Available" }).last();
+  await center(page, card.getByPlaceholder("Item name"));
+  await slowType(page, card.getByPlaceholder("Item name"), item.name, 45);
+  if (!item.groups) return;
+  await glideClick(page, card.getByRole("button", { name: /Customization/ }));
+  await pause(page, 250);
+  for (const [gi, g] of item.groups.entries()) {
+    await addOptionGroup(page, card, gi, g);
+  }
+}
 
-  // ── Beat 1.5: the built-in guided tour greets the new vendor ────────────────
-  // On first landing the dashboard tour auto-pops. Walk it through to its own
-  // conclusion (the last step says "go create your first booth →") instead of
-  // cutting it off — so the move to booth setup next feels motivated, not an
-  // abrupt jump. Resilient: if it never appears (already seen), just move on.
-  await step("A guided tour, built in", async () => {
-    const pop = page.locator(".driver-popover.qkit-tour");
-    try {
-      await pop.waitFor({ state: "visible", timeout: 8000 });
-    } catch {
-      return;
-    }
-    const nextBtn = page.locator(".driver-popover-next-btn");
-    // Up to 5 steps (3 on the phone viewport); the final "Next" is "Done".
-    for (let i = 0; i < 5; i++) {
-      await beat(680); // hold each step long enough to read (caption reinforces)
-      if (!(await nextBtn.isVisible().catch(() => false))) break;
-      await glideClick(page, nextBtn);
-    }
-    // In case a step had no Next (shouldn't happen), make sure it's closed.
-    if (await pop.isVisible().catch(() => false)) {
-      await page.keyboard.press("Escape");
-    }
-    await pop.waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
-    await beat(450); // brief breath on the dashboard before heading to setup
-  });
+/** The ids of every booth linked from the booths list. */
+async function boothIdsOnPage(page) {
+  const hrefs = await page
+    .locator('a[href*="/dashboard/booths/"]')
+    .evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+  const ids = hrefs
+    .map((h) => h?.match(/\/dashboard\/booths\/([0-9a-f-]{36})/i)?.[1])
+    .filter(Boolean);
+  return [...new Set(ids)];
+}
 
-  // ── Beat 2: create the booth + menu (names + customization, no prices) ──────
-  let boothId;
-  await step("Add your menu & options", async () => {
+/**
+ * Create a booth with a menu through the real form. `viaLink` clicks the
+ * dashboard's "Add your first booth" so the cursor leads into the page.
+ * Returns the new booth's id.
+ */
+async function createBooth(page, opts = {}) {
+  const name = opts.name ?? STALL;
+  const items = opts.items ?? ITEMS;
+  const known = new Set(opts.known ?? []);
+  if (opts.viaLink) {
     await glideClick(
       page,
       page.getByRole("link", { name: /Add your first booth/ }),
     );
-    await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
-    await beat(700);
-    await slowType(page, page.locator("#booth-name"), STALL);
+  } else {
+    await page.goto(`${state.baseUrl}/dashboard/booths/new`, {
+      waitUntil: "domcontentloaded",
+    });
+  }
+  await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
+  await pause(page, 700);
+  await slowType(page, page.locator("#booth-name"), name);
 
-    // The Menu card sits in its own column below Name/Hours/Payment on this
-    // phone-width viewport, so it's well off-screen at this point — scroll to
-    // it smoothly instead of letting the first "Add item" click jump there.
-    await center(page, page.getByRole("button", { name: /Add item/ }).last());
+  if (opts.arrival) {
+    const hold = page.getByRole("switch", { name: "Hold prep until arrival" });
+    await center(page, hold);
+    await glideClick(page, hold);
+  }
 
-    for (const it of ITEMS) {
-      // Use the *bottom* "Add item" button (present once there's ≥1 item) so the
-      // view stays put — clicking the top header button jumps it back up. With 0
-      // items there's only the top one, so .last() resolves to it.
-      await glideClick(
-        page,
-        page.getByRole("button", { name: /Add item/ }).last(),
-      );
-      await beat(150);
-      const card = page.locator("div.bg-card", { hasText: "Available" }).last();
-      // New item cards append at the bottom of the form — pull the card up to
-      // the centre so the typing is the focus, not stuck at the screen edge.
-      await center(page, card.getByPlaceholder("Item name"));
-      await slowType(page, card.getByPlaceholder("Item name"), it.name, 45);
+  // The Menu card sits in its own column below Name/Hours/Payment on a phone
+  // viewport, well off-screen: scroll to it instead of letting the first
+  // "Add item" click jump there.
+  await center(page, page.getByRole("button", { name: /Add item/ }).last());
+  for (const item of items) await addMenuItem(page, item);
 
-      // The hero item shows off customization — the event-vendor selling point
-      // (size, milk, add-ons), not price.
-      if (it.group) {
-        await glideClick(
-          page,
-          card.getByRole("button", { name: /Customization/ }),
-        );
-        await beat(250);
-        await glideClick(
-          page,
-          card.getByRole("button", { name: /Add option group/ }),
-        );
-        await beat(200);
-        await center(page, card.getByPlaceholder(/Group name/));
-        await slowType(page, card.getByPlaceholder(/Group name/), it.group, 40);
-        const choices = card.getByPlaceholder(/^Choice/);
-        await slowType(page, choices.first(), it.choices[0], 40);
-        for (let ci = 1; ci < it.choices.length; ci++) {
-          await glideClick(
-            page,
-            card.getByRole("button", { name: /Add choice/ }),
-          );
-          await beat(120);
-          await choices.nth(ci).fill(it.choices[ci]);
-          await beat(170);
-        }
-        await beat(300);
-      }
+  await pause(page, 300);
+  const save = page.getByRole("button", { name: /Save booth/ });
+  await center(page, save);
+  await glideClick(page, save);
+  await page.waitForURL(/\/dashboard\/booths$/, { timeout: 15000 });
+  await dismissTour(page);
+  await pause(page, 900);
+
+  const fresh = (await boothIdsOnPage(page)).find((id) => !known.has(id));
+  if (!fresh) throw new Error("Could not find the new booth id in the list.");
+  return fresh;
+}
+
+/** Give every menu item a price, and optionally a per-item sold-out limit. */
+async function editMenu(page, boothId, { prices = false, stock = {} } = {}) {
+  await page.goto(`${state.baseUrl}/dashboard/booths/${boothId}/menu`, {
+    waitUntil: "domcontentloaded",
+  });
+  await pause(page, 800);
+  if (prices) {
+    const fields = page.getByPlaceholder("Optional");
+    // Each item has a Price and a Cost field, in that order.
+    const items = (await fields.count()) / 2;
+    for (let i = 0; i < items; i++) {
+      await fields.nth(i * 2).fill("4.50");
+      await fields.nth(i * 2).press("Tab");
     }
-    await beat(300);
-    const saveBoothBtn1 = page.getByRole("button", { name: /Save booth/ });
-    await center(page, saveBoothBtn1);
-    await glideClick(page, saveBoothBtn1);
-    await page.waitForURL(/\/dashboard\/booths$/, { timeout: 15000 });
-    await beat(900);
+  }
+  for (const [index, limit] of Object.entries(stock)) {
+    const field = page.locator(`#menu-item-${index}-stock`);
+    await center(page, field);
+    await slowType(page, field, String(limit));
+  }
+  await glideClick(page, page.getByRole("button", { name: "Save menu" }));
+  await page.getByText(/^Menu saved/).waitFor();
+}
 
-    // Capture the new booth's id from its list link for beats 3-5.
-    const hrefs = await page
-      .locator('a[href*="/dashboard/booths/"]')
-      .evaluateAll((els) => els.map((e) => e.getAttribute("href")));
-    const match = hrefs
-      .map((h) => h && h.match(/\/dashboard\/booths\/([0-9a-f-]{36})/i))
-      .find(Boolean);
-    if (!match) throw new Error("Could not find the new booth id in the list.");
-    boothId = match[1];
+/**
+ * Turn on "Take payment" for a booth. The PayNow details live in paykit, not
+ * here, so the switch stays locked unless paykit holds a payment setup for the
+ * demo vendor.
+ */
+async function enablePayment(page, boothId) {
+  await page.goto(`${state.baseUrl}/dashboard/booths/${boothId}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await pause(page, 1000);
+  const take = page.getByRole("switch", {
+    name: "Take payment for orders at this booth",
+  });
+  await center(page, take);
+  if (await take.isDisabled()) {
+    throw new Error(
+      "Take payment is locked: paykit has no PayNow setup on file for the demo vendor (or is unreachable). Point NEXT_PUBLIC_PAYKIT_URL at a paykit that has one. See README.md.",
+    );
+  }
+  await glideClick(page, take);
+  await pause(page, 450);
+  const save = page.getByRole("button", { name: /Save booth/ });
+  await center(page, save);
+  await glideClick(page, save);
+  await page.waitForURL(/\/dashboard\/booths$/, { timeout: 15000 });
+  await pause(page, 900);
+}
+
+/**
+ * A customer orders from the booth page. `after` says where the order should
+ * land: "status" (numbered status page), "pay" (sent off to paykit's page) or
+ * "form" (stop with the checkout sheet's Place order tapped, no wait).
+ */
+async function customerOrder(page, boothId, opts) {
+  const { name, after = "status", plainIndex = 0 } = opts;
+  await page.goto(`${state.baseUrl}/order/${boothId}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await pause(page, 1100);
+  if (opts.customize) {
+    // The customizable item shows "Customize" and opens the options sheet.
+    await glideClick(page, page.getByRole("button", { name: "Customize" }));
+    await pause(page, 700);
+    // Single-select choices render as a radiogroup (item-customizer.tsx), so
+    // the accessible role is "radio", not "button".
+    for (const choice of opts.customize) {
+      await glideClick(page, page.getByRole("radio", { name: choice }));
+      await pause(page, 500);
+    }
+    await glideClick(page, page.getByRole("button", { name: /Add to order/ }));
+  } else {
+    await glideClick(
+      page,
+      page.getByRole("button", { name: "Add", exact: true }).nth(plainIndex),
+    );
+  }
+  await pause(page, 600);
+  // The sticky bar is a checkout trigger: it opens a sheet holding the name
+  // field and the real submit.
+  await glideClick(page, page.getByRole("button", { name: /Continue/ }));
+  await pause(page, 700);
+  const sheet = page.getByRole("dialog");
+  await slowType(page, sheet.locator("#customerName"), name);
+  await glideClick(page, sheet.getByRole("button", { name: /Place order/ }));
+  if (after === "status") {
+    await page.waitForURL(new RegExp(`/order/${boothId}/\\d+`), {
+      timeout: 15000,
+    });
+  } else if (after === "pay") {
+    await page.waitForURL((u) => !u.href.startsWith(state.baseUrl), {
+      timeout: 20000,
+    });
+  }
+  await pause(page, 1000);
+}
+
+// 1x1 transparent PNG, standing in for a payment screenshot.
+const PROOF_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQI12P4DwABAQEAG7buVgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** On paykit's pay page: attach a screenshot if it offers one, then claim. */
+async function payOnPaykit(page, boothId, { withProof = true } = {}) {
+  assertLoopback(page.url());
+  await pause(page, 900);
+  const upload = page.locator('input[type="file"]');
+  if (withProof && (await upload.count()) > 0) {
+    await upload.first().setInputFiles({
+      name: "demo-proof.png",
+      mimeType: "image/png",
+      buffer: PROOF_PNG,
+    });
+    await beat(700);
+  }
+  const paid = page.getByRole("button", { name: /i.?ve paid/i });
+  await paid.waitFor({ timeout: 10000 });
+  await center(page, paid);
+  await beat(1200);
+  await glideClick(page, paid);
+  await page.waitForURL(new RegExp(`/order/${boothId}/\\d+\\?t=`), {
+    timeout: 20000,
+  });
+  await page.getByText(/payment sent/i).waitFor({ timeout: 10000 });
+  await beat(900);
+}
+
+// Vendor board helpers -----------------------------------------------------
+
+const ACTION = /Mark paid & start|Start now|Mark Ready|Mark Picked Up|Undo/;
+
+/** The ticket for a customer: the innermost block holding their name and an action. */
+function ticket(page, name) {
+  return page
+    .locator("div")
+    .filter({ hasText: name })
+    .filter({ has: page.getByRole("button", { name: ACTION }) })
+    .last();
+}
+
+async function openBoard(page) {
+  await page.goto(`${state.baseUrl}/dashboard`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page
+    .getByRole("button", { name: "New order" })
+    .waitFor({ timeout: 30000 });
+  await pause(page, 900);
+}
+
+/** On a phone only one of Incoming/Accepted shows; flip to the one with this ticket. */
+async function revealTicket(page, name) {
+  const card = ticket(page, name);
+  await card.waitFor({ state: "attached", timeout: 30000 });
+  if (await card.isVisible()) return;
+  const tabs = page
+    .getByRole("group", { name: "Which orders to show" })
+    .getByRole("button");
+  const count = await tabs.count();
+  for (let i = 0; i < count; i++) {
+    await tabs.nth(i).click();
+    if (await card.isVisible()) return;
+  }
+}
+
+async function tapTicket(page, name, label) {
+  await revealTicket(page, name);
+  const button = ticket(page, name).getByRole("button", { name: label });
+  await button.waitFor({ state: "visible", timeout: 30000 });
+  await center(page, button);
+  await glideClick(page, button);
+}
+
+/** Start, ready and hand over one order. "Undo" holds the next button back a few seconds. */
+async function fulfil(page, name, { start = true } = {}) {
+  if (start) await tapTicket(page, name, /Start now/);
+  await tapTicket(page, name, "Mark Ready");
+  await tapTicket(page, name, "Mark Picked Up");
+}
+
+// Seeding ------------------------------------------------------------------
+
+function upgradeToPro() {
+  const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
+  const res = spawnSync(
+    "psql",
+    [dbUrl, "-v", "ON_ERROR_STOP=1", "-f", path.join(HERE, "upgrade-pro.sql")],
+    { stdio: "inherit" },
+  );
+  if (res.status !== 0)
+    throw new Error("psql failed upgrading the demo vendor");
+}
+
+/**
+ * Unrecorded prerequisite: sign up, name the stall, create the booth(s) and
+ * return the vendor's session plus the booth ids, so a scene's clip starts on
+ * the interesting part.
+ */
+async function seedVendor(browser, scene, opts = {}) {
+  const { context, page } = await openFast(browser);
+  await signUp(page);
+  await nameStall(page);
+  await dismissTour(page);
+  if (scene.pro) upgradeToPro();
+
+  const boothIds = [];
+  const names = opts.booths ?? [STALL];
+  for (const name of names) {
+    const id = await createBooth(page, {
+      name,
+      items: opts.items ?? ITEMS,
+      arrival: opts.arrival,
+      known: boothIds,
+    });
+    boothIds.push(id);
+  }
+  if (opts.prices) await editMenu(page, boothIds[0], { prices: true });
+  if (opts.payment) await enablePayment(page, boothIds[0]);
+  const storageState = await context.storageState();
+  await context.close();
+  return { boothIds, boothId: boothIds[0], storageState };
+}
+
+/** Place a customer's order from a throwaway phone, unrecorded. */
+async function backgroundOrder(browser, boothId, name, opts = {}) {
+  const { context, page } = await openFast(browser);
+  try {
+    await customerOrder(page, boothId, { name, ...opts });
+  } finally {
+    await context.close();
+  }
+}
+
+// Scenes -------------------------------------------------------------------
+// Each receives {browser, scene, dir}; captions come from the registry.
+
+async function tourScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const page = await openRecorded(browser, dir, "main");
+  let boothId;
+
+  await step(C.signup, () => signUp(page));
+  await step(C.stall, () => nameStall(page));
+  await step(C.guide, () => walkTour(page));
+  await step(C.menu, async () => {
+    boothId = await createBooth(page, { viaLink: true });
   });
 
-  // ── Beat 3: the QR customers scan ──────────────────────────────────────────
-  // We're on the booths list — click the card's QR button so the cursor leads
-  // into the transition, rather than teleporting to the QR URL.
-  await step("Customers scan this", async () => {
+  // On the booths list; the card's QR button leads the cursor into the page.
+  await step(C.qr, async () => {
     await beat(400);
     await glideClick(page, page.getByRole("link", { name: /Booth QR code/i }));
     await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
@@ -293,204 +645,538 @@ async function main() {
     await beat(1600);
   });
 
-  // ── Beat 4: the customer customizes + orders from their phone ───────────────
-  await step("They customize & order", async () => {
-    await page.goto(`${BASE}/order/${boothId}`, {
-      waitUntil: "domcontentloaded",
-    });
-    await beat(1100);
-    // The customizable item shows "Customize" → opens the options sheet.
-    await glideClick(page, page.getByRole("button", { name: "Customize" }));
-    await beat(700); // sheet slides up
-    // Pick a non-default milk so the selection visibly changes, then add.
-    // Single-select choice groups render as a radiogroup (WCAG 1.4.1/4.1.2 —
-    // selection can't be color-only), so the choice's accessible role is
-    // "radio", not "button" (item-customizer.tsx).
-    await glideClick(page, page.getByRole("radio", { name: CUSTOMIZE_PICK }));
-    await beat(500);
-    await glideClick(page, page.getByRole("button", { name: /Add to order/ }));
-    await beat(600);
-    // The sticky bar is a checkout trigger — it opens a bottom sheet holding
-    // the name field and the real submit.
-    await glideClick(page, page.getByRole("button", { name: /Continue/ }));
-    await beat(700); // sheet slides up
-    const checkoutSheet = page.getByRole("dialog");
-    await slowType(page, checkoutSheet.locator("#customerName"), CUSTOMER);
-    await glideClick(
-      page,
-      checkoutSheet.getByRole("button", { name: /Place order/ }),
-    );
-    await page.waitForURL(new RegExp(`/order/${boothId}/\\d+`), {
-      timeout: 15000,
-    });
-    await beat(1000);
-  });
-
-  // ── Beat 5: the vendor sees it land live, then marks it ready ───────────────
-  // This whole order ran with NO payment configured — the pure-queue flow. The
-  // payment beats below then show the same booth upgraded to a payment queue.
-  await step("Orders land live. No payment required.", async () => {
-    await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
-    await beat(900);
-    await beat(1500); // board settles, showing Priya's order
-
-    // (New-order sound now lives on the Board settings page, not an inline
-    // toggle here — skipping that beat; compose.mjs still mixes the chime in
-    // at the moment the walk-in order lands, below.)
-
-    // A walk-in orders from a second (un-recorded) phone — the ticket pops in
-    // live on the board through the real realtime subscription.
-    const bg = await browser.newContext({ viewport: VIEWPORT });
-    const bgPage = await bg.newPage();
-    await bgPage.goto(`${BASE}/order/${boothId}`, {
-      waitUntil: "domcontentloaded",
-    });
-    await bgPage.getByRole("button", { name: "Add" }).first().click();
-    await bgPage.getByRole("button", { name: /Continue/ }).click();
-    const bgCheckout = bgPage.getByRole("dialog");
-    await bgCheckout.locator("#customerName").fill(WALK_IN);
-    await bgCheckout.getByRole("button", { name: /Place order/ }).click();
-    await bgPage.waitForURL(new RegExp(`/order/${boothId}/\\d+`), {
-      timeout: 15000,
-    });
-
-    // Wait for the second card to arrive on the recorded board, then advance it.
-    // Exact match avoids the toast ("New order #0002 · Marcus"); take the card.
-    await page
-      .getByText(WALK_IN, { exact: true })
-      .first()
-      .waitFor({ timeout: 15000 });
-    popMs = now(); // the live order just landed — chime goes here
-    await beat(900);
-    await glideClick(
-      page,
-      page.getByRole("button", { name: "Start now" }).first(),
-    );
-    await page.getByRole("button", { name: "Mark Ready" }).first().waitFor();
-    await glideClick(
-      page,
-      page.getByRole("button", { name: "Mark Ready" }).first(),
-    );
-    await beat(1100);
-    await bg.close();
-  });
-
-  // ── Beat 6: turn the queue into a payment queue (add PayNow) ────────────────
-  // Same booth, edited: pick PayNow and drop in a UEN. No money ever flows
-  // through qkit — the customer pays the vendor directly.
-  await step("Want to get paid? Add PayNow", async () => {
-    await page.goto(`${BASE}/dashboard/booths/${boothId}`, {
-      waitUntil: "domcontentloaded",
-    });
-    await beat(1000);
-    const paynow = page.getByRole("radio", { name: /PayNow QR/i });
-    await center(page, paynow);
-    await glideClick(page, paynow);
-    await beat(350);
-    const pnName = page.locator("#pn-name");
-    await center(page, pnName);
-    await slowType(page, pnName, STALL, 40);
-    const pnUen = page.locator("#pn-uen");
-    await center(page, pnUen);
-    await slowType(page, pnUen, "53312345A", 45);
-    await beat(450); // hold on the filled-in fields before moving to save
-    const saveBoothBtn2 = page.getByRole("button", { name: /Save booth/ });
-    await center(page, saveBoothBtn2);
-    await glideClick(page, saveBoothBtn2);
-    await page.waitForURL(/\/dashboard\/booths$/, { timeout: 15000 });
-    await beat(900);
-
-    // Existing menus have a dedicated editor; a priced item makes checkout real.
-    await page.goto(`${BASE}/dashboard/booths/${boothId}/menu`, {
-      waitUntil: "domcontentloaded",
-    });
-    const prices = page.getByPlaceholder("Optional");
-    for (let index = 0; index < ITEMS.length; index++) {
-      await prices.nth(index * 2).fill("4.50");
-      await prices.nth(index * 2).press("Tab");
-    }
-    await glideClick(page, page.getByRole("button", { name: "Save menu" }));
-    await page.getByText("Menu saved", { exact: true }).waitFor();
-  });
-
-  // ── Beat 7: the customer pays from their phone (PayNow QR → "I've paid") ────
-  await step("Customers pay you directly. You keep it all.", async () => {
-    await page.goto(`${BASE}/order/${boothId}`, {
-      waitUntil: "domcontentloaded",
-    });
-    await beat(1000);
-    // A plain (non-customizable) item one-taps onto the order.
-    await glideClick(page, page.getByRole("button", { name: "Add" }).first());
-    await beat(400);
-    await glideClick(page, page.getByRole("button", { name: /Continue/ }));
-    await beat(700); // sheet slides up
-    const payCheckout = page.getByRole("dialog");
-    await slowType(page, payCheckout.locator("#customerName"), PAYING_CUSTOMER);
-    await glideClick(
-      page,
-      payCheckout.getByRole("button", { name: /Place order/ }),
-    );
-    await page.waitForURL(new RegExp(`/order/${boothId}/pay\\?t=`), {
-      timeout: 15000,
-    });
-    await beat(900);
-    // The pay panel renders a per-order PayNow QR (amount baked in).
-    const payBtn = page.getByRole("button", { name: /I.?ve paid/i });
-    await payBtn.waitFor({ timeout: 10000 });
-    await center(page, payBtn); // scroll the QR + button to the middle to read
-    await beat(1400); // hold on the QR so it reads
-    await page.locator("#payment-proof").setInputFiles({
-      name: "demo-proof.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQI12P4DwABAQEAG7buVgAAAABJRU5ErkJggg==",
-        "base64",
-      ),
-    });
-    await glideClick(page, payBtn);
-    await page.waitForURL(new RegExp(`/order/${boothId}/\\d+\\?t=`), {
-      timeout: 15000,
-    });
-    await page.getByText(/payment sent/i).waitFor({ timeout: 10000 });
-    await beat(900);
-  });
-
-  // ── Beat 8: the vendor confirms — the card glows blue, one tap to settle ────
-  await step("One tap to confirm payment", async () => {
-    await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
-    await beat(1100); // board settles; the "says paid" card washes blue
-    const confirm = page.getByRole("button", {
-      name: /Confirm payment received/i,
-    });
-    await confirm.waitFor({ timeout: 15000 });
-    await center(page, confirm);
-    await beat(900); // let the blue card register before the tap
-    await glideClick(page, confirm);
-    await beat(1300);
-  });
-
-  // Finish — flush the video + timeline.
-  await context.close();
-  await browser.close();
-
-  const videoFile = fs
-    .readdirSync(OUT)
-    .filter((f) => f.endsWith(".webm"))
-    .map((f) => ({ f, t: fs.statSync(path.join(OUT, f)).mtimeMs }))
-    .sort((a, b) => b.t - a.t)[0]?.f;
-
-  fs.writeFileSync(
-    path.join(OUT, "steps.json"),
-    JSON.stringify(
-      { video: videoFile, viewport: VIEWPORT, popMs, steps },
-      null,
-      2,
-    ),
+  await step(C.order, () =>
+    customerOrder(page, boothId, { name: CUSTOMER, customize: ["Soy"] }),
   );
 
-  console.log(`\n✓ Recorded ${videoFile}`);
-  console.log(`✓ ${steps.length} captioned beats → steps.json`);
-  console.log(`Next: node scripts/demo/compose.mjs\n`);
+  // This whole order ran with no payment configured: the pure-queue flow.
+  await step(C.live, async () => {
+    await openBoard(page);
+    await beat(1500);
+    // A walk-in orders from a second, unrecorded phone; the ticket pops in
+    // live through the real realtime subscription.
+    await backgroundOrder(browser, boothId, WALK_IN, { plainIndex: 0 });
+    await revealTicket(page, WALK_IN);
+    markPop();
+    await beat(900);
+    await tapTicket(page, WALK_IN, /Start now/);
+    await tapTicket(page, WALK_IN, "Mark Ready");
+    await beat(1100);
+  });
+
+  await step(C.payment, async () => {
+    await enablePayment(page, boothId);
+    await editMenu(page, boothId, { prices: true });
+  });
+
+  await step(C.pay, async () => {
+    await customerOrder(page, boothId, {
+      name: PAYING_CUSTOMER,
+      plainIndex: 0,
+      after: "pay",
+    });
+    await payOnPaykit(page, boothId);
+  });
+
+  await step(C.confirm, async () => {
+    await openBoard(page);
+    await beat(1100);
+    await tapTicket(page, PAYING_CUSTOMER, /Mark paid & start/);
+    await beat(900);
+  });
+
+  await step(C.fulfil, async () => {
+    await tapTicket(page, PAYING_CUSTOMER, "Mark Ready");
+    await tapTicket(page, PAYING_CUSTOMER, "Mark Picked Up");
+    await beat(1300);
+  });
+}
+
+async function setupScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const page = await openRecorded(browser, dir, "main");
+  let boothId;
+  await step(C.signup, () => signUp(page));
+  await step(C.stall, async () => {
+    await nameStall(page);
+    await dismissTour(page);
+  });
+  await step(C.menu, async () => {
+    boothId = await createBooth(page, { viaLink: true });
+  });
+  await step(C.qr, async () => {
+    await beat(400);
+    await glideClick(page, page.getByRole("link", { name: /Booth QR code/i }));
+    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+      timeout: 15000,
+    });
+    await beat(2200);
+  });
+}
+
+async function livePopScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  const phone = await openRecorded(browser, dir, "customer");
+  const board = await openRecorded(browser, dir, "vendor", {
+    storageState: seed.storageState,
+  });
+  await openBoard(board);
+
+  await step(C.open, async () => {
+    await phone.goto(`${state.baseUrl}/order/${seed.boothId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await beat(1400);
+  });
+  await step(C.pick, async () => {
+    await glideClick(
+      phone,
+      phone.getByRole("button", { name: "Add", exact: true }).first(),
+    );
+    await beat(700);
+  });
+  await step(C.order, async () => {
+    await glideClick(phone, phone.getByRole("button", { name: /Continue/ }));
+    await beat(700);
+    const sheet = phone.getByRole("dialog");
+    await slowType(phone, sheet.locator("#customerName"), CUSTOMER);
+    await glideClick(phone, sheet.getByRole("button", { name: /Place order/ }));
+    await phone.waitForURL(new RegExp(`/order/${seed.boothId}/\\d+`), {
+      timeout: 15000,
+    });
+  });
+  await step(C.pop, async () => {
+    await revealTicket(board, CUSTOMER);
+    markPop();
+    await beat(2600);
+  });
+}
+
+async function paynowScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, {
+    prices: true,
+    payment: true,
+  });
+  const phone = await openRecorded(browser, dir, "customer");
+  const board = await openRecorded(browser, dir, "vendor", {
+    storageState: seed.storageState,
+  });
+  await openBoard(board);
+
+  await step(C.pay, async () => {
+    await customerOrder(phone, seed.boothId, {
+      name: PAYING_CUSTOMER,
+      after: "pay",
+    });
+    await beat(1800);
+  });
+  await step(C.proof, () => payOnPaykit(phone, seed.boothId));
+  await step(C.tap, async () => {
+    await revealTicket(board, PAYING_CUSTOMER);
+    markPop();
+    await beat(900);
+    await tapTicket(board, PAYING_CUSTOMER, /Mark paid & start/);
+    await beat(2200);
+  });
+}
+
+async function statusScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  // Two orders already waiting, so the customer sees a real queue position.
+  await backgroundOrder(browser, seed.boothId, "Marcus");
+  await backgroundOrder(browser, seed.boothId, "Dina");
+  const phone = await openRecorded(browser, dir, "customer");
+  const board = await openRecorded(browser, dir, "vendor", {
+    storageState: seed.storageState,
+  });
+  await openBoard(board);
+
+  await step(C.queue, async () => {
+    await customerOrder(phone, seed.boothId, { name: CUSTOMER });
+    await phone
+      .getByText(/orders? ahead of you/)
+      .first()
+      .waitFor({ timeout: 10000 })
+      .catch(() => {});
+    await beat(2200);
+  });
+  await step(C.ready, async () => {
+    await tapTicket(board, CUSTOMER, /Start now/);
+    await beat(800);
+    await tapTicket(board, CUSTOMER, "Mark Ready");
+    await beat(600);
+  });
+  await step(C.seen, async () => {
+    // The status page polls, so it turns over on its own.
+    await phone.getByText("It's ready").first().waitFor({ timeout: 40000 });
+    markPop();
+    await beat(2400);
+  });
+}
+
+async function tvScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  const vendor = await openFast(browser, seed.storageState);
+  await backgroundOrder(browser, seed.boothId, "Marcus");
+  await backgroundOrder(browser, seed.boothId, "Dina");
+  await openBoard(vendor.page);
+  await tapTicket(vendor.page, "Marcus", /Start now/);
+  await tapTicket(vendor.page, "Dina", /Start now/);
+
+  const tv = await openRecorded(browser, dir, "main", { viewport: TV });
+  await step(C.open, async () => {
+    await tv.goto(`${state.baseUrl}/order/${seed.boothId}/display`, {
+      waitUntil: "domcontentloaded",
+    });
+    await beat(1500);
+  });
+  await step(C.preparing, async () => {
+    await tv
+      .getByRole("heading", { name: "Preparing" })
+      .waitFor({ timeout: 20000 });
+    await beat(2500);
+  });
+  await step(C.ready, async () => {
+    await tapTicket(vendor.page, "Marcus", "Mark Ready");
+    // The screen polls, so give it a cycle to flip the order across.
+    await beat(7000);
+    markPop();
+  });
+  await vendor.context.close();
+}
+
+async function optionsScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, { items: OPTION_ITEMS });
+  const page = await openRecorded(browser, dir, "main", {
+    storageState: seed.storageState,
+  });
+  await step(C.pick, () =>
+    customerOrder(page, seed.boothId, {
+      name: CUSTOMER,
+      customize: ["Soy", "Less sugar"],
+    }),
+  );
+  await step(C.ticket, async () => {
+    await openBoard(page);
+    await revealTicket(page, CUSTOMER);
+    await center(page, ticket(page, CUSTOMER));
+    markPop();
+    await beat(2800);
+  });
+}
+
+async function walkUpScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  const phone = await openRecorded(browser, dir, "customer");
+  const board = await openRecorded(browser, dir, "vendor", {
+    storageState: seed.storageState,
+  });
+  await openBoard(board);
+
+  await step(C.qr, async () => {
+    await customerOrder(phone, seed.boothId, { name: CUSTOMER });
+    await revealTicket(board, CUSTOMER);
+    markPop();
+    await beat(1500);
+  });
+  await step(C.walkup, async () => {
+    await glideClick(board, board.getByRole("button", { name: "New order" }));
+    await beat(900);
+    const dialog = board.getByRole("dialog");
+    await glideClick(
+      board,
+      dialog.getByRole("button", { name: "Add", exact: true }).first(),
+    );
+    await slowType(board, dialog.locator("#walkup-customer-name"), WALK_IN);
+    await glideClick(board, dialog.getByRole("button", { name: /^Add order/ }));
+    await dialog.waitFor({ state: "hidden", timeout: 15000 });
+  });
+  await step(C.both, async () => {
+    await revealTicket(board, WALK_IN);
+    await beat(2200);
+  });
+}
+
+async function batchScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  for (const name of CROWD) await backgroundOrder(browser, seed.boothId, name);
+  const page = await openRecorded(browser, dir, "main", {
+    storageState: seed.storageState,
+  });
+  await openBoard(page);
+
+  await step(C.busy, async () => {
+    await page.getByText(CROWD.at(-1), { exact: true }).first().waitFor();
+    await beat(2200);
+  });
+  await step(C.start, async () => {
+    await glideClick(page, page.getByRole("button", { name: /^Start all/ }));
+    await beat(1600);
+  });
+  await step(C.ready, async () => {
+    await glideClick(
+      page,
+      page.getByRole("button", { name: /^Mark all \d+ ready/ }),
+    );
+    await beat(1800);
+  });
+  await step(C.pickup, async () => {
+    await glideClick(page, page.getByRole("button", { name: "Select" }));
+    await beat(500);
+    await glideClick(page, page.getByRole("button", { name: "Select all" }));
+    await beat(600);
+    await glideClick(
+      page,
+      page.getByRole("button", { name: /^Mark \d+ Picked Up/ }),
+    );
+    await beat(1800);
+  });
+}
+
+async function soldOutScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, { items: PLAIN_ITEMS });
+  const page = await openRecorded(browser, dir, "main", {
+    storageState: seed.storageState,
+  });
+  await step(C.limit, () => editMenu(page, seed.boothId, { stock: { 0: 1 } }));
+  await step(C.hit, () =>
+    customerOrder(page, seed.boothId, { name: CUSTOMER, plainIndex: 0 }),
+  );
+  await step(C.menu, async () => {
+    await page.goto(`${state.baseUrl}/order/${seed.boothId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.getByText("Sold out").first().waitFor({ timeout: 15000 });
+    await beat(2600);
+  });
+}
+
+async function statsScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, { prices: true });
+  const vendor = await openFast(browser, seed.storageState);
+  const names = ["Marcus", "Dina", "Eli", "Faye"];
+  for (const name of names) {
+    await backgroundOrder(browser, seed.boothId, name, {
+      plainIndex: names.indexOf(name) % 2,
+    });
+  }
+  await openBoard(vendor.page);
+  for (const name of names) await fulfil(vendor.page, name);
+  await vendor.context.close();
+
+  const page = await openRecorded(browser, dir, "main", {
+    storageState: seed.storageState,
+  });
+  await step(C.sells, async () => {
+    await page.goto(`${state.baseUrl}/dashboard/stats`, {
+      waitUntil: "domcontentloaded",
+    });
+    await beat(2200);
+  });
+  await step(C.busy, async () => {
+    await scrollPage(page, 700);
+    await scrollPage(page, 700);
+    await beat(1200);
+  });
+}
+
+async function multiBoothScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, {
+    booths: MULTI_BOOTHS,
+    items: PLAIN_ITEMS,
+  });
+  const names = ["Marcus", "Dina", "Eli"];
+  for (const [i, id] of seed.boothIds.entries()) {
+    await backgroundOrder(browser, id, names[i]);
+  }
+  const page = await openRecorded(browser, dir, "main", {
+    storageState: seed.storageState,
+  });
+  await step(C.board, async () => {
+    await openBoard(page);
+    await beat(2200);
+  });
+  await step(C.dots, async () => {
+    await beat(1800);
+  });
+  await step(C.filter, async () => {
+    await glideClick(
+      page,
+      page.getByRole("combobox", { name: "Filter by booth" }),
+    );
+    await beat(600);
+    await glideClick(page, page.getByRole("option", { name: MULTI_BOOTHS[1] }));
+    await beat(2200);
+  });
+}
+
+async function imHereScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene, { arrival: true });
+  const phone = await openRecorded(browser, dir, "customer");
+  const board = await openRecorded(browser, dir, "vendor", {
+    storageState: seed.storageState,
+  });
+  await openBoard(board);
+
+  await step(C.order, () =>
+    customerOrder(phone, seed.boothId, { name: CUSTOMER }),
+  );
+  await step(C.hold, async () => {
+    await revealTicket(board, CUSTOMER);
+    await beat(2200);
+  });
+  await step(C.here, async () => {
+    const here = phone.getByRole("button", { name: /I.m here/ });
+    await center(phone, here);
+    await beat(900);
+    markPop();
+    await glideClick(phone, here);
+    await beat(1200);
+  });
+  await step(C.start, async () => {
+    await ticket(board, CUSTOMER)
+      .getByRole("button", { name: "Mark Ready" })
+      .waitFor({ state: "visible", timeout: 30000 });
+    await beat(2200);
+  });
+}
+
+// What this scene shows depends on merqo (vendor socials, the Telegram link),
+// which a local qkit stack lacks, so each optional beat is looked for and
+// skipped when absent rather than failing the recording.
+async function comeBackScene({ browser, scene, dir }) {
+  const C = scene.captions;
+  const seed = await seedVendor(browser, scene);
+  const page = await openRecorded(browser, dir, "main");
+  await step(C.footer, async () => {
+    await customerOrder(page, seed.boothId, { name: CUSTOMER });
+    await scrollPage(page, 1200);
+  });
+  await step(C.telegram, async () => {
+    const link = page.getByText(/Get notified on Telegram/).first();
+    if (await link.isVisible().catch(() => false)) await center(page, link);
+    await beat(2200);
+  });
+
+  const vendor = await openFast(browser, seed.storageState);
+  await openBoard(vendor.page);
+  await fulfil(vendor.page, CUSTOMER);
+  await vendor.context.close();
+
+  await step(C.reorder, async () => {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const again = page.getByRole("button", { name: "Reorder" });
+    await again.waitFor({ timeout: 10000 }).catch(() => {});
+    if (await again.isVisible().catch(() => false)) {
+      await center(page, again);
+      await glideClick(page, again);
+    }
+    await beat(2200);
+  });
+}
+
+const RUNNERS = {
+  tour: tourScene,
+  setup: setupScene,
+  "live-pop": livePopScene,
+  paynow: paynowScene,
+  status: statusScene,
+  "tv-screen": tvScene,
+  options: optionsScene,
+  "walk-up": walkUpScene,
+  batch: batchScene,
+  "sold-out": soldOutScene,
+  stats: statsScene,
+  "multi-booth": multiBoothScene,
+  "im-here": imHereScene,
+  "come-back": comeBackScene,
+};
+
+// Run ----------------------------------------------------------------------
+
+/** Close the recorded contexts and name each webm after its role. */
+async function finishRecording(dir) {
+  const out = [];
+  for (const v of state.videos) {
+    await v.context.close();
+    const tmp = await v.page.video().path();
+    const file = `${v.role}.webm`;
+    fs.renameSync(tmp, path.join(dir, file));
+    out.push({
+      role: v.role,
+      file,
+      startMs: v.startMs,
+      viewport: v.viewport,
+    });
+  }
+  return out;
+}
+
+function cleanSceneDir(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.error) throw new Error(args.error);
+  if (args.list || args.help) {
+    console.log(
+      `Usage: record.mjs [--scene <name>] [--list]\n${formatSceneList()}`,
+    );
+    return;
+  }
+  const scene = resolveScene(args.scene);
+  if (scene instanceof Error) throw scene;
+  const run = RUNNERS[scene.name];
+  if (!run) throw new Error(`No recorder for scene "${scene.name}"`);
+
+  state.baseUrl = localDemoBaseUrl(process.env.DEMO_BASE_URL);
+  if (scene.pro) localDemoDbUrl(process.env.DEMO_DB_URL);
+
+  const dir = path.join(OUT, scene.name);
+  cleanSceneDir(dir);
+
+  // Headed by default (crisp cursor + real rendering); DEMO_HEADLESS=1 runs it
+  // headless for validation. recordVideo captures either way.
+  const browser = await chromium.launch({
+    headless: process.env.DEMO_HEADLESS === "1",
+  });
+  try {
+    await run({ browser, scene, dir });
+    const videos = await finishRecording(dir);
+    fs.writeFileSync(
+      path.join(dir, "steps.json"),
+      JSON.stringify(
+        {
+          scene: scene.name,
+          mode: scene.mode,
+          hook: scene.hook,
+          popMs: state.popMs,
+          videos,
+          steps: state.steps,
+        },
+        null,
+        2,
+      ),
+    );
+    console.log(`\n✓ Recorded ${videos.map((v) => v.file).join(", ")}`);
+    console.log(`✓ ${state.steps.length} captioned beats, steps.json`);
+    console.log(`Next: node scripts/demo/compose.mjs --scene ${scene.name}\n`);
+  } finally {
+    await browser.close();
+  }
 }
 
 main().catch((err) => {

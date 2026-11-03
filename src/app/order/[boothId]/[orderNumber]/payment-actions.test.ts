@@ -26,6 +26,7 @@ const {
   storageFromMock,
   rpcMock,
   rateLimitMock,
+  rateLimitStrictMock,
   clientIpMock,
 } = vi.hoisted(() => {
   const ordersMaybeSingle = vi.fn();
@@ -89,6 +90,7 @@ const {
     storageFromMock,
     rpcMock,
     rateLimitMock: vi.fn(),
+    rateLimitStrictMock: vi.fn(),
     clientIpMock: vi.fn(() => "1.2.3.4"),
   };
 });
@@ -98,6 +100,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: rateLimitMock,
+  rateLimitStrict: rateLimitStrictMock,
   clientIp: clientIpMock,
 }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve({}) }));
@@ -151,6 +154,7 @@ beforeEach(() => {
   storageFromMock.mockReset();
   rpcMock.mockReset().mockResolvedValue({ data: "0007", error: null });
   rateLimitMock.mockReset().mockResolvedValue(true);
+  rateLimitStrictMock.mockReset().mockResolvedValue(true);
   clientIpMock.mockClear();
   createCheckoutMock.mockReset().mockResolvedValue({
     ok: true,
@@ -379,10 +383,10 @@ describe("loadPreClaimContext", () => {
   });
 
   it("returns null and never calls paykit when rate-limited", async () => {
-    rateLimitMock.mockResolvedValue(false);
+    rateLimitStrictMock.mockResolvedValue(false);
     expect(await loadPreClaimContext(BOOTH, TOKEN, ORIGIN)).toBeNull();
     expect(createCheckoutMock).not.toHaveBeenCalled();
-    expect(rateLimitMock).toHaveBeenCalledWith(
+    expect(rateLimitStrictMock).toHaveBeenCalledWith(
       `pre-claim-context:${BOOTH}:${TOKEN}`,
       20,
       60,
@@ -489,7 +493,7 @@ describe("unclaimPayment", () => {
   });
 
   it("blocks when rate-limited and never calls paykit", async () => {
-    rateLimitMock.mockResolvedValue(false);
+    rateLimitStrictMock.mockResolvedValue(false);
     const res = await unclaimPayment(BOOTH, ORDER, TOKEN);
     expect(res).toEqual({
       success: false,

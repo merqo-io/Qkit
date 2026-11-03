@@ -336,6 +336,7 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
   on limiter failure so a degraded limiter never blocks real customers.
+- `rateLimitStrict` (same file) is the fail-CLOSED variant: a limiter error denies the call. Used by the anonymous order, hold and pay-page actions. `clientIp` trusts `x-vercel-forwarded-for`, then `x-real-ip`, then the last `x-forwarded-for` hop.
 - `rate-limit.test.ts` — tests the fail-open behavior and IP extraction.
 - `order-session.ts` — `orderSessionId()`: reads or mints (and sets) the httpOnly,
   SameSite=Lax `qkit_order_sid` cookie (Secure in production), a server-made

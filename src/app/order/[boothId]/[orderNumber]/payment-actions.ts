@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 // eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServiceClient } from "@/lib/supabase/server";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimit, rateLimitStrict } from "@/lib/rate-limit";
 import { parseOrderRef, parsePreClaimRef } from "@/lib/schemas";
 import { createCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
@@ -171,7 +171,7 @@ export async function loadPreClaimContext(
   // This one makes a real outbound call to paykit (createCheckout) on every
   // invocation, so page-reload-style abuse is capped tighter than a cheap
   // local read.
-  const allowed = await rateLimit(
+  const allowed = await rateLimitStrict(
     `pre-claim-context:${boothId}:${token}`,
     20,
     60,
@@ -245,7 +245,7 @@ export async function unclaimPayment(
   const supabase = await createServiceClient();
 
   const ip = clientIp(await headers());
-  const allowed = await rateLimit(`unclaim:${boothId}:${ip}`, 10, 60);
+  const allowed = await rateLimitStrict(`unclaim:${boothId}:${ip}`, 10, 60);
   if (!allowed)
     return { success: false, error: "Too many attempts. Wait a moment." };
 

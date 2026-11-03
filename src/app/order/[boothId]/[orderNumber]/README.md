@@ -235,6 +235,7 @@ payment)` moves the mirror forward only (`claimed` never overwrites
 - `finalize-paid-order.test.ts` — the order of the steps, running twice in a
   row and at the same moment (one alert), a failed number assignment, each
   mirror rule, and the screenshot-only fallback.
+- `loadPreClaimContext` and `unclaimPayment` use `rateLimitStrict` (fail closed); `getPaymentStatus` polling stays fail-open.
 - `payment-actions.ts` — service-client server actions: `getPaymentStatus`
   (read-only poll of the local `orders.payment_status` mirror — cheaper than
   round-tripping paykit every 5s; rate-limited per token, 30/60s — a holder
