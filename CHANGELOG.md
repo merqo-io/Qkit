@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Vendor user guide: the Payments, Printing, Customer alerts and Plans articles are written and published at `/dashboard/help`, so the guide no longer has any "Coming soon" entries. Each is checked against the code by the help drift test.
 - Vendor user guide: the Getting started, Running a service and Menu and stock articles are written and published at `/dashboard/help`. They cover creating a booth and printing its QR, working the live board, walk-up and batch orders, restarting the service count, the customer screen, and item, daily and per-order limits.
 - Vendor user guide at `/dashboard/help` (signed-in only, not indexed): a category index and article pages, with a complete Troubleshooting article. The article text lives in typed modules under `src/content/help`, and a drift test fails when an article quotes a UI string or source path that no longer exists. Articles for the other categories are registered as drafts, hidden until written. The guide is linked from the account menu ("User guide") and the last step of the orders tour.
 - Demo video pipeline records one named scene per Instagram episode: `node scripts/demo/record.mjs --scene <name>` then `node scripts/demo/compose.mjs --scene <name>` writes `out/<scene>.mp4`; `--list` prints the scenes. Episodes 1, 3, 4, 7 and 12 compose the customer phone and the vendor board side by side in a 1080x1920 frame, aligned by each recording's start offset. A unit test blocks em dashes in every caption.
