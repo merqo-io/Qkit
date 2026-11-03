@@ -1,22 +1,29 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
-const { gate, fixtures, from, filters, rpc, board } = vi.hoisted(() => ({
-  gate: vi.fn(),
-  fixtures: {} as Record<
-    string,
-    { data: unknown; error?: { message: string }; failFrom?: number }
-  >,
-  from: vi.fn(),
-  filters: vi.fn(),
-  rpc: vi.fn(),
-  board: vi.fn(),
-}));
+const { gate, fixtures, from, filters, rpc, board, serviceClient } = vi.hoisted(
+  () => ({
+    gate: vi.fn(),
+    fixtures: {} as Record<
+      string,
+      { data: unknown; error?: { message: string }; failFrom?: number }
+    >,
+    from: vi.fn(),
+    filters: vi.fn(),
+    rpc: vi.fn(),
+    board: vi.fn(),
+    serviceClient: vi.fn(),
+  }),
+);
 vi.mock("@/lib/supabase/get-entitlement", () => ({
   requireEntitledVendor: gate,
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({ from, rpc }),
+  createServiceClient: async () => {
+    serviceClient();
+    return { from, rpc };
+  },
 }));
 vi.mock("./realtime-order-board", () => ({
   RealtimeOrderBoard: (props: unknown) => {
@@ -314,6 +321,19 @@ describe("dashboard initial load", () => {
       );
     },
   );
+  it("reads numbering through the service client only when daily numbering is on", async () => {
+    fixtures.booths = { data: booths };
+    render(await DashboardPage());
+    expect(serviceClient).not.toHaveBeenCalled();
+    gate.mockResolvedValue({
+      vendor: {
+        id: "vendor-a",
+        board_settings: { daily_order_number_reset: true },
+      },
+    });
+    render(await DashboardPage());
+    expect(serviceClient).toHaveBeenCalledTimes(1);
+  });
   it("does not query daily baselines without booths", async () => {
     gate.mockResolvedValue({
       vendor: {

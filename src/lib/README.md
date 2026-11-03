@@ -63,7 +63,10 @@ baselines)`: the one place that picks which baseline an order's display number
 - `daily-order-number.ts` — `serviceStartsByBooth(client, boothIds)`: today's
   restart times from `booth_service_starts` (0110) plus `booths.cap_reset_at`,
   so it still works at the latest restart if the table is not applied or
-  unreadable. `numberingBaselines(client, boothId)`: the booth's `day`
+  unreadable (that fallback logs the booth ids and error code). Callers pass
+  the service client: `numberingStateForOwnBooths(ownBoothIds)` does that for
+  the dashboard pages (ids already read under RLS), because the user-session
+  read of the log did not return its rows on prod. `numberingBaselines(client, boothId)`: the booth's `day`
   baseline (first `order_number` since SGT midnight) and one baseline per
   restart window, which `baselineFor` chooses between. `vendorFacingOrderNumber(client,
 vendorId, boothId, orderNumber, createdAt?)`: the day's rank when the vendor has daily

@@ -1,4 +1,4 @@
-import type { createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import {
   accumulateBaseline,
   baselineFor,
@@ -45,7 +45,10 @@ export async function serviceStartsByBooth(
       .in("booth_id", chunk)
       .gte("started_at", dayStart);
     if (logError) {
-      console.error("service-start log read failed", logError.message);
+      console.error(
+        "service-start log read failed, numbering falls back to the latest restart only",
+        { boothIds: chunk, code: logError.code, message: logError.message },
+      );
       continue;
     }
     for (const r of logRows ?? []) add(r.booth_id, r.started_at);
@@ -110,6 +113,19 @@ export async function numberingStateByBooth(
     );
     return { baselines: {}, starts: {} };
   }
+}
+
+/**
+ * numberingStateByBooth through the service client, for the vendor dashboard.
+ * The caller passes booth ids it already read under RLS, so only the vendor's
+ * own booths are read; the user-session read of booth_service_starts did not
+ * return its rows on prod, which left the board ranking from the latest
+ * restart only.
+ */
+export async function numberingStateForOwnBooths(
+  ownBoothIds: string[],
+): Promise<NumberingState> {
+  return numberingStateByBooth(await createServiceClient(), ownBoothIds);
 }
 
 /**

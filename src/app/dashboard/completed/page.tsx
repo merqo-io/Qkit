@@ -2,7 +2,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { sgtStartOfDayIso } from "@/lib/tz";
-import { numberingBaselinesByBooth } from "@/lib/daily-order-number";
+import { numberingStateForOwnBooths } from "@/lib/daily-order-number";
 import { CompletedOrdersList } from "./completed-orders-list";
 import type { BoardOrder } from "@/lib/types";
 import { PageHeader } from "@/components/widgets/page-header";
@@ -44,9 +44,11 @@ export default async function CompletedOrdersPage() {
 
   const loadError = Boolean(boothErr) || Boolean(ordersErr);
 
+  // boothIds come from the RLS-scoped booths read above; the service client
+  // matches the customer status page so both rank from the same restart log.
   const dailyOrderNumberBaselines = vendor.board_settings
     .daily_order_number_reset
-    ? await numberingBaselinesByBooth(supabase, boothIds)
+    ? (await numberingStateForOwnBooths(boothIds)).baselines
     : {};
 
   return (

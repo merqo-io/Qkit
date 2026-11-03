@@ -186,6 +186,17 @@ describe("serviceStartsByBooth", () => {
     spy.mockRestore();
   });
 
+  it("logs the booth ids and error code when the log cannot be read", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client } = fakeClient({ startsError: true });
+    await serviceStartsByBooth(client, ["b1"]);
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("service-start log read failed"),
+      expect.objectContaining({ boothIds: ["b1"], message: "no such table" }),
+    );
+    spy.mockRestore();
+  });
+
   it("ignores a cap_reset_at from an earlier day", async () => {
     const { client } = fakeClient({ capResetAt: "2000-01-01T00:00:00Z" });
     expect(await serviceStartsByBooth(client, ["b1"])).toEqual({});
@@ -214,6 +225,39 @@ describe("numberingStateByBooth", () => {
       },
       starts: { b1: [start] },
     });
+  });
+
+  it("ranks every order 001 across three restarts in one day, when the whole log is read", async () => {
+    const s1 = soon(100);
+    const s2 = soon(200);
+    const s3 = soon(300);
+    const orders = [
+      order("0023", soon(110)),
+      order("0024", soon(210)),
+      order("0025", soon(310)),
+    ];
+    const rank = async (rows: Parameters<typeof fakeClient>[0]) => {
+      const { client } = fakeClient({ orders, ...rows });
+      const { baselines } = await numberingStateByBooth(client, ["b1"]);
+      return orders.map((o) =>
+        displayOrderNumber(
+          o.order_number,
+          baselineFor(o.created_at, baselines.b1, sgtStartOfDayIso()),
+        ),
+      );
+    };
+    expect(await rank({ starts: [s1, s2, s3], capResetAt: s3 })).toEqual([
+      "001",
+      "001",
+      "001",
+    ]);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await rank({ startsError: true, capResetAt: s3 })).toEqual([
+      "001",
+      "002",
+      "001",
+    ]);
+    spy.mockRestore();
   });
 
   it("is empty and logs the reason when a read fails", async () => {
