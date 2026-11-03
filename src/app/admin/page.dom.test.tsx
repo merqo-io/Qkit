@@ -9,7 +9,6 @@ const {
   predicates,
   names,
   audit,
-  pricing,
   banner,
   stuck,
   ranges,
@@ -21,7 +20,6 @@ const {
   predicates: vi.fn(),
   names: vi.fn(),
   audit: vi.fn(),
-  pricing: vi.fn(),
   banner: vi.fn(),
   stuck: vi.fn(),
   ranges: vi.fn(),
@@ -35,12 +33,6 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/admin/vendor-names", () => ({ vendorStallNames: names }));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock("./pricing-section", () => ({
-  PricingSection: (props: unknown) => {
-    pricing(props);
-    return null;
-  },
-}));
 vi.mock("./banner-form", () => ({
   BannerForm: (props: unknown) => {
     banner(props);
@@ -114,22 +106,24 @@ describe("admin overview", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Help requests/)).not.toBeInTheDocument();
     expect(audit).toHaveBeenCalledWith({ entries: [] });
-    expect(pricing).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initial: expect.objectContaining({ currency: "SGD" }),
-      }),
-    );
     expect(from).not.toHaveBeenCalledWith("order_status_events");
   });
-  it("keeps qkit revenue separate from vendor GMV and cancelled orders", async () => {
+  it("reports vendor GMV without cancelled orders", async () => {
     const current = new Date().toISOString();
-    fixtures.payments = [
-      { amount_cents: 2500, created_at: current },
-      { amount_cents: 1000, created_at: "2000-01-01T00:00:00Z" },
-    ];
     fixtures.vendors = [
-      { id: "vendor-a", plan: "pro", created_at: current },
-      { id: "vendor-b", plan: "free", created_at: "2000-01-01T00:00:00Z" },
+      { id: "vendor-a", created_at: current },
+      { id: "vendor-b", created_at: "2000-01-01T00:00:00Z" },
+    ];
+    fixtures.vendor_entitlements = [
+      {
+        vendor_id: "vendor-a",
+        tier: "qkit",
+        founder: false,
+        stats_window: "90d",
+        event_pass_starts_at: null,
+        event_pass_ends_at: null,
+        valid_until: null,
+      },
     ];
     fixtures.booths = [
       {
@@ -178,8 +172,6 @@ describe("admin overview", () => {
       },
     ];
     render(await AdminPage());
-    expect(screen.getByText("$25.00")).toBeInTheDocument();
-    expect(screen.getByText("$35.00")).toBeInTheDocument();
     expect(screen.getByText("$6.00")).toBeInTheDocument();
     expect(audit).toHaveBeenCalledWith({
       entries: [
@@ -189,17 +181,8 @@ describe("admin overview", () => {
     });
     expect(from).not.toHaveBeenCalledWith("order_status_events");
   });
-  it("scopes the shared support inbox to qkit and names pending requests", async () => {
+  it("scopes the shared support inbox to qkit and lists open help requests", async () => {
     const created_at = new Date().toISOString();
-    fixtures.purchase_requests = [
-      { id: "request-a", vendor_id: "vendor-a", kind: "monthly", created_at },
-      {
-        id: "request-b",
-        vendor_id: "missing-vendor",
-        kind: "event",
-        created_at,
-      },
-    ];
     fixtures.support_messages = [
       {
         id: "message-a",
@@ -233,8 +216,6 @@ describe("admin overview", () => {
       "href",
       "/admin/vendors/vendor-a",
     );
-    expect(screen.getByText(/wants Monthly Pro/)).toBeInTheDocument();
-    expect(screen.getByText(/wants an event pass/)).toBeInTheDocument();
   });
   it("loads history only for nonterminal orders and uses configured settings", async () => {
     fixtures.orders = [
@@ -253,11 +234,6 @@ describe("admin overview", () => {
         created_at: "2026-01-01T00:00:00Z",
       },
     ];
-    fixtures.pricing = {
-      currency: "SGD",
-      event_pass_cents: 1200,
-      monthly_cents: 2500,
-    };
     fixtures.platform_settings = {
       banner_enabled: true,
       banner_message: "Maintenance tonight",
@@ -266,7 +242,6 @@ describe("admin overview", () => {
     expect(predicates).toHaveBeenCalledWith("order_status_events", "order_id", [
       "active-order",
     ]);
-    expect(pricing).toHaveBeenCalledWith({ initial: fixtures.pricing });
     expect(banner).toHaveBeenCalledWith({
       initial: fixtures.platform_settings,
     });
@@ -282,7 +257,6 @@ describe("admin overview", () => {
 it("includes fleet rows beyond the first API page", async () => {
   fixtures.vendors = Array.from({ length: 1001 }, (_, index) => ({
     id: `vendor-${index}`,
-    plan: "free",
     created_at: "2026-01-01T00:00:00Z",
   }));
   fixtures.orders = [];
@@ -295,11 +269,14 @@ it("includes fleet rows beyond the first API page", async () => {
 });
 
 it("does not render partial fleet totals after a later page fails", async () => {
-  fixtures.payments = Array.from({ length: 1000 }, () => ({
-    amount_cents: 100,
+  fixtures.orders = Array.from({ length: 1000 }, (_, index) => ({
+    id: `order-${index}`,
+    booth_id: "booth-a",
+    status: "completed",
+    total_cents: 100,
     created_at: "2026-01-01T00:00:00Z",
   }));
-  failures.payments = 1000;
+  failures.orders = 1000;
   await expect(AdminPage()).rejects.toThrow(
     "Could not load complete query results",
   );
