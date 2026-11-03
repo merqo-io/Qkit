@@ -10,6 +10,10 @@ harness.
 ## Contents
 
 - `block-no-verify.sh` — PreToolUse(Bash): blocks `--no-verify`/`-n` on `git commit`, `HUSKY=0`/`HUSKY_SKIP_HOOKS`/`core.hooksPath=` bypasses, direct commits to `main`, force-push to a protected branch, `git checkout/restore` on guard-layer files, and recursive-force `rm` on source directories; exit 2 blocks
+  Windows drive-letter paths (`C:\…`, `C:/…`) and quoted paths with spaces
+  are normalised before the branch is judged, so worktree commits on feature
+  branches pass.
+- `block-no-verify.test.sh` — regression tests for the hook (run `bash .claude/hooks/block-no-verify.test.sh`).
 - `post-edit-typecheck.sh` — PostToolUse(Edit\|Write), `.ts`/`.tsx` files only: runs incremental `tsc --noEmit` and surfaces the last 5 lines; feedback-only, never blocks
 - `post-edit-comment-check.sh` — PostToolUse(Edit\|Write), `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs` files only: scans the edited file for change-narration comments (`// was X, now Y`) and oversized (`>5`-line) comment blocks against the patterns in `../comment-hygiene-patterns.txt`, surfacing hits via `hookSpecificOutput.additionalContext`; feedback-only, never blocks
 - `post-tool-failure.sh` — PostToolUseFailure: writes the failed tool's name/error to stderr so the model can self-correct; always exits 0
