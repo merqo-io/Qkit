@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Demo video pipeline records one named scene per Instagram episode: `node scripts/demo/record.mjs --scene <name>` then `node scripts/demo/compose.mjs --scene <name>` writes `out/<scene>.mp4`; `--list` prints the scenes. Episodes 1, 3, 4, 7 and 12 compose the customer phone and the vendor board side by side in a 1080x1920 frame, aligned by each recording's start offset. A unit test blocks em dashes in every caption.
+
+### Changed
+
+- The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
+
 ### Fixed
 
 - Order limiter hardening (security audit). The client IP now comes from the platform headers (or the last forwarded hop), so a spoofed `X-Forwarded-For` no longer picks the rate-limit bucket. Placing an order, holding a basket and the pay-page actions now refuse when the limiter store is down instead of letting traffic through. Migration 0111 lowers the per-booth basket-hold limit from 600 to 180 a minute and makes a pay-first stall refuse new orders (`ORDER_BUSY`) while 30 are still waiting for payment inside the 30 minute window. Apply 0111 by hand, staging first, then production.

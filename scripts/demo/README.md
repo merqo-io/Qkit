@@ -1,39 +1,63 @@
 # Demo video generator
 
-Produces a vertical (9:16) screen-capture of qkit for sending to a prospect:
-**register → name your stall → add menu → QR → customer orders → order lands
-live on the board (pure queue) → add PayNow → customer pays → vendor confirms
-(payment queue)**. Shows both the unpaid (queue-only) and paid flows on one
-booth — payment is the optional upgrade. Captions burned per beat; audio is a
-synthesized "order ready" chime (matching `src/lib/order-alerts.ts`) mixed in
-at the moment the live order lands, plus an optional low-volume background
-music bed from `assets/` (see `scripts/demo/assets/README.md`) — no file there
-means chime-only.
+Produces vertical (9:16) screen footage of qkit for sending to a prospect and
+for an Instagram series, one reel per feature. Each **scene** is recorded with
+`record.mjs`, then composed with `compose.mjs` into a 1080x1920 mp4 with a hook
+headline, step captions and an order chime. The default scene, `tour`, is the
+full walkthrough: **register, name your stall, add menu, QR, customer orders,
+order lands live, turn on payment, customer pays, vendor taps Mark paid &
+start, Mark Ready, Mark Picked Up**.
 
 > Runs against `DEMO_BASE_URL` (default `http://localhost:3000`). If port 3000
 > is taken, start `pnpm dev` on another port and set `DEMO_BASE_URL` to match.
-> Only loopback HTTP(S) origins are accepted. This guard limits the app target;
-> run that app against local Supabase and a local Paykit fixture as well.
-> The booth gains its payment method through the UI in the recording — no seed
-> change needed.
+> Only loopback HTTP(S) origins are accepted, for every browser context. This
+> guard limits the app target; run that app against local Supabase and a local
+> paykit as well.
 
 Spec: [`docs/superpowers/specs/2026-06-24-demo-video-generator-design.md`](../../docs/superpowers/specs/2026-06-24-demo-video-generator-design.md).
+The stages stay decoupled by file: `compose.mjs` runs from `out/<scene>/`
+alone, so a caption or layout change never needs a re-record.
 
-> Status: **recorded** — `out/demo.mp4` (plus the raw `.webm` and `steps.json`)
-> is present from the most recent run. Re-run any time with the steps below;
-> `reset.sql` makes the recorder idempotent. Needs Docker + local Supabase to
-> run. Implemented as `.mjs` (plain ESM + Playwright's bundled `chromium`) so
-> it runs with bare `node`, no extra tooling deps. `reset.sql` is plain SQL via
-> `psql`.
+## Scenes
+
+`node scripts/demo/record.mjs --list` prints this table. Unknown scene names
+exit non-zero with the list.
+
+| Scene         | Episode | Layout | Status      | Notes                                                                                                                |
+| ------------- | ------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `tour`        | none    | single | implemented | Full flow. Payment beats need a paykit with PayNow on file.                                                          |
+| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                                                    |
+| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                                        |
+| `paynow`      | 3       | split  | implemented | Needs paykit with PayNow on file. The screenshot upload is on paykit's page and is skipped if absent.                |
+| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                                             |
+| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                                                    |
+| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                                             |
+| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                                              |
+| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                   |
+| `sold-out`    | 9       | single | implemented | Needs Pro (stock limits); see `DEMO_DB_URL`.                                                                         |
+| `stats`       | 10      | single | implemented | Free plan only: no Pro history, trends or margin.                                                                    |
+| `multi-booth` | 11      | single | implemented | Needs Pro (3 booths); see `DEMO_DB_URL`.                                                                             |
+| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                |
+| `come-back`   | 13      | single | skeleton    | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found. |
+
+Never on camera: label or sticker printing, iOS web-push prompts, loopkit
+loyalty stamps, card payments.
+
+Shared setup (sign up, onboarding, booth and menu) runs **unrecorded** for every
+scene except `tour` and `setup`, so the clip opens on the interesting part.
 
 ## Files
 
-| File          | Does                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------- |
-| `reset.sql`   | Wipes the fixed demo account so each run starts identical                                         |
-| `record.mjs`  | Drives the real app (phone viewport), records `.webm` + `steps.json`                              |
-| `compose.mjs` | ffmpeg: pad to 1080×1920, burn captions, mix in the chime + optional `assets/` music → `demo.mp4` |
-| `out/`        | Generated artifacts (git-ignored)                                                                 |
+| File              | Does                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `scenes.mjs`      | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                |
+| `filters.mjs`     | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                 |
+| `reset.sql`       | Wipes the fixed demo account so each run starts identical                                    |
+| `upgrade-pro.sql` | Gives the demo vendor Pro; run by `record.mjs` only for scenes that show a Pro-gated feature |
+| `record.mjs`      | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                        |
+| `compose.mjs`     | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`          |
+| `base-url.mjs`    | Loopback-only guards for the app origin and `DEMO_DB_URL`                                    |
+| `out/`            | Generated artifacts (git-ignored)                                                            |
 
 ## Prerequisites
 
@@ -41,62 +65,79 @@ Spec: [`docs/superpowers/specs/2026-06-24-demo-video-generator-design.md`](../..
 2. Local Supabase up + schema applied:
    ```bash
    pnpm exec supabase start
-   pnpm exec supabase db reset    # applies all migrations incl. 0022
+   pnpm exec supabase db reset
    ```
-   (No seed needed — the demo creates its own booth/menu through the UI.)
-3. **`pnpm dev`** running (http://localhost:3000).
-   Configure its Paykit checkout integration to a local fixture or local Paykit
-   deployment; the recorder does not start or configure that service. The
-   existing `e2e/paykit-mock.ts` supplies checkout/claim/confirm responses for a
-   local fixture. Do not use real payment/provider credentials for this demo.
-4. **ffmpeg** on PATH (already present in this environment).
+3. **`pnpm dev`** running (http://localhost:3000). Configure its paykit checkout
+   integration to a local fixture or local paykit; the recorder does not start
+   it. `e2e/paykit-mock.ts` covers checkout, claim and confirm but not the
+   vendor payment setup, so `tour` and `paynow` need a paykit that has PayNow on
+   file for the demo vendor (the "Take payment" switch is locked otherwise and
+   the recorder stops with a message). Do not use real payment credentials.
+4. **ffmpeg** on PATH.
+5. For `sold-out` and `multi-booth` only: `DEMO_DB_URL` set to the local
+   Postgres URL (from `pnpm exec supabase status`) and `psql` on PATH. Free
+   plan has no stock limits and one booth, so these scenes run
+   `upgrade-pro.sql` after sign-up. Loopback hosts only.
 
 ## Run
 
 ```bash
-# 1. Clean state (point at your LOCAL db url from `pnpm exec supabase status`)
+# 1. Clean state (every run, local db url from `pnpm exec supabase status`)
 psql "<LOCAL_DB_URL>" -f scripts/demo/reset.sql
 
-# 2. Record (opens a headed phone-sized browser and drives the flow)
-node scripts/demo/record.mjs
+# 2. Record one scene (opens headed phone-sized browsers and drives the flow)
+node scripts/demo/record.mjs --scene live-pop
 
 # 3. Compose the captioned vertical mp4
-node scripts/demo/compose.mjs
-#    → scripts/demo/out/demo.mp4
+node scripts/demo/compose.mjs --scene live-pop
+#    -> scripts/demo/out/live-pop.mp4
 ```
 
-Re-run freely: step 1 makes step 2 idempotent.
+Omit `--scene` for the full `tour`. Run `reset.sql` before every record, since
+each scene signs the demo account up itself.
+
+## Split mode
+
+Split scenes record two browser contexts, `customer` (390x844 phone) and
+`vendor` (the board, also phone size), and compose puts them side by side with
+CUSTOMER and VENDOR labels, the hook on top and step captions below.
+
+- The two recordings start at different moments. `record.mjs` writes each one's
+  `startMs` on the scene clock (zero at the first recorded context) into
+  `steps.json`; compose delays the later one with `tpad` so frames line up.
+- Captions and the chime (`popMs`, when the order lands or turns Ready) use that
+  same clock.
+- `steps.json` shape: `{scene, mode, hook, popMs, videos: [{role, file,
+startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 
 ## Tuning
 
-- **Pacing / captions:** edit the `beat(...)` waits and the `step("caption", …)`
-  labels in `record.mjs`. Caption _timing_ comes from `steps.json`, so you can
-  also retune copy in `compose.mjs` without re-recording.
+- **Copy:** hook and step captions live in `scenes.mjs`; no em dash (a test in
+  `test/demo-scenes.test.ts` enforces it). Compose reads them from `steps.json`
+  for steps, and the hook from there too, so edit `steps.json` to retune copy
+  without re-recording.
+- **Pacing:** `DEMO_SPEED` (default 0.75, lower is faster) and the `beat(...)`
+  waits in `record.mjs`. Unrecorded setup runs without waits.
 - **Identity / menu:** the `EMAIL` / `STALL` / `ITEMS` constants at the top of
-  `record.mjs` (keep `EMAIL` in sync with `reset.sql`).
-- **Captions blank?** ffmpeg can't find the font — set `DEMO_FONT` to a `.ttf`
-  (e.g. `DEMO_FONT=/path/to/font.ttf node scripts/demo/compose.mjs`).
-- **A beat times out?** The app markup moved — fix that beat's locator in
-  `record.mjs` (selectors are pinned to login / onboarding / booth-form /
-  menu-editor / order-form / order-card).
-- **QR/share-link shows `localhost`?** `window.location.origin` can't be
-  overridden from page JS (spec-`[Unforgeable]`), so the dev server used for
-  recording needs `NEXT_PUBLIC_DEMO_ORIGIN_OVERRIDE` set to the real production
-  domain, e.g. `NEXT_PUBLIC_DEMO_ORIGIN_OVERRIDE=https://qkit.merqo.sg pnpm dev`
-  (see `booth-qr-poster.tsx`). Never set this on a real dev/prod server.
+  `record.mjs` (keep `EMAIL` in sync with `reset.sql` and `upgrade-pro.sql`).
+- **Captions blank?** ffmpeg can't find the font. Set `DEMO_FONT` to a `.ttf`.
+- **A beat times out?** The app markup moved. Fix that locator in `record.mjs`,
+  not the timeout.
+- **QR/share-link shows `localhost`?** Start the dev server with
+  `NEXT_PUBLIC_DEMO_ORIGIN_OVERRIDE` set to the real domain (see
+  `booth-qr-poster.tsx`). Never set it on a real dev/prod server.
+- **Background music:** see `assets/README.md`. No file means chime only.
 
 ## Notes
 
-- Records against **local** Supabase only — never prod.
-- The live-pop beat uses a second, un-recorded browser context to place a walk-in
-  order, so the ticket arrives on the board through the real realtime
-  subscription (genuine, not faked).
-- The vendor starts a pending order before marking it ready. The paid beat adds
-  menu prices, opens the payment page, uploads a synthetic proof image and claims
-  payment before receiving the order number.
-- The current recorder changes have URL-guard tests and static verification.
-  A fresh browser recording remains unverified while the local database engine
-  is unavailable; the existing video is historical output.
+- Records against **local** Supabase only, never prod.
+- The "other person" in a scene (a walk-in, the crowd on a busy board) is an
+  unrecorded browser context, so tickets arrive through the real realtime
+  subscription.
+- Verification status: the pure helpers are unit-tested and the split and single
+  composition was run against synthetic webms. A live recording of the scenes
+  has not been made, because the local database engine was unavailable when this
+  was written; locators were read from the current components, not exercised.
 
 ## Structure
 
@@ -105,15 +146,18 @@ Re-run freely: step 1 makes step 2 idempotent.
 - `assets/`
 - `base-url.mjs`
 - `compose.mjs`
+- `filters.mjs`
 - `record.mjs`
 - `reset.sql`
+- `scenes.mjs`
+- `upgrade-pro.sql`
 
 ### Connectivity
 
-`assets/` holds the optional royalty-free music bed `compose.mjs` mixes under
-the recording. `record.mjs` drives the real app and writes the raw `.webm` +
-`steps.json` (caption/timing per beat) into `out/`; `compose.mjs` reads those
-two and renders the final captioned `demo.mp4` alongside them.
+`scenes.mjs` is the contract between the stages. `record.mjs` drives the real
+app and writes `out/<scene>/` (webms + `steps.json`); `compose.mjs` reads those
+and `filters.mjs` builds the ffmpeg graph, rendering `out/<scene>.mp4`.
+`assets/` holds the optional music bed.
 
 ## Parent
 
