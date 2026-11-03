@@ -112,6 +112,17 @@ export function SectionSwitcher({
   );
 }
 
+export function NumbersDegradedBanner() {
+  return (
+    <div
+      role="alert"
+      className="mb-5 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
+    >
+      Order numbers may be off. Refresh to retry.
+    </div>
+  );
+}
+
 export function LoadErrorBanner() {
   return (
     <div

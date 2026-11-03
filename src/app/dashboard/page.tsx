@@ -6,7 +6,8 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import { numberingStateByBooth } from "@/lib/daily-order-number";
+import type { NumberingState } from "@/lib/daily-order-number";
+import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import type { BoardOrder } from "@/lib/types";
@@ -132,9 +133,14 @@ export default async function DashboardPage() {
   // the queue is clear when it isn't. Surface a retry banner instead.
   const loadError = Boolean(boothErr) || Boolean(ordersErr);
 
-  const { baselines: dailyOrderNumberBaselines, starts: serviceStarts } = vendor
-    .board_settings.daily_order_number_reset
-    ? await numberingStateByBooth(supabase, boothIds)
+  // boothIds come from the RLS-scoped booths read above, so the service client
+  // reads only this vendor's booths, exactly as the customer status page does.
+  const {
+    baselines: dailyOrderNumberBaselines,
+    starts: serviceStarts,
+    degraded,
+  }: NumberingState = vendor.board_settings.daily_order_number_reset
+    ? await numberingStateForOwnBooths(boothIds)
     : { baselines: {}, starts: {} };
   const baselinesDayStart = sgtStartOfDayIso();
 
@@ -144,6 +150,7 @@ export default async function DashboardPage() {
       initialOrders={orders}
       boardSettings={vendor.board_settings}
       loadError={loadError}
+      numbersDegraded={Boolean(degraded)}
       dailyOrderNumberBaselines={dailyOrderNumberBaselines}
       baselinesDayStart={baselinesDayStart}
       serviceStarts={serviceStarts}

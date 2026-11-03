@@ -75,6 +75,7 @@ import {
 } from "./board-booths";
 import {
   LoadErrorBanner,
+  NumbersDegradedBanner,
   OrderSection,
   SectionSwitcher,
   type PhoneSection,
@@ -89,6 +90,8 @@ interface Props {
   // The initial server-side read errored, so the board may be missing in-flight
   // orders. Warn instead of silently showing "All clear".
   loadError?: boolean;
+  // The numbering read failed, so displayed order numbers may be wrong.
+  numbersDegraded?: boolean;
   // Each booth's day and per-service baselines, keyed by booth id. Only
   // populated (by the server page) when boardSettings.daily_order_number_reset
   // is on. A booth is missing from it when it had no order yet at page load;
@@ -151,6 +154,7 @@ export function RealtimeOrderBoard({
   initialOrders,
   boardSettings,
   loadError = false,
+  numbersDegraded = false,
   dailyOrderNumberBaselines = {},
   baselinesDayStart,
   serviceStarts = {},
@@ -674,6 +678,7 @@ export function RealtimeOrderBoard({
     // rows of touch-sized buttons on a phone.
     <div className={cn(selectMode && "pb-40")}>
       {loadError && <LoadErrorBanner />}
+      {numbersDegraded && <NumbersDegradedBanner />}
       {liveStatus === "disconnected" && (
         <div
           role="status"
