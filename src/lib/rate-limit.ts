@@ -1,18 +1,42 @@
 import { createServiceClient } from "@/lib/supabase/server";
 
 /**
- * Resolve a best-effort client IP from request headers: the first hop of
- * `x-forwarded-for`, else `x-real-ip`, else the literal "unknown". This is NOT
- * trusted (either header is client-spoofable behind a permissive proxy) — it's
- * a coarse fairness key for the flood guard, not an authz signal. Trusted-proxy
- * hardening (only honour XFF from known proxy IPs) is a separate task.
+ * Resolve a best-effort client IP from request headers. On Vercel the platform
+ * sets and overwrites `x-vercel-forwarded-for` and `x-real-ip`, so those are
+ * trusted first. The left side of `x-forwarded-for` is client-supplied (a
+ * caller can send any value and the edge only appends to it), so the fallback
+ * uses its LAST hop, the one the proxy added. Else the literal "unknown". Still
+ * a coarse fairness key for the flood guard, not an authz signal.
  */
 export function clientIp(hdrs: Headers): string {
-  return (
-    hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    hdrs.get("x-real-ip") ||
-    "unknown"
-  );
+  const vercel = hdrs.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+  if (vercel) return vercel;
+  const real = hdrs.get("x-real-ip")?.trim();
+  if (real) return real;
+  const hops = (hdrs.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((hop) => hop.trim())
+    .filter(Boolean);
+  return hops.at(-1) ?? "unknown";
+}
+
+async function checkBucket(
+  key: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean | null> {
+  try {
+    const supabase = await createServiceClient();
+    const { data: allowed, error } = await supabase.rpc("check_rate_limit", {
+      p_key: key,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+    if (!error) return allowed !== false;
+  } catch {
+    // Reported by the caller as a degraded limiter.
+  }
+  return null;
 }
 
 /**
@@ -26,18 +50,25 @@ export async function rateLimit(
   limit: number,
   windowSeconds: number,
 ): Promise<boolean> {
-  try {
-    const supabase = await createServiceClient();
-    const { data: allowed, error } = await supabase.rpc("check_rate_limit", {
-      p_key: key,
-      p_limit: limit,
-      p_window_seconds: windowSeconds,
-    });
-    if (!error) return allowed !== false;
-  } catch {
-    // Limiter availability must not prevent a legitimate request.
-  }
+  const allowed = await checkBucket(key, limit, windowSeconds);
+  if (allowed !== null) return allowed;
   // Buckets can contain order tokens; RPC diagnostics must never echo them.
   console.error("rateLimit degraded (failing open)");
   return true;
+}
+
+/**
+ * Same check, but fails CLOSED: a limiter error denies the call. For anonymous
+ * paths that create orders or reach paykit, where an attacker who can degrade
+ * the store must not get an unlimited window.
+ */
+export async function rateLimitStrict(
+  key: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const allowed = await checkBucket(key, limit, windowSeconds);
+  if (allowed !== null) return allowed;
+  console.error("rateLimit degraded (failing closed)");
+  return false;
 }
