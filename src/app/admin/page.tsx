@@ -28,6 +28,7 @@ import { ResolveRequestButton } from "./resolve-request-button";
 import { ResolveMessageButton } from "./resolve-message-button";
 import { StuckOrdersSection } from "./stuck-orders-section";
 import { AdminAuditLog } from "./audit-log";
+import { HelpFreshnessSection } from "./help-freshness-section";
 import { isTerminal } from "@/lib/orders";
 import {
   findStuckOrders,
@@ -369,6 +370,8 @@ export default async function AdminPage() {
         stuckOrders={stuckOrders}
         boothNameById={boothNameById}
       />
+
+      <HelpFreshnessSection now={new Date()} />
 
       {/* North-star band — qkit revenue leads; active vendors is the leading
           indicator behind it. */}

@@ -27,4 +27,5 @@ if command -v gitleaks >/dev/null 2>&1; then
 fi
 
 bash .husky/lib/readme-coupling.sh
+bash .husky/lib/help-coupling.sh
 bash .husky/lib/comment-hygiene.sh

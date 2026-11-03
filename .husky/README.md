@@ -19,7 +19,7 @@ the real hook file below).
     `.ts/.tsx/.js/.mjs/.cjs`), format-docs (`prettier --write` on staged
     `.json/.md/.css`), `tsc --noEmit`, a frozen-lockfile install check when
     `package.json` is staged, a gitleaks secret-scan on staged files (if
-    gitleaks is installed), then the README-coupling nudge and the comment-
+    gitleaks is installed), then the README-coupling nudge, the help-coupling nudge and the comment-
     hygiene nudge. Formatter/linter calls convert the collected newline-separated
     paths to NUL-delimited arguments for `xargs -0`, preserving spaces, quotes
     and apostrophes. The initial Git filename collection is not NUL-delimited,
@@ -29,6 +29,10 @@ the real hook file below).
   - `readme-coupling.sh` — pre-commit nudge (non-blocking): warns to stderr
     when staged files touch a folder whose `README.md` wasn't also staged;
     the commit still proceeds.
+  - `help-coupling.sh` — pre-commit nudge (non-blocking): greps the `covers`
+    arrays of `src/content/help/*/*.ts` and prints the slug and title of each
+    vendor help article whose covered file is staged, asking the committer to
+    re-check it and bump `reviewed`. Always exits 0.
   - `comment-hygiene.sh` — pre-commit nudge (non-blocking): scans staged
     `.ts/.tsx/.js/.jsx/.mjs/.cjs` files for change-narration comments and
     oversized (`>5`-line) comment blocks against
