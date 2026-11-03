@@ -1,4 +1,4 @@
--- Demo reset â€” wipe the fixed demo vendor so every recording starts identical.
+-- Demo reset — wipe the fixed demo vendor so every recording starts identical.
 -- Run against LOCAL Supabase only (never prod):
 --   psql "$(pnpm exec supabase status -o env | grep DB_URL | cut -d= -f2-)" -f scripts/demo/reset.sql
 -- (or use the DB URL printed by `pnpm exec supabase status`).
@@ -13,7 +13,7 @@ declare
 begin
   select id into demo_uid from auth.users where email = 'demo-cart@qkit.local';
   if demo_uid is null then
-    raise notice 'No demo account present â€” nothing to reset.';
+    raise notice 'No demo account present — nothing to reset.';
     return;
   end if;
 

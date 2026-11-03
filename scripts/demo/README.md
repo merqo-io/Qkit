@@ -140,6 +140,7 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - `reset.sql` also seeds a cached "legal current" row for the demo email. The
   dashboard's legal gate asks merqo, which a local stack cannot reach, and
   would otherwise send the new vendor to `/legal/accept`.
+- Run `reset.sql` only against the local stack (the `docker exec` into `supabase_db_qkit` below), never against a hosted database; nothing in code guards it.
 - Without `psql` on PATH, pipe the SQL through the db container:
   `Get-Content scripts/demo/reset.sql | docker exec -i supabase_db_qkit psql -U postgres`.
 - The board's live pop needs a working Realtime. An old local volume run with
