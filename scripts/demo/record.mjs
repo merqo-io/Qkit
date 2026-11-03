@@ -351,6 +351,8 @@ async function createBooth(page, opts = {}) {
   }
   await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
   await pause(page, 700);
+  // The first-visit booths tour overlay opens on arrival and blocks typing.
+  await dismissTour(page);
   await slowType(page, page.locator("#booth-name"), name);
 
   if (opts.arrival) {
@@ -547,21 +549,41 @@ async function openBoard(page) {
 async function revealTicket(page, name) {
   const card = ticket(page, name);
   await card.waitFor({ state: "attached", timeout: 30000 });
-  if (await card.isVisible()) return;
+  // The hidden tab's card stays in the DOM, so the card locator can resolve to
+  // a visible ancestor; the customer's name is the reliable visibility signal.
+  const heading = page.getByText(name, { exact: true }).first();
+  if (await heading.isVisible()) return;
   const tabs = page
     .getByRole("group", { name: "Which orders to show" })
     .getByRole("button");
   const count = await tabs.count();
   for (let i = 0; i < count; i++) {
     await tabs.nth(i).click();
-    if (await card.isVisible()) return;
+    const shown = await heading
+      .waitFor({ state: "visible", timeout: 2000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (shown) return;
   }
 }
 
 async function tapTicket(page, name, label) {
-  await revealTicket(page, name);
   const button = ticket(page, name).getByRole("button", { name: label });
-  await button.waitFor({ state: "visible", timeout: 30000 });
+  // The board can fall back to the Incoming tab after a status refresh, so
+  // reveal again until the action button is on screen.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await revealTicket(page, name);
+    const ready = await button
+      .waitFor({ state: "visible", timeout: 4000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (ready) break;
+  }
+  await button.waitFor({ state: "visible", timeout: 10000 });
   await center(page, button);
   await glideClick(page, button);
 }

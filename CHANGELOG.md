@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Demo recorder: the `tour` and `paynow` scenes are live-verified. The tour dismisses the first-visit booths overlay before typing the stall name, and board taps re-open the Incoming or Accepted tab until the ticket is on screen.
 - Help upkeep: a pre-commit note names the vendor help articles whose `covers` files are staged, the admin dashboard lists articles not reviewed for over 90 days, and the help drift test now decodes entities and ignores comments when matching UI labels.
 - Vendor user guide: the Payments, Printing, Customer alerts and Plans articles are written and published at `/dashboard/help`, so the guide no longer has any "Coming soon" entries. Each is checked against the code by the help drift test.
 - Vendor user guide: the Getting started, Running a service and Menu and stock articles are written and published at `/dashboard/help`. They cover creating a booth and printing its QR, working the live board, walk-up and batch orders, restarting the service count, the customer screen, and item, daily and per-order limits.

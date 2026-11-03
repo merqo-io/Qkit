@@ -23,22 +23,22 @@ alone, so a caption or layout change never needs a re-record.
 `node scripts/demo/record.mjs --list` prints this table. Unknown scene names
 exit non-zero with the list.
 
-| Scene         | Episode | Layout | Status      | Notes                                                                                                                  |
-| ------------- | ------- | ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `tour`        | none    | single | implemented | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                             |
-| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                                                      |
-| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                                          |
-| `paynow`      | 3       | split  | implemented | Runs against the paykit mock (`pnpm demo:paykit`). The screenshot upload is on paykit's page and is skipped if absent. |
-| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                                               |
-| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                                                      |
-| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                                               |
-| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                                                |
-| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                     |
-| `sold-out`    | 9       | single | implemented | Needs Pro (stock limits); see `DEMO_DB_URL`.                                                                           |
-| `stats`       | 10      | single | implemented | Free plan only: no Pro history, trends or margin.                                                                      |
-| `multi-booth` | 11      | single | implemented | Needs Pro (3 booths); see `DEMO_DB_URL`.                                                                               |
-| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                  |
-| `come-back`   | 13      | single | skeleton    | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found.   |
+| Scene         | Episode | Layout | Status        | Notes                                                                                                                  |
+| ------------- | ------- | ------ | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `tour`        | none    | single | live-verified | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                             |
+| `live-pop`    | 1       | split  | implemented   | Customer orders, ticket pops on the board, chime.                                                                      |
+| `setup`       | 2       | single | implemented   | Sign up, stall name, menu, QR, all on camera.                                                                          |
+| `paynow`      | 3       | split  | live-verified | Runs against the paykit mock (`pnpm demo:paykit`). The screenshot upload is on paykit's page and is skipped if absent. |
+| `status`      | 4       | split  | implemented   | Two orders seeded ahead, so "orders ahead of you" shows.                                                               |
+| `tv-screen`   | 5       | single | implemented   | Landscape 1280x720 pickup screen.                                                                                      |
+| `options`     | 6       | single | implemented   | Milk and Sugar options, then the ticket.                                                                               |
+| `walk-up`     | 7       | split  | implemented   | QR order, then New order for a walk-up.                                                                                |
+| `batch`       | 8       | single | implemented   | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                     |
+| `sold-out`    | 9       | single | implemented   | Needs Pro (stock limits); see `DEMO_DB_URL`.                                                                           |
+| `stats`       | 10      | single | implemented   | Free plan only: no Pro history, trends or margin.                                                                      |
+| `multi-booth` | 11      | single | implemented   | Needs Pro (3 booths); see `DEMO_DB_URL`.                                                                               |
+| `im-here`     | 12      | split  | implemented   | Booth set to hold prep until arrival.                                                                                  |
+| `come-back`   | 13      | single | skeleton      | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found.   |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -138,7 +138,7 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - The "other person" in a scene (a walk-in, the crowd on a busy board) is an
   unrecorded browser context, so tickets arrive through the real realtime
   subscription.
-- Verification status: `options` (single) and `live-pop` (split) were recorded
+- Verification status: `options`, `live-pop`, `tour` and `paynow` were recorded
   and composed end to end against a local stack. The other scenes' locators
   were read from the components but not yet run live.
 - `reset.sql` also seeds a cached "legal current" row for the demo email. The
