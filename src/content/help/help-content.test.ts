@@ -10,6 +10,7 @@ import {
   type HelpArticle,
   type HelpBlock,
 } from "./index";
+import { visibleSourceText } from "./source-text";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const SRC = path.join(ROOT, "src");
@@ -32,7 +33,7 @@ function collectSources(dir: string, out: string[] = []): string[] {
 }
 
 const sourceText = collectSources(SRC)
-  .map((file) => readFileSync(file, "utf8"))
+  .map((file) => visibleSourceText(readFileSync(file, "utf8")))
   .join("\n");
 
 function escapeRegExp(text: string): string {
@@ -163,6 +164,38 @@ describe("help content drift", () => {
   it("publishes the troubleshooting article", () => {
     expect(getPublishedArticle("troubleshooting")?.category).toBe(
       "troubleshooting",
+    );
+  });
+});
+
+describe("label matching against source", () => {
+  const matches = (label: string, source: string) =>
+    appearsAsUiText(label).test(visibleSourceText(source));
+
+  it("finds an entity-encoded JSX label", () => {
+    const jsx = "<Button>Mark paid &amp; start</Button>";
+    expect(matches("Mark paid & start", jsx)).toBe(true);
+  });
+
+  it("decodes the common entities", () => {
+    expect(matches("Don't", "<p>Don&apos;t</p>")).toBe(true);
+    expect(matches("Don't", "<p>Don&#39;t</p>")).toBe(true);
+    expect(matches('Say "hi"', "<p>Say &quot;hi&quot;</p>")).toBe(true);
+    expect(matches("a < b > c", "<p>a &lt; b &gt; c</p>")).toBe(true);
+    expect(matches("Two words", "<p>Two&nbsp;words</p>")).toBe(true);
+  });
+
+  it("ignores a label that only appears in comments", () => {
+    expect(matches("Mark paid & start", "// Mark paid & start\n")).toBe(false);
+    expect(matches("Mark paid & start", "/* Mark paid & start */")).toBe(false);
+    expect(matches("Mark paid & start", "{/* Mark paid & start */}")).toBe(
+      false,
+    );
+  });
+
+  it("keeps a string literal that contains a double slash", () => {
+    expect(matches("Open", 'const url = "https://x.test"; <b>Open</b>')).toBe(
+      true,
     );
   });
 });
