@@ -34,6 +34,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 - `ops-events.test.sql` — `0108`: table exists, RLS on, anon/authenticated cannot select or insert, service_role can, the kind check rejects `other` and kinds qkit does not write, a 65-char ref is rejected, and the purge deletes a 31-day-old row while keeping a 29-day-old one.
 - `order-push-subscriptions.test.sql` — `0105`: no anon/authenticated privilege on push subscriptions, RLS on, and the trigger that drops a completed or cancelled order's rows.
 - `db-hygiene.test.sql` — `0109` foreign key indexes, RLS on every table, own-vendor-only `payments` reads, and no anon/authenticated access to `rate_limits` or `booth_item_sold`.
+- `order-limiter-hardening.test.sql` — `0111`: a payment-first booth accepts the 30th open unpaid order and refuses the 31st with `ORDER_BUSY`, an idempotent replay still returns at the cap, counter booths, orders older than 30 minutes and cancelled orders do not count, the basket-hold bucket stores holds through 180 calls a minute and drops the 181st, and `place_order`/`hold_cart` grants, `SECURITY DEFINER` and `search_path`.
 
 These new regression fixtures are prepared but have not been executed in this
 review: Docker Desktop's Linux database engine is unavailable.

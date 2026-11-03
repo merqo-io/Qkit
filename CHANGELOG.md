@@ -22,6 +22,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Internal: pgTAP coverage for migration 0111 (`supabase/tests/order-limiter-hardening.test.sql`): the `ORDER_BUSY` cap at 30 unpaid orders, the 180 a minute basket-hold limit and the `place_order`/`hold_cart` grants.
 - The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
 - The landing page no longer carries the vendor troubleshooting FAQ; it moved into the user guide with each answer checked against the code. Corrected on the way: the board notice now reads "Live updates interrupted, reconnecting", the per-order item limit replaces the old 20-of-one-item rule, the rate limit is per phone and per network, and payment answers describe the paykit payment page and accepting or declining the claim instead of a customer screenshot. The sign-up "resend by creating the account again" tip was dropped as unverifiable. The pre-sales payment answer no longer says customers send a screenshot.
 - Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
