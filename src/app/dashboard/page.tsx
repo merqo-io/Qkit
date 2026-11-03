@@ -6,7 +6,7 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import { numberingStateForOwnBooths } from "@/lib/daily-order-number";
+import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import { RealtimeOrderBoard } from "./realtime-order-board";
 import type { BoardOrder } from "@/lib/types";
@@ -134,7 +134,11 @@ export default async function DashboardPage() {
 
   // boothIds come from the RLS-scoped booths read above, so the service client
   // reads only this vendor's booths, exactly as the customer status page does.
-  const { baselines: dailyOrderNumberBaselines, starts: serviceStarts } = vendor
+  const {
+    baselines: dailyOrderNumberBaselines,
+    starts: serviceStarts,
+    degraded,
+  }: Awaited<ReturnType<typeof numberingStateForOwnBooths>> = vendor
     .board_settings.daily_order_number_reset
     ? await numberingStateForOwnBooths(boothIds)
     : { baselines: {}, starts: {} };
@@ -146,6 +150,7 @@ export default async function DashboardPage() {
       initialOrders={orders}
       boardSettings={vendor.board_settings}
       loadError={loadError}
+      numbersDegraded={Boolean(degraded)}
       dailyOrderNumberBaselines={dailyOrderNumberBaselines}
       baselinesDayStart={baselinesDayStart}
       serviceStarts={serviceStarts}

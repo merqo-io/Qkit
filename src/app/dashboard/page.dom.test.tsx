@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
+type Fixture = {
+  data: unknown;
+  error?: { message: string; code?: string };
+  failFrom?: number;
+};
 const { gate, fixtures, from, filters, rpc, board, serviceClient } = vi.hoisted(
   () => ({
     gate: vi.fn(),
-    fixtures: {} as Record<
-      string,
-      { data: unknown; error?: { message: string }; failFrom?: number }
-    >,
+    fixtures: {} as Record<string, Fixture>,
     from: vi.fn(),
     filters: vi.fn(),
     rpc: vi.fn(),
@@ -22,7 +24,22 @@ vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({ from, rpc }),
   createServiceClient: async () => {
     serviceClient();
-    return { from, rpc };
+    return {
+      rpc,
+      from: (table: string) => {
+        if (table !== "booth_service_starts") return from(table);
+        const log = {
+          select: () => log,
+          in: () => log,
+          gte: () => log,
+          then: <T,>(resolve: (value: unknown) => T) =>
+            Promise.resolve(
+              fixtures.serviceLog ?? { data: [], error: null },
+            ).then(resolve),
+        };
+        return log;
+      },
+    };
   },
 }));
 vi.mock("./realtime-order-board", () => ({
@@ -333,6 +350,48 @@ describe("dashboard initial load", () => {
     });
     render(await DashboardPage());
     expect(serviceClient).toHaveBeenCalledTimes(1);
+  });
+  it("passes all of today's restarts from the service client's log, which the user client cannot see", async () => {
+    gate.mockResolvedValue({
+      vendor: {
+        id: "vendor-a",
+        board_settings: { daily_order_number_reset: true },
+      },
+    });
+    fixtures.booths = { data: booths };
+    fixtures.booth_service_starts = { data: [] };
+    const starts = [0, 1, 2].map((i) =>
+      new Date(Date.now() - (3 - i) * 1000).toISOString(),
+    );
+    fixtures.serviceLog = {
+      data: starts.map((started_at) => ({ booth_id: "a", started_at })),
+    };
+    render(await DashboardPage());
+    expect(board).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serviceStarts: { a: starts },
+        numbersDegraded: false,
+      }),
+    );
+  });
+  it("flags degraded numbers when the restart log cannot be read", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    gate.mockResolvedValue({
+      vendor: {
+        id: "vendor-a",
+        board_settings: { daily_order_number_reset: true },
+      },
+    });
+    fixtures.booths = { data: booths };
+    fixtures.serviceLog = {
+      data: null,
+      error: { code: "42501", message: "permission denied" },
+    };
+    render(await DashboardPage());
+    expect(board).toHaveBeenCalledWith(
+      expect.objectContaining({ numbersDegraded: true }),
+    );
+    spy.mockRestore();
   });
   it("does not query daily baselines without booths", async () => {
     gate.mockResolvedValue({

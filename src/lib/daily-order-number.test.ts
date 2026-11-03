@@ -252,12 +252,21 @@ describe("numberingStateByBooth", () => {
       "001",
     ]);
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(await rank({ startsError: true, capResetAt: s3 })).toEqual([
-      "001",
-      "002",
-      "001",
-    ]);
+    const failedLog = fakeClient({ orders, startsError: true, capResetAt: s3 });
+    const state = await numberingStateByBooth(failedLog.client, ["b1"]);
+    expect(state.degraded).toBe(true);
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("service-start log read failed"),
+      expect.objectContaining({ boothIds: ["b1"] }),
+    );
     spy.mockRestore();
+  });
+
+  it("is not degraded when the log reads fine", async () => {
+    const { client } = fakeClient({ starts: [soon(100)] });
+    expect(
+      (await numberingStateByBooth(client, ["b1"])).degraded,
+    ).toBeUndefined();
   });
 
   it("is empty and logs the reason when a read fails", async () => {
@@ -266,6 +275,7 @@ describe("numberingStateByBooth", () => {
     expect(await numberingStateByBooth(client, ["b1"])).toEqual({
       baselines: {},
       starts: {},
+      degraded: true,
     });
     expect(spy).toHaveBeenCalledWith("daily-baseline read failed", "boom");
     spy.mockRestore();

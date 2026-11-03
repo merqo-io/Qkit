@@ -60,6 +60,11 @@ baselines)`: the one place that picks which baseline an order's display number
   number of restarts, given the log in migration 0110. Client-safe, so the
   vendor board uses it (with `accumulateBaseline` and `emptyServices`) for
   realtime orders.
+- `own-booth-numbering.ts` — `numberingStateForOwnBooths(ownBoothIds)`:
+  `numberingStateByBooth` through the service client, for the dashboard pages
+  (ids already read under RLS). The state carries `degraded: true` when the
+  restart log or booths could not be read, and the pages then show "Order
+  numbers may be off. Refresh to retry."
 - `daily-order-number.ts` — `serviceStartsByBooth(client, boothIds)`: today's
   restart times from `booth_service_starts` (0110) plus `booths.cap_reset_at`,
   so it still works at the latest restart if the table is not applied or
