@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Demo video pipeline records one named scene per Instagram episode: `node scripts/demo/record.mjs --scene <name>` then `node scripts/demo/compose.mjs --scene <name>` writes `out/<scene>.mp4`; `--list` prints the scenes. Episodes 1, 3, 4, 7 and 12 compose the customer phone and the vendor board side by side in a 1080x1920 frame, aligned by each recording's start offset. A unit test blocks em dashes in every caption.
+
+### Changed
+
+- The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
+
 ### Fixed
 
 - An order keeps the number it showed across any number of "Start new service" taps in a day, instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Every order ranks from the latest restart at or before it, and the first order after a restart is #001. Restarts are logged in `booth_service_starts` (migration 0110, apply it before deploying); until it is applied only the latest restart counts, so earlier services rank from midnight. The board also rolls over at SGT midnight without a reload and ranks from the new service the moment Start new service succeeds.
