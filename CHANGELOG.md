@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Merqo entitlement receiver: `POST /api/merqo/entitlement` (provision bearer, rate limited, verbatim wire contract) caches the subscription Merqo pushes for each vendor in the new `qkit.vendor_entitlements` table. A stale push is a no-op that still answers 200, enforced atomically by `qkit.apply_vendor_entitlement`; an unknown email answers 404 `unknown_vendor`; a payload for another kit answers 400. Migrations 0112 to 0116.
+- Plan tiers follow Merqo: Free (1 booth, 6 items, 3 option groups per item, 24h stats), Starter (1 booth, unlimited items, auto-close and stock caps, 24h stats) and qkit (unlimited booths, counter ops, stats per the pushed window). A running Event Pass grants qkit capability and stats from the pass start onward. A tier whose `valid_until` has passed reads as Free.
+- Counter ops (the customer TV display, printkit labels and order-ready push alerts) are qkit-tier or running-pass only. Customers and passers-by see a plain notice or nothing, never a plan or upgrade hint. The item and option-group caps are enforced in the database by a trigger.
+
 - Vendor user guide: the Getting started, Running a service and Menu and stock articles are written and published at `/dashboard/help`. They cover creating a booth and printing its QR, working the live board, walk-up and batch orders, restarting the service count, the customer screen, and item, daily and per-order limits.
 - Vendor user guide at `/dashboard/help` (signed-in only, not indexed): a category index and article pages, with a complete Troubleshooting article. The article text lives in typed modules under `src/content/help`, and a drift test fails when an article quotes a UI string or source path that no longer exists. Articles for the other categories are registered as drafts, hidden until written. The guide is linked from the account menu ("User guide") and the last step of the orders tour.
 - Demo video pipeline records one named scene per Instagram episode: `node scripts/demo/record.mjs --scene <name>` then `node scripts/demo/compose.mjs --scene <name>` writes `out/<scene>.mp4`; `--list` prints the scenes. Episodes 1, 3, 4, 7 and 12 compose the customer phone and the vendor board side by side in a 1080x1920 frame, aligned by each recording's start offset. A unit test blocks em dashes in every caption.
@@ -22,10 +26,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The plan page shows no prices and points vendors to their Merqo account. `vendor-status` reports the effective tier, `vendor-activity` reports `pro` for any paid tier, and `metrics` counts paid vendors from the entitlement cache (`pending_upgrade_requests` is now always 0).
+- The admin console no longer manages plans, passes or pricing; the vendor list and detail page show each vendor's cached tier and Event Pass.
 - The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
 - The landing page no longer carries the vendor troubleshooting FAQ; it moved into the user guide with each answer checked against the code. Corrected on the way: the board notice now reads "Live updates interrupted, reconnecting", the per-order item limit replaces the old 20-of-one-item rule, the rate limit is per phone and per network, and payment answers describe the paykit payment page and accepting or declining the claim instead of a customer screenshot. The sign-up "resend by creating the account again" tip was dropped as unverifiable. The pre-sales payment answer no longer says customers send a screenshot.
 - Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.
+
+### Removed
+
+- Local billing: the `vendors.plan` column, the `licenses`, `pricing` and `purchase_requests` tables, `set_license_label`, `payments.license_id`, the upgrade and downgrade request routes, the in-product upgrade buttons, paid event stats views and the admin grant, revoke and pricing actions. Existing `pro` vendors become founder qkit rows in the cache (migration 0115) until Merqo pushes their real subscription, and the latest unexpired license becomes their Event Pass window.
 
 ## [0.4.4] - 2026-11-02
 

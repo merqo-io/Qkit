@@ -3,19 +3,14 @@
 ## Purpose
 
 Vendor-facing sales analytics: revenue/orders/AOV, trend, margin, busy-hours,
-top items, service speed, and customer reviews — gated by plan (free/pass see
-"today" only, Pro unlocks history, trends and margin) and by paid "event"
-passes that keep a permanent, ungated stats snapshot for that window.
+top items, service speed, and customer reviews — gated by the entitlement
+(24h only unless the cached stats window is 90d; a vendor on an Event Pass alone
+gets every range but nothing from before the pass started).
 
-Paid-event reviews match orders placed in the event window across complete paged
-feedback reads. The live review list keeps its explicit 500-row recent limit.
+The live review list keeps its explicit 500-row recent limit.
 
 ## Contents
 
-- `actions.ts` — `renameEvent({ licenseId, label })` server action: renames a
-  paid pass to a vendor-chosen event-day name via the `set_license_label`
-  SECURITY DEFINER RPC (scoped server-side to `vendor_id = auth.uid()`), then
-  revalidates `/dashboard/stats`.
 - `busy-heatmap.tsx` — `BusyHeatmap({ summary })`: a pure-CSS 7×24 day×hour
   grid coloured by order volume (opacity scaled to the max cell), with a
   computed "Peak <day> <hour>" caption; no chart library.
@@ -26,15 +21,6 @@ feedback reads. The live review list keeps its explicit 500-row recent limit.
   `waitClock(seconds)` (readable `"4m 12s"` for KPI cards).
 - `chart-format.test.ts` — unit tests for `hourLabel` and `fmtWait` edge
   cases (midnight/noon, sub-minute vs. minute+ rounding).
-- `event-stats-view.tsx` — `EventStatsView` (async server component): renders
-  one paid license window's full stats regardless of current plan tier —
-  fetches orders for `[valid_from, expires_at)`, computes a trend anchored to
-  the window end, pulls reviews scoped to orders placed in that window
-  (`fetchEventReviewRows`), and reuses `StatsView`/`ReviewsCard` with
-  `range="event"`.
-- `events-panel.tsx` — `EventsPanel({ events })` + internal `EventRow`:
-  lists the vendor's paid licenses as permanent "events" linking to
-  `?event=<id>`; each row can be renamed inline via `renameEvent`.
 - `export-button.tsx` — `ExportButton({ summary, range, boothId })`: builds a
   `SalesSummaryV1` via `@/lib/sales-summary` and downloads it as a CSV blob
   named `qkit-sales-<range>.csv`. The items table lists every item in
@@ -51,9 +37,9 @@ feedback reads. The live review list keeps its explicit 500-row recent limit.
   `@merqo/ui`'s shared `StatTile` content — label + delta pill + mono value
   - caption) and `KpiRow({ summary, deltas, pro, rangeLabel,
 allTime })`: renders Revenue/Orders (as `StatBreakdownTile`s with a
-    per-item hover/tap breakdown) + Avg order, and (Pro only) Fulfilled
+    per-item hover/tap breakdown) + Avg order, and (trends only) Fulfilled
     (completed/decided with a cancelled-count tooltip) and Refunds.
-- `margin-table.tsx` — `MarginTable({ summary })` (Pro; the Item column wraps,
+- `margin-table.tsx` — `MarginTable({ summary })` (trends; the Item column wraps,
   so a long name no longer pushes Profit and Margin off a phone screen
   behind a sideways scroll): ranks
   `summary.topItems` by `profit_cents` (only where `cost_cents > 0`), shown
@@ -65,12 +51,11 @@ allTime })`: renders Revenue/Orders (as `StatBreakdownTile`s with a
   list of the most-picked customization choices (e.g. "Iced", "Less sugar"),
   hidden when no item has options.
 - `page.tsx` — `StatsPage` (route entry, `revalidate=0`): resolves the
-  vendor's booths + licenses, dispatches to `EventStatsView` when `?event=`
-  matches a license, otherwise clamps the requested `range` to the
+  vendor's booths, clamps the requested `range` to the
   entitlement's `statsRanges`, fetches range/prior-range orders + reviews +
   all-time totals in parallel via `queries.ts`, computes `StatsSummary`
   (`@/lib/stats`) and period deltas, and renders
-  `StatsControls`/`StatsView`/`ReviewsCard`/`EventsPanel`.
+  `StatsControls`/`StatsView`/`ReviewsCard`.
 - `queries.ts` — Supabase read helpers: `fetchOrders` (windowed order rows,
   parsed items), `fetchAllTimeTotals` (lifetime order count + revenue,
   non-cancelled, unfiltered by range/booth), `fetchReviewRows` (up to 500
@@ -82,7 +67,7 @@ linkable })`: fractional-star `Stars`, a rating `Distribution` bar chart,
   and either one booth's detailed/paged comments (`BoothDetail`) or an
   all-booths overall average + per-booth comparison list.
 - `service-speed-chart.tsx` — `ServiceSpeedChart({ series, range,
-peakThroughput })` (Pro): a Recharts `ComposedChart` — order-volume bars
+peakThroughput })` (trends): a Recharts `ComposedChart` — order-volume bars
   plus an average-wait line with a dashed reference line at the mean.
 - `stat-breakdown.tsx` — `StatBreakdownTile`: a `StatTile`-styled button
   wrapping a Radix `Popover` that reveals a per-item breakdown on mouse
@@ -96,14 +81,14 @@ allowedRanges })` (client): the range-tab + booth `Select` bar; an
   of a switch.
 - `stats-view.tsx` — `StatsView({ summary, deltas, series, range, boothId,
 pro, speed, allTime })`: the main render — pinned KPI strip + best-seller/
-  busiest-hour/avg-wait tiles, then (Pro) a `Tabs` of Sales/Items/Service
+  busiest-hour/avg-wait tiles, then (trends) a `Tabs` of Sales/Items/Service
   (lazy-loaded `TrendChart`/`ServiceSpeedChart`/`TopItems` via
   `next/dynamic` so Recharts isn't in the initial bundle) or (free) a capped
   `TopItems` + an upgrade banner. `Stagger` staggers each section's fade-rise
   animation.
 - `top-items.tsx` — `TopItems({ items, limit })`: a Recharts horizontal bar
   list, toggleable between "By volume" and "By revenue" ranking.
-- `trend-chart.tsx` — `TrendChart({ series, range, title })` (Pro): a Recharts
+- `trend-chart.tsx` — `TrendChart({ series, range, title })` (trends): a Recharts
   `AreaChart` of revenue over the window, with an abbreviated Y-axis
   (`shortMoney`) and a full-precision tooltip.
 
@@ -112,10 +97,7 @@ pro, speed, allTime })`: the main render — pinned KPI strip + best-seller/
 `page.tsx` is the route entry for `/dashboard/stats`, reached from the
 dashboard nav. It computes everything server-side via `@/lib/stats` +
 `queries.ts` and hands the result down through `StatsView` (which lazily
-imports the Recharts-based children) and `ReviewsCard`/`EventsPanel`.
-`event-stats-view.tsx` is an alternate entry point `page.tsx` dispatches to
-when a paid license is selected, reusing the same `StatsView`/`ReviewsCard`.
-`actions.ts#renameEvent` is called only from `events-panel.tsx`. Shared
+imports the Recharts-based children) and `ReviewsCard`. Shared
 formatting (`chart-format.ts`) is imported by nearly every chart/tile in this
 folder so range labels and wait/hour formatting can't drift between them.
 

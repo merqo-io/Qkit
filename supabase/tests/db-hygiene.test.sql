@@ -4,8 +4,6 @@ select no_plan();
 select has_index('qkit', 'admin_audit', 'admin_audit_admin_id_idx', 'qkit.admin_audit (admin_id) is indexed');
 select has_index('qkit', 'feedback', 'feedback_vendor_id_idx', 'qkit.feedback (vendor_id) is indexed');
 select has_index('qkit', 'order_status_events', 'order_status_events_actor_idx', 'qkit.order_status_events (actor) is indexed');
-select has_index('qkit', 'payments', 'payments_license_id_idx', 'qkit.payments (license_id) is indexed');
-select has_index('qkit', 'purchase_requests', 'purchase_requests_vendor_id_idx', 'qkit.purchase_requests (vendor_id) is indexed');
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'qkit' and not rowsecurity),

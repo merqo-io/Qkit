@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Per-vendor admin detail/management page, keyed by vendor id — the single place an admin reviews one vendor's activity and takes action (grant/revoke pass, flip plan, resolve help requests).
+Per-vendor admin detail/management page, keyed by vendor id — the single place an admin reviews one vendor's activity and takes action (review the cached tier and Event Pass, resolve help requests).
 
 ## Contents
 

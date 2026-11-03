@@ -33,6 +33,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 - `booth-start-new-service.test.sql` — `0106`: anon cannot reset, vendors cannot write `cap_reset_at` directly, another vendor's reset is refused, the owner's reset zeroes `booth_cups_today`/`booth_cups_left` and lets the trigger take a full limit again, cancelled orders stay out, and a reset older than midnight falls back to midnight.
 - `ops-events.test.sql` — `0108`: table exists, RLS on, anon/authenticated cannot select or insert, service_role can, the kind check rejects `other` and kinds qkit does not write, a 65-char ref is rejected, and the purge deletes a 31-day-old row while keeping a 29-day-old one.
 - `order-push-subscriptions.test.sql` — `0105`: no anon/authenticated privilege on push subscriptions, RLS on, and the trigger that drops a completed or cancelled order's rows.
+- `entitlements.test.sql` — `0112`-`0114`: service-role-only `apply_vendor_entitlement`, last-writer-wins by `issued_at` (stale and replayed pushes are no-ops), contract checks, `vendor_effective_tier`/`vendor_pass_running`/`vendor_entitled`/`vendor_has_free_caps` for free, lapsed, running-pass and future-pass vendors, and the free-tier 6-item / 3-option-group menu caps.
 - `db-hygiene.test.sql` — `0109` foreign key indexes, RLS on every table, own-vendor-only `payments` reads, and no anon/authenticated access to `rate_limits` or `booth_item_sold`.
 
 These new regression fixtures are prepared but have not been executed in this
@@ -42,7 +43,7 @@ review: Docker Desktop's Linux database engine is unavailable.
   transaction with inline fixed-UUID fixtures — no shared state, no cleanup).
   What it actually asserts, by section:
   - RLS is enabled on `vendors`, `booths`, `orders`, `feedback`,
-    `purchase_requests`, `licenses`. `legal_check_state` (migration `0084`,
+    `vendor_entitlements`. `legal_check_state` (migration `0084`,
     the legal-acceptance TTL cache) has RLS on, zero policies, and neither
     `anon` nor `authenticated` can SELECT it directly — a service-role-only
     table, same shape as `rate_limits`/`booth_item_sold`. (`support_messages`

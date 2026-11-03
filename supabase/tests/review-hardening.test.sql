@@ -12,17 +12,16 @@ select set_config('request.jwt.claims',
   '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 select throws_ok(
-  $$ insert into qkit.vendors (id, plan)
-     values ('10000000-0000-0000-0000-000000000001', 'pro') $$,
-  '42501', null, 'a new vendor cannot self-grant Pro through INSERT');
+  $$ insert into qkit.vendor_entitlements (vendor_id, tier, stats_window, issued_at)
+     values ('10000000-0000-0000-0000-000000000001', 'qkit', '90d', now()) $$,
+  '42501', null, 'a new vendor cannot self-grant a tier through INSERT');
 
 select lives_ok(
   $$ insert into qkit.vendors (id)
      values ('10000000-0000-0000-0000-000000000001') $$,
   'normal onboarding can insert the vendor id');
-select is((select plan from qkit.vendors
-           where id = '10000000-0000-0000-0000-000000000001'),
-          'free', 'onboarding retains the free plan default');
+select is(qkit.vendor_effective_tier('10000000-0000-0000-0000-000000000001'),
+          'free', 'a vendor with no cached entitlement is on the free tier');
 
 select throws_ok(
   $$ insert into qkit.booths (vendor_id, name, printkit_location_id)

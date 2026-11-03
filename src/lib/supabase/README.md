@@ -20,7 +20,7 @@ answered.
   resolves the current user's vendor row and effective `Entitlement` in one
   request, fetching the vendor row and the latest currently-active license in
   parallel (both key on `user.id`); degrades to a plan-only entitlement if the
-  `licenses` table/query errors, but rethrows on a vendor-read error (to avoid
+  `vendor_entitlements` read errors, but rethrows on a vendor-read error (to avoid
   misrouting an onboarded vendor to `/onboarding` on a transient DB hiccup);
   backfills `board_settings` with `DEFAULT_BOARD_SETTINGS` if migration 0050
   hasn't reached the DB yet. After the vendor/license read, overwrites
@@ -73,7 +73,7 @@ the customer status page's service-role read). `middleware.ts`'s
 and `get-entitlement.ts` both consume `get-user.ts`'s `getUser` and are in turn
 consumed by the dashboard layout/pages (`requireVendor`/`requireEntitledVendor`)
 to gate access and resolve plan/pass entitlement (`@/lib/plan`'s
-`getEntitlement`).
+`resolveEntitlement`, fed by the `vendor_entitlements` cache).
 
 ## Parent
 
