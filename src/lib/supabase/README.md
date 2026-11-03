@@ -51,7 +51,7 @@ answered.
   unauthenticated requests to `/login`) for `isProtectedPath` routes
   (`/dashboard`, `/onboarding`, `/admin`) — the anonymous, hot customer-
   ordering funnel (`/o`, `/order`) skips the auth round-trip entirely.
-- `server.ts` — `createServerClient()`: cookie-backed server Supabase client Its cookie-adapter comment now cites entitlement writes (not licence inserts) as the admin writes that a user session would break.
+- `server.ts`: `createServerClient()`: cookie-backed server Supabase client
   (Server Components/Actions) built from `publicEnv`, with a `setAll` that
   swallows the read-only-cookie-store error in Server Component contexts (the
   middleware owns session refresh instead). `createServiceClient()`: the
@@ -59,7 +59,7 @@ answered.
   adapter (attaching request cookies would silently re-authenticate every
   query as the calling user instead of service-role) and validates
   `SUPABASE_SECRET_KEY` inline rather than in `@/lib/env` so the secret never
-  enters a browser-reachable module.
+  enters a browser-reachable module. The cookie-adapter comment cites entitlement writes as the admin writes a user session would break.
 
 ## Connectivity
 
