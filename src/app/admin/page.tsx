@@ -22,6 +22,7 @@ import { Stat } from "./stat";
 import { ResolveMessageButton } from "./resolve-message-button";
 import { StuckOrdersSection } from "./stuck-orders-section";
 import { AdminAuditLog } from "./audit-log";
+import { HelpFreshnessSection } from "./help-freshness-section";
 import { isTerminal } from "@/lib/orders";
 import {
   findStuckOrders,
@@ -287,6 +288,7 @@ export default async function AdminPage() {
         boothNameById={boothNameById}
       />
 
+      <HelpFreshnessSection now={new Date()} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           label="GMV · 30d"
