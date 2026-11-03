@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Vendor user guide at `/dashboard/help` (signed-in only, not indexed): a category index and article pages, with a complete Troubleshooting article. The article text lives in typed modules under `src/content/help`, and a drift test fails when an article quotes a UI string or source path that no longer exists. Articles for the other categories are registered as drafts, hidden until written. The guide is linked from the account menu ("User guide") and the last step of the orders tour.
+
 ### Fixed
 
 - An order keeps the number it showed across any number of "Start new service" taps in a day, instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Every order ranks from the latest restart at or before it, and the first order after a restart is #001. Restarts are logged in `booth_service_starts` (migration 0110, apply it before deploying); until it is applied only the latest restart counts, so earlier services rank from midnight. The board also rolls over at SGT midnight without a reload and ranks from the new service the moment Start new service succeeds.
@@ -14,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The landing page no longer carries the vendor troubleshooting FAQ; it moved into the user guide with each answer checked against the code. Corrected on the way: the board notice now reads "Live updates interrupted, reconnecting", the per-order item limit replaces the old 20-of-one-item rule, the rate limit is per phone and per network, and payment answers describe the paykit payment page and accepting or declining the claim instead of a customer screenshot. The sign-up "resend by creating the account again" tip was dropped as unverifiable. The pre-sales payment answer no longer says customers send a screenshot.
 - Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.
 

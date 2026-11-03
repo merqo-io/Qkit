@@ -44,12 +44,17 @@ describe("public landing page", () => {
     for (const link of screen.getAllByRole("link", { name: "Get started" }))
       expect(link).toHaveAttribute("href", "/login?mode=signup");
     expect(nav).toHaveBeenCalledWith({ authed: false });
+  });
+  it("keeps vendor troubleshooting out of the public page and points to the guide", async () => {
+    render(await LandingPage());
     expect(
-      screen.getByRole("heading", { name: "Troubleshooting" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/That button only flags the order as Says paid/),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Troubleshooting" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/send a screenshot/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "user guide" })).toHaveAttribute(
+      "href",
+      "/dashboard/help",
+    );
   });
   it("takes an authenticated vendor to their dashboard", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "vendor" } } });

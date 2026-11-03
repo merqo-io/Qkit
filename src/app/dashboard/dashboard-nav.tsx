@@ -149,6 +149,7 @@ export function DashboardNav({
         const res = await submitFeedback({ source: "vendor", nps, message });
         if (!res.success) throw new Error(res.error);
       }}
+      extraLink={{ href: "/dashboard/help", label: "User guide" }}
       feedbackSource="vendor"
       feedbackMetric="nps"
       showNps

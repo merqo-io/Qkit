@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bell, Check, ListChecks, QrCode, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/landing/nav";
@@ -75,7 +76,7 @@ const FAQ: FaqEntry[] = [
       lead: "Yes, by PayNow. The money goes straight to your own account:",
       bullets: [
         "Add your PayNow details to a booth and customers get your QR at checkout.",
-        "They pay in their banking app and send a screenshot. You confirm it on the board.",
+        "They pay in their banking app and mark the order as paid. You check that it landed and confirm it on the board.",
         "Cash or your own card terminal at the counter works too.",
       ],
       note: "qkit never holds your money. Online card payment is not available yet.",
@@ -96,109 +97,6 @@ const FAQ: FaqEntry[] = [
   {
     q: "Does it work for non-food booths?",
     a: "Yes. Any booth that takes orders (drinks, snacks, merch) works. Items can be priced or queue-only.",
-  },
-];
-
-// Vendor-facing troubleshooting, grounded in the actual app behaviour so a
-// stall can self-serve common "why isn't this working" moments without support.
-const VENDOR_FAQ: FaqEntry[] = [
-  {
-    q: "I signed up but never reached a dashboard.",
-    a: {
-      lead: "Email sign-up needs confirmation first.",
-      bullets: [
-        "After Create account you'll see a Check your email screen. No session starts until you click the link (check spam).",
-        "If it doesn't arrive, try Create account again with the same email to resend it.",
-        "Signing in with Google skips this step.",
-      ],
-    },
-  },
-  {
-    q: "New orders stopped appearing on my board.",
-    a: {
-      lead: "The board updates in real time and reconnects on its own.",
-      bullets: [
-        "If the connection drops (tab asleep, patchy wifi) you'll see a Reconnecting notice, then it re-syncs any missed orders once it's back.",
-        "If it still looks stuck, reload the page.",
-        "Keeping the tab in the foreground helps.",
-      ],
-    },
-  },
-  {
-    q: "A customer tapped 'I've paid' but it still shows unpaid.",
-    a: {
-      lead: "That button only flags the order as Says paid, a self-reported claim. It never auto-confirms.",
-      bullets: [
-        "Once you've seen the PayNow or transfer land, tap Confirm payment received on the order card yourself.",
-        "That's the only thing that flips an order to Paid.",
-      ],
-    },
-  },
-  {
-    q: "My booth is Open but customers see 'not taking orders'.",
-    a: {
-      lead: "A booth serves only when all three are true: it's Open (not paused), within its set hours, and within your account's booth limit.",
-      bullets: [
-        "An account serves one booth at a time unless extra booths are unlocked.",
-        "If you have more open booths than that, only your oldest open booth serves and the rest are held back.",
-        "Pause the extras, or ask us about unlocking more booths.",
-      ],
-    },
-  },
-  {
-    q: "My booth is Open but shows closed during the hours I set.",
-    a: {
-      lead: "Two things to check.",
-      bullets: [
-        "Scheduled hours are always read in Singapore time (SGT), so check them against SGT.",
-        "Scheduled hours need extra features unlocked on your account. Without them any saved hours are cleared, and a booth takes orders whenever it is Open and stops when you pause it.",
-      ],
-    },
-  },
-  {
-    q: "A customer says their order didn't go through.",
-    a: {
-      lead: "Usual causes:",
-      bullets: [
-        "The QR or short code was regenerated, so they need to rescan.",
-        "The booth stopped serving (paused, over the booth limit, or outside SGT hours).",
-        "An item sold out or went unavailable mid-order.",
-        "A line exceeded 20 of one item.",
-        "More than 8 orders came from the same network within a minute (clears after 60s).",
-      ],
-      note: "Ask them to rescan and retry. Orders are atomic with an idempotency key, so a failed or retried attempt never creates a duplicate order.",
-    },
-  },
-  {
-    q: "I regenerated my QR and old printed codes stopped working.",
-    a: {
-      lead: "Regenerating a booth's QR is instant and permanent.",
-      bullets: [
-        "Every previously printed or saved link breaks immediately with This code expired. There's no grace period.",
-        "Only regenerate if a code leaked or is being abused, and reprint the new QR right away.",
-      ],
-    },
-  },
-  {
-    q: "My banner or menu photo won't upload.",
-    a: {
-      lead: "Check the file, then the save step.",
-      bullets: [
-        "Use a JPEG, PNG, or WebP (not SVG or HEIC). Large phone photos are fine; the app resizes and re-encodes them in your browser before upload.",
-        "A generic Upload failed is usually a flaky connection, so wait and retry.",
-        "The image only sticks once you Save the booth or item. The preview swaps instantly, but nothing is stored until you save.",
-      ],
-    },
-  },
-  {
-    q: "My stats only show the last 24 hours.",
-    a: {
-      lead: "The 7-, 30-, and 90-day trend ranges need extra features unlocked on your account.",
-      bullets: [
-        "Without them, stats show the 24-hour view.",
-        "Ask us if you want longer trends across events.",
-      ],
-    },
   },
 ];
 
@@ -418,48 +316,29 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* FAQ: two groups side by side on wide screens. The marketing questions
-          and the vendor troubleshooting each read as their own receipt column,
-          with a perforation tear line between every question and its answer. */}
-      <section id="faq" className="mx-auto max-w-5xl px-5 py-16">
-        <div className="grid gap-x-10 gap-y-14 lg:grid-cols-2">
-          {/* Marketing questions */}
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
-              For new vendors
-            </p>
-            <h2 className="font-display mt-2 text-3xl font-semibold">
-              Questions
-            </h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              What most vendors ask before their first event.
-            </p>
-            <div className="mt-6 space-y-3">
-              {FAQ.map((item) => (
-                <FaqItem key={item.q} q={item.q} a={item.a} />
-              ))}
-            </div>
-          </div>
-
-          {/* Vendor troubleshooting, for signed-up stalls hitting a snag. Kept
-              on the home page so a vendor can find a fix fast. */}
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
-              Already selling?
-            </p>
-            <h2 className="font-display mt-2 text-3xl font-semibold">
-              Troubleshooting
-            </h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Quick fixes for the most common stall-side snags.
-            </p>
-            <div className="mt-6 space-y-3">
-              {VENDOR_FAQ.map((item) => (
-                <FaqItem key={item.q} q={item.q} a={item.a} />
-              ))}
-            </div>
-          </div>
+      <section id="faq" className="mx-auto max-w-3xl px-5 py-16">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
+          For new vendors
+        </p>
+        <h2 className="font-display mt-2 text-3xl font-semibold">Questions</h2>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+          What most vendors ask before their first event.
+        </p>
+        <div className="mt-6 space-y-3">
+          {FAQ.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
+          ))}
         </div>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Already selling? Signed-in vendors will find the full guide in the{" "}
+          <Link
+            href="/dashboard/help"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            user guide
+          </Link>
+          .
+        </p>
       </section>
 
       <SiteFooter showSignIn />
