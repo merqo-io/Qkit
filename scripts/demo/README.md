@@ -134,10 +134,21 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - The "other person" in a scene (a walk-in, the crowd on a busy board) is an
   unrecorded browser context, so tickets arrive through the real realtime
   subscription.
-- Verification status: the pure helpers are unit-tested and the split and single
-  composition was run against synthetic webms. A live recording of the scenes
-  has not been made, because the local database engine was unavailable when this
-  was written; locators were read from the current components, not exercised.
+- Verification status: `options` (single) and `live-pop` (split) were recorded
+  and composed end to end against a local stack. The other scenes' locators
+  were read from the components but not yet run live.
+- `reset.sql` also seeds a cached "legal current" row for the demo email. The
+  dashboard's legal gate asks merqo, which a local stack cannot reach, and
+  would otherwise send the new vendor to `/legal/accept`.
+- Without `psql` on PATH, pipe the SQL through the db container:
+  `Get-Content scripts/demo/reset.sql | docker exec -i supabase_db_qkit psql -U postgres`.
+- The board's live pop needs a working Realtime. An old local volume run with
+  an older Realtime image than the one that created it fails with
+  `ArgumentError ... out of range` on subscribe and the ticket never appears;
+  `supabase stop` then `supabase start` on a current CLI, or a fresh volume,
+  fixes it. Apply any newer migrations with `pnpm exec supabase migration up`.
+- A new booth's menu is built on its own page after the first save, so the
+  recorder saves the booth, then adds items on `/menu` and lands on the QR page.
 
 ## Structure
 
