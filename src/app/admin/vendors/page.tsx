@@ -4,7 +4,8 @@ import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
-import { latestActivePassByVendor, summarizeVendors } from "@/lib/admin/stats";
+import { summarizeVendors } from "@/lib/admin/stats";
+import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 import {
   buildVendorHealth,
   passHoursLeft,
@@ -37,7 +38,7 @@ export default async function AdminVendorsPage() {
 
   const [
     { data: vendorRows },
-    { data: licenseRows },
+    { data: entitlementRows },
     { data: boothRows },
     { data: orderRows },
     { data: messageRows },
@@ -45,16 +46,18 @@ export default async function AdminVendorsPage() {
     readAllRows((from, to) =>
       supabase
         .from("vendors")
-        .select("id, plan, created_at")
+        .select("id, created_at")
         .order("created_at", { ascending: false })
         .order("id")
         .range(from, to),
     ).then((data) => ({ data })),
     readAllRows((from, to) =>
       supabase
-        .from("licenses")
-        .select("vendor_id, valid_from, expires_at")
-        .order("id")
+        .from("vendor_entitlements")
+        .select(
+          "vendor_id, tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+        )
+        .order("vendor_id")
         .range(from, to),
     ).then((data) => ({ data })),
     readAllRows((from, to) =>
@@ -88,12 +91,22 @@ export default async function AdminVendorsPage() {
     merqoClient,
     rows.map((v) => v.id),
   );
-  const passByVendor = latestActivePassByVendor(licenseRows ?? [], now);
+  const entitlementByVendor = new Map(
+    (entitlementRows ?? []).map((r) => [
+      r.vendor_id,
+      resolveEntitlement(storedFromRow(r), now),
+    ]),
+  );
+  const passByVendor = new Map<string, string>();
+  for (const [vendorId, ent] of entitlementByVendor) {
+    if (ent.eventPass?.running)
+      passByVendor.set(vendorId, ent.eventPass.endsAt);
+  }
   const openMsgVendors = new Set((messageRows ?? []).map((m) => m.user_id));
 
   const vendorLites: VendorLite[] = rows.map((v) => ({
     id: v.id,
-    plan: v.plan,
+    paid: (entitlementByVendor.get(v.id)?.tier ?? "free") !== "free",
     created_at: v.created_at,
     passExpiresAt: passByVendor.get(v.id) ?? null,
   }));
@@ -114,7 +127,7 @@ export default async function AdminVendorsPage() {
       return {
         id: v.id,
         name: stallNames.get(v.id) ?? "Unknown vendor",
-        plan: v.plan,
+        tier: entitlementByVendor.get(v.id)?.tier ?? "free",
         created_at: v.created_at,
         passHoursLeft: passHoursLeft(expiry, now),
         status: h.status,

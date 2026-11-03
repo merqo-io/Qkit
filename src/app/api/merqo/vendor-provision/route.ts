@@ -70,19 +70,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const { data: vendorRow, error: readError } = await supabase
-    .from("vendors")
-    .select("plan")
-    .eq("id", user_id)
-    .maybeSingle();
-  if (readError || !vendorRow) {
-    console.error("vendor-provision: read-back failed", readError?.message);
-    return NextResponse.json(
-      { error: "Could not read vendor plan" },
-      { status: 500 },
-    );
-  }
-
   // No signed-in admin here — admin_id is the vendor's own id (satisfies
   // the FK) and detail.actor marks this as merqo-, not vendor-, initiated.
   await recordAudit({
@@ -92,13 +79,11 @@ export async function POST(request: Request) {
     detail: {
       actor: "merqo_system",
       already_existed: alreadyExisted,
-      plan: vendorRow.plan,
     },
   });
 
   return NextResponse.json({
     ok: true,
     already_existed: alreadyExisted,
-    plan: vendorRow.plan,
   });
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
@@ -120,10 +120,21 @@ const ORDER_NUMBER_OPTS = { selector: "h3" };
 // day, so those cards show the raw order_number (#0001); the daily-reset tests
 // below pass today's timestamp, or a baseline, to see a rank (#001).
 
+// The board drops orders placed before the SGT start of day, so tests that
+// build timestamps from "now" would fail in the first minutes after SGT
+// midnight. Only Date is faked so waitFor and the realtime mocks keep real timers.
+const PINNED_NOW = new Date("2026-10-11T04:00:00Z");
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(PINNED_NOW);
   vi.clearAllMocks();
   vi.mocked(toggleBoothActive).mockResolvedValue({ success: true });
   vi.mocked(advanceOrder).mockResolvedValue({ success: true, status: "ready" });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("RealtimeOrderBoard sort toggle", () => {
@@ -191,7 +202,7 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
     ).toBeInTheDocument();
   });
 
-  const TODAY = new Date().toISOString();
+  const TODAY = PINNED_NOW.toISOString();
 
   it("derives its own baseline when the board was opened before the day's first order", () => {
     // The server page has no baseline to send for a booth with no order yet
@@ -349,7 +360,7 @@ describe("RealtimeOrderBoard daily order-number reset", () => {
       <RealtimeOrderBoard
         booths={BOOTHS}
         initialOrders={[
-          order({ order_number: "0847", created_at: new Date().toISOString() }),
+          order({ order_number: "0847", created_at: PINNED_NOW.toISOString() }),
         ]}
         boardSettings={{
           ...DEFAULT_BOARD_SETTINGS,
@@ -634,6 +645,7 @@ describe("RealtimeOrderBoard cup cap counter", () => {
 
   it("refreshes the server data at most once per 5s, with a trailing call", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.setSystemTime(PINNED_NOW);
     try {
       render(
         <RealtimeOrderBoard
@@ -1822,7 +1834,7 @@ describe("RealtimeOrderBoard own walk-up alert", () => {
     order_number: "0003",
     status: "preparing",
     source: "walkup",
-    created_at: new Date().toISOString(),
+    created_at: PINNED_NOW.toISOString(),
   });
 
   it("does not alert for its own walk-up arriving after the dialog returns", async () => {

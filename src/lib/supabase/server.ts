@@ -47,7 +47,7 @@ export async function createServerClient() {
 // CRITICAL: do NOT attach the request cookies here. If the user's auth cookies
 // are passed, @supabase/ssr hydrates their session and authenticates every query
 // as that user (RLS applies) instead of as service-role — silently breaking
-// admin writes (license inserts denied, cross-vendor updates match 0 rows). An
+// admin writes (entitlement writes denied, cross-vendor updates match 0 rows). An
 // empty cookie adapter means the secret key drives auth → true RLS bypass.
 export async function createServiceClient() {
   // Validated inline (not in lib/env, which is client-importable) so the secret

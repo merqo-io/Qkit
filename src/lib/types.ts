@@ -1,3 +1,5 @@
+import type { Tier } from "@/lib/plan";
+
 export type Json =
   | string
   | number
@@ -18,8 +20,6 @@ export type OrderStatus =
 // the dashboard on behalf of a counter customer. Defaults to "qr" at the DB
 // level (migration 0060) — every pre-existing order was.
 export type OrderSource = "qr" | "walkup";
-
-export type Plan = "free" | "pro";
 
 export type SoundId = "chime" | "bell" | "ding" | "horn" | "triple" | "none";
 
@@ -214,21 +214,18 @@ export interface Database {
       vendors: {
         Row: {
           id: string;
-          plan: Plan;
           created_at: string;
           tours_seen: ToursSeen;
           board_settings: BoardSettings;
         };
         Insert: {
           id: string;
-          plan?: Plan;
           created_at?: string;
           tours_seen?: ToursSeen;
           board_settings?: BoardSettings;
         };
         Update: {
           id?: string;
-          plan?: Plan;
           created_at?: string;
           tours_seen?: ToursSeen;
           board_settings?: BoardSettings;
@@ -299,45 +296,41 @@ export interface Database {
           },
         ];
       };
-      licenses: {
+      vendor_entitlements: {
         Row: {
-          id: string;
           vendor_id: string;
-          valid_from: string;
-          expires_at: string;
-          source: string;
-          note: string | null;
-          label: string | null;
-          created_at: string;
+          tier: Tier;
+          founder: boolean;
+          stats_window: "24h" | "90d";
+          event_pass_starts_at: string | null;
+          event_pass_ends_at: string | null;
+          valid_until: string | null;
+          issued_at: string;
+          updated_at: string;
         };
         Insert: {
-          id?: string;
           vendor_id: string;
-          valid_from?: string;
-          expires_at: string;
-          source?: string;
-          note?: string | null;
-          label?: string | null;
-          created_at?: string;
+          tier: Tier;
+          founder?: boolean;
+          stats_window: "24h" | "90d";
+          event_pass_starts_at?: string | null;
+          event_pass_ends_at?: string | null;
+          valid_until?: string | null;
+          issued_at: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
           vendor_id?: string;
-          valid_from?: string;
-          expires_at?: string;
-          source?: string;
-          note?: string | null;
-          label?: string | null;
-          created_at?: string;
+          tier?: Tier;
+          founder?: boolean;
+          stats_window?: "24h" | "90d";
+          event_pass_starts_at?: string | null;
+          event_pass_ends_at?: string | null;
+          valid_until?: string | null;
+          issued_at?: string;
+          updated_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "licenses_vendor_id_fkey";
-            columns: ["vendor_id"];
-            referencedRelation: "vendors";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       payments: {
         Row: {
@@ -347,7 +340,6 @@ export interface Database {
           amount_cents: number;
           source: string;
           note: string | null;
-          license_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -357,7 +349,6 @@ export interface Database {
           amount_cents: number;
           source?: string;
           note?: string | null;
-          license_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -367,7 +358,6 @@ export interface Database {
           amount_cents?: number;
           source?: string;
           note?: string | null;
-          license_id?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -378,30 +368,6 @@ export interface Database {
             referencedColumns: ["id"];
           },
         ];
-      };
-      pricing: {
-        Row: {
-          id: number;
-          event_pass_cents: number;
-          monthly_cents: number;
-          currency: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: number;
-          event_pass_cents?: number;
-          monthly_cents?: number;
-          currency?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: number;
-          event_pass_cents?: number;
-          monthly_cents?: number;
-          currency?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
       };
       platform_settings: {
         Row: {
@@ -471,30 +437,6 @@ export interface Database {
           order_number?: string | null;
           rating?: number | null;
           message?: string | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      purchase_requests: {
-        Row: {
-          id: string;
-          vendor_id: string;
-          kind: "event" | "monthly";
-          status: "pending" | "resolved";
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          vendor_id: string;
-          kind: "event" | "monthly";
-          status?: "pending" | "resolved";
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          vendor_id?: string;
-          kind?: "event" | "monthly";
-          status?: "pending" | "resolved";
           created_at?: string;
         };
         Relationships: [];
@@ -873,9 +815,18 @@ export interface Database {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
-      set_license_label: {
-        Args: { p_license_id: string; p_label: string | null };
-        Returns: undefined;
+      apply_vendor_entitlement: {
+        Args: {
+          p_vendor: string;
+          p_tier: Tier;
+          p_founder: boolean;
+          p_stats_window: "24h" | "90d";
+          p_event_pass_starts_at: string | null;
+          p_event_pass_ends_at: string | null;
+          p_valid_until: string | null;
+          p_issued_at: string;
+        };
+        Returns: boolean;
       };
       gen_short_code: {
         Args: Record<string, never>;
@@ -942,8 +893,6 @@ export type Order = Database["qkit"]["Tables"]["orders"]["Row"];
 // The vendor board's shape of an order — access_token is the customer's own
 // status-page bearer secret, which the board never reads (least privilege).
 export type BoardOrder = Omit<Order, "access_token">;
-export type License = Database["qkit"]["Tables"]["licenses"]["Row"];
-export type Pricing = Database["qkit"]["Tables"]["pricing"]["Row"];
 export type PlatformSettings =
   Database["qkit"]["Tables"]["platform_settings"]["Row"];
 export type Payment = Database["qkit"]["Tables"]["payments"]["Row"];

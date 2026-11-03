@@ -2,7 +2,11 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/supabase/get-user";
-import { getEntitlement, type Entitlement } from "@/lib/plan";
+import {
+  resolveEntitlement,
+  storedFromRow,
+  type Entitlement,
+} from "@/lib/plan";
 import type { User } from "@supabase/supabase-js";
 import {
   DEFAULT_BOARD_SETTINGS,
@@ -26,29 +30,28 @@ export type VendorWithProfile = Vendor & {
 };
 
 /**
- * Resolve the current vendor's effective entitlement (plan + any live license).
+ * Resolve the current vendor's effective entitlement from the cached merqo
+ * push (qkit.vendor_entitlements).
  *
- * vendors.id === auth.users.id and licenses.vendor_id === vendors.id, so both
- * the vendor row and the license both key on user.id — they're fetched in
- * parallel (one round-trip, not two) on this hot dashboard path. A THIRD,
- * sequential round-trip follows once the vendor row is back: the
- * merqo.vendor_profile fetch below can't join the Promise.all above because
- * it needs to know the vendor row actually exists first — firing it
- * unconditionally would spuriously create a merqo profile for a
- * signed-in-but-not-yet-onboarded user (no vendors row yet).
+ * vendors.id === auth.users.id === vendor_entitlements.vendor_id, so the vendor
+ * row and the entitlement row both key on user.id and are fetched in parallel
+ * (one round-trip, not two) on this hot dashboard path. A THIRD, sequential
+ * round-trip follows once the vendor row is back: the merqo.vendor_profile
+ * fetch below can't join the Promise.all above because it needs to know the
+ * vendor row actually exists first, since firing it unconditionally would
+ * spuriously create a merqo profile for a signed-in-but-not-yet-onboarded user
+ * (no vendors row yet).
  *
- * Defensive: if the licenses table predates migration 0010 the query errors and
- * `data` is null, so we degrade to the plan-only entitlement rather than throw.
- * The VENDOR read is not treated this way — a read error there is surfaced (like
- * get-vendor), because swallowing it would misroute a real vendor to /onboarding
- * on a transient DB hiccup.
+ * Defensive: an entitlement read error degrades to the free tier rather than
+ * throw. The VENDOR read is not treated this way. A read error there is
+ * surfaced (like get-vendor), because swallowing it would misroute a real
+ * vendor to /onboarding on a transient DB hiccup.
  */
 export const loadEntitlement = cache(
   async (): Promise<{
     user: User | null;
     vendor: VendorWithProfile | null;
     entitlement: Entitlement;
-    licenseExpiresAt: string | null;
   }> => {
     const supabase = await createServerClient();
     const user = await getUser();
@@ -58,31 +61,33 @@ export const loadEntitlement = cache(
       return {
         user: null,
         vendor: null,
-        entitlement: getEntitlement("free", null, now),
-        licenseExpiresAt: null,
+        entitlement: resolveEntitlement(null, now),
       };
     }
 
-    // A pass counts only inside its window: valid_from <= now < expires_at. Among
-    // currently-active licenses, take the latest-expiring (longest remaining).
-    const nowIso = new Date(now).toISOString();
-    const [{ data: vendor, error: vendorError }, { data: license }] =
-      await Promise.all([
-        supabase
-          .from("vendors")
-          .select("id, plan, created_at, tours_seen, board_settings")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("licenses")
-          .select("expires_at")
-          .eq("vendor_id", user.id)
-          .lte("valid_from", nowIso)
-          .gt("expires_at", nowIso)
-          .order("expires_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+    const [
+      { data: vendor, error: vendorError },
+      { data: entitlementRow, error: entitlementError },
+    ] = await Promise.all([
+      supabase
+        .from("vendors")
+        .select("id, created_at, tours_seen, board_settings")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("vendor_entitlements")
+        .select(
+          "tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+        )
+        .eq("vendor_id", user.id)
+        .maybeSingle(),
+    ]);
+    if (entitlementError) {
+      console.error(
+        "loadEntitlement: entitlement read failed",
+        entitlementError.message,
+      );
+    }
 
     // Fail loud on a vendor read error (see get-vendor) — a null-on-error would
     // bounce an onboarded vendor back to /onboarding. Caught by the error boundary.
@@ -122,18 +127,15 @@ export const loadEntitlement = cache(
       };
     }
 
-    const licenseExpiresAt = vendorWithProfile
-      ? (license?.expires_at ?? null)
-      : null;
     return {
       user,
       vendor: vendorWithProfile,
-      entitlement: getEntitlement(
-        vendorWithProfile?.plan ?? "free",
-        licenseExpiresAt,
+      entitlement: resolveEntitlement(
+        vendorWithProfile && entitlementRow
+          ? storedFromRow(entitlementRow)
+          : null,
         now,
       ),
-      licenseExpiresAt,
     };
   },
 );
@@ -148,12 +150,10 @@ export async function requireEntitledVendor(): Promise<{
   user: User;
   vendor: VendorWithProfile;
   entitlement: Entitlement;
-  licenseExpiresAt: string | null;
 }> {
-  const { user, vendor, entitlement, licenseExpiresAt } =
-    await loadEntitlement();
+  const { user, vendor, entitlement } = await loadEntitlement();
   if (!user) redirect("/login");
   if (!vendor) redirect("/onboarding");
   await requireCurrentLegalAcceptance(user.email);
-  return { user, vendor, entitlement, licenseExpiresAt };
+  return { user, vendor, entitlement };
 }

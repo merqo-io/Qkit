@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { bearerOk } from "@/lib/merqo/auth";
 import { computeMerqoMetrics } from "@/lib/merqo/metrics";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import type { Plan } from "@/lib/types";
+import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 
 export const revalidate = 0;
 
@@ -28,51 +28,62 @@ export async function GET(request: Request) {
   // Five independent reads — issue them concurrently so endpoint latency is one
   // round-trip, not the sum of five.
   try {
-    const [vendors, booths, orders, payments, pendingRes] = await Promise.all([
-      readAllRows((from, to) =>
-        supabase
-          .from("vendors")
-          .select("id, plan, created_at")
-          .order("id")
-          .range(from, to),
-      ),
-      readAllRows((from, to) =>
-        supabase
-          .from("booths")
-          .select("id, vendor_id")
-          .order("id")
-          .range(from, to),
-      ),
-      readAllRows((from, to) =>
-        supabase
-          .from("orders")
-          .select("booth_id, status, total_cents, created_at")
-          .order("id")
-          .range(from, to),
-      ),
-      readAllRows((from, to) =>
-        supabase
-          .from("payments")
-          .select("amount_cents, created_at")
-          .order("id")
-          .range(from, to),
-      ),
-      supabase
-        .from("purchase_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending"),
-    ]);
+    const [vendors, booths, orders, payments, entitlements] = await Promise.all(
+      [
+        readAllRows((from, to) =>
+          supabase
+            .from("vendors")
+            .select("id, created_at")
+            .order("id")
+            .range(from, to),
+        ),
+        readAllRows((from, to) =>
+          supabase
+            .from("booths")
+            .select("id, vendor_id")
+            .order("id")
+            .range(from, to),
+        ),
+        readAllRows((from, to) =>
+          supabase
+            .from("orders")
+            .select("booth_id, status, total_cents, created_at")
+            .order("id")
+            .range(from, to),
+        ),
+        readAllRows((from, to) =>
+          supabase
+            .from("payments")
+            .select("amount_cents, created_at")
+            .order("id")
+            .range(from, to),
+        ),
+        readAllRows((from, to) =>
+          supabase
+            .from("vendor_entitlements")
+            .select(
+              "vendor_id, tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+            )
+            .order("vendor_id")
+            .range(from, to),
+        ),
+      ],
+    );
 
-    if (pendingRes.error)
-      throw new Error("Could not read pending request count");
+    const nowMs = Date.now();
+    const tierByVendor = new Map(
+      entitlements.map((r) => [
+        r.vendor_id,
+        resolveEntitlement(storedFromRow(r), nowMs).tier,
+      ]),
+    );
 
     const metrics = computeMerqoMetrics({
-      nowMs: Date.now(),
-      vendors: vendors as {
-        id: string;
-        plan: Plan;
-        created_at: string;
-      }[],
+      nowMs,
+      vendors: vendors.map((v) => ({
+        ...v,
+        paid: (tierByVendor.get(v.id) ?? "free") !== "free",
+      })),
       booths: booths as { id: string; vendor_id: string }[],
       orders: orders as {
         booth_id: string;
@@ -84,7 +95,6 @@ export async function GET(request: Request) {
         amount_cents: number;
         created_at: string;
       }[],
-      pendingUpgradeCount: pendingRes.count ?? 0,
     });
 
     return NextResponse.json({

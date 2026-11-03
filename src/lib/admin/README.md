@@ -30,6 +30,8 @@ names.
   admin-only, low-traffic call sites, no batch-read RPC exists on the merqo
   side.
 
+Aggregations take a `paid` flag derived from the cached tier (any tier above free) instead of the retired `vendors.plan` column.
+
 ## Parent
 
 [lib](../README.md)

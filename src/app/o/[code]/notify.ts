@@ -15,6 +15,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { notifyVendor } from "@/lib/merqo/customer-notify";
 import { orderLabels } from "@/lib/printkit/labels";
 import { createPrintJob } from "@/lib/printkit/client";
+import { vendorHasCounterOps } from "@/lib/counter-ops";
 import { vendorFacingOrderNumber } from "@/lib/daily-order-number";
 
 function errorName(err: unknown): string {
@@ -68,6 +69,16 @@ export async function notifyVendorTelegram(
   }
 }
 
+function isPrintablePayment(order: {
+  payment_status: string;
+  status: string;
+}): boolean {
+  return (
+    order.payment_status === "confirmed" ||
+    (order.payment_status === "not_required" && order.status === "preparing")
+  );
+}
+
 /**
  * Fires a printkit job-creation call for this order — best-effort, same
  * never-affects-the-result contract as notifyVendorTelegram above. Does its
@@ -101,6 +112,9 @@ export async function notifyPrintkit(
       return;
     }
     if (!booth.print_enabled) return;
+    // Labels are a counter-ops feature; a lapsed plan skips them silently so
+    // the customer's order is unaffected.
+    if (!(await vendorHasCounterOps(service, booth.vendor_id))) return;
 
     const { data: order } = await service
       .from("orders")
@@ -115,11 +129,7 @@ export async function notifyPrintkit(
 
     // A customer claim is not payment confirmation or a vendor start.
     if (order.status === "cancelled" || order.status === "completed") return;
-    if (
-      order.payment_status !== "confirmed" &&
-      !(order.payment_status === "not_required" && order.status === "preparing")
-    )
-      return;
+    if (!isPrintablePayment(order)) return;
 
     const labels = orderLabels(order.items);
     if (labels === null) {

@@ -1,67 +1,60 @@
 import { Sparkles, Ticket } from "lucide-react";
 import { PlanComparisonTable } from "@merqo/ui";
-import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
-import { DEFAULT_PRICING } from "@/lib/pricing";
-import { formatPrice } from "@/lib/utils";
-import { Ticket as TicketCard } from "@/components/widgets/ticket";
-import { UpgradeCta } from "./upgrade-cta";
+import { TIER_LABEL } from "@/lib/plan";
 import { PassCountdown } from "./pass-countdown";
 import { PageHeader } from "@/components/widgets/page-header";
 
 export const revalidate = 0;
 
-// free / pass / pro across the three rungs.
 const FEATURES: {
   label: string;
   free: boolean;
-  pass: boolean;
-  pro: boolean;
+  starter: boolean;
+  qkit: boolean;
 }[] = [
-  { label: "Live order board", free: true, pass: true, pro: true },
-  { label: "QR posters", free: true, pass: true, pro: true },
-  { label: "Up to 6 menu items", free: true, pass: true, pro: true },
+  { label: "Live order board", free: true, starter: true, qkit: true },
+  { label: "QR posters", free: true, starter: true, qkit: true },
   {
     label: "Unlimited items & customization",
     free: false,
-    pass: true,
-    pro: true,
+    starter: true,
+    qkit: true,
   },
-  { label: "Extra booths", free: false, pass: true, pro: true },
-  { label: "Scheduled auto-close hours", free: false, pass: true, pro: true },
-  { label: "Sold-out stock caps", free: false, pass: true, pro: true },
-  { label: "This event's stats", free: false, pass: true, pro: true },
+  {
+    label: "Scheduled auto-close hours",
+    free: false,
+    starter: true,
+    qkit: true,
+  },
+  { label: "Sold-out stock caps", free: false, starter: true, qkit: true },
+  { label: "Extra booths", free: false, starter: false, qkit: true },
+  {
+    label: "Customer queue display (TV)",
+    free: false,
+    starter: false,
+    qkit: true,
+  },
+  { label: "Order labels", free: false, starter: false, qkit: true },
+  { label: "Order-ready push alerts", free: false, starter: false, qkit: true },
   {
     label: "Full history & trends (7/30/90d)",
     free: false,
-    pass: false,
-    pro: true,
+    starter: false,
+    qkit: true,
   },
 ];
 
+const INCLUDES = {
+  free: "1 booth with up to 6 menu items, the live order board, QR posters and today's stats.",
+  starter:
+    "1 booth with unlimited menu items and customization, scheduled auto-close hours, sold-out stock caps and today's stats.",
+  qkit: "Unlimited booths, the customer queue display, order labels, order-ready push alerts and full sales history.",
+} as const;
+
 export default async function PlanPage() {
-  const { entitlement, licenseExpiresAt } = await requireEntitledVendor();
-
-  const supabase = await createServerClient();
-  const { data: pricingRow } = await supabase
-    .from("pricing")
-    .select("event_pass_cents, monthly_cents, currency")
-    .eq("id", 1)
-    .maybeSingle();
-  const pricing = pricingRow ?? DEFAULT_PRICING;
-  // Prices unset (= pre-Stripe beta) → the pass is a free trial we grant on
-  // request. Set prices in /admin to flip the whole page to paid/PayNow.
-  const passPrice =
-    pricing.event_pass_cents > 0 ? formatPrice(pricing.event_pass_cents) : null;
-  const monthlyPrice =
-    pricing.monthly_cents > 0 ? formatPrice(pricing.monthly_cents) : null;
-  const paidMode = passPrice !== null || monthlyPrice !== null;
-
-  const tier = entitlement.tier;
-  let tierLabel: string;
-  if (tier === "pro") tierLabel = "Pro";
-  else if (tier === "pass") tierLabel = "Event pass";
-  else tierLabel = "Free";
+  const { entitlement } = await requireEntitledVendor();
+  const { tier, eventPass } = entitlement;
 
   return (
     <div className="mx-auto max-w-2xl space-y-7">
@@ -76,109 +69,38 @@ export default async function PlanPage() {
               : "bg-primary/10 text-primary"
           }`}
         >
-          {tier === "pro" && <Sparkles className="size-3.5" />}
-          {tier === "pass" && <Ticket className="size-3.5" />}
-          {tierLabel}
+          {tier === "qkit" && <Sparkles className="size-3.5" />}
+          {TIER_LABEL[tier]}
         </span>
       </div>
 
-      {tier === "pass" && licenseExpiresAt && (
-        <PassCountdown expiresAt={licenseExpiresAt} />
-      )}
+      {eventPass?.running && <PassCountdown expiresAt={eventPass.endsAt} />}
 
-      {tier === "pro" ? (
-        <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-          You&apos;re on Pro. Unlimited booths, scheduling, sold-out caps, and
-          full stats are unlocked. Thanks for supporting qkit.
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {/* Event pass */}
-          <TicketCard shadow="none" className="flex flex-col bg-card p-5">
-            <div className="flex items-center gap-2">
-              <Ticket className="size-4 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Event pass</h2>
-            </div>
-            <p className="mt-1 font-mono text-2xl font-bold">
-              {passPrice ?? "Free"}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
-                {passPrice ? "/ day" : "in beta"}
-              </span>
-            </p>
-            {passPrice && (
-              <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                Founding price
-              </span>
-            )}
-            <p className="mt-2 flex-1 text-sm text-muted-foreground">
-              All Pro features for your event: extra booths, customization,
-              auto-close, sold-out caps, and that event&apos;s stats. Pick the
-              dates, pay per day. Best for the occasional market.
-            </p>
-            <div className="mt-4">
-              <UpgradeCta
-                option="event"
-                label={paidMode ? "Get a pass" : "Request a pass"}
-              />
-            </div>
-          </TicketCard>
-
-          {/* Monthly */}
-          <TicketCard
-            shadow="none"
-            className="flex flex-col border-primary/40 bg-card p-5"
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h2 className="font-display text-xl font-semibold">
-                Monthly Pro
-              </h2>
-            </div>
-            <p className="mt-1 font-mono text-2xl font-bold">
-              {monthlyPrice ?? "Soon"}
-              {monthlyPrice && (
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  / month
-                </span>
-              )}
-            </p>
-            {monthlyPrice && (
-              <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                Founding price
-              </span>
-            )}
-            <p className="mt-2 flex-1 text-sm text-muted-foreground">
-              Everything in the pass, plus full sales history and trends
-              (7/30/90 days). Best if you trade most weeks.
-            </p>
-            <div className="mt-4">
-              <UpgradeCta
-                option="monthly"
-                label={monthlyPrice ? "Go monthly" : "Notify me"}
-                variant="outline"
-              />
-            </div>
-          </TicketCard>
-        </div>
-      )}
-
-      {tier !== "pro" && (
-        <p className="rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-muted-foreground">
-          {paidMode
-            ? "Founding price, locks in while we're in beta. Pay by PayNow or cash; message us and we'll activate your pass. Card payments coming soon."
-            : "Free while we're in beta. Message us and we'll unlock the full kit for your next event. Per-event and monthly pricing arrive with card payments."}
+      {eventPass && !eventPass.running && (
+        <p className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+          <Ticket className="size-4 shrink-0 text-primary" />
+          Your Event Pass starts {eventPass.startsAt.slice(0, 10)} and ends{" "}
+          {eventPass.endsAt.slice(0, 10)}.
         </p>
       )}
+
+      <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+        {INCLUDES[tier]}
+      </p>
+
+      <p className="rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-muted-foreground">
+        Change plan from your Merqo account.
+      </p>
 
       <PlanComparisonTable
         tiers={[
           { key: "free", label: "Free" },
-          { key: "pass", label: "Pass" },
-          { key: "pro", label: "Pro" },
+          { key: "starter", label: "Starter" },
+          { key: "qkit", label: "qkit" },
         ]}
         rows={FEATURES.map((f) => ({
           label: f.label,
-          values: { free: f.free, pass: f.pass, pro: f.pro },
+          values: { free: f.free, starter: f.starter, qkit: f.qkit },
         }))}
       />
     </div>

@@ -63,9 +63,7 @@ describe("GET /api/merqo/metrics", () => {
 
   it("200 returns the contract shape on a valid bearer", async () => {
     const tables: Record<string, unknown[]> = {
-      vendors: [
-        { id: "v1", plan: "pro", created_at: new Date().toISOString() },
-      ],
+      vendors: [{ id: "v1", created_at: new Date().toISOString() }],
       booths: [{ id: "b1", vendor_id: "v1" }],
       orders: [
         {
@@ -76,14 +74,19 @@ describe("GET /api/merqo/metrics", () => {
         },
       ],
       payments: [{ amount_cents: 900, created_at: new Date().toISOString() }],
-      purchase_requests: [],
+      vendor_entitlements: [
+        {
+          vendor_id: "v1",
+          tier: "qkit",
+          founder: true,
+          stats_window: "90d",
+          event_pass_starts_at: null,
+          event_pass_ends_at: null,
+          valid_until: null,
+        },
+      ],
     };
-    fromMock.mockImplementation((table: string) =>
-      result(
-        tables[table] ?? [],
-        table === "purchase_requests" ? 2 : undefined,
-      ),
-    );
+    fromMock.mockImplementation((table: string) => result(tables[table] ?? []));
 
     const res = await GET(req("Bearer test-secret"));
     expect(res.status).toBe(200);
@@ -112,7 +115,8 @@ describe("GET /api/merqo/metrics", () => {
         pro: expect.any(Number),
       }),
     );
-    expect(body.pending_upgrade_requests).toBe(2);
+    expect(body.pending_upgrade_requests).toBe(0);
+    expect(body.pro_vendors).toBe(1);
   });
 
   it("503 when a table read errors", async () => {

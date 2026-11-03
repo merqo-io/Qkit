@@ -70,16 +70,33 @@ describe("admin vendor directory", () => {
   });
   it("prioritizes open support and retains pass, order and name data", async () => {
     fixtures.vendors = [
-      { id: "a", plan: "pro", created_at: ago(1) },
-      { id: "b", plan: "free", created_at: ago(10) },
-      { id: "c", plan: "free", created_at: ago(20) },
+      { id: "a", created_at: ago(1) },
+      { id: "b", created_at: ago(10) },
+      { id: "c", created_at: ago(20) },
     ];
     fixtures.booths = [{ id: "booth", vendor_id: "a", created_at: ago(1) }];
     fixtures.orders = [
       { booth_id: "booth", status: "completed", created_at: ago(0) },
     ];
-    fixtures.licenses = [
-      { vendor_id: "b", valid_from: ago(1), expires_at: ago(-1) },
+    fixtures.vendor_entitlements = [
+      {
+        vendor_id: "a",
+        tier: "qkit",
+        founder: false,
+        stats_window: "90d",
+        event_pass_starts_at: null,
+        event_pass_ends_at: null,
+        valid_until: null,
+      },
+      {
+        vendor_id: "b",
+        tier: "free",
+        founder: false,
+        stats_window: "24h",
+        event_pass_starts_at: ago(1),
+        event_pass_ends_at: ago(-1),
+        valid_until: null,
+      },
     ];
     fixtures.support_messages = [{ user_id: "c" }];
     render(await VendorsPage());
@@ -92,14 +109,19 @@ describe("admin vendor directory", () => {
       }),
     );
     expect(items.find((v) => v.id === "a")).toEqual(
-      expect.objectContaining({ name: "Coffee", orders7d: 1, boothCount: 1 }),
+      expect.objectContaining({
+        name: "Coffee",
+        tier: "qkit",
+        orders7d: 1,
+        boothCount: 1,
+      }),
     );
     expect(items.find((v) => v.id === "b")?.passHoursLeft).toBe(24);
   });
   it("sorts equally urgent vendors by newest signup", async () => {
     fixtures.vendors = [
-      { id: "old", plan: "free", created_at: ago(2) },
-      { id: "new", plan: "free", created_at: ago(1) },
+      { id: "old", created_at: ago(2) },
+      { id: "new", created_at: ago(1) },
     ];
     render(await VendorsPage());
     expect(

@@ -115,3 +115,5 @@ payment-setup requests run concurrently. Menu CSV import/export also preserves
 item and option short codes.
 
 `actions.ts` passes grouped arguments to `syncPrintLocation` and `checkActiveBoothCap`; `menu-order.ts`'s `resolveItemDrop` takes the drag target as one object.
+
+Booth creation, menu item and option-group caps follow the cached tier (free: 1 booth, 6 items, 3 option groups per item; the same caps are enforced by database triggers), and the printing toggle is disabled with a reason when the plan has no counter ops.

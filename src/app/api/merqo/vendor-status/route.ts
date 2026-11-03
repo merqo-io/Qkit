@@ -8,11 +8,68 @@ import {
 } from "@/lib/merqo/auth";
 import { resolveVendorStatus } from "@/lib/merqo/vendor-status";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import type { Plan } from "@/lib/types";
+import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 
 export const revalidate = 0;
 
 const querySchema = z.object({ email: z.email() });
+
+async function readVendorRows(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  id: string,
+) {
+  const [vendor, entitlement] = await Promise.all([
+    supabase.from("vendors").select("id").eq("id", id).maybeSingle(),
+    supabase
+      .from("vendor_entitlements")
+      .select(
+        "tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+      )
+      .eq("vendor_id", id)
+      .maybeSingle(),
+  ]);
+  return {
+    vendor: vendor.data,
+    entitlement: entitlement.data,
+    error: vendor.error?.message ?? entitlement.error?.message ?? null,
+  };
+}
+
+async function lookupStatus(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  email: string,
+) {
+  const usersRes = await listAllAuthUsers(supabase, "merqo vendor-status");
+  if (usersRes.error) {
+    console.error("merqo vendor-status: read failed", usersRes.error.message);
+    return NextResponse.json(
+      { error: "Upstream unavailable" },
+      { status: 503 },
+    );
+  }
+  const user = findAuthUserByEmail(usersRes.data?.users ?? [], email);
+  const rows = user ? await readVendorRows(supabase, user.id) : null;
+  if (rows?.error) {
+    console.error("merqo vendor-status: read failed", rows.error);
+    return NextResponse.json(
+      { error: "Upstream unavailable" },
+      { status: 503 },
+    );
+  }
+  const stored = rows?.entitlement ? storedFromRow(rows.entitlement) : null;
+
+  const status = resolveVendorStatus(
+    email,
+    (usersRes.data?.users ?? []).map((u) => ({
+      id: u.id,
+      email: u.email ?? null,
+    })),
+    rows?.vendor ? [rows.vendor] : [],
+    () => resolveEntitlement(stored, Date.now()).tier,
+  );
+
+  return NextResponse.json(status);
+}
 
 export async function GET(request: Request) {
   if (!bearerOk(request)) {
@@ -39,41 +96,5 @@ export async function GET(request: Request) {
   if (!allowed)
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const usersRes = await listAllAuthUsers(supabase, "merqo vendor-status");
-  if (usersRes.error) {
-    console.error("merqo vendor-status: read failed", usersRes.error.message);
-    return NextResponse.json(
-      { error: "Upstream unavailable" },
-      { status: 503 },
-    );
-  }
-  const user = findAuthUserByEmail(
-    usersRes.data?.users ?? [],
-    parsed.data.email,
-  );
-  const vendorsRes = user
-    ? await supabase
-        .from("vendors")
-        .select("id, plan")
-        .eq("id", user.id)
-        .maybeSingle()
-    : null;
-  if (vendorsRes?.error) {
-    console.error("merqo vendor-status: read failed", vendorsRes.error.message);
-    return NextResponse.json(
-      { error: "Upstream unavailable" },
-      { status: 503 },
-    );
-  }
-
-  const status = resolveVendorStatus(
-    parsed.data.email,
-    (usersRes.data?.users ?? []).map((u) => ({
-      id: u.id,
-      email: u.email ?? null,
-    })),
-    (vendorsRes?.data ? [vendorsRes.data] : []) as { id: string; plan: Plan }[],
-  );
-
-  return NextResponse.json(status);
+  return lookupStatus(supabase, parsed.data.email);
 }

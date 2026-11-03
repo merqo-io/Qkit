@@ -2,7 +2,7 @@
 // Render the layout to catch duplicate landmarks outside the shared nav.
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { ENTITLEMENTS } from "@/lib/plan";
+import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 import DashboardLayout from "./layout";
 
 vi.mock("next/navigation", () => ({

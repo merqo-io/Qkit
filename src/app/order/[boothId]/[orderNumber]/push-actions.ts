@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { parseOrderRef } from "@/lib/schemas";
 import { isTerminal } from "@/lib/orders";
+import { vendorHasCounterOps } from "@/lib/counter-ops";
 import { resolveOrderDisplay } from "@/lib/order-display";
 import { readyNotificationContent } from "@/lib/order-alerts";
 import { pushSubscriptionSchema } from "@/lib/push/subscription";
@@ -52,6 +53,10 @@ export async function savePushSubscription(
       .maybeSingle(),
   ]);
   if (!order || !booth) return { success: false, error: "Invalid order" };
+  // Ready alerts are a counter-ops feature; a customer just sees alerts as
+  // unavailable.
+  if (!(await vendorHasCounterOps(supabase, booth.vendor_id)))
+    return { success: false, error: FAILED };
   // Only an order still on its way to ready can use a ready alert.
   if (isTerminal(order.status) || order.status === "ready")
     return { success: false, error: FAILED };

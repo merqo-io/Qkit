@@ -77,20 +77,20 @@ export function StatTile({
 /**
  * Range KPI band — the money/orders numbers for the SELECTED window. Revenue
  * leads (top-left, ember-framed) per the F-pattern. Free plans see
- * Revenue/Orders/AOV; Pro adds fulfilment, cancelled, and refunds plus the
+ * Revenue/Orders/AOV; Trends add fulfilment, cancelled, and refunds plus the
  * period-over-period deltas. Values are range-scoped — the strip's "Showing …"
  * caption above names the window.
  */
 export function KpiRow({
   summary,
   deltas,
-  pro,
+  trends,
   rangeLabel,
   allTime,
 }: {
   summary: StatsSummary;
   deltas: Deltas;
-  pro: boolean;
+  trends: boolean;
   rangeLabel?: string;
   allTime?: { orders: number; revenue_cents: number };
 }) {
@@ -159,7 +159,7 @@ export function KpiRow({
         delta={deltas?.aov}
         index={2}
       />
-      {pro && (
+      {trends && (
         <>
           <StatTile
             label="Fulfilled"

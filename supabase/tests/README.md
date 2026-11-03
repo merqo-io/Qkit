@@ -33,6 +33,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 - `booth-start-new-service.test.sql` — `0106`: anon cannot reset, vendors cannot write `cap_reset_at` directly, another vendor's reset is refused, the owner's reset zeroes `booth_cups_today`/`booth_cups_left` and lets the trigger take a full limit again, cancelled orders stay out, and a reset older than midnight falls back to midnight.
 - `ops-events.test.sql` — `0108`: table exists, RLS on, anon/authenticated cannot select or insert, service_role can, the kind check rejects `other` and kinds qkit does not write, a 65-char ref is rejected, and the purge deletes a 31-day-old row while keeping a 29-day-old one.
 - `order-push-subscriptions.test.sql` — `0105`: no anon/authenticated privilege on push subscriptions, RLS on, and the trigger that drops a completed or cancelled order's rows.
+- `entitlements.test.sql`, `0112`-`0114`: service-role-only `apply_vendor_entitlement`, last-writer-wins by `issued_at` (stale and replayed pushes are no-ops), contract checks, `vendor_effective_tier`/`vendor_pass_running`/`vendor_entitled`/`vendor_has_free_caps` for free, lapsed, running-pass and future-pass vendors, and the free-tier 6-item / 3-option-group menu caps.
 - `db-hygiene.test.sql` — `0109` foreign key indexes, RLS on every table, own-vendor-only `payments` reads, and no anon/authenticated access to `rate_limits` or `booth_item_sold`.
 - `order-limiter-hardening.test.sql` — `0111`: a payment-first booth accepts the 30th open unpaid order and refuses the 31st with `ORDER_BUSY`, an idempotent replay still returns at the cap, counter booths, orders older than 30 minutes and cancelled orders do not count, the basket-hold bucket stores holds through 180 calls a minute and drops the 181st, and `place_order`/`hold_cart` grants, `SECURITY DEFINER` and `search_path`.
 
@@ -43,7 +44,7 @@ review: Docker Desktop's Linux database engine is unavailable.
   transaction with inline fixed-UUID fixtures — no shared state, no cleanup).
   What it actually asserts, by section:
   - RLS is enabled on `vendors`, `booths`, `orders`, `feedback`,
-    `purchase_requests`, `licenses`. `legal_check_state` (migration `0084`,
+    `vendor_entitlements`. `legal_check_state` (migration `0084`,
     the legal-acceptance TTL cache) has RLS on, zero policies, and neither
     `anon` nor `authenticated` can SELECT it directly — a service-role-only
     table, same shape as `rate_limits`/`booth_item_sold`. (`support_messages`
@@ -71,12 +72,11 @@ review: Docker Desktop's Linux database engine is unavailable.
     into `orders` or `feedback` directly, and cannot EXECUTE
     `next_order_number` — closing paths that were closed for `anon` but not
     yet for any authenticated attacker.
-  - Plan self-escalation is blocked (`UPDATE vendors SET plan='pro'` fails)
-    while a legitimate self-edit (`tours_seen`) still works; booth
-    re-pointing to another vendor is blocked by `WITH CHECK`;
-    feedback/upgrade-request RLS scopes each vendor to its own rows and
-    blocks filing as another vendor; `set_license_label` only affects the
-    caller's own license.
+  - A vendor cannot write its own entitlement (`INSERT` into
+    `vendor_entitlements` fails) while a legitimate self-edit (`tours_seen`)
+    still works; booth re-pointing to another vendor is blocked by
+    `WITH CHECK`; feedback and entitlement RLS scope each vendor to its own
+    rows and block writing as another vendor.
   - **As anon** (no `auth.uid()`): cannot SELECT `booths` directly (the only
     public read is `get_booth_for_order`), cannot confirm payment on
     any order, and cannot INSERT analytics `events` directly. The validated

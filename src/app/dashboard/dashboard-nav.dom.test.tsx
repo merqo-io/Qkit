@@ -124,9 +124,9 @@ describe("DashboardNav", () => {
 
   it("renders the tier badge for the current plan tier", async () => {
     const user = userEvent.setup();
-    render(<DashboardNav {...baseProps} tier="pro" />);
+    render(<DashboardNav {...baseProps} tier="qkit" />);
     await user.click(screen.getByRole("button", { name: /account menu/i }));
-    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("qkit")).toBeInTheDocument();
   });
 
   it("marks the active nav link via aria-current", () => {

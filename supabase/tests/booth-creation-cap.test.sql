@@ -10,12 +10,13 @@ insert into auth.users(id,instance_id,aud,role,email) values
  ('00970000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','booth-cap-free@test.local'),
  ('00970000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','booth-cap-paid@test.local'),
  ('00970000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated','booth-cap-pass@test.local');
-insert into qkit.vendors(id,plan) values
- ('00970000-0000-0000-0000-000000000001','free'),
- ('00970000-0000-0000-0000-000000000002','pro'),
- ('00970000-0000-0000-0000-000000000003','free');
-insert into qkit.licenses(vendor_id,valid_from,expires_at) values
- ('00970000-0000-0000-0000-000000000003',now()-interval '1 day',now()+interval '1 day');
+insert into qkit.vendors(id) values
+ ('00970000-0000-0000-0000-000000000001'),
+ ('00970000-0000-0000-0000-000000000002'),
+ ('00970000-0000-0000-0000-000000000003');
+insert into qkit.vendor_entitlements(vendor_id,tier,stats_window,issued_at,event_pass_starts_at,event_pass_ends_at) values
+ ('00970000-0000-0000-0000-000000000002','qkit','90d',now(),null,null),
+ ('00970000-0000-0000-0000-000000000003','free','24h',now(),now()-interval '1 day',now()+interval '1 day');
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00970000-0000-0000-0000-000000000001","role":"authenticated"}',true);
@@ -46,7 +47,7 @@ select throws_ok($$ update qkit.booths set
  vendor_id='00970000-0000-0000-0000-000000000001'
  where id='00970000-0000-0000-0000-000000000020' $$,
  '42501',null,'reassignment cannot evade the destination cap by changing row id');
-update qkit.vendors set plan='free' where id='00970000-0000-0000-0000-000000000002';
+update qkit.vendor_entitlements set tier='free', stats_window='24h' where vendor_id='00970000-0000-0000-0000-000000000002';
 select lives_ok($$ update qkit.booths set name='still editable',is_active=false
  where vendor_id='00970000-0000-0000-0000-000000000002' $$,
  'a downgrade does not prevent editing or deactivating existing booths');

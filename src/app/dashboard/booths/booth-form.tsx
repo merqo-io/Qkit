@@ -163,13 +163,13 @@ function LockedDailyLimit({
         hint={DAILY_LIMIT_HINT}
         hintLabel={DAILY_LIMIT_HINT_LABEL}
       >
-        <ProLock feature="stock_cap" label="Pro" />
+        <ProLock feature="stock_cap" label="Starter" />
       </SettingRow>
     );
   return (
     <SettingRow
       label={DAILY_LIMIT_LABEL}
-      hint="It keeps working until you remove it. Changing it needs an Event pass or Pro."
+      hint="It keeps working until you remove it. Changing it needs the Starter plan or higher."
       hintLabel={DAILY_LIMIT_HINT_LABEL}
     >
       <span className="text-sm text-muted-foreground">Set to {value}</span>
@@ -603,6 +603,7 @@ export function BoothForm({
               onChange={setPrintEnabled}
               boothId={initial?.boothId}
               savedEnabled={initial?.print_enabled ?? false}
+              available={entitlement.counterOps}
             />
           </Section>
 

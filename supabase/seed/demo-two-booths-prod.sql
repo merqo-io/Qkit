@@ -1,7 +1,7 @@
 -- Demo dataset for PRODUCTION (hosted Supabase) — your own account.
 --
 -- Two booths under YOUR vendor account: "Kopitiam Cart" (PayNow payment) and
--- "Ice Cream Cart" (queue only). Sets your account to the Pro plan so both can
+-- "Ice Cream Cart" (queue only). Sets your account to the qkit tier so both can
 -- be active at once.
 --
 -- HOW TO RUN (Supabase SQL Editor):
@@ -22,11 +22,15 @@ begin
     raise exception 'Demo seed requires a vendor with no existing booths';
   end if;
 
-  -- Your vendor row → Pro (Pro lifts the 1-active-booth cap). Stall name now
-  -- lives in merqo.vendor_profile, not this row.
-  insert into qkit.vendors (id, plan)
-  values (vid, 'pro')
-  on conflict (id) do update set plan = 'pro';
+  -- Your vendor row on the qkit tier (which lifts the 1-active-booth cap).
+  -- Stall name lives in merqo.vendor_profile, not this row.
+  insert into qkit.vendors (id)
+  values (vid)
+  on conflict (id) do nothing;
+
+  insert into qkit.vendor_entitlements (vendor_id, tier, founder, stats_window, issued_at)
+  values (vid, 'qkit', false, '90d', now())
+  on conflict (vendor_id) do update set tier = 'qkit', stats_window = '90d';
 
   -- Booth 1: Kopitiam Cart — PayNow payment wired.
   insert into qkit.booths

@@ -37,24 +37,11 @@ function req(body: unknown, auth?: string) {
   });
 }
 
-// Chainable insert/select stub: insert() and select().eq().maybeSingle()
-// both resolve from the same mock, configured per-test.
 function vendorsTable(opts: {
   insertError?: { code: string; message: string } | null;
-  planRow?: { plan: string } | null;
-  readError?: { message: string } | null;
 }) {
   return {
     insert: () => Promise.resolve({ error: opts.insertError ?? null }),
-    select: () => ({
-      eq: () => ({
-        maybeSingle: () =>
-          Promise.resolve({
-            data: opts.planRow ?? null,
-            error: opts.readError ?? null,
-          }),
-      }),
-    }),
   };
 }
 
@@ -93,16 +80,13 @@ describe("POST /api/merqo/vendor-provision", () => {
     expect(res.status).toBe(400);
   });
 
-  it("creates a new vendor row, seeds the profile, returns plan free", async () => {
-    fromMock.mockReturnValue(
-      vendorsTable({ insertError: null, planRow: { plan: "free" } }),
-    );
+  it("creates a new vendor row, seeds the profile, returns ok", async () => {
+    fromMock.mockReturnValue(vendorsTable({ insertError: null }));
     const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ok: true,
       already_existed: false,
-      plan: "free",
     });
     expect(getOrCreateVendorProfileMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -116,7 +100,6 @@ describe("POST /api/merqo/vendor-provision", () => {
       detail: {
         actor: "merqo_system",
         already_existed: false,
-        plan: "free",
       },
     });
   });
@@ -125,7 +108,6 @@ describe("POST /api/merqo/vendor-provision", () => {
     fromMock.mockReturnValue(
       vendorsTable({
         insertError: { code: "23505", message: "duplicate key" },
-        planRow: { plan: "free" },
       }),
     );
     const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
@@ -133,7 +115,6 @@ describe("POST /api/merqo/vendor-provision", () => {
     expect(await res.json()).toEqual({
       ok: true,
       already_existed: true,
-      plan: "free",
     });
     expect(getOrCreateVendorProfileMock).not.toHaveBeenCalled();
     expect(recordAuditMock).toHaveBeenCalledWith({
@@ -143,23 +124,7 @@ describe("POST /api/merqo/vendor-provision", () => {
       detail: {
         actor: "merqo_system",
         already_existed: true,
-        plan: "free",
       },
-    });
-  });
-
-  it("re-provisioning an already-Pro vendor reports plan pro, not free", async () => {
-    fromMock.mockReturnValue(
-      vendorsTable({
-        insertError: { code: "23505", message: "duplicate key" },
-        planRow: { plan: "pro" },
-      }),
-    );
-    const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
-    expect(await res.json()).toEqual({
-      ok: true,
-      already_existed: true,
-      plan: "pro",
     });
   });
 
@@ -174,9 +139,7 @@ describe("POST /api/merqo/vendor-provision", () => {
   });
 
   it("500 when the profile seed throws", async () => {
-    fromMock.mockReturnValue(
-      vendorsTable({ insertError: null, planRow: { plan: "free" } }),
-    );
+    fromMock.mockReturnValue(vendorsTable({ insertError: null }));
     getOrCreateVendorProfileMock.mockRejectedValue(new Error("boom"));
     const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
     expect(res.status).toBe(500);
@@ -187,26 +150,6 @@ describe("POST /api/merqo/vendor-provision", () => {
       vendorsTable({
         insertError: { code: "23514", message: "check constraint violated" },
       }),
-    );
-    const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
-    expect(res.status).toBe(500);
-  });
-
-  it("500 when the post-insert read-back errors", async () => {
-    fromMock.mockReturnValue(
-      vendorsTable({
-        insertError: null,
-        planRow: null,
-        readError: { message: "read-back boom" },
-      }),
-    );
-    const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
-    expect(res.status).toBe(500);
-  });
-
-  it("500 when the post-insert read-back returns no row", async () => {
-    fromMock.mockReturnValue(
-      vendorsTable({ insertError: null, planRow: null }),
     );
     const res = await POST(req({ user_id: USER_ID }, "Bearer test-secret"));
     expect(res.status).toBe(500);

@@ -611,8 +611,8 @@ async function fulfil(page, name, { start = true } = {}) {
 
 // Seeding ------------------------------------------------------------------
 
-function upgradeToPro() {
-  runDemoSql("upgrade-pro.sql");
+function grantQkitTier() {
+  runDemoSql("grant-qkit-tier.sql");
 }
 
 function runDemoSql(file) {
@@ -651,7 +651,7 @@ async function seedVendor(browser, scene, opts = {}) {
   await signUp(page);
   await nameStall(page);
   await dismissTour(page);
-  if (scene.pro) upgradeToPro();
+  if (scene.pro) grantQkitTier();
 
   const boothIds = [];
   const names = opts.booths ?? [STALL];

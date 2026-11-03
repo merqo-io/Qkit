@@ -401,8 +401,8 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
   const { user, entitlement } = await loadEntitlement();
   if (!user) return { success: false, error: "Not authenticated" };
 
-  // Auto-close hours is Pro/pass — strip for free so a stored value can't
-  // keep enforcing after a pass expires.
+  // Auto-close hours needs Starter or higher: strip it on free so a stored value can't
+  // keep enforcing after a plan lapses.
   const hours = entitlement.autoCloseHours ? data.hours : null;
 
   const supabase = await createServerClient();

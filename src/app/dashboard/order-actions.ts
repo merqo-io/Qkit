@@ -20,6 +20,7 @@ import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { sendOrderReadyPush } from "@/lib/push/send";
+import { orderHasCounterOpsForAction } from "@/lib/counter-ops";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
 import { recordOrderIncident } from "@/lib/ops-events";
@@ -110,7 +111,11 @@ async function notifyOrderReady(
   // Not gated by the vendor's Telegram switch: the customer opted in from
   // their own browser, as with the page's own popup.
   try {
-    after(() => sendOrderReadyPush(orderId));
+    after(async () => {
+      // Order-ready push is a counter-ops feature; skipped silently otherwise.
+      if (await orderHasCounterOpsForAction(orderId))
+        await sendOrderReadyPush(orderId);
+    });
   } catch (err) {
     console.error("advanceOrder: scheduling web push failed", err);
   }

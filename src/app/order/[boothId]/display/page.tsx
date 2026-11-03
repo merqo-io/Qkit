@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getBoothQueueDisplay } from "./actions";
 import { QueueDisplay } from "./queue-display";
 import { uuidSchema } from "@/lib/schemas";
+import { vendorHasCounterOps } from "@/lib/counter-ops";
 
 export const revalidate = 0;
 
@@ -24,10 +25,22 @@ export default async function BoothQueueDisplayPage({ params }: Props) {
   const supabase = await createServiceClient();
   const { data: booth } = await supabase
     .from("booths")
-    .select("name")
+    .select("name, vendor_id")
     .eq("id", boothId)
     .maybeSingle();
   if (!booth) notFound();
+
+  // The queue display is a counter-ops feature. Customers and passers-by get a
+  // plain notice, with no hint about plans or upgrades.
+  if (!(await vendorHasCounterOps(supabase, booth.vendor_id))) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-8 text-center">
+        <p className="text-lg text-muted-foreground">
+          The queue display is not available on this plan.
+        </p>
+      </main>
+    );
+  }
 
   const initialOrders = (await getBoothQueueDisplay(boothId)) ?? [];
 

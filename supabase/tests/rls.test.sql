@@ -1,7 +1,7 @@
 -- RLS cross-vendor isolation — pgTAP, run with `supabase test db`.
 --
 -- Guards the core invariant: a vendor can never read or mutate another vendor's
--- booths, orders, customer feedback, upgrade requests, or licenses. Runs in ONE
+-- booths, orders, customer feedback, or entitlements. Runs in ONE
 -- rolled-back transaction with inline fixtures (fixed UUIDs) — no shared state,
 -- no cleanup.
 --
@@ -14,8 +14,7 @@ select plan(156);
 
 -- ── Fixtures (created as the superuser test role → RLS bypassed here) ─────────
 -- Two vendors, each with one INACTIVE booth (inactive so the public-read policy
--- can't expose them), one order, one customer review, one upgrade request, and
--- one license.
+-- can't expose them), one order, one customer review, and one entitlement cache row.
 
 insert into auth.users (id, instance_id, aud, role, email)
 values
@@ -31,15 +30,11 @@ values
   ('00000000-0000-0000-0000-00000000000a'),
   ('00000000-0000-0000-0000-00000000000b');
 
--- Active licenses precede multi-booth fixtures because service writes also obey the creation cap.
-insert into qkit.licenses (id, vendor_id, valid_from, expires_at)
+-- qkit-tier entitlements precede multi-booth fixtures because service writes also obey the creation cap.
+insert into qkit.vendor_entitlements (vendor_id, tier, stats_window, issued_at)
 values
-  ('00000000-0000-0000-0000-0000000c0001',
-   '00000000-0000-0000-0000-00000000000a', now() - interval '1 day',
-   now() + interval '1 day'),
-  ('00000000-0000-0000-0000-0000000c0002',
-   '00000000-0000-0000-0000-00000000000b', now() - interval '1 day',
-   now() + interval '1 day');
+  ('00000000-0000-0000-0000-00000000000a', 'qkit', '90d', now()),
+  ('00000000-0000-0000-0000-00000000000b', 'qkit', '90d', now());
 
 insert into qkit.booths (id, vendor_id, name, is_active)
 values
@@ -74,19 +69,11 @@ values
   ('00000000-0000-0000-0000-0000000f0002', 'customer',
    '00000000-0000-0000-0000-0000000b0002', 4);
 
--- Upgrade requests, one per vendor.
-insert into qkit.purchase_requests (id, vendor_id, kind)
-values
-  ('00000000-0000-0000-0000-0000000e0001',
-   '00000000-0000-0000-0000-00000000000a', 'event'),
-  ('00000000-0000-0000-0000-0000000e0002',
-   '00000000-0000-0000-0000-00000000000b', 'monthly');
-
 -- Vendor C: its OWN single active booth with a known short_code and a
 -- stock-capped menu item — used by the order-path RPC tests below
 -- (get_booth_for_order / place_order). Being the vendor's only (hence oldest)
 -- active booth makes booth_servable() trivially true under the free-plan rule,
--- so these tests don't depend on plan/license fixtures.
+-- so these tests don't depend on entitlement fixtures.
 insert into auth.users (id, instance_id, aud, role, email)
 values
   ('00000000-0000-0000-0000-00000000000c',
@@ -96,13 +83,14 @@ values
 insert into qkit.vendors (id)
 values ('00000000-0000-0000-0000-00000000000c');
 
--- Vendor C also holds a FUTURE-dated pass (starts tomorrow) — used to prove the
--- entitlement predicate honours valid_from (0038): it must NOT count yet.
-insert into qkit.licenses (id, vendor_id, valid_from, expires_at)
+-- Vendor C also holds a FUTURE-dated Event Pass (starts tomorrow) on the free
+-- tier, used to prove the entitlement predicate honours the pass start: it
+-- must NOT count yet.
+insert into qkit.vendor_entitlements
+  (vendor_id, tier, stats_window, event_pass_starts_at, event_pass_ends_at, issued_at)
 values (
-  '00000000-0000-0000-0000-0000000c0003',
-  '00000000-0000-0000-0000-00000000000c',
-  now() + interval '1 day', now() + interval '2 day');
+  '00000000-0000-0000-0000-00000000000c', 'free', '24h',
+  now() + interval '1 day', now() + interval '2 day', now());
 
 insert into qkit.booths (id, vendor_id, name, is_active, short_code, menu_items)
 values (
@@ -133,8 +121,8 @@ select ok((select relrowsecurity from pg_class where oid = 'qkit.vendors'::regcl
 select ok((select relrowsecurity from pg_class where oid = 'qkit.booths'::regclass), 'RLS on booths');
 select ok((select relrowsecurity from pg_class where oid = 'qkit.orders'::regclass), 'RLS on orders');
 select ok((select relrowsecurity from pg_class where oid = 'qkit.feedback'::regclass), 'RLS on feedback');
-select ok((select relrowsecurity from pg_class where oid = 'qkit.purchase_requests'::regclass), 'RLS on purchase_requests');
-select ok((select relrowsecurity from pg_class where oid = 'qkit.licenses'::regclass), 'RLS on licenses');
+select ok((select relrowsecurity from pg_class where oid = 'qkit.vendor_entitlements'::regclass), 'RLS on vendor_entitlements');
+select ok(not has_function_privilege('authenticated', 'qkit.apply_vendor_entitlement(uuid,text,boolean,text,timestamptz,timestamptz,timestamptz,timestamptz)', 'EXECUTE'), 'authenticated cannot EXECUTE apply_vendor_entitlement');
 
 -- ── Shared stock-quantity rule (0034 / T4 + R4) ──────────────────────────────
 -- order_item_quantities is the single source the gate and the counter both use:
@@ -326,15 +314,14 @@ select throws_ok(
   null,
   'authenticated cannot EXECUTE next_order_number');
 
--- ── UPDATE-policy WITH CHECK + plan-escalation (0035 / T7) ──────────────────
--- Free→pro escalation: `plan` lives on the vendor's own row, so before the
--- column revoke a vendor could set it directly. UPDATE(plan) is now revoked from
--- authenticated (only the service-role admin action writes it).
+-- ── UPDATE-policy WITH CHECK + tier-escalation (0035 / T7, 0112) ─────────────
+-- A vendor must not grant itself a tier: the entitlement cache has no write
+-- grant for authenticated; only merqo's push (service role) writes it.
 select throws_ok(
-  $$ update qkit.vendors set plan = 'pro'
-     where id = '00000000-0000-0000-0000-00000000000a' $$,
+  $$ insert into qkit.vendor_entitlements (vendor_id, tier, stats_window, issued_at)
+     values ('00000000-0000-0000-0000-00000000000c', 'qkit', '90d', now()) $$,
   null,
-  'authenticated vendor cannot self-escalate plan to pro');
+  'authenticated vendor cannot write its own entitlement');
 -- A legitimate self-edit (tours_seen) still works — the revoke is column-scoped.
 select lives_ok(
   $$ update qkit.vendors set tours_seen = '{"orders":"2026-01-01T00:00:00Z"}'::jsonb
@@ -355,10 +342,9 @@ select isnt(
   (select with_check from pg_policies
    where tablename = 'booths' and policyname = 'booths_vendor_update'),
   null, 'booths_vendor_update has a WITH CHECK clause');
-select isnt(
-  (select with_check from pg_policies
-   where tablename = 'purchase_requests' and policyname = 'purchase_requests_admin_update'),
-  null, 'purchase_requests_admin_update has a WITH CHECK clause');
+select ok(
+  not has_table_privilege('authenticated', 'qkit.vendor_entitlements', 'UPDATE'),
+  'authenticated has no UPDATE on vendor_entitlements');
 
 -- Customer feedback: A sees only its own booths' reviews.
 select isnt_empty(
@@ -368,31 +354,28 @@ select is_empty(
   $$ select 1 from qkit.feedback where booth_id = '00000000-0000-0000-0000-0000000b0002' $$,
   'A cannot read B booth feedback');
 
--- Upgrade requests: A sees only its own, and cannot file one as B.
+-- Entitlement cache: A reads only its own row and cannot write any.
 select isnt_empty(
-  $$ select 1 from qkit.purchase_requests where vendor_id = '00000000-0000-0000-0000-00000000000a' $$,
-  'A reads its own upgrade request');
+  $$ select 1 from qkit.vendor_entitlements where vendor_id = '00000000-0000-0000-0000-00000000000a' $$,
+  'A reads its own entitlement');
 select is_empty(
-  $$ select 1 from qkit.purchase_requests where vendor_id = '00000000-0000-0000-0000-00000000000b' $$,
-  'A cannot read B upgrade request');
+  $$ select 1 from qkit.vendor_entitlements where vendor_id = '00000000-0000-0000-0000-00000000000b' $$,
+  'A cannot read B entitlement');
 select throws_ok(
-  $$ insert into qkit.purchase_requests (vendor_id, kind)
-     values ('00000000-0000-0000-0000-00000000000b', 'event') $$,
+  $$ insert into qkit.vendor_entitlements (vendor_id, tier, stats_window, issued_at)
+     values ('00000000-0000-0000-0000-00000000000b', 'free', '24h', now()) $$,
   null,
-  'A cannot file an upgrade request as B');
-
--- set_license_label: only the owner's label changes.
-select qkit.set_license_label('00000000-0000-0000-0000-0000000c0001', 'Event A');
-select is(
-  (select label from qkit.licenses where id = '00000000-0000-0000-0000-0000000c0001'),
-  'Event A', 'A can label its own license');
--- A attempts to label B's license — the function's ownership filter no-ops it.
-select qkit.set_license_label('00000000-0000-0000-0000-0000000c0002', 'Hacked');
+  'A cannot write an entitlement as B');
+select throws_ok(
+  $$ update qkit.vendor_entitlements set tier = 'free'
+     where vendor_id = '00000000-0000-0000-0000-00000000000a' $$,
+  null,
+  'A cannot edit its own entitlement');
 
 reset role; -- back to the superuser test role to verify B's row is untouched
 select is(
-  (select label from qkit.licenses where id = '00000000-0000-0000-0000-0000000c0002'),
-  null, 'B license label is unchanged by A');
+  (select tier from qkit.vendor_entitlements where vendor_id = '00000000-0000-0000-0000-00000000000b'),
+  'qkit', 'B entitlement is unchanged by A');
 
 -- ── Act as an anonymous customer (anon role, no auth.uid()) ──────────────────
 set local role anon;
@@ -884,7 +867,7 @@ select throws_like(
 reset role;
 
 -- Maintenance banner (0058): a public-read singleton, same "no write policy,
--- writes go through the service-role admin action only" shape as qkit.pricing.
+-- writes go through the service-role admin action only" shape as the other singleton settings rows.
 set local role anon;
 select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
 select isnt_empty(
