@@ -11,7 +11,11 @@ vi.mock("next/navigation", () => ({ notFound }));
 
 import HelpIndexPage from "./page";
 import HelpArticlePage, { generateStaticParams } from "./[slug]/page";
-import { HELP_CATEGORIES } from "@/content/help";
+import {
+  ALL_HELP_ARTICLES,
+  HELP_CATEGORIES,
+  publishedArticles,
+} from "@/content/help";
 
 describe("help index", () => {
   it("lists all eight categories and links published articles only", () => {
@@ -82,6 +86,12 @@ describe("help article page", () => {
   });
 
   it("pre-renders published slugs only", () => {
-    expect(generateStaticParams()).toEqual([{ slug: "troubleshooting" }]);
+    const params = generateStaticParams();
+    expect(params).toEqual(publishedArticles().map((a) => ({ slug: a.slug })));
+    for (const { slug } of params) {
+      const entry = ALL_HELP_ARTICLES.find((a) => a.slug === slug);
+      expect(entry).toBeDefined();
+      expect(entry?.draft).toBeFalsy();
+    }
   });
 });
