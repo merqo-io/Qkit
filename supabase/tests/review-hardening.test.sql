@@ -20,8 +20,16 @@ select lives_ok(
   $$ insert into qkit.vendors (id)
      values ('10000000-0000-0000-0000-000000000001') $$,
   'normal onboarding can insert the vendor id');
+select throws_ok(
+  $$ select qkit.vendor_effective_tier('10000000-0000-0000-0000-000000000001') $$,
+  '42501', null, 'authenticated cannot call the tier helper directly');
+-- The helper is revoked from callers, so the value is checked as the test owner.
+reset role;
 select is(qkit.vendor_effective_tier('10000000-0000-0000-0000-000000000001'),
           'free', 'a vendor with no cached entitlement is on the free tier');
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 select throws_ok(
   $$ insert into qkit.booths (vendor_id, name, printkit_location_id)
