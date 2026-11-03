@@ -10,6 +10,12 @@ const { fromMock, upsertMock, rateLimitMock, resolveDisplayMock } = vi.hoisted(
   }),
 );
 
+const { counterOpsMock } = vi.hoisted(() => ({ counterOpsMock: vi.fn() }));
+vi.mock("@/lib/counter-ops", () => ({ vendorHasCounterOps: counterOpsMock }));
+beforeEach(() => {
+  counterOpsMock.mockReset().mockResolvedValue(true);
+});
+
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: () => Promise.resolve({ from: fromMock }),
 }));
@@ -98,6 +104,14 @@ describe("savePushSubscription", () => {
       "v1",
       { orderNumber: "0042", createdAt: "2026-11-02T01:00:00Z" },
     );
+  });
+
+  it("fails quietly and stores nothing when the plan has no counter ops", async () => {
+    setup();
+    counterOpsMock.mockResolvedValue(false);
+    const res = await savePushSubscription(BOOTH, "0042", TOKEN, SUB);
+    expect(res.success).toBe(false);
+    expect(upsertMock).not.toHaveBeenCalled();
   });
 
   it("rejects a bad token without touching the database", async () => {

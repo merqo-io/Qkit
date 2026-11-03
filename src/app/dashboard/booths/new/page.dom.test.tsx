@@ -110,8 +110,7 @@ describe("NewBoothPage", () => {
       "data-event-mode",
       "true",
     );
-    const passLink = screen.getByRole("link", { name: /buy an event pass/i });
-    expect(passLink).toHaveAttribute("href", "/dashboard/plan");
+    expect(screen.queryByRole("link", { name: /event pass/i })).toBeNull();
   });
 
   it("hands the form what the vendor has on file in paykit, and no stored setting", async () => {
