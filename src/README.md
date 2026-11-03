@@ -8,6 +8,7 @@ The Next.js application source.
 
 - `app/` — the Next.js App Router tree (pages, layouts, route groups, server actions).
 - `components/` — cross-route shared UI, including shadcn/ui primitives.
+- `content/` — static text rendered by the app; today the vendor help articles in `content/help` (own README).
 - `hooks/` — cross-route shared React hooks (e.g. the realtime-orders subscription).
 - `lib/` — framework-agnostic business logic, Zod schemas, DB types, and the Supabase clients `app/` depends on.
 - `proxy.ts` — exports `proxy(request)`, which delegates to `updateSession` (`src/lib/supabase/middleware`) to refresh the Supabase session cookie and enforce route protection on every request; Next 16's middleware-equivalent. Its `config.matcher` runs on everything except `_next/static`, `_next/image`, `favicon.ico`, and static image extensions.

@@ -8,11 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Vendor user guide at `/dashboard/help` (signed-in only, not indexed): a category index and article pages, with a complete Troubleshooting article. The article text lives in typed modules under `src/content/help`, and a drift test fails when an article quotes a UI string or source path that no longer exists. Articles for the other categories are registered as drafts, hidden until written. The guide is linked from the account menu ("User guide") and the last step of the orders tour.
 - Demo video pipeline records one named scene per Instagram episode: `node scripts/demo/record.mjs --scene <name>` then `node scripts/demo/compose.mjs --scene <name>` writes `out/<scene>.mp4`; `--list` prints the scenes. Episodes 1, 3, 4, 7 and 12 compose the customer phone and the vendor board side by side in a 1080x1920 frame, aligned by each recording's start offset. A unit test blocks em dashes in every caption.
-
-### Changed
-
-- The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
 
 ### Fixed
 
@@ -23,6 +20,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The full `tour` demo scene now follows the current app: "Take payment" with a paykit-held PayNow setup, paying on paykit's page, "Mark paid & start", then Mark Ready and Mark Picked Up.
+- The landing page no longer carries the vendor troubleshooting FAQ; it moved into the user guide with each answer checked against the code. Corrected on the way: the board notice now reads "Live updates interrupted, reconnecting", the per-order item limit replaces the old 20-of-one-item rule, the rate limit is per phone and per network, and payment answers describe the paykit payment page and accepting or declining the claim instead of a customer screenshot. The sign-up "resend by creating the account again" tip was dropped as unverifiable. The pre-sales payment answer no longer says customers send a screenshot.
 - Vercel deploys only `main` from git (`git.deploymentEnabled` in `vercel.json`), so branch and PR previews no longer build and the daily deployment cap on the Hobby plan stops blocking production. Staging still deploys through its deploy hook.
 - Push the staging branch sync with a GitHub App installation token so a ruleset can restrict pushes to `staging` to the `merqo-staging-sync` app.
 

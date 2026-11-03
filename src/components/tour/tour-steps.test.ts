@@ -68,6 +68,17 @@ describe("ordersTourSteps", () => {
   });
 });
 
+describe("tour guide link", () => {
+  it("ends the orders tour by pointing at the user guide on both layouts", () => {
+    for (const isMobile of [false, true]) {
+      const steps = ordersTourSteps(isMobile);
+      expect(steps[steps.length - 1].description).toContain(
+        'href="/dashboard/help"',
+      );
+    }
+  });
+});
+
 describe("boothsTourSteps", () => {
   it("returns a single step anchored on the always-present New booth control", () => {
     const steps = boothsTourSteps();
