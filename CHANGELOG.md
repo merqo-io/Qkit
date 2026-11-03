@@ -8,8 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An order keeps the number it showed across any number of "Start new service" taps in a day, instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Every order ranks from the latest restart at or before it, and the first order after a restart is #001. Restarts are logged in `booth_service_starts` (migration 0110, apply it before deploying); until it is applied only the latest restart counts, so earlier services rank from midnight. The board also rolls over at SGT midnight without a reload and ranks from the new service the moment Start new service succeeds.
 - Internal: the service-restart numbering tests no longer fail when run in the first two hours after Singapore midnight; their clock is now pinned.
-- An order still open across "Start new service" keeps the number it showed instead of falling back to its permanent number (for example #001 turning into #0019) on the board, Completed page, TV display, status page, labels and alerts. Orders placed after the restart still start at #001. This is exact for one restart a day; after several, orders from the earlier services show their number counted from midnight. No migration.
 - `block-no-verify.sh` no longer blocks commits made from a git worktree on a feature branch: Windows drive-letter paths (`C:\...`, `C:/...`) in the hook cwd, `cd` and `git -C` targets are normalised for Git Bash, and quoted paths containing spaces stay one token. Regression test: `bash .claude/hooks/block-no-verify.test.sh`.
 
 ### Changed

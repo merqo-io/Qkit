@@ -122,7 +122,9 @@ export function BoothRow({
   showDot,
   active,
   onToggle,
+  onServiceStarted,
 }: {
+  onServiceStarted?: (boothId: string, startedAt: string) => void;
   b: BoothView;
   // From the board's boothColors(), so it matches the tickets and the filter.
   color?: string;
@@ -143,7 +145,12 @@ export function BoothRow({
       <CupCount cap={b.daily_cup_cap} used={b.cups_today} />
       {/* Only a booth with a daily limit has a count to reset. */}
       {b.daily_cup_cap !== null && b.daily_cup_cap !== undefined && (
-        <StartServiceButton boothId={b.id} boothName={b.name} compact />
+        <StartServiceButton
+          boothId={b.id}
+          boothName={b.name}
+          compact
+          onStarted={onServiceStarted}
+        />
       )}
       {/* Manually active but outside scheduled hours: customers still see
           it closed. A distinct state from the toggle itself, worth

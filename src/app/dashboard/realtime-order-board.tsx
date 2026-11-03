@@ -35,7 +35,9 @@ import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useCupsToday } from "@/hooks/use-cups-today";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import {
+  accumulateBaseline,
   baselineFor,
+  emptyServices,
   type NumberingBaselines,
 } from "@/lib/numbering-baselines";
 import type { OptionCodes } from "@/lib/ticket";
@@ -84,20 +86,22 @@ interface Props {
   booths: BoothView[];
   initialOrders: BoardOrder[];
   boardSettings: BoardSettings;
-  // The initial server-side read errored — the board may be missing in-flight
-  // orders, so warn instead of silently showing "All clear".
+  // The initial server-side read errored, so the board may be missing in-flight
+  // orders. Warn instead of silently showing "All clear".
   loadError?: boolean;
-  // Each booth's day and service baselines, keyed by booth id — only
+  // Each booth's day and per-service baselines, keyed by booth id. Only
   // populated (by the server page) when boardSettings.daily_order_number_reset
   // is on. A booth is missing from it when it had no order yet at page load;
   // the board then falls back to the first number it sees live (see
   // baselinesByBooth). With the setting off the map stays empty and no fallback
   // is computed, so every card shows its real, permanent number.
   dailyOrderNumberBaselines?: Record<string, NumberingBaselines>;
-  // Each booth's ISO time its daily numbering last restarted (SGT midnight or
-  // Start new service), keyed by booth id. Orders before it do not count
-  // towards the live fallback baseline.
-  numberingStarts?: Record<string, string>;
+  // The SGT day start (ISO) the server computed those baselines for. Once the
+  // board's own day rolls past it, they describe yesterday and are ignored.
+  baselinesDayStart?: string;
+  // Each booth's ISO "Start new service" times today, ascending, keyed by booth
+  // id. Orders rank from the latest start at or before them.
+  serviceStarts?: Record<string, string[]>;
   // Each booth's short codes for option choices, keyed by booth id (see
   // buildOptionCodes in @/lib/ticket). A booth with none is simply absent, and
   // its tickets print every choice in full.
@@ -148,7 +152,8 @@ export function RealtimeOrderBoard({
   boardSettings,
   loadError = false,
   dailyOrderNumberBaselines = {},
-  numberingStarts = {},
+  baselinesDayStart,
+  serviceStarts = {},
   optionCodes = {},
 }: Props) {
   const router = useRouter();
@@ -158,6 +163,31 @@ export function RealtimeOrderBoard({
   // a booth keeps its colour whatever the filter shows.
   const boothColor = boothColors(booths.map((b) => b.id));
   const [filter, setFilter] = useState<BoothFilter>("all");
+  // The SGT day the numbering ranks within, advanced by a timer at midnight so
+  // a board left open overnight starts the new day at #001 without a reload.
+  // The extra second keeps a timer that fires a hair early from re-reading the
+  // old day and never scheduling again.
+  const [dayStartIso, setDayStartIso] = useState(() => sgtStartOfDayIso());
+  useEffect(() => {
+    const nextMidnight = Date.parse(dayStartIso) + 24 * 60 * 60 * 1000;
+    const timer = setTimeout(
+      () => setDayStartIso(sgtStartOfDayIso()),
+      Math.max(nextMidnight - Date.now(), 0) + 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [dayStartIso]);
+  // Restarts the vendor just made, ahead of the page refresh that carries them
+  // in serviceStarts. Without them an order arriving in that gap would still
+  // rank from the old service.
+  const [localStarts, setLocalStarts] = useState<Record<string, string[]>>({});
+  const recordServiceStart = useCallback(
+    (boothId: string, startedAt: string) =>
+      setLocalStarts((prev) => ({
+        ...prev,
+        [boothId]: [...(prev[boothId] ?? []), startedAt],
+      })),
+    [],
+  );
   const [sortOrder, setSortOrder] = useState<AgeSortOrder>("earliest");
   const [phoneSection, setPhoneSection] = useState<PhoneSection>("incoming");
   // Optimistic is_active overrides, keyed by booth id — instant toggle
@@ -382,38 +412,49 @@ export function RealtimeOrderBoard({
     // order still in progress from an earlier day would otherwise become the
     // baseline and rebase itself to #001, while the customer's status page, the
     // TV display and the printed label all still show its permanent number.
-    const dayStartIso = sgtStartOfDayIso();
     const dayStart = Date.parse(dayStartIso);
-    const lower = (current: string | null, candidate: string) =>
-      current === null || Number(candidate) < Number(current)
-        ? candidate
-        : current;
+    const startsFor = (boothId: string, server?: NumberingBaselines) =>
+      emptyServices(
+        [
+          ...(serviceStarts[boothId] ?? []),
+          ...(localStarts[boothId] ?? []),
+          ...(server?.services.map((s) => s.start) ?? []),
+        ].filter((s) => Date.parse(s) >= dayStart),
+      );
+    const serverUsable =
+      baselinesDayStart === undefined ||
+      Date.parse(baselinesDayStart) === dayStart;
     for (const o of orders) {
       if (isNil(o.order_number)) continue;
-      const placed = Date.parse(o.created_at);
-      if (placed < dayStart) continue;
+      if (Date.parse(o.created_at) < dayStart) continue;
       const entry = (merged[o.booth_id] ??= {
         day: null,
-        service: null,
-        serviceStart: numberingStarts[o.booth_id] ?? dayStartIso,
+        services: startsFor(o.booth_id),
       });
-      entry.day = lower(entry.day, o.order_number);
-      if (placed >= Date.parse(entry.serviceStart))
-        entry.service = lower(entry.service, o.order_number);
+      accumulateBaseline(entry, o.order_number, o.created_at);
     }
+    if (!serverUsable) return merged;
     for (const [boothId, server] of Object.entries(dailyOrderNumberBaselines)) {
       const seen = merged[boothId];
       merged[boothId] = {
         day: server.day ?? seen?.day ?? null,
-        service: server.service ?? seen?.service ?? null,
-        serviceStart: server.serviceStart,
+        services: startsFor(boothId, server).map((s) => ({
+          start: s.start,
+          baseline:
+            server.services.find((x) => x.start === s.start)?.baseline ??
+            seen?.services.find((x) => x.start === s.start)?.baseline ??
+            null,
+        })),
       };
     }
     return merged;
   }, [
     orders,
     boardSettings.daily_order_number_reset,
-    numberingStarts,
+    dayStartIso,
+    baselinesDayStart,
+    serviceStarts,
+    localStarts,
     dailyOrderNumberBaselines,
   ]);
 
@@ -424,7 +465,11 @@ export function RealtimeOrderBoard({
   // baseline. That shortcut is for a new order only: a ticket carried over from
   // yesterday must keep its permanent number, so the cards do not use it.
   function newOrderNumber(boothId: string, orderNumber: string) {
-    const baseline = baselinesByBooth[boothId]?.service ?? null;
+    const baseline = baselineFor(
+      new Date().toISOString(),
+      baselinesByBooth[boothId],
+      dayStartIso,
+    );
     const ownBaseline = boardSettings.daily_order_number_reset
       ? orderNumber
       : null;
@@ -564,7 +609,11 @@ export function RealtimeOrderBoard({
         order={order}
         displayNumber={displayOrderNumber(
           order.order_number,
-          baselineFor(order.created_at, baselinesByBooth[order.booth_id]),
+          baselineFor(
+            order.created_at,
+            baselinesByBooth[order.booth_id],
+            dayStartIso,
+          ),
         )}
         overtaken={overtaken.has(order.id)}
         optionCodes={optionCodes[order.booth_id]}
@@ -753,6 +802,7 @@ export function RealtimeOrderBoard({
             showDot={false}
             active={boothIsActive(soleBooth)}
             onToggle={(checked) => setBoothActive(soleBooth, checked)}
+            onServiceStarted={recordServiceStart}
           />
         </div>
       )}
@@ -783,6 +833,7 @@ export function RealtimeOrderBoard({
                 showDot
                 active={boothIsActive(b)}
                 onToggle={(checked) => setBoothActive(b, checked)}
+                onServiceStarted={recordServiceStart}
               />
             ))}
           </div>

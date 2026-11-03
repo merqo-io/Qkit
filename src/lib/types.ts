@@ -753,6 +753,33 @@ export interface Database {
           },
         ];
       };
+      // Migration 0110: one row per "Start new service"; vendors read their
+      // own booths' rows, writes only through qkit.start_new_service.
+      booth_service_starts: {
+        Row: {
+          id: number;
+          booth_id: string;
+          started_at: string;
+        };
+        Insert: {
+          id?: number;
+          booth_id: string;
+          started_at?: string;
+        };
+        Update: {
+          id?: number;
+          booth_id?: string;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booth_service_starts_booth_id_fkey";
+            columns: ["booth_id"];
+            referencedRelation: "booths";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       // Service-role only (migration 0108): select + insert, 30-day purge.
       ops_events: {
         Row: {
