@@ -4,7 +4,7 @@ const STAGES = [
   { key: "signedUp", label: "Signed up" },
   { key: "withBooth", label: "Created a booth" },
   { key: "withOrder", label: "Took an order" },
-  { key: "pro", label: "Upgraded to Pro" },
+  { key: "paid", label: "Subscribed" },
 ] as const;
 
 /** Vendor activation funnel with drop-off bars + step-conversion %. */

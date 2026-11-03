@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { ENTITLEMENTS } from "@/lib/plan";
+import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 import type { BoothFormInput, MenuItemFormInput } from "@/lib/schemas";
 import {
   saveBooth,
@@ -403,7 +403,7 @@ describe("saveMenuItems", () => {
   it("keeps per-item stock on a plan with stock-cap entitlement", async () => {
     h.loadEntitlementMock.mockResolvedValue({
       user: { id: "v1" },
-      entitlement: ENTITLEMENTS.pro,
+      entitlement: ENTITLEMENTS.qkit,
     });
     const res = await saveMenuItems(BOOTH_ID, [makeItem({ stock: 10 })]);
 

@@ -1,4 +1,4 @@
--- Demo dataset: the "Test" vendor on the PRO plan with TWO active booths —
+-- Demo dataset: the "Test" vendor on the qkit tier with TWO active booths —
 -- "Kopitiam Cart" (PayNow payment wired) and "Ice Cream Cart" (queue only, no
 -- payment). Use this for the demo video and manual multi-booth testing.
 --
@@ -19,16 +19,20 @@ begin
   end if;
 end
 $guard$;
--- ── Vendor (FK to auth.users) on the Pro plan (Pro lifts the 1-booth cap) ─────
+-- ── Vendor (FK to auth.users) on the qkit tier (which lifts the 1-booth cap) ──
 insert into auth.users (id, instance_id, aud, role, email)
 values ('6df824a1-9da2-4608-ad13-2400a9114ec0',
         '00000000-0000-0000-0000-000000000000',
         'authenticated', 'authenticated', 'test@qkit.local')
 on conflict (id) do nothing;
 
-insert into qkit.vendors (id, plan)
-values ('6df824a1-9da2-4608-ad13-2400a9114ec0', 'pro')
-on conflict (id) do update set plan = 'pro';
+insert into qkit.vendors (id)
+values ('6df824a1-9da2-4608-ad13-2400a9114ec0')
+on conflict (id) do nothing;
+
+insert into qkit.vendor_entitlements (vendor_id, tier, founder, stats_window, issued_at)
+values ('6df824a1-9da2-4608-ad13-2400a9114ec0', 'qkit', false, '90d', now())
+on conflict (vendor_id) do update set tier = 'qkit', stats_window = '90d';
 
 -- ── Booth 1: Kopitiam Cart — PayNow payment wired ────────────────────────────
 insert into qkit.booths

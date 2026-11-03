@@ -1,6 +1,5 @@
 import { readAllRows } from "@/lib/supabase/read-all";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditLogEntry } from "@merqo/ui";
 import { requireAdmin } from "@/lib/admin/access";
@@ -9,22 +8,17 @@ import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
 import {
   activationFunnel,
-  latestActivePassByVendor,
   summarizeEvents,
   summarizeVendors,
 } from "@/lib/admin/stats";
-import { pctChange, windowSeries, type StatsOrder } from "@/lib/stats";
+import { resolveEntitlement, storedFromRow } from "@/lib/plan";
+import { pctChange } from "@/lib/stats";
 import { formatPrice, MS_PER_DAY } from "@/lib/utils";
-import type { Plan } from "@/lib/types";
-import { DEFAULT_PRICING } from "@/lib/pricing";
 import { DEFAULT_PLATFORM_SETTINGS } from "@/lib/platform-settings";
-import { type AdminVendorRow } from "./vendor-manage";
-import { PricingSection } from "./pricing-section";
 import { BannerForm } from "./banner-form";
 import { ActivationFunnelView } from "./activation-funnel";
 import { Paginated } from "@/components/widgets/paginated";
 import { Stat } from "./stat";
-import { ResolveRequestButton } from "./resolve-request-button";
 import { ResolveMessageButton } from "./resolve-message-button";
 import { StuckOrdersSection } from "./stuck-orders-section";
 import { AdminAuditLog } from "./audit-log";
@@ -37,15 +31,10 @@ import {
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { PageHeader } from "@/components/widgets/page-header";
 
-// Lazy-loaded: pulls in recharts, code-split out of the initial admin bundle.
-const TrendChart = dynamic(() =>
-  import("../dashboard/stats/trend-chart").then((m) => m.TrendChart),
-);
-
 const SUPPORT_CATEGORY_LABEL: Record<string, string> = {
   pass: "Event pass",
   payment: "Payment",
-  pro: "Pro / billing",
+  pro: "Plan / billing",
   other: "Something else",
 };
 
@@ -82,17 +71,14 @@ export default async function AdminPage() {
     { data: orderRows },
     { data: eventRows },
     { data: auditRows },
-    { data: pricingRow },
     { data: platformSettingsRow },
-    { data: licenseRows },
-    { data: paymentRows },
-    { data: requestRows },
+    { data: entitlementRows },
     { data: messageRows },
   ] = await Promise.all([
     readAllRows((from, to) =>
       supabase
         .from("vendors")
-        .select("id, plan, created_at")
+        .select("id, created_at")
         .order("created_at", { ascending: false })
         .order("id")
         .range(from, to),
@@ -124,36 +110,17 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(60),
     supabase
-      .from("pricing")
-      .select("event_pass_cents, monthly_cents, currency")
-      .eq("id", 1)
-      .maybeSingle(),
-    supabase
       .from("platform_settings")
       .select("banner_enabled, banner_message")
       .eq("id", 1)
       .maybeSingle(),
     readAllRows((from, to) =>
       supabase
-        .from("licenses")
-        .select("vendor_id, valid_from, expires_at")
-        .order("id")
-        .range(from, to),
-    ).then((data) => ({ data })),
-    readAllRows((from, to) =>
-      supabase
-        .from("payments")
-        .select("amount_cents, created_at")
-        .order("id")
-        .range(from, to),
-    ).then((data) => ({ data })),
-    readAllRows((from, to) =>
-      supabase
-        .from("purchase_requests")
-        .select("id, vendor_id, kind, created_at")
-        .eq("status", "pending")
-        .order("created_at", { ascending: true })
-        .order("id")
+        .from("vendor_entitlements")
+        .select(
+          "vendor_id, tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+        )
+        .order("vendor_id")
         .range(from, to),
     ).then((data) => ({ data })),
     readAllRows((from, to) =>
@@ -169,35 +136,33 @@ export default async function AdminPage() {
     ).then((data) => ({ data })),
   ]);
 
-  const licenses = licenseRows ?? [];
-  const payments = paymentRows ?? [];
-
   const stallNames = await vendorStallNames(
     merqoClient,
     (vendorRows ?? []).map((v) => v.id),
   );
 
-  const passByVendor = latestActivePassByVendor(licenses, now);
+  const entitlementByVendor = new Map(
+    (entitlementRows ?? []).map((r) => [
+      r.vendor_id,
+      resolveEntitlement(storedFromRow(r), now),
+    ]),
+  );
 
-  // qkit's own revenue — what we actually collected, from the payments ledger
-  // (NOT vendor GMV). Beta comps record no payment, so this is honest earnings.
-  const revenue30d = payments
-    .filter((p) => p.created_at >= cutoff30d)
-    .reduce((sum, p) => sum + p.amount_cents, 0);
-  const revenueAll = payments.reduce((sum, p) => sum + p.amount_cents, 0);
-
-  // GMV — total customer spend flowing through booths (vendor sales, not qkit's
-  // take). The marketplace's throughput; cancelled orders excluded.
+  // GMV is total customer spend flowing through booths (vendor sales, not
+  // qkit's take); cancelled orders are excluded.
   const gmv30d = (orderRows ?? [])
     .filter((o) => o.created_at >= cutoff30d && o.status !== "cancelled")
     .reduce((sum, o) => sum + o.total_cents, 0);
 
-  const vendors: AdminVendorRow[] = (vendorRows ?? []).map((v) => ({
-    ...v,
-    name: stallNames.get(v.id) ?? "Unknown vendor",
-    passExpiresAt: passByVendor.get(v.id) ?? null,
-  }));
-  const pricing = pricingRow ?? DEFAULT_PRICING;
+  const vendors = (vendorRows ?? []).map((v) => {
+    const ent = entitlementByVendor.get(v.id);
+    return {
+      ...v,
+      name: stallNames.get(v.id) ?? "Unknown vendor",
+      paid: (ent?.tier ?? "free") !== "free",
+      passExpiresAt: ent?.eventPass?.running ? ent.eventPass.endsAt : null,
+    };
+  });
   const bannerSettings = platformSettingsRow ?? DEFAULT_PLATFORM_SETTINGS;
   const booths = boothRows ?? [];
   const orders = orderRows ?? [];
@@ -239,19 +204,13 @@ export default async function AdminPage() {
   const vstat = summarizeVendors(vendors, now);
   const estat = summarizeEvents(events, now);
 
-  // Pending upgrade requests (the admin inbox). Named for display.
-  const vendorName = stallNames;
-  const requests = (requestRows ?? []).map((r) => ({
-    ...r,
-    vendorName: vendorName.get(r.vendor_id) ?? "Unknown vendor",
-  }));
   // Open vendor help requests — the "reach out and help" inbox.
   const messages = (messageRows ?? []).map((m) => ({
     ...m,
-    vendorName: vendorName.get(m.user_id) ?? "Unknown vendor",
+    vendorName: stallNames.get(m.user_id) ?? "Unknown vendor",
   }));
   const funnel = activationFunnel(
-    vendors as { id: string; plan: Plan }[],
+    vendors,
     booths,
     orders.map((o) => o.booth_id),
   );
@@ -269,23 +228,7 @@ export default async function AdminPage() {
     inWindow(v.created_at, cutoff14d, cutoff7d),
   ).length;
 
-  // 14-day trend of qkit revenue (collected pass/sub amounts), not vendor sales.
-  const revSeries = windowSeries(
-    payments.map(
-      (p): StatsOrder => ({
-        status: "completed",
-        total_cents: p.amount_cents,
-        items: [],
-        created_at: p.created_at,
-      }),
-    ),
-    now,
-    14,
-    MS_PER_DAY,
-  );
-
   const landingClicks = estat.byType["landing_cta"] ?? 0;
-  const upgradeClicks = estat.byType["upgrade_cta"] ?? 0;
 
   const auditEntries: AuditLogEntry[] = (auditRows ?? []).map((row) => ({
     id: row.id,
@@ -301,32 +244,6 @@ export default async function AdminPage() {
       <div>
         <PageHeader eyebrow="Internal" title="Overview" />
       </div>
-
-      {requests.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Upgrade requests · {requests.length}
-          </h2>
-          <Paginated pageSize={8} className="space-y-2">
-            {requests.map((r) => (
-              <div
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/[0.04] px-4 py-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{r.vendorName}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    wants{" "}
-                    {r.kind === "monthly" ? "Monthly Pro" : "an event pass"} ·{" "}
-                    {r.created_at.slice(0, 16).replace("T", " ")}
-                  </p>
-                </div>
-                <ResolveRequestButton id={r.id} />
-              </div>
-            ))}
-          </Paginated>
-        </section>
-      )}
 
       {messages.length > 0 && (
         <section className="space-y-3">
@@ -370,61 +287,42 @@ export default async function AdminPage() {
         boothNameById={boothNameById}
       />
 
-      {/* North-star band — qkit revenue leads; active vendors is the leading
-          indicator behind it. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
-          label="qkit revenue · 30d"
-          value={formatPrice(revenue30d)}
+          label="GMV · 30d"
+          value={formatPrice(gmv30d)}
           big
           featured
           delay={0}
         />
-        <Stat label="GMV · 30d" value={formatPrice(gmv30d)} delay={60} />
-        <Stat label="Active vendors" value={funnel.withOrder} delay={120} />
+        <Stat label="Active vendors" value={funnel.withOrder} delay={60} />
         <Stat
           label="Orders · 7d"
           value={orders7d}
           delta={pctChange(orders7d, ordersPrior7d)}
-          delay={180}
+          delay={120}
         />
-        <Stat
-          label="Revenue · all time"
-          value={formatPrice(revenueAll)}
-          delay={240}
-        />
-        <Stat label="Pro vendors" value={vstat.pro} delay={300} />
+        <Stat label="Paid vendors" value={vstat.paid} delay={180} />
         <Stat
           label="Signups · 7d"
           value={vstat.new7d}
           delta={pctChange(vstat.new7d, signupsPrior7d)}
-          delay={360}
+          delay={240}
         />
-        <Stat label="Vendors" value={vstat.total} delay={420} />
+        <Stat label="Vendors" value={vstat.total} delay={300} />
         <Stat
           label="Active booths"
           value={booths.filter((b) => b.is_active).length}
-          delay={480}
+          delay={360}
         />
-        <Stat label="Stuck orders" value={stuckOrders.length} delay={540} />
+        <Stat label="Stuck orders" value={stuckOrders.length} delay={420} />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <ActivationFunnelView funnel={funnel} />
-        <TrendChart series={revSeries} range="14d" title="qkit revenue" />
-      </div>
+      <ActivationFunnelView funnel={funnel} />
 
       <p className="text-xs text-muted-foreground">
-        Funnel signals · {landingClicks} landing CTA · {upgradeClicks} upgrade
-        CTA clicks
+        Funnel signals · {landingClicks} landing CTA clicks
       </p>
-
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Pricing
-        </h2>
-        <PricingSection initial={pricing} />
-      </section>
 
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

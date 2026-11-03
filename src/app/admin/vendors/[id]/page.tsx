@@ -8,12 +8,11 @@ import { requireAdmin } from "@/lib/admin/access";
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
-import { latestActivePassByVendor } from "@/lib/admin/stats";
+import { TIER_LABEL, resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { buildVendorHealth, passHoursLeft } from "@/lib/admin/vendor-health";
 import { cn, formatPrice, MS_PER_DAY } from "@/lib/utils";
 import { Stat } from "../../stat";
 import { StatusChip } from "../../vendor-status";
-import { VendorManage } from "../../vendor-manage";
 import { ResolveMessageButton } from "../../resolve-message-button";
 
 export const revalidate = 0;
@@ -21,7 +20,7 @@ export const revalidate = 0;
 const CATEGORY_LABEL: Record<string, string> = {
   pass: "Event pass",
   payment: "Payment",
-  pro: "Pro / billing",
+  pro: "Plan / billing",
   other: "Something else",
 };
 
@@ -62,10 +61,10 @@ export default async function AdminVendorDetailPage({
 
   // All four scoped to this one vendor (never the fleet fetch-all) and
   // independent of each other — one round trip instead of vendor-then-rest.
-  const [vendorRes, booths, licenses, messages] = await Promise.all([
+  const [vendorRes, booths, entitlementRes, messages] = await Promise.all([
     supabase
       .from("vendors")
-      .select("id, plan, created_at")
+      .select("id, created_at")
       .eq("id", id)
       .maybeSingle(),
     readAllRows((from, to) =>
@@ -76,15 +75,13 @@ export default async function AdminVendorDetailPage({
         .order("id")
         .range(from, to),
     ),
-    readAllRows((from, to) =>
-      supabase
-        .from("licenses")
-        .select("vendor_id, valid_from, expires_at, note")
-        .eq("vendor_id", id)
-        .order("valid_from", { ascending: false })
-        .order("id")
-        .range(from, to),
-    ),
+    supabase
+      .from("vendor_entitlements")
+      .select(
+        "tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+      )
+      .eq("vendor_id", id)
+      .maybeSingle(),
     readAllRows((from, to) =>
       merqoClient
         .schema("merqo")
@@ -97,7 +94,8 @@ export default async function AdminVendorDetailPage({
         .range(from, to),
     ),
   ]);
-  if (vendorRes.error) throw new Error("Could not load vendor");
+  if (vendorRes.error || entitlementRes.error)
+    throw new Error("Could not load vendor");
   const vendor = vendorRes.data;
   if (!vendor) notFound();
 
@@ -120,15 +118,19 @@ export default async function AdminVendorDetailPage({
     );
   }
 
-  const passByVendor = latestActivePassByVendor(licenses ?? [], now);
-  const passExpiresAt = passByVendor.get(id) ?? null;
+  const entitlement = resolveEntitlement(
+    entitlementRes.data ? storedFromRow(entitlementRes.data) : null,
+    now,
+  );
+  const passExpiresAt = entitlement.eventPass?.running
+    ? entitlement.eventPass.endsAt
+    : null;
+  const paid = entitlement.tier !== "free";
   const hasOpenMsg = (messages ?? []).some((m) => m.status === "open");
   const openMsgVendors = new Set(hasOpenMsg ? [id] : []);
   const health = buildVendorHealth(
     {
-      vendors: [
-        { id, plan: vendor.plan, created_at: vendor.created_at, passExpiresAt },
-      ],
+      vendors: [{ id, paid, created_at: vendor.created_at, passExpiresAt }],
       booths: boothRows.map((b) => ({
         id: b.id,
         vendor_id: id,
@@ -167,7 +169,7 @@ export default async function AdminVendorDetailPage({
           </h1>
           <StatusChip status={health.status} />
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-            {vendor.plan === "pro" ? "Pro" : "Free"}
+            {TIER_LABEL[entitlement.tier]}
             {passLeftHours !== null && ` · pass ${passLeftHours}h`}
           </span>
         </div>
@@ -196,10 +198,7 @@ export default async function AdminVendorDetailPage({
           <Milestone label="Signed up" at={vendor.created_at} />
           <Milestone label="Created a booth" at={firstBoothAt} />
           <Milestone label="Took first order" at={firstOrderAt} />
-          <Milestone
-            label="Upgraded to Pro"
-            at={vendor.plan === "pro" ? vendor.created_at : null}
-          />
+          <Milestone label="Subscribed" at={paid ? vendor.created_at : null} />
         </ul>
       </section>
 
@@ -248,32 +247,23 @@ export default async function AdminVendorDetailPage({
 
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Manage
+          Plan
         </h2>
-        <VendorManage
-          vendor={{
-            id: vendor.id,
-            name: stallName,
-            plan: vendor.plan,
-            created_at: vendor.created_at,
-            passExpiresAt,
-          }}
-        />
-        {(licenses ?? []).length > 0 && (
-          <ul className="space-y-1 pt-1">
-            {(licenses ?? []).map((l, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-1.5 font-mono text-xs text-muted-foreground"
-              >
-                <span>
-                  {l.valid_from.slice(0, 10)} → {l.expires_at.slice(0, 10)}
-                </span>
-                {l.note && <span className="truncate">{l.note}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="space-y-1 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <p>
+            {TIER_LABEL[entitlement.tier]}
+            {entitlement.founder && " (founder)"}
+          </p>
+          {entitlement.eventPass && (
+            <p className="font-mono text-xs text-muted-foreground">
+              Event Pass {entitlement.eventPass.startsAt.slice(0, 10)} to{" "}
+              {entitlement.eventPass.endsAt.slice(0, 10)}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Plans are managed from the Merqo admin.
+          </p>
+        </div>
       </section>
     </div>
   );

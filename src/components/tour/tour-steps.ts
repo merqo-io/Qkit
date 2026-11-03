@@ -59,7 +59,7 @@ const DESKTOP: TourStep[] = [
     element: sel("nav-plan"),
     title: "Plan",
     description:
-      "Free covers the basics. Upgrade to Pro whenever you're ready for more.",
+      "Free covers the basics. Change plan from your Merqo account whenever you're ready for more.",
   },
   {
     element: sel("tour-replay"),

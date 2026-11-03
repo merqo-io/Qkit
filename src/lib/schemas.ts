@@ -404,30 +404,11 @@ export function parseBoothHours(data: unknown): BoothHours {
 
 // ── Admin: pricing + license minting ─────────────────────────────────────────
 
-export const pricingFormSchema = z.object({
-  event_pass_cents: z.number().int().nonnegative().max(MAX_MONEY_CENTS),
-  monthly_cents: z.number().int().nonnegative().max(MAX_MONEY_CENTS),
-});
-export type PricingFormInput = z.infer<typeof pricingFormSchema>;
-
 export const bannerFormSchema = z.object({
   banner_enabled: z.boolean(),
   banner_message: z.string().max(280),
 });
 export type BannerFormInput = z.infer<typeof bannerFormSchema>;
-
-export const grantPassSchema = z.object({
-  vendorId: z.uuid(),
-  // Sold per day; 1 covers a few-hour market, up to 14 for long bazaars/fairs.
-  days: z.number().int().positive().max(14),
-  // When the pass starts (ISO). Omitted = starts now. Lets a vendor schedule it
-  // for their event date; entitlement is computed from [validFrom, expires_at).
-  validFromIso: z.string().datetime().optional(),
-  note: z.string().max(200).optional(),
-  // What qkit actually collected (cents). 0/omitted = free comp / design partner.
-  amountCents: z.number().int().nonnegative().max(MAX_MONEY_CENTS).optional(),
-});
-export type GrantPassInput = z.infer<typeof grantPassSchema>;
 
 // ── In-product feedback ──────────────────────────────────────────────────────
 

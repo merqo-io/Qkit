@@ -19,7 +19,7 @@ vi.mock("@/lib/merqo/vendor-profile", () => ({ getOrCreateVendorProfile }));
 vi.mock("@/lib/supabase/get-user", () => ({ getUser }));
 
 const maybeSingleVendor = vi.fn();
-const maybeSingleLicense = vi.fn();
+const maybeSingleEntitlement = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: vi.fn().mockResolvedValue({
@@ -30,17 +30,7 @@ vi.mock("@/lib/supabase/server", () => ({
         };
       }
       return {
-        select: () => ({
-          eq: () => ({
-            lte: () => ({
-              gt: () => ({
-                order: () => ({
-                  limit: () => ({ maybeSingle: maybeSingleLicense }),
-                }),
-              }),
-            }),
-          }),
-        }),
+        select: () => ({ eq: () => ({ maybeSingle: maybeSingleEntitlement }) }),
       };
     },
   }),
@@ -53,8 +43,8 @@ beforeEach(() => {
   getOrCreateVendorProfile.mockReset();
   getUser.mockReset();
   maybeSingleVendor.mockReset();
-  maybeSingleLicense.mockReset();
-  maybeSingleLicense.mockResolvedValue({ data: null });
+  maybeSingleEntitlement.mockReset();
+  maybeSingleEntitlement.mockResolvedValue({ data: null });
 });
 
 describe("loadEntitlement", () => {
@@ -64,11 +54,11 @@ describe("loadEntitlement", () => {
       expect.objectContaining({
         user: null,
         vendor: null,
-        licenseExpiresAt: null,
+        entitlement: expect.objectContaining({ tier: "free" }),
       }),
     );
     expect(maybeSingleVendor).not.toHaveBeenCalled();
-    expect(maybeSingleLicense).not.toHaveBeenCalled();
+    expect(maybeSingleEntitlement).not.toHaveBeenCalled();
   });
 
   it("surfaces vendor lookup errors instead of misrouting onboarded users", async () => {
@@ -81,20 +71,28 @@ describe("loadEntitlement", () => {
     expect(getOrCreateVendorProfile).not.toHaveBeenCalled();
   });
 
-  it("fills missing board settings and preserves an active pass", async () => {
-    const expires_at = new Date(Date.now() + 86400000).toISOString();
+  it("resolves the cached tier and fills missing board settings", async () => {
     getUser.mockResolvedValue({ id: "v1" });
     maybeSingleVendor.mockResolvedValue({
-      data: { id: "v1", plan: "free" },
+      data: { id: "v1" },
       error: null,
     });
-    maybeSingleLicense.mockResolvedValue({ data: { expires_at } });
+    maybeSingleEntitlement.mockResolvedValue({
+      data: {
+        tier: "starter",
+        founder: false,
+        stats_window: "24h",
+        event_pass_starts_at: null,
+        event_pass_ends_at: null,
+        valid_until: null,
+      },
+    });
     getOrCreateVendorProfile.mockResolvedValue({
       stall_name: "Coffee",
       social_links: {},
     });
     const result = await loadEntitlement();
-    expect(result.licenseExpiresAt).toBe(expires_at);
+    expect(result.entitlement.tier).toBe("starter");
     expect(result.vendor?.board_settings).toEqual(DEFAULT_BOARD_SETTINGS);
   });
   it("merges the merqo profile's stall_name/social_links onto the vendor row", async () => {
@@ -102,7 +100,6 @@ describe("loadEntitlement", () => {
     maybeSingleVendor.mockResolvedValue({
       data: {
         id: "v1",
-        plan: "free",
         created_at: "2026-01-01T00:00:00Z",
         tours_seen: {},
         board_settings: {
@@ -151,7 +148,6 @@ describe("loadEntitlement", () => {
     maybeSingleVendor.mockResolvedValue({
       data: {
         id: "v1",
-        plan: "free",
         created_at: "2026-01-01T00:00:00Z",
         board_settings: {
           aging_min: 5,
@@ -198,7 +194,7 @@ describe("entitled vendor gate", () => {
     async (accepted) => {
       getUser.mockResolvedValue({ id: "v1", email: "vendor@example.com" });
       maybeSingleVendor.mockResolvedValue({
-        data: { id: "v1", plan: "pro" },
+        data: { id: "v1" },
         error: null,
       });
       getOrCreateVendorProfile.mockResolvedValue({

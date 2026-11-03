@@ -42,7 +42,7 @@ const columns: DataTableColumn<TopItem>[] = [
 ];
 
 /**
- * Profitability view (Pro). Renders only when the vendor has entered at least
+ * Profitability view (trends). Renders only when the vendor has entered at least
  * one item cost (`grossMargin` non-null). Ranks items by profit contribution —
  * what actually makes money, not just what sells most.
  */

@@ -8,12 +8,12 @@ export type BoothAccessInput = {
 
 /**
  * Which of a vendor's booths are servable to customers right now. Unlimited
- * entitlement (pass/pro) → every active booth. Limited (free) → only the oldest
+ * entitlement (qkit tier or a running Event Pass) → every active booth. Limited (free) → only the oldest
  * `maxBooths` active booths by created_at; the rest are "paused" — they exist
  * and the vendor can edit them, but customers can't order from them. Mirrors the
  * booth_servable SQL function so the dashboard and the DB agree on which serve.
  *
- * This is what closes the "buy a pass, create many booths, keep them after it
+ * This is what closes the "get a pass, create many booths, keep them after it
  * expires" leak: serveability is recomputed from the live entitlement, not
  * frozen at creation.
  */

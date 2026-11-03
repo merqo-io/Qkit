@@ -45,7 +45,7 @@ interface Props {
   series: SeriesPoint[] | null;
   range: string;
   boothId: string;
-  pro: boolean;
+  trends: boolean;
   speed?: Speed;
   allTime?: AllTime;
 }
@@ -95,7 +95,7 @@ export function StatsView({
   series,
   range,
   boothId,
-  pro,
+  trends,
   speed,
   allTime,
 }: Props) {
@@ -137,7 +137,7 @@ export function StatsView({
               {rangeCaption(range)}
             </span>
           </p>
-          {pro && (
+          {trends && (
             <ExportButton summary={summary} range={range} boothId={boothId} />
           )}
         </div>
@@ -145,7 +145,7 @@ export function StatsView({
         <KpiRow
           summary={summary}
           deltas={deltas}
-          pro={pro}
+          trends={trends}
           rangeLabel={rangeCaption(range)}
           allTime={allTime ?? undefined}
         />
@@ -168,14 +168,14 @@ export function StatsView({
               />
             )}
             {/* Avg wait as a tile only where there's no Service chart (free). */}
-            {!pro && avgWait !== null && avgWait !== undefined && (
+            {!trends && avgWait !== null && avgWait !== undefined && (
               <StatTile label="Avg wait" value={waitClock(avgWait)} />
             )}
           </div>
         )}
       </div>
 
-      {pro ? (
+      {trends ? (
         <Tabs defaultValue="sales">
           <TabsList>
             <TabsTrigger value="sales">

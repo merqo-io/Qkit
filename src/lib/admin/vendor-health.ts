@@ -1,4 +1,3 @@
-import type { Plan } from "@/lib/types";
 import { MS_PER_DAY, MS_PER_HOUR } from "@/lib/utils";
 
 /**
@@ -12,7 +11,7 @@ export type VendorStatus =
   | "attention"
   // a live pass ends within 48h
   | "expiring"
-  // onboarding stalled, or paying (Pro) with nothing to show
+  // onboarding stalled, or paying with nothing to show
   | "stuck"
   // once active, now silent
   | "quiet"
@@ -23,7 +22,7 @@ export type VendorStatus =
 
 export type VendorLite = {
   id: string;
-  plan: Plan;
+  paid: boolean;
   created_at: string;
   /** Expiry of the vendor's latest CURRENTLY-live pass, or null (already live). */
   passExpiresAt: string | null;
@@ -75,7 +74,7 @@ export function passHoursLeft(
 }
 
 type Signals = {
-  plan: Plan;
+  paid: boolean;
   createdAt: string;
   passExpiresAt: string | null;
   boothCount: number;
@@ -104,7 +103,7 @@ export function vendorStatus(s: Signals, nowMs: number): VendorStatus {
   if (
     (s.boothCount === 0 && signedUpAgo >= STUCK_DAYS * MS_PER_DAY) ||
     (s.orderCount === 0 && boothAge >= STUCK_DAYS * MS_PER_DAY) ||
-    (s.plan === "pro" && s.orderCount === 0)
+    (s.paid && s.orderCount === 0)
   ) {
     return "stuck";
   }
@@ -189,7 +188,7 @@ export function buildVendorHealth(
     const last = lastOrderAt.get(v.id) ?? null;
     const status = vendorStatus(
       {
-        plan: v.plan,
+        paid: v.paid,
         createdAt: v.created_at,
         passExpiresAt: v.passExpiresAt,
         boothCount: boothCount.get(v.id) ?? 0,

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { ENTITLEMENTS } from "@/lib/plan";
+import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 const { gate, booth, from, filter, config, booking, form } = vi.hoisted(() => ({
   gate: vi.fn(),
   booth: { current: {} as Record<string, unknown> | null },

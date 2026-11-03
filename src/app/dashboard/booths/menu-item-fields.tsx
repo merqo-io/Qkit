@@ -129,7 +129,7 @@ export function MenuItemPricingFields({
         </div>
       ) : (
         <div className="flex min-w-[8rem] flex-1 items-center gap-2">
-          <ProLock feature="stock_cap" label="Pro" />
+          <ProLock feature="stock_cap" label="Starter" />
           <span className="text-xs text-muted-foreground">Sold-out limit</span>
         </div>
       )}

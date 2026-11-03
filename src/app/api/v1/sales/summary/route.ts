@@ -1,3 +1,4 @@
+import { isStatsRange, type StatsRange } from "@/lib/plan";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { loadEntitlement } from "@/lib/supabase/get-entitlement";
@@ -14,7 +15,7 @@ import { MS_PER_DAY } from "@/lib/utils";
 // deliberate FUTURE step — designed around the real consumer, not pre-built.
 // The response SHAPE is frozen now so that integration won't require a rewrite.
 
-const RANGE_DAYS: Record<string, number> = {
+const RANGE_DAYS: Record<StatsRange, number> = {
   "24h": 1,
   "7d": 7,
   "30d": 30,
@@ -29,14 +30,19 @@ export async function GET(request: Request) {
 
   const allowed = entitlement.statsRanges;
   const params = new URL(request.url).searchParams;
-  const requested = params.get("range") ?? "7d";
+  const rangeParam = params.get("range");
+  const requested: StatsRange = isStatsRange(rangeParam) ? rangeParam : "7d";
   const range = allowed.includes(requested)
     ? requested
     : (allowed.at(-1) ?? "24h");
-  const days = RANGE_DAYS[range] ?? 1;
+  const days = RANGE_DAYS[range];
   const generatedAt = new Date().toISOString();
+  // A pass-only vendor may not see history from before the pass started.
+  const floorMs = entitlement.statsSince
+    ? Date.parse(entitlement.statsSince)
+    : 0;
   const cutoff = new Date(
-    Date.parse(generatedAt) - days * MS_PER_DAY,
+    Math.max(Date.parse(generatedAt) - days * MS_PER_DAY, floorMs),
   ).toISOString();
 
   const supabase = await createServerClient();

@@ -71,8 +71,8 @@ export default async function BoothsPage() {
           <span className="text-muted-foreground">
             Your plan serves <strong>1 live booth</strong> at a time, so{" "}
             {pausedCount} booth{pausedCount === 1 ? " is" : "s are"} paused for
-            customers. Keep all your booths live at once with Pro or an event
-            pass.
+            customers. Keep all your booths live at once on the qkit plan or
+            with an Event Pass.
           </span>
           <ProLock feature="multi_booth_active" label="Keep all live" />
         </div>
