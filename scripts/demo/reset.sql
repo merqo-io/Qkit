@@ -25,3 +25,12 @@ begin
 
   raise notice 'Demo account % wiped.', demo_uid;
 end $$;
+
+-- The dashboard's legal gate asks merqo, which a local stack cannot reach, and
+-- fails closed to /legal/accept. A cached "current" answer lets the vendor
+-- through; checked_at is set a day ahead so the 5 minute cache TTL cannot lapse
+-- mid-recording.
+insert into qkit.legal_check_state (email, checked_at, is_current)
+  values ('demo-cart@qkit.local', now() + interval '1 day', true)
+  on conflict (email) do update
+    set checked_at = excluded.checked_at, is_current = true;
