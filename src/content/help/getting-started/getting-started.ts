@@ -68,7 +68,7 @@ export const article: HelpArticle = {
         "On the dashboard, tap Add your first booth. Later booths are added from the Booths page with New booth.",
         "Type your Booth name. Customers see it at the top of the ordering page. You can add a banner photo too.",
         "On a new booth, leave the Open for orders box ticked to take orders as soon as it is saved. Untick it to keep the booth paused for now.",
-        "Everything else on the form can wait. Opening hours that open and close the booth automatically are available on the Event pass and Pro plans.",
+        "Everything else on the form can wait. Opening hours that open and close the booth automatically are available on the Starter and qkit plans and during an Event Pass.",
         "Tap Save booth.",
       ],
     },

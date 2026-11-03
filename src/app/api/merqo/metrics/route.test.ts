@@ -44,9 +44,7 @@ beforeEach(() => {
   failPage.table = "";
   failPage.from = -1;
   for (const key of Object.keys(fixtures)) delete fixtures[key];
-  fixtures.vendors = [
-    { id: "v", plan: "free", created_at: new Date().toISOString() },
-  ];
+  fixtures.vendors = [{ id: "v", created_at: new Date().toISOString() }];
   fixtures.booths = [{ id: "b", vendor_id: "v" }];
   fixtures.orders = Array.from({ length: 3 }, () => ({
     booth_id: "b",

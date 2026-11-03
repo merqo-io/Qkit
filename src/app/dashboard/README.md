@@ -62,7 +62,7 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
   toggle, all persisted to `vendors.board_settings`. Vendor Telegram
   connections are managed through Merqo's profile page.
 - `stats/` — sales analytics: revenue/orders/AOV, trends, margin, busy-hours,
-  top items, service speed, and reviews, gated free/pass vs. Pro, plus a
+  top items, service speed, and reviews, gated by tier (Free and Starter see 24h, qkit and Event Pass see full history), plus a
   permanent ungated snapshot for a paid event window.
 - `tour-actions.ts` — `markTourSeen(tourId)` server action: parses `tourId` through `@/lib/tour-ids`'s `tourIdSchema` first (a server action is callable directly over HTTP with any argument, so an unvalidated `tourId` would let a caller write an arbitrary key into `vendors.tours_seen` — a real CodeQL finding, not a hypothetical one), then best-effort merges `{[tourId]: now}` into `vendors.tours_seen` for the signed-in user (read-then-merge, so marking one tour seen never clobbers another's entry) so that tour stops auto-running; failures are logged but never surfaced (worst case the tour just shows once more).
 - `walkup-actions.test.ts` — vitest suite (mocked `createServerClient().rpc`) covering `placeWalkupOrder`'s invalid-booth/invalid-input rejection (no RPC call), the happy path's exact `place_walkup_order` args including `p_paid`, the `paid=true` passthrough, its RAISE-prefix-to-message mapping (`ORDER_UNAUTHORIZED`/`ORDER_SOLD_OUT`/`ORDER_RATE_LIMITED`), the generic-message+log fallback for an unrecognized error, and a malformed-success-payload guard.
