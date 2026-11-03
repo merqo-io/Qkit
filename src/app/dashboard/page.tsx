@@ -6,6 +6,7 @@ import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
+import type { NumberingState } from "@/lib/daily-order-number";
 import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { sgtStartOfDayIso } from "@/lib/tz";
 import { RealtimeOrderBoard } from "./realtime-order-board";
@@ -138,8 +139,7 @@ export default async function DashboardPage() {
     baselines: dailyOrderNumberBaselines,
     starts: serviceStarts,
     degraded,
-  }: Awaited<ReturnType<typeof numberingStateForOwnBooths>> = vendor
-    .board_settings.daily_order_number_reset
+  }: NumberingState = vendor.board_settings.daily_order_number_reset
     ? await numberingStateForOwnBooths(boothIds)
     : { baselines: {}, starts: {} };
   const baselinesDayStart = sgtStartOfDayIso();

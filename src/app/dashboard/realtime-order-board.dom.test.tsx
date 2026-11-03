@@ -609,6 +609,29 @@ describe("RealtimeOrderBoard cup cap counter", () => {
     expect(screen.getByText("0/200 items")).toBeInTheDocument();
   });
 
+  it.each([
+    [true, 1],
+    [undefined, 0],
+  ])(
+    "numbersDegraded=%s shows the order-number warning %s time(s)",
+    (numbersDegraded, count) => {
+      render(
+        <RealtimeOrderBoard
+          booths={BOOTHS}
+          initialOrders={[]}
+          boardSettings={DEFAULT_BOARD_SETTINGS}
+          numbersDegraded={numbersDegraded}
+        />,
+        { wrapper: TooltipProvider },
+      );
+      expect(
+        screen.queryAllByText("Order numbers may be off. Refresh to retry."),
+      ).toHaveLength(count);
+      if (count > 0)
+        expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
+    },
+  );
+
   it("refreshes the server data at most once per 5s, with a trailing call", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     try {
