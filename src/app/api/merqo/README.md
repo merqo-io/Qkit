@@ -2,20 +2,19 @@
 
 ## Purpose
 
-Endpoints the sibling Merqo product calls into: usage metrics reporting, vendor status lookup, per-vendor activity detail, plan upgrade/downgrade requests, and vendor push-provisioning. All six are machine-to-machine (no user session).
+Endpoints the sibling Merqo product calls into: usage metrics reporting, vendor status lookup, per-vendor activity detail, vendor push-provisioning and the entitlement push. All five are machine-to-machine (no user session).
 
 ## Contents
 
-- `downgrade-request/` — `POST` endpoint that resolves a vendor's plan back to `free` by email lookup.
-- `metrics/` — `GET` endpoint returning aggregate qkit usage/revenue metrics.
-- `upgrade-request/` — `POST` endpoint that files a pending monthly-Pro `purchase_requests` row for a vendor by email lookup.
-- `vendor-activity/` — `GET` endpoint returning one vendor's plan, admin-console health status, a handful of labeled metrics, and last-activity timestamp by email — feeds merqo's `/admin/vendors/[email]` detail page.
-- `vendor-provision/` — `POST` endpoint that creates a free-tier `vendors` row (and seeds the shared vendor profile) for a vendor id the Merqo hub is one-click-activating on qkit.
-- `vendor-status/` — `GET` endpoint returning one vendor's current plan/status by email.
+- `entitlement/` - `POST` endpoint that caches the subscription entitlement Merqo pushes for a vendor (tier, founder flag, stats window, Event Pass window, expiry).
+- `metrics/` - `GET` endpoint returning aggregate qkit usage metrics.
+- `vendor-activity/` - `GET` endpoint returning one vendor's tier, admin-console health status, a handful of labeled metrics, and last-activity timestamp by email. Feeds merqo's `/admin/vendors/[email]` detail page.
+- `vendor-provision/` - `POST` endpoint that creates a `vendors` row (and seeds the shared vendor profile) for a vendor id the Merqo hub is one-click-activating on qkit.
+- `vendor-status/` - `GET` endpoint returning one vendor's activation state and effective tier by email.
 
 ## Connectivity
 
-Five of the six routes (`downgrade-request`, `metrics`, `upgrade-request`, `vendor-activity`, `vendor-status`) import the same `bearerOk(request)` guard from `@/lib/merqo/auth`: it reads `process.env.MERQO_METRICS_SECRET`, requires an `Authorization: Bearer <secret>` header, and compares it with `node:crypto`'s `timingSafeEqual` (length-gated first) so a mismatch can't be timed byte-by-byte. `vendor-provision` instead uses the sibling `provisionBearerOk(request)` (same module) against a separate `MERQO_PROVISION_SECRET` — it's a write capability (creates a real tenant row), so it's deliberately not gated by the same secret as the read-only/reporting routes. The four routes keyed by email (`downgrade-request`, `upgrade-request`, `vendor-activity`, `vendor-status`) all resolve an email to a vendor id via `@/lib/merqo/auth`'s `listAllAuthUsers(supabase, logPrefix)` (which reads every 1000-user page and fails on an incomplete lookup) plus `findAuthUserByEmail(users, email)` for the case-insensitive match. All six use `createServiceClient()` (service-role, bypasses RLS) since this is server-to-server, not vendor-scoped. `downgrade-request`/`upgrade-request` delegate their pure outcome logic to `@/lib/merqo/downgrade-request` (`resolveDowngradeOutcome`) and `@/lib/merqo/upgrade-request` (`resolveUpgradeOutcome`) respectively; `metrics` delegates to `@/lib/merqo/metrics` (`computeMerqoMetrics`); `vendor-activity` delegates to `@/lib/merqo/vendor-activity` (`computeVendorActivity`), which itself reuses `@/lib/admin/vendor-health`'s `buildVendorHealth` for its `status` field rather than re-deriving triage logic; `vendor-status` delegates to `@/lib/merqo/vendor-status` (`resolveVendorStatus`); `vendor-provision` seeds the shared `merqo.vendor_profile` via `getOrCreateVendorProfile()` (`@/lib/merqo/vendor-profile`).
+`metrics`, `vendor-activity` and `vendor-status` import the `bearerOk(request)` guard from `@/lib/merqo/auth`: it reads `process.env.MERQO_METRICS_SECRET`, requires an `Authorization: Bearer <secret>` header, and compares it with `node:crypto`'s `timingSafeEqual` (length-gated first). `vendor-provision` and `entitlement` use `provisionBearerOk(request)` against `MERQO_PROVISION_SECRET`, because both are write capabilities. The email-keyed routes (`entitlement`, `vendor-activity`, `vendor-status`) resolve an email to a vendor id via `listAllAuthUsers(supabase, logPrefix)` plus `findAuthUserByEmail(users, email)`. All routes use `createServiceClient()` (service-role, bypasses RLS) since this is server-to-server. Tier is always derived from the `vendor_entitlements` cache through `resolveEntitlement` (`@/lib/plan`). Where the Merqo contract still has the old two-value plan (`vendor-activity`'s `plan`: `free | pro`, `metrics`'s `pro_vendors`), any paid tier reports as `pro`.
 
 ## Parent
 

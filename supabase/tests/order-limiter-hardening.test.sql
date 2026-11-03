@@ -7,8 +7,10 @@ insert into auth.users (id, instance_id, aud, role, email)
 values ('01110000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000000',
         'authenticated', 'authenticated', 'limiter-vendor@test.local');
-insert into qkit.vendors (id, plan)
-values ('01110000-0000-0000-0000-000000000001', 'pro');
+insert into qkit.vendors (id)
+values ('01110000-0000-0000-0000-000000000001');
+insert into qkit.vendor_entitlements (vendor_id, tier, stats_window, issued_at)
+values ('01110000-0000-0000-0000-000000000001', 'qkit', '90d', now());
 
 insert into qkit.booths (id, vendor_id, name, short_code, payment, daily_cup_cap, menu_items) values
   ('01110000-0000-0000-0000-0000000000b1', '01110000-0000-0000-0000-000000000001',

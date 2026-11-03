@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ENTITLEMENTS } from "@/lib/plan";
+import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 import type { ComponentProps } from "react";
 import type { StatsView as StatsComponent } from "./stats-view";
 
@@ -14,17 +14,15 @@ const {
   totals,
   controls,
   view,
-  eventView,
 } = vi.hoisted(() => ({
   entitlement: vi.fn(),
-  fixtures: { booths: [] as unknown[], licenses: [] as unknown[] },
+  fixtures: { booths: [] as unknown[] },
   predicates: vi.fn(),
   orders: vi.fn(),
   reviews: vi.fn(),
   totals: vi.fn(),
   controls: vi.fn(),
   view: vi.fn(),
-  eventView: vi.fn(),
 }));
 vi.mock("@/lib/supabase/get-entitlement", () => ({
   requireEntitledVendor: entitlement,
@@ -65,13 +63,6 @@ vi.mock("./stats-view", () => ({
     return <p>Live statistics</p>;
   },
 }));
-vi.mock("./event-stats-view", () => ({
-  EventStatsView: (props: unknown) => {
-    eventView(props);
-    return <p>Event statistics</p>;
-  },
-}));
-vi.mock("./events-panel", () => ({ EventsPanel: () => null }));
 vi.mock("./reviews-card", () => ({ ReviewsCard: () => null }));
 import StatsPage from "./page";
 
@@ -85,36 +76,17 @@ beforeEach(() => {
     { id: "booth-a", name: "Coffee" },
     { id: "booth-b", name: "Tea" },
   ];
-  fixtures.licenses = [];
   orders.mockResolvedValue([]);
   reviews.mockResolvedValue([]);
   totals.mockResolvedValue({ orders: 1200, revenue_cents: 240000 });
 });
 
 describe("vendor stats page boundaries", () => {
-  it("includes booths and paid events beyond the database response cap", async () => {
+  it("includes booths beyond the database response cap", async () => {
     fixtures.booths.push({ id: "booth-c", name: "Juice" });
-    const event = {
-      id: "event-c",
-      label: "Older market",
-      valid_from: "2026-08-01T00:00:00Z",
-      expires_at: "2026-08-02T00:00:00Z",
-    };
-    fixtures.licenses = [
-      { ...event, id: "event-a" },
-      { ...event, id: "event-b" },
-      event,
-    ];
-    render(
-      await StatsPage({ searchParams: Promise.resolve({ event: event.id }) }),
-    );
-    expect(eventView).toHaveBeenCalledWith(
-      expect.objectContaining({
-        activeEvent: event,
-        allBoothIds: ["booth-a", "booth-b", "booth-c"],
-      }),
-    );
-    expect(orders).not.toHaveBeenCalled();
+    render(await StatsPage({ searchParams: Promise.resolve({}) }));
+    expect(orders.mock.calls[0][1]).toEqual(["booth-a", "booth-b", "booth-c"]);
+    expect(totals.mock.calls[0][1]).toEqual(["booth-a", "booth-b", "booth-c"]);
   });
   it("clamps free vendors to one day and ignores another vendor's booth filter", async () => {
     render(
@@ -129,19 +101,14 @@ describe("vendor stats page boundaries", () => {
     expect(orders).toHaveBeenCalledOnce();
     expect(orders.mock.calls[0][1]).toEqual(["booth-a", "booth-b"]);
     expect(predicates).toHaveBeenCalledWith("booths", "vendor_id", "vendor-a");
-    expect(predicates).toHaveBeenCalledWith(
-      "licenses",
-      "vendor_id",
-      "vendor-a",
-    );
     expect(view).toHaveBeenCalledWith(
-      expect.objectContaining({ pro: false, series: null, deltas: null }),
+      expect.objectContaining({ trends: false, series: null, deltas: null }),
     );
   });
   it("compares Pro periods while keeping lifetime totals across all booths", async () => {
     entitlement.mockResolvedValue({
       vendor: { id: "vendor-a" },
-      entitlement: ENTITLEMENTS.pro,
+      entitlement: ENTITLEMENTS.qkit,
     });
     render(
       await StatsPage({
@@ -158,7 +125,7 @@ describe("vendor stats page boundaries", () => {
     const stats = view.mock.calls[0][0] as ComponentProps<
       typeof StatsComponent
     >;
-    expect(stats.pro).toBe(true);
+    expect(stats.trends).toBe(true);
     expect(stats.series?.length).toBeGreaterThan(0);
     expect(stats.allTime).toEqual({ orders: 1200, revenue_cents: 240000 });
   });
@@ -167,7 +134,7 @@ describe("vendor stats page boundaries", () => {
     async (range) => {
       entitlement.mockResolvedValue({
         vendor: { id: "vendor-a" },
-        entitlement: ENTITLEMENTS.pro,
+        entitlement: ENTITLEMENTS.qkit,
       });
       render(await StatsPage({ searchParams: Promise.resolve({ range }) }));
       expect(controls).toHaveBeenCalledWith(
@@ -175,40 +142,11 @@ describe("vendor stats page boundaries", () => {
       );
     },
   );
-  it("allows a paid historical event without a current Pro subscription", async () => {
-    const event = {
-      id: "event-a",
-      label: "Market",
-      valid_from: "2026-09-01T00:00:00Z",
-      expires_at: "2026-09-02T00:00:00Z",
-    };
-    fixtures.licenses = [event];
-    render(
-      await StatsPage({ searchParams: Promise.resolve({ event: "event-a" }) }),
-    );
-    expect(screen.getByText("Event statistics")).toBeInTheDocument();
-    expect(eventView).toHaveBeenCalledWith(
-      expect.objectContaining({
-        activeEvent: event,
-        allBoothIds: ["booth-a", "booth-b"],
-      }),
-    );
-    expect(orders).not.toHaveBeenCalled();
-  });
-  it("does not grant an event view for an unowned event id", async () => {
-    render(
-      await StatsPage({
-        searchParams: Promise.resolve({ event: "foreign-event" }),
-      }),
-    );
-    expect(eventView).not.toHaveBeenCalled();
-    expect(view).toHaveBeenCalledOnce();
-  });
   it("skips prior-period queries when a Pro vendor has no booths", async () => {
     fixtures.booths = [];
     entitlement.mockResolvedValue({
       vendor: { id: "vendor-a" },
-      entitlement: ENTITLEMENTS.pro,
+      entitlement: ENTITLEMENTS.qkit,
     });
     render(await StatsPage({ searchParams: Promise.resolve({}) }));
     expect(orders).toHaveBeenCalledOnce();

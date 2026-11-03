@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
@@ -17,9 +16,9 @@ export default async function NewBoothPage({ searchParams }: Props) {
   const { mode } = await searchParams;
   const eventMode = mode === "event";
 
-  // Plan gate: free vendors get one booth (an active pass/Pro lifts it). RLS is
-  // the real backstop; this just sends them to the upgrade page instead of a
-  // failed save.
+  // Plan gate: only the qkit tier or a running Event Pass has more than one
+  // booth. RLS is the real backstop; this just sends them to the plan page
+  // instead of a failed save.
   const supabase = await createServerClient();
   const { count } = await supabase
     .from("booths")
@@ -42,14 +41,8 @@ export default async function NewBoothPage({ searchParams }: Props) {
           </h1>
           <p className="text-sm text-muted-foreground">
             This booth defaults to staff entering every order at the counter, no
-            QR scanning required. To take payments and cover the whole event,{" "}
-            <Link
-              href="/dashboard/plan"
-              className="font-medium text-primary underline underline-offset-2"
-            >
-              buy an event pass
-            </Link>
-            .
+            QR scanning required. To take payments and cover the whole event,
+            set up payment in the Payment section below.
           </p>
         </div>
       ) : (

@@ -13,18 +13,17 @@ import { createServerClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { MS_PER_DAY } from "@/lib/utils";
+import { isStatsRange, type StatsRange } from "@/lib/plan";
 import { groupReviewsByBooth, summarizeReviews } from "@/lib/reviews";
 import { StatsControls } from "./stats-controls";
 import { StatsView } from "./stats-view";
-import { EventsPanel } from "./events-panel";
 import { ReviewsCard } from "./reviews-card";
-import { EventStatsView } from "./event-stats-view";
 import { fetchOrders, fetchAllTimeTotals, fetchReviewRows } from "./queries";
 import { PageHeader } from "@/components/widgets/page-header";
 
 export const revalidate = 0;
 
-const RANGE_DAYS: Record<string, number> = {
+const RANGE_DAYS: Record<StatsRange, number> = {
   "24h": 1,
   "7d": 7,
   "30d": 30,
@@ -32,85 +31,58 @@ const RANGE_DAYS: Record<string, number> = {
 };
 
 interface Props {
-  searchParams: Promise<{ range?: string; booth?: string; event?: string }>;
+  searchParams: Promise<{ range?: string; booth?: string }>;
 }
 
 export default async function StatsPage({ searchParams }: Props) {
-  const {
-    range: rangeParam,
-    booth: boothParam,
-    event: eventParam,
-  } = await searchParams;
+  const { range: rangeParam, booth: boothParam } = await searchParams;
   const { vendor, entitlement } = await requireEntitledVendor();
 
   const supabaseEarly = await createServerClient();
 
-  // The vendor's booths (for the live filter + per-event windows) and paid passes
-  // (which double as named, permanently-viewable events) are independent reads —
-  // fetch them together rather than serially on this revalidate=0 page.
-  const [boothList, events] = await Promise.all([
-    readAllRows((from, to) =>
-      supabaseEarly
-        .from("booths")
-        .select("id, name")
-        .eq("vendor_id", vendor.id)
-        .order("created_at", { ascending: true })
-        .order("id")
-        .range(from, to),
-    ),
-    readAllRows((from, to) =>
-      supabaseEarly
-        .from("licenses")
-        .select("id, label, valid_from, expires_at")
-        .eq("vendor_id", vendor.id)
-        .order("valid_from", { ascending: false })
-        .order("id")
-        .range(from, to),
-    ),
-  ]);
+  const boothList = await readAllRows((from, to) =>
+    supabaseEarly
+      .from("booths")
+      .select("id, name")
+      .eq("vendor_id", vendor.id)
+      .order("created_at", { ascending: true })
+      .order("id")
+      .range(from, to),
+  );
   const allBoothIds = boothList.map((b) => b.id);
 
-  // Per-event view: a paid window's FULL stats, ungated (they paid) — a
-  // distinct "revisit a past event" page, not the live range/today view.
-  const activeEvent = eventParam
-    ? events.find((e) => e.id === eventParam)
-    : undefined;
-  if (activeEvent) {
-    return (
-      <EventStatsView
-        supabase={supabaseEarly}
-        activeEvent={activeEvent}
-        boothList={boothList}
-        allBoothIds={allBoothIds}
-      />
-    );
-  }
-
-  // Plan gate: free + pass see today only; longitudinal history is Pro. Clamp an
-  // out-of-plan (or unknown) range to the widest the entitlement allows.
-  const pro = entitlement.tier === "pro";
+  // Plan gate: ranges come from the entitlement (24h only, or the longer ones).
+  // Clamp an out-of-plan (or unknown) range to the widest it allows.
+  const trends = entitlement.statsRanges.length > 1;
   const allowedRanges = entitlement.statsRanges;
-  const requested = rangeParam && rangeParam in RANGE_DAYS ? rangeParam : "7d";
+  const requested = isStatsRange(rangeParam) ? rangeParam : "7d";
   const range = allowedRanges.includes(requested)
     ? requested
     : (allowedRanges.at(-1) ?? "24h");
   const days = RANGE_DAYS[range];
   // eslint-disable-next-line react-hooks/purity -- the rolling-window cutoff reads the clock once per request
   const now = Date.now();
-  const cutoff = new Date(now - days * MS_PER_DAY).toISOString();
+  // A pass-only vendor may not see history from before the pass started.
+  const floorMs = entitlement.statsSince
+    ? Date.parse(entitlement.statsSince)
+    : 0;
+  const cutoffMs = Math.max(now - days * MS_PER_DAY, floorMs);
+  const cutoff = new Date(cutoffMs).toISOString();
 
   // Only honor a booth filter that belongs to this vendor; else aggregate all.
   const selectedBooth =
     boothParam && allBoothIds.includes(boothParam) ? boothParam : "all";
   const queryIds = selectedBooth === "all" ? allBoothIds : [selectedBooth];
 
-  // Range orders, reviews, all-time totals, and (Pro only) the prior-period
+  // Range orders, reviews, all-time totals, and (trends only) the prior-period
   // orders are all independent reads — run them together. All-time stays across
   // every booth (allBoothIds), regardless of the selected booth/range filters,
   // so lifetime numbers never shift. The prior-period read is only needed for
-  // the Pro period comparison, so it's skipped otherwise.
-  const wantPrior = pro && queryIds.length > 0;
-  const priorCutoff = new Date(now - 2 * days * MS_PER_DAY).toISOString();
+  // the trend period comparison, so it's skipped otherwise.
+  const wantPrior = trends && queryIds.length > 0;
+  const priorCutoff = new Date(
+    Math.max(now - 2 * days * MS_PER_DAY, floorMs),
+  ).toISOString();
   const [orders, reviewRows, allTime, priorOrders] = await Promise.all([
     fetchOrders(supabaseEarly, queryIds, cutoff),
     fetchReviewRows(supabaseEarly, allBoothIds),
@@ -125,7 +97,7 @@ export default async function StatsPage({ searchParams }: Props) {
   const reviewGroups = groupReviewsByBooth(reviewRows, boothList);
   const reviewOverall = summarizeReviews(reviewRows);
 
-  // Period comparison + trend are Pro-only.
+  // Period comparison + trend are trends-only.
   let deltas: {
     revenue: number | null;
     orders: number | null;
@@ -166,7 +138,7 @@ export default async function StatsPage({ searchParams }: Props) {
         series={series}
         range={range}
         boothId={selectedBooth}
-        pro={pro}
+        trends={trends}
         speed={{
           avgWaitSeconds: avgWait,
           series: waitPoints,
@@ -181,8 +153,6 @@ export default async function StatsPage({ searchParams }: Props) {
         selected={selectedBooth}
         range={range}
       />
-
-      <EventsPanel events={events} />
     </div>
   );
 }

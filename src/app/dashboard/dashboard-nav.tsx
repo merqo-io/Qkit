@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DashboardNav as SharedDashboardNav, getSwitchKits } from "@merqo/ui";
 import { cn } from "@/lib/utils";
-import type { Tier } from "@/lib/plan";
+import { TIER_LABEL, type Tier } from "@/lib/plan";
 import type { SupportMessageInput } from "@/lib/schemas";
 import { submitFeedback } from "@/app/actions/feedback";
 import { submitSupportMessage } from "@/app/actions/support";
@@ -25,20 +25,20 @@ function tourAnchor(href: string): string {
   return `nav-${href === "/dashboard" ? "orders" : href.split("/").pop()}`;
 }
 
-// A small mono "ticket stamp" for the account's plan. Free reads as a quiet
-// muted chip; Pass borrows the primary tint; Pro is the one that pops, filled
-// with the brand's olive, so an upgraded stall is legible at a glance.
+// A small mono "ticket stamp" for the account's tier. Free reads as a quiet
+// muted chip; Starter borrows the primary tint; qkit is the one that pops,
+// filled with the brand's olive, so a full-kit stall is legible at a glance.
 const TIER_BADGE: Record<Tier, { label: string; className: string }> = {
   free: {
-    label: "Free",
+    label: TIER_LABEL.free,
     className: "bg-muted text-muted-foreground ring-border",
   },
-  pass: {
-    label: "Pass",
+  starter: {
+    label: TIER_LABEL.starter,
     className: "bg-primary/12 text-primary ring-primary/25",
   },
-  pro: {
-    label: "Pro",
+  qkit: {
+    label: TIER_LABEL.qkit,
     className: "bg-secondary text-secondary-foreground ring-secondary",
   },
 };
@@ -64,7 +64,7 @@ const HELP_CATEGORIES: {
 }[] = [
   { value: "pass", label: "Event pass" },
   { value: "payment", label: "Payment" },
-  { value: "pro", label: "Pro / billing" },
+  { value: "pro", label: "Plan / billing" },
   { value: "other", label: "Something else" },
 ];
 

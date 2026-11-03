@@ -42,12 +42,12 @@ function summary(over: Partial<StatsSummary> = {}): StatsSummary {
 }
 
 describe("KpiRow", () => {
-  it("shows Pro cards + period deltas", () => {
+  it("shows trend cards + period deltas", () => {
     render(
       <KpiRow
         summary={summary()}
         deltas={{ revenue: 25, orders: -10, aov: 0 }}
-        pro
+        trends
       />,
     );
     expect(screen.getByText("$100.00")).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe("KpiRow", () => {
   });
 
   it("gives the revenue figure the whole row on a phone", () => {
-    render(<KpiRow summary={summary()} deltas={null} pro />);
+    render(<KpiRow summary={summary()} deltas={null} trends />);
     // Half a row is about 118px of text there, which cut "$1,804.80" short.
     expect(screen.getByText("Revenue").closest("button")).toHaveClass(
       "col-span-2",
@@ -80,8 +80,8 @@ describe("KpiRow", () => {
     );
   });
 
-  it("hides Pro-only cards and deltas on free", () => {
-    render(<KpiRow summary={summary()} deltas={null} pro={false} />);
+  it("hides trend-only cards and deltas on free", () => {
+    render(<KpiRow summary={summary()} deltas={null} trends={false} />);
     expect(screen.getByText("Revenue")).toBeInTheDocument();
     expect(screen.queryByText("Fulfilled")).not.toBeInTheDocument();
     expect(screen.queryByText("Cancelled")).not.toBeInTheDocument();
@@ -200,13 +200,13 @@ describe("StatsView", () => {
         series={null}
         range="7d"
         boothId="all"
-        pro
+        trends
       />,
     );
     expect(screen.getByText(/no orders yet/i)).toBeInTheDocument();
   });
 
-  it("pro: pins the metric strip + at-a-glance highlights above three tabs", () => {
+  it("trends: pins the metric strip + at-a-glance highlights above three tabs", () => {
     render(
       <StatsView
         summary={summary({
@@ -222,7 +222,7 @@ describe("StatsView", () => {
         series={null}
         range="7d"
         boothId="all"
-        pro
+        trends
       />,
     );
     // Range indicator names the window the KPIs are scoped to.
@@ -265,7 +265,7 @@ describe("StatsView", () => {
         series={null}
         range="24h"
         boothId="all"
-        pro={false}
+        trends={false}
         speed={{ avgWaitSeconds: 90, series: null, peakThroughput: 0 }}
       />,
     );
@@ -285,7 +285,7 @@ describe("StatsView", () => {
         series={null}
         range="7d"
         boothId="all"
-        pro
+        trends
         allTime={{ orders: 512, revenue_cents: 1234500 }}
       />,
     );
@@ -302,7 +302,7 @@ describe("StatsView", () => {
         series={null}
         range="7d"
         boothId="all"
-        pro
+        trends
         allTime={{ orders: 0, revenue_cents: 0 }}
       />,
     );

@@ -50,6 +50,10 @@ const ENTITLEMENT: Entitlement = {
   autoCloseHours: false,
   stockCaps: false,
   statsRanges: ["24h"],
+  founder: false,
+  eventPass: null,
+  counterOps: false,
+  statsSince: null,
 };
 
 function item(id: string, image_url: string | null): MenuItemFormInput {

@@ -12,6 +12,7 @@ import {
   type NumberingBaselines,
 } from "@/lib/numbering-baselines";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
+import { vendorHasCounterOps } from "@/lib/counter-ops";
 import type { OrderStatus } from "@/lib/types";
 
 export interface QueueDisplayOrder {
@@ -109,6 +110,7 @@ export async function getBoothQueueDisplay(
     return null;
   }
   if (!booth) return null;
+  if (!(await vendorHasCounterOps(supabase, booth.vendor_id))) return null;
 
   // Daily order-number reset (board_settings.daily_order_number_reset) —
   // same display-only rule the vendor board and customer status page apply

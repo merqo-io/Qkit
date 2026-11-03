@@ -2,16 +2,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-const { gate, fixtures, from, predicates, profile, manage, resolve } =
-  vi.hoisted(() => ({
+const { gate, fixtures, from, predicates, profile, resolve } = vi.hoisted(
+  () => ({
     gate: vi.fn(),
     fixtures: {} as Record<string, unknown>,
     from: vi.fn(),
     predicates: vi.fn(),
     profile: vi.fn(),
-    manage: vi.fn(),
     resolve: vi.fn(),
-  }));
+  }),
+);
 vi.mock("@/lib/admin/access", () => ({ requireAdmin: gate }));
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({ from }),
@@ -23,12 +23,6 @@ vi.mock("@/lib/merqo/vendor-profile", () => ({
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
-  },
-}));
-vi.mock("../../vendor-manage", () => ({
-  VendorManage: (props: unknown) => {
-    manage(props);
-    return null;
   },
 }));
 vi.mock("../../resolve-message-button", () => ({
@@ -47,10 +41,12 @@ beforeEach(() => {
   gate.mockResolvedValue({ id: "admin" });
   profile.mockResolvedValue({ stall_name: "Coffee stall" });
   for (const key of Object.keys(fixtures)) delete fixtures[key];
-  fixtures.vendors = { id: "vendor-a", plan: "free", created_at };
+  fixtures.vendors = { id: "vendor-a", created_at };
   from.mockImplementation((table: string) => {
     const result = {
-      data: fixtures[table] ?? (table === "vendors" ? null : []),
+      data:
+        fixtures[table] ??
+        (table === "vendors" || table === "vendor_entitlements" ? null : []),
       error: null,
     };
     const chain = {
@@ -98,12 +94,12 @@ describe("admin vendor detail", () => {
     expect(
       screen.getByText("No messages from this vendor."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Free")).toBeInTheDocument();
+    expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
     expect(from).not.toHaveBeenCalledWith("orders");
     expect(predicates).toHaveBeenCalledWith("vendors", "id", "vendor-a");
     expect(predicates).toHaveBeenCalledWith("booths", "vendor_id", "vendor-a");
     expect(predicates).toHaveBeenCalledWith(
-      "licenses",
+      "vendor_entitlements",
       "vendor_id",
       "vendor-a",
     );
@@ -119,7 +115,14 @@ describe("admin vendor detail", () => {
     );
   });
   it("excludes cancelled revenue and scopes orders to the vendor's booths", async () => {
-    fixtures.vendors = { id: "vendor-a", plan: "pro", created_at };
+    fixtures.vendor_entitlements = {
+      tier: "qkit",
+      founder: true,
+      stats_window: "90d",
+      event_pass_starts_at: null,
+      event_pass_ends_at: null,
+      valid_until: null,
+    };
     fixtures.booths = [
       { id: "b", is_active: false, created_at: "2026-02-02T00:00:00Z" },
       { id: "a", is_active: true, created_at },
@@ -145,7 +148,7 @@ describe("admin vendor detail", () => {
     expect(screen.getByText("$6.00")).toBeInTheDocument();
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(screen.getByText("0d ago")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("qkit (founder)")).toBeInTheDocument();
     expect(predicates).toHaveBeenCalledWith("orders", "booth_id", [
       "b",
       "a",
@@ -154,20 +157,14 @@ describe("admin vendor detail", () => {
   });
   it("shows active passes and resolves only open messages", async () => {
     const expires_at = new Date(Date.now() + 36 * 3600000).toISOString();
-    fixtures.licenses = [
-      {
-        vendor_id: "vendor-a",
-        valid_from: created_at,
-        expires_at,
-        note: "Weekend event",
-      },
-      {
-        vendor_id: "vendor-a",
-        valid_from: created_at,
-        expires_at: "2026-02-02T00:00:00Z",
-        note: null,
-      },
-    ];
+    fixtures.vendor_entitlements = {
+      tier: "free",
+      founder: false,
+      stats_window: "24h",
+      event_pass_starts_at: created_at,
+      event_pass_ends_at: expires_at,
+      valid_until: null,
+    };
     fixtures.support_messages = [
       {
         id: "open",
@@ -186,14 +183,10 @@ describe("admin vendor detail", () => {
     ];
     render(await renderPage());
     expect(screen.getByText(/Free · pass 36h/)).toBeInTheDocument();
-    expect(screen.getByText("Weekend event")).toBeInTheDocument();
     expect(screen.getByText("Payment")).toBeInTheDocument();
     expect(screen.getByText("custom")).toBeInTheDocument();
     expect(screen.getByText("Resolved")).toBeInTheDocument();
     expect(resolve).toHaveBeenCalledExactlyOnceWith({ id: "open" });
-    expect(manage).toHaveBeenCalledWith({
-      vendor: expect.objectContaining({ passExpiresAt: expires_at }),
-    });
   });
   it("handles a booth with no available orders and resolved-only support", async () => {
     fixtures.booths = [{ id: "a", is_active: false, created_at }];

@@ -5,7 +5,7 @@ import { MS_PER_DAY } from "../utils";
 const NOW = Date.parse("2026-08-27T00:00:00Z");
 const daysAgo = (n: number) => new Date(NOW - n * MS_PER_DAY).toISOString();
 
-const vendor = { id: "v1", plan: "free" as const, created_at: daysAgo(30) };
+const vendor = { id: "v1", paid: false, created_at: daysAgo(30) };
 
 describe("computeVendorActivity", () => {
   it("aggregates orders/revenue/booths and reuses admin-vendor-health's status", () => {
@@ -74,7 +74,7 @@ describe("computeVendorActivity", () => {
   });
 
   it("a vendor with nothing yet has zeroed metrics and a null lastActivityAt", () => {
-    const fresh = { id: "v2", plan: "free" as const, created_at: daysAgo(1) };
+    const fresh = { id: "v2", paid: false, created_at: daysAgo(1) };
     const result = computeVendorActivity(
       fresh,
       { booths: [], orders: [], passExpiresAt: null, hasOpenMessage: false },
@@ -119,8 +119,8 @@ describe("computeVendorActivity", () => {
     expect(result.status).toBe("expiring");
   });
 
-  it("a pro vendor is reported with plan pro", () => {
-    const pro = { id: "v3", plan: "pro" as const, created_at: daysAgo(10) };
+  it("a paid vendor is reported with plan pro", () => {
+    const pro = { id: "v3", paid: true, created_at: daysAgo(10) };
     const result = computeVendorActivity(
       pro,
       { booths: [], orders: [], passExpiresAt: null, hasOpenMessage: false },

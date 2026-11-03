@@ -11,9 +11,9 @@ describe("computeMerqoMetrics", () => {
     const m = computeMerqoMetrics({
       nowMs: now,
       vendors: [
-        { id: "v1", plan: "pro", created_at: iso(2) },
-        { id: "v2", plan: "free", created_at: iso(3) },
-        { id: "v3", plan: "free", created_at: iso(40) },
+        { id: "v1", paid: true, created_at: iso(2) },
+        { id: "v2", paid: false, created_at: iso(3) },
+        { id: "v3", paid: false, created_at: iso(40) },
       ],
       booths: [
         { id: "b1", vendor_id: "v1" },
@@ -43,7 +43,6 @@ describe("computeMerqoMetrics", () => {
         { amount_cents: 900, created_at: iso(2) },
         { amount_cents: 100, created_at: iso(45) },
       ],
-      pendingUpgradeCount: 4,
     });
 
     expect(m.revenue_cents_30d).toBe(900);
@@ -55,7 +54,7 @@ describe("computeMerqoMetrics", () => {
     expect(m.total_vendors).toBe(3);
     expect(m.pro_vendors).toBe(1);
     expect(m.active_vendors).toBe(2); // v1, v2 each have an order
-    expect(m.pending_upgrade_requests).toBe(4);
+    expect(m.pending_upgrade_requests).toBe(0);
     expect(m.funnel).toEqual({
       signed_up: 3,
       with_booth: 2,
@@ -67,7 +66,7 @@ describe("computeMerqoMetrics", () => {
   it("excludes cancelled from gmv but still counts it as an order in the window", () => {
     const m = computeMerqoMetrics({
       nowMs: now,
-      vendors: [{ id: "v1", plan: "free", created_at: iso(1) }],
+      vendors: [{ id: "v1", paid: false, created_at: iso(1) }],
       booths: [{ id: "b1", vendor_id: "v1" }],
       orders: [
         {
@@ -78,7 +77,6 @@ describe("computeMerqoMetrics", () => {
         },
       ],
       payments: [],
-      pendingUpgradeCount: 0,
     });
     expect(m.gmv_cents_30d).toBe(0);
     expect(m.orders_7d).toBe(1);

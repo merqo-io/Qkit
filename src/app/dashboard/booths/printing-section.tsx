@@ -36,8 +36,12 @@ export function PrintingSection({
   onChange,
   boothId,
   savedEnabled,
+  available = true,
 }: {
   value: boolean;
+  // False when the vendor's plan has no counter ops: labels would be skipped
+  // server-side, so the toggle is disabled with the reason instead.
+  available?: boolean;
   onChange: (v: boolean) => void;
   // Printing as last saved. printkit only knows a booth once it is saved
   // with printing on, so until then there is no printer to show or choose.
@@ -82,9 +86,17 @@ export function PrintingSection({
         <Switch
           checked={value}
           onCheckedChange={handleToggle}
+          disabled={!available}
           aria-label="Print via printkit"
         />
       </SettingRow>
+
+      {!available && (
+        <p className="px-1 text-sm text-muted-foreground">
+          Order labels are not included in your plan. Change plan from your
+          Merqo account.
+        </p>
+      )}
 
       {value && !needsSave && <PrinterStatus view={status} />}
 

@@ -62,7 +62,7 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
   toggle, all persisted to `vendors.board_settings`. Vendor Telegram
   connections are managed through Merqo's profile page.
 - `stats/` — sales analytics: revenue/orders/AOV, trends, margin, busy-hours,
-  top items, service speed, and reviews, gated free/pass vs. Pro, plus a
+  top items, service speed, and reviews, gated by tier (Free and Starter see 24h, qkit and Event Pass see full history), plus a
   permanent ungated snapshot for a paid event window.
 - `tour-actions.ts` — `markTourSeen(tourId)` server action: parses `tourId` through `@/lib/tour-ids`'s `tourIdSchema` first (a server action is callable directly over HTTP with any argument, so an unvalidated `tourId` would let a caller write an arbitrary key into `vendors.tours_seen` — a real CodeQL finding, not a hypothetical one), then best-effort merges `{[tourId]: now}` into `vendors.tours_seen` for the signed-in user (read-then-merge, so marking one tour seen never clobbers another's entry) so that tour stops auto-running; failures are logged but never surfaced (worst case the tour just shows once more).
 - `walkup-actions.test.ts` — vitest suite (mocked `createServerClient().rpc`) covering `placeWalkupOrder`'s invalid-booth/invalid-input rejection (no RPC call), the happy path's exact `place_walkup_order` args including `p_paid`, the `paid=true` passthrough, its RAISE-prefix-to-message mapping (`ORDER_UNAUTHORIZED`/`ORDER_SOLD_OUT`/`ORDER_RATE_LIMITED`), the generic-message+log fallback for an unrecognized error, and a malformed-success-payload guard.
@@ -75,6 +75,8 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 ## Connectivity
 
 `layout.tsx` gates every route under `/dashboard` (auth/vendor/admin/legal-acceptance redirects) and renders `dashboard-nav.tsx` around `{children}`; `page.tsx` is the `/dashboard` index route and renders `realtime-order-board.tsx`, which calls the order-mutation actions in `order-actions.ts` indirectly via `OrderCard` and subscribes through `@/hooks/use-realtime-orders`. `dashboard-nav.tsx` links out to `completed/`, `booths/`, `plan/`, `profile/`, `settings/`, `stats/`, `feedback/` — the dashboard's sub-routes for order history, booth management, billing, account, board preferences, analytics, and support respectively. `tour-actions.ts` is called by `DashboardTour` (in `@/components`) once the tour completes. `payment-evidence-actions.ts` is called by `PaymentProofViewer` (`@/components/board/payment-proof-viewer.tsx`), the proof photo `OrderCard` opens on a claimed order. `proof-actions.ts` is now called only from there, for orders whose screenshot is still in qkit's own bucket; it can be deleted once no open order has a `payment_proof_path`.
+
+Plan badge and tier labels come from `TIER_LABEL` in `@/lib/plan`; the order-ready push in `order-actions.ts` only fires for vendors with counter ops (`orderHasCounterOpsForAction` in `@/lib/counter-ops`). Plan gates read the entitlement cache Merqo pushes (`@/lib/plan`, `@/lib/supabase/get-entitlement`); there is no local plan column, pricing or licence.
 
 ## Parent
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { servableBoothIds, isBoothPaused } from "./access";
-import { ENTITLEMENTS } from "../plan";
+import { ENTITLEMENTS } from "../plan.fixtures";
 
 const b = (id: string, is_active: boolean, created_at: string) => ({
   id,
@@ -22,7 +22,7 @@ describe("servableBoothIds", () => {
   });
 
   it("pass/pro: every active booth serves, inactive never", () => {
-    const pass = servableBoothIds(booths, ENTITLEMENTS.pass);
+    const pass = servableBoothIds(booths, ENTITLEMENTS.qkit);
     expect(pass).toEqual(new Set(["a", "c", "d"]));
     expect(pass.has("b")).toBe(false);
   });

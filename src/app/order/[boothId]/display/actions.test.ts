@@ -67,6 +67,12 @@ const { createServiceClientMock, fromMock } = vi.hoisted(() => {
   };
 });
 
+const { counterOpsMock } = vi.hoisted(() => ({ counterOpsMock: vi.fn() }));
+vi.mock("@/lib/counter-ops", () => ({ vendorHasCounterOps: counterOpsMock }));
+beforeEach(() => {
+  counterOpsMock.mockReset().mockResolvedValue(true);
+});
+
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: createServiceClientMock,
 }));
@@ -417,6 +423,15 @@ describe("getBoothQueueDisplay", () => {
       "ready_at",
       "status",
     ]);
+  });
+
+  it("returns null without reading orders when the plan has no counter ops", async () => {
+    counterOpsMock.mockResolvedValue(false);
+    fromMock.mockReturnValueOnce(
+      chain({ data: { vendor_id: VENDOR }, error: null }),
+    );
+    expect(await getBoothQueueDisplay(BOOTH)).toBeNull();
+    expect(fromMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns null and logs on an orders read error", async () => {

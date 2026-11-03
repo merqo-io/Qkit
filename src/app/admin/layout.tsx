@@ -17,30 +17,21 @@ export default async function AdminLayout({
   // Gate every /admin route: non-admins get a 404 from requireAdmin.
   await requireAdmin();
 
-  // Attention count for the bell: open help requests + open purchase requests,
-  // the two vendor-raised inboxes an admin acts on. Count-only (head:true) on
-  // the indexed status column, run in parallel — negligible per-page cost. RLS
-  // (is_admin) already scopes purchase_requests to what an admin may see.
+  // Attention count for the bell: open help requests, the vendor-raised inbox
+  // an admin acts on. Count-only (head:true) on the indexed status column.
   // merqo.support_messages' SELECT policy gates on merqo.merqo_team
   // membership, not qkit.admins — the RLS-scoped client would silently return
   // zero rows for a qkit admin who isn't also a merqo_team member, so this one
   // query needs the service client instead (mirrors admin/page.tsx).
-  const supabase = await createServerClient();
   const merqoClient =
     (await createServiceClient()) as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
-  const [openMessages, openRequests] = await Promise.all([
-    merqoClient
-      .schema("merqo")
-      .from("support_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("kit_slug", "qkit")
-      .eq("status", "open"),
-    supabase
-      .from("purchase_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
-  ]);
-  const attention = (openMessages.count ?? 0) + (openRequests.count ?? 0);
+  const openMessages = await merqoClient
+    .schema("merqo")
+    .from("support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("kit_slug", "qkit")
+    .eq("status", "open");
+  const attention = openMessages.count ?? 0;
 
   async function signOut() {
     "use server";
