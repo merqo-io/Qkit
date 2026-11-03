@@ -36,10 +36,10 @@ export const article: HelpArticle = {
       type: "steps",
       items: [
         "Go to Booths, tap Edit on your booth and save it first if it is new. A booth must be saved before it can have a printer.",
-        "Open the Printing section and turn on Print via printkit.",
-        "Tap the link beneath it to choose or manage this booth's printer in printkit.",
-        "Come back and check the status line under the switch. It reads Printer connected when the printer is reachable and Printer offline when it is not.",
-        "Tap Save booth.",
+        "Open the Printing section, turn on Print via printkit and tap Save booth.",
+        "Open the booth again. The printkit link and the status line now appear under the switch.",
+        "Tap the link to choose or manage this booth's printer in printkit.",
+        "Check the status line. It reads Printer connected when the printer is reachable and Printer offline when it is not.",
       ],
     },
     {
@@ -48,7 +48,7 @@ export const article: HelpArticle = {
         "Printing is set per booth. Turn it on for each booth that has a printer.",
         "If you turn it on while the printer is offline, qkit asks first. Turn on anyway keeps the setting and you can sort the printer out later.",
         "If printing is on but no printer is set up yet, the section says so. Orders will not print until you connect one.",
-        "While printing is off, a link named Open printkit reaches printkit's home page.",
+        "The link, the status line and the no-printer warning appear only once the booth is saved with printing on. While printing is off, a saved booth can show a link named Open printkit that reaches printkit's home page.",
       ],
     },
 
@@ -78,17 +78,9 @@ export const article: HelpArticle = {
       ],
     },
 
-    { type: "heading", level: 2, text: "Which printer to use" },
     {
       type: "paragraph",
-      text: "qkit does not pick printers for you. What suits you depends on the device you run the board on.",
-    },
-    {
-      type: "bullets",
-      items: [
-        "An iPad cannot print to a Bluetooth label printer. If the board runs on an iPad, use a printer that connects over WiFi or the cloud.",
-        "For any other device, check printkit for what your printer needs.",
-      ],
+      text: "Choosing a printer and what it needs to connect are handled in printkit, not in qkit.",
     },
     {
       type: "link",

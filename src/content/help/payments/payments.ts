@@ -86,8 +86,8 @@ export const article: HelpArticle = {
     {
       type: "bullets",
       items: [
-        "New order, customer says they paid: tap View payment proof, check it against your bank or paykit, then tap Accept & start. That confirms the payment and starts the order in one tap. Decline sends the claim back to unpaid, and the customer can pay again.",
-        "New order, no claim yet: Mark paid & start confirms payment and starts the order in one tap.",
+        "New order, customer says they paid: the ticket shows both View payment proof and Mark paid & start. Tap View payment proof, check it against your bank or paykit, then tap Accept & start. That confirms the payment and starts the order in one tap. Decline sends the claim back to unpaid, and the customer can pay again. If you have already checked the money yourself, Mark paid & start does the same without opening the proof.",
+        "New order, no claim yet: only Mark paid & start shows. It confirms payment and starts the order in one tap.",
         "Order already started, customer says they paid: Confirm payment received. Opening the proof there reads Accept payment instead of Accept & start.",
         "Order already started, still unpaid: Mark as paid. The ticket shows Not paid yet until you do. Use it when the customer paid you in person.",
       ],

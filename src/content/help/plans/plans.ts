@@ -41,7 +41,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Free: the live order board and QR posters, one booth, up to 6 menu items, up to 3 option groups on an item, and the last 24 hours of stats.",
-        "Event pass: everything operational. Unlimited items and customization, extra booths, Scheduled auto-close hours, Sold-out stock caps and the daily item limit, and This event's stats (the last 24 hours). It lasts for the dates you pick.",
+        "Event pass: everything operational. Unlimited items and customization, extra booths, Scheduled auto-close hours, Sold-out stock caps and the daily item limit, and the This event's stats view on the Plan page, which is the pass's event view. Free and Event pass both see the last 24 hours of stats. It lasts for the dates you pick.",
         "Pro: everything in the pass, plus Full history & trends (7/30/90d) on the Stats page. Monthly Pro is the subscription form of this plan.",
       ],
     },

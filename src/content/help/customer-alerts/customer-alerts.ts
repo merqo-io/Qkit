@@ -71,7 +71,7 @@ export const article: HelpArticle = {
       items: [
         "The switch is on unless you turn it off. Turning it off stops your booths using the Telegram ping, and does not disconnect the customer.",
         "If Merqo is unreachable, the Telegram link is simply left off the page. Ordering and your Mark Ready tap are never held up.",
-        "There is no SMS or WhatsApp alert.",
+        "Telegram and the browser alerts above are the only ways customers are alerted.",
       ],
     },
 
