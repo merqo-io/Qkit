@@ -104,7 +104,7 @@ function main() {
     const len = probeDuration(file);
     return { ...v, file, endS: v.startMs / 1000 + (len ?? 0) };
   });
-  if (!fs.existsSync(FONT.replace(/\\:/g, ":"))) {
+  if (!fs.existsSync(FONT)) {
     console.warn(
       `! Font not found at ${FONT}. Set DEMO_FONT to a .ttf if captions are blank.`,
     );

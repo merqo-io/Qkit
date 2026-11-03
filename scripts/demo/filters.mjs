@@ -51,6 +51,13 @@ export function panelX(index) {
  * would parse as the option separator, so it gets a "\:".
  */
 export function ffEscapePath(p) {
+  // The path sits inside a single-quoted filter option, where a quote cannot
+  // be escaped portably, so refuse it rather than build a broken graph.
+  if (p.includes("'")) {
+    throw new Error(
+      `Path contains a single quote, which ffmpeg filters cannot take: ${p}. Use a path without one (DEMO_FONT, TEMP).`,
+    );
+  }
   return p.replace(/[\\:]/g, (ch) => (ch === ":" ? "\\:" : "/"));
 }
 

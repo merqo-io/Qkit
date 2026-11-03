@@ -18,7 +18,7 @@ import {
   panelSize,
   panelX,
 } from "../scripts/demo/filters.mjs";
-import { localDemoDbUrl } from "../scripts/demo/base-url.mjs";
+import { assertLoopback, localDemoDbUrl } from "../scripts/demo/base-url.mjs";
 
 describe("demo scene registry", () => {
   it("has unique names and the thirteen episodes plus the tour", () => {
@@ -102,6 +102,12 @@ describe("compose filtergraph", () => {
   };
   const viewport = { width: 390, height: 844 };
 
+  it("refuses a path with a single quote", () => {
+    expect(() => ffEscapePath("C:\\Users\\O'Neil\\f.ttf")).toThrow(
+      /single quote/,
+    );
+  });
+
   it("escapes Windows paths for filter options", () => {
     expect(ffEscapePath("C:\\a b\\f.txt")).toBe("C\\:/a b/f.txt");
   });
@@ -159,5 +165,29 @@ describe("demo database guard", () => {
     ).toThrow();
     expect(() => localDemoDbUrl("http://localhost:3000")).toThrow();
     expect(() => localDemoDbUrl(undefined)).toThrow();
+  });
+
+  it.each([
+    "postgresql://u:p@localhost/postgres?host=db.example.com",
+    "postgresql://u:p@localhost/postgres?hostaddr=203.0.113.5",
+    "postgresql://u:p@localhost/postgres?service=prod",
+    "postgresql://u:p@/postgres?host=db.example.com",
+    "postgresql:///postgres",
+  ])("rejects a redirecting or hostless url %s", (url) => {
+    expect(() => localDemoDbUrl(url)).toThrow();
+  });
+});
+
+describe("page host guard", () => {
+  it("allows loopback pages and rejects others", () => {
+    expect(assertLoopback("http://127.0.0.1:4319/pay/tx?k=mock")).toBe(
+      "http://127.0.0.1:4319",
+    );
+    expect(assertLoopback("http://localhost:3000/x")).toBe(
+      "http://localhost:3000",
+    );
+    expect(() => assertLoopback("https://pay.example.com/pay/1")).toThrow(
+      /loopback/,
+    );
   });
 });

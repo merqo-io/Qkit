@@ -17,7 +17,11 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { localDemoBaseUrl, localDemoDbUrl } from "./base-url.mjs";
+import {
+  assertLoopback,
+  localDemoBaseUrl,
+  localDemoDbUrl,
+} from "./base-url.mjs";
 import { formatSceneList, parseArgs, resolveScene } from "./scenes.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -192,8 +196,8 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
   // The scene clock starts at the first recorded context, so unrecorded setup
   // never shows up as blank lead-in; later contexts get a positive offset.
   if (state.videos.length === 0) state.t0 = Date.now();
-  const startMs = now();
   const page = await context.newPage();
+  const startMs = now();
   newPageDefaults(page);
   state.videos.push({ role, context, page, startMs, viewport });
   return page;
@@ -487,6 +491,7 @@ const PROOF_PNG = Buffer.from(
 
 /** On paykit's pay page: attach a screenshot if it offers one, then claim. */
 async function payOnPaykit(page, boothId, { withProof = true } = {}) {
+  assertLoopback(page.url());
   await pause(page, 900);
   const upload = page.locator('input[type="file"]');
   if (withProof && (await upload.count()) > 0) {
