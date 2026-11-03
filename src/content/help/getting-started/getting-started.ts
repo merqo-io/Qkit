@@ -22,6 +22,7 @@ export const article: HelpArticle = {
     "Print",
     "Download PNG",
     "Regenerate QR",
+    "Resume booth",
     "Incoming",
     "Accepted",
   ],
@@ -66,8 +67,8 @@ export const article: HelpArticle = {
       items: [
         "On the dashboard, tap Add your first booth. Later booths are added from the Booths page with New booth.",
         "Type your Booth name. Customers see it at the top of the ordering page. You can add a banner photo too.",
-        "Leave Open for orders ticked if you want to take orders as soon as the booth is saved. Untick it to keep the booth paused for now.",
-        "Optionally set your opening hours. Everything else on the form can wait.",
+        "On a new booth, leave the Open for orders box ticked to take orders as soon as it is saved. Untick it to keep the booth paused for now.",
+        "Everything else on the form can wait. Opening hours that open and close the booth automatically are available on the Event pass and Pro plans.",
         "Tap Save booth.",
       ],
     },
@@ -120,7 +121,7 @@ export const article: HelpArticle = {
     },
     {
       type: "note",
-      text: "If the booth is paused, the poster warns you that customers cannot order yet. Open the booth editor and tick Open for orders before you print.",
+      text: "If the booth is paused, the poster warns you that customers cannot order yet. Open the booth editor and use Resume booth before you print.",
     },
     {
       type: "tip",

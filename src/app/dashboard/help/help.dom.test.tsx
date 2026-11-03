@@ -88,7 +88,10 @@ describe("help article page", () => {
   it("pre-renders published slugs only", () => {
     const params = generateStaticParams();
     expect(params).toEqual(publishedArticles().map((a) => ({ slug: a.slug })));
-    const draft = ALL_HELP_ARTICLES.find((a) => a.draft);
-    if (draft) expect(params).not.toContainEqual({ slug: draft.slug });
+    for (const { slug } of params) {
+      const entry = ALL_HELP_ARTICLES.find((a) => a.slug === slug);
+      expect(entry).toBeDefined();
+      expect(entry?.draft).toBeFalsy();
+    }
   });
 });

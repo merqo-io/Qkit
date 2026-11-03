@@ -13,10 +13,6 @@ export const article: HelpArticle = {
     "Accepted",
     "Start now",
     "Start all",
-    "Accept & start",
-    "Accept payment",
-    "Decline",
-    "Confirm payment received",
     "Mark Ready",
     "Mark Picked Up",
     "Undo",
@@ -101,15 +97,11 @@ export const article: HelpArticle = {
     { type: "heading", level: 2, text: "Orders with a payment to check" },
     {
       type: "paragraph",
-      text: "When a customer says they have paid, the order is flagged for you to check. Open it to see the payment proof, then choose Accept & start to accept the payment and start the order together, or Decline if the payment is not there. Once an order is already started, the button reads Confirm payment received.",
-    },
-    {
-      type: "note",
-      text: "Fulfilment and payment are separate. Marking an order ready or picked up does not mark it paid. Confirm the payment yourself on the ticket.",
+      text: "A ticket that needs a payment check shows payment buttons. Marking an order ready or picked up does not mark it paid, so confirm the payment on the ticket.",
     },
     {
       type: "link",
-      text: "Set up and manage payments",
+      text: "Payments",
       href: "/dashboard/help/payments",
     },
 
@@ -131,7 +123,7 @@ export const article: HelpArticle = {
     },
     {
       type: "paragraph",
-      text: "For a one-off event where staff enter every order, tick Walk-up entry by default in the booth settings. The window then clears itself for the next customer after each order.",
+      text: "For a one-off event where staff enter every order, turn on the Walk-up entry by default switch in the Order flow section of the booth settings. The window then clears itself for the next customer after each order.",
     },
     {
       type: "note",
@@ -148,7 +140,7 @@ export const article: HelpArticle = {
       items: [
         "Tap Select on the board. A bar appears along the bottom.",
         "Tick the accepted orders you want, or tap Select all. Tap Clear all to untick everything.",
-        "Tap Mark Ready for ones still being made, or Mark Picked Up for ones already ready. The buttons show how many orders each will move. With nothing ticked the button reads Pick orders.",
+        "Tap Mark N Ready for ones still being made, or Mark N Picked Up for ones already ready. N is the number of ticked orders the button will move. With nothing ticked the button reads Pick orders.",
         "A message confirms how many moved and carries an Undo button for a few seconds.",
       ],
     },
