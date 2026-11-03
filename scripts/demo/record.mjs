@@ -222,10 +222,15 @@ async function openFast(browser, storageState) {
 async function signUp(page) {
   await page.goto(`${state.baseUrl}/login`, { waitUntil: "domcontentloaded" });
   await pause(page, 900);
-  await glideClick(
-    page,
-    page.getByRole("button", { name: "Create an account" }),
-  );
+  const toggle = page.getByRole("button", { name: "Create an account" });
+  const submit = page.getByRole("button", { name: "Create account" });
+  await glideClick(page, toggle);
+  // A click that lands before hydration does nothing; click again until the
+  // sign-up form shows.
+  for (let i = 0; i < 4 && !(await submit.isVisible()); i++) {
+    await pause(page, 600);
+    if (await toggle.isVisible()) await glideClick(page, toggle);
+  }
   await pause(page, 300);
   await slowType(page, page.locator("#email"), EMAIL);
   await slowType(page, page.locator("#password"), PASSWORD);
@@ -313,7 +318,9 @@ async function addMenuItem(page, item) {
   // resolves to it either way.
   await glideClick(page, page.getByRole("button", { name: /Add item/ }).last());
   await pause(page, 150);
-  const card = page.locator("div.bg-card", { hasText: "Available" }).last();
+  const card = page
+    .locator("div.bg-card", { has: page.getByPlaceholder("Item name") })
+    .last();
   await center(page, card.getByPlaceholder("Item name"));
   await slowType(page, card.getByPlaceholder("Item name"), item.name, 45);
   if (!item.groups) return;
@@ -324,26 +331,14 @@ async function addMenuItem(page, item) {
   }
 }
 
-/** The ids of every booth linked from the booths list. */
-async function boothIdsOnPage(page) {
-  const hrefs = await page
-    .locator('a[href*="/dashboard/booths/"]')
-    .evaluateAll((els) => els.map((e) => e.getAttribute("href")));
-  const ids = hrefs
-    .map((h) => h?.match(/\/dashboard\/booths\/([0-9a-f-]{36})/i)?.[1])
-    .filter(Boolean);
-  return [...new Set(ids)];
-}
-
 /**
  * Create a booth with a menu through the real form. `viaLink` clicks the
  * dashboard's "Add your first booth" so the cursor leads into the page.
- * Returns the new booth's id.
+ * Ends on the booth's QR page. Returns the new booth's id.
  */
 async function createBooth(page, opts = {}) {
   const name = opts.name ?? STALL;
   const items = opts.items ?? ITEMS;
-  const known = new Set(opts.known ?? []);
   if (opts.viaLink) {
     await glideClick(
       page,
@@ -364,25 +359,34 @@ async function createBooth(page, opts = {}) {
     await glideClick(page, hold);
   }
 
-  // The Menu card sits in its own column below Name/Hours/Payment on a phone
-  // viewport, well off-screen: scroll to it instead of letting the first
-  // "Add item" click jump there.
-  await center(page, page.getByRole("button", { name: /Add item/ }).last());
-  for (const item of items) await addMenuItem(page, item);
-
-  await pause(page, 300);
+  await dismissTour(page);
   const save = page.getByRole("button", { name: /Save booth/ });
   await center(page, save);
   await glideClick(page, save);
-  await page.waitForURL(/\/dashboard\/booths$/, { timeout: 15000 });
+  // A new booth only gets its menu editor after the first save, and saving the
+  // menu lands on the booth's QR page.
+  await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
+    timeout: 15000,
+  });
+  const boothId = page
+    .url()
+    .match(/\/dashboard\/booths\/([0-9a-f-]{36})\/menu/i)?.[1];
+  if (!boothId)
+    throw new Error("Could not read the new booth id from the URL.");
   await dismissTour(page);
+  await pause(page, 700);
+
+  for (const item of items) await addMenuItem(page, item);
+  await pause(page, 300);
+  const saveMenu = page.getByRole("button", { name: "Save menu" });
+  await center(page, saveMenu);
+  await glideClick(page, saveMenu);
+  await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+    timeout: 15000,
+  });
   await pause(page, 900);
-
-  const fresh = (await boothIdsOnPage(page)).find((id) => !known.has(id));
-  if (!fresh) throw new Error("Could not find the new booth id in the list.");
-  return fresh;
+  return boothId;
 }
-
 /** Give every menu item a price, and optionally a per-item sold-out limit. */
 async function editMenu(page, boothId, { prices = false, stock = {} } = {}) {
   await page.goto(`${state.baseUrl}/dashboard/booths/${boothId}/menu`, {
@@ -599,7 +603,6 @@ async function seedVendor(browser, scene, opts = {}) {
       name,
       items: opts.items ?? ITEMS,
       arrival: opts.arrival,
-      known: boothIds,
     });
     boothIds.push(id);
   }
@@ -635,15 +638,8 @@ async function tourScene({ browser, scene, dir }) {
     boothId = await createBooth(page, { viaLink: true });
   });
 
-  // On the booths list; the card's QR button leads the cursor into the page.
-  await step(C.qr, async () => {
-    await beat(400);
-    await glideClick(page, page.getByRole("link", { name: /Booth QR code/i }));
-    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
-      timeout: 15000,
-    });
-    await beat(1600);
-  });
+  // Saving the menu already landed on the QR page.
+  await step(C.qr, () => beat(2000));
 
   await step(C.order, () =>
     customerOrder(page, boothId, { name: CUSTOMER, customize: ["Soy"] }),
@@ -695,21 +691,14 @@ async function tourScene({ browser, scene, dir }) {
 async function setupScene({ browser, scene, dir }) {
   const C = scene.captions;
   const page = await openRecorded(browser, dir, "main");
-  let boothId;
   await step(C.signup, () => signUp(page));
   await step(C.stall, async () => {
     await nameStall(page);
     await dismissTour(page);
   });
-  await step(C.menu, async () => {
-    boothId = await createBooth(page, { viaLink: true });
-  });
+  await step(C.menu, () => createBooth(page, { viaLink: true }));
   await step(C.qr, async () => {
     await beat(400);
-    await glideClick(page, page.getByRole("link", { name: /Booth QR code/i }));
-    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
-      timeout: 15000,
-    });
     await beat(2200);
   });
 }
@@ -736,19 +725,25 @@ async function livePopScene({ browser, scene, dir }) {
     );
     await beat(700);
   });
+  // The ticket lands on the board before the customer's page navigates, so
+  // the chime is stamped when it attaches, not when the next step starts.
+  let popped;
   await step(C.order, async () => {
     await glideClick(phone, phone.getByRole("button", { name: /Continue/ }));
     await beat(700);
     const sheet = phone.getByRole("dialog");
     await slowType(phone, sheet.locator("#customerName"), CUSTOMER);
+    popped = ticket(board, CUSTOMER)
+      .waitFor({ state: "attached", timeout: 30000 })
+      .then(markPop);
     await glideClick(phone, sheet.getByRole("button", { name: /Place order/ }));
     await phone.waitForURL(new RegExp(`/order/${seed.boothId}/\\d+`), {
       timeout: 15000,
     });
   });
   await step(C.pop, async () => {
+    await popped;
     await revealTicket(board, CUSTOMER);
-    markPop();
     await beat(2600);
   });
 }
