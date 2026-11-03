@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 const notFound = vi.hoisted(() =>
   vi.fn(() => {
@@ -29,23 +29,15 @@ describe("help index", () => {
     expect(
       screen.getByRole("link", { name: /Troubleshooting/ }),
     ).toHaveAttribute("href", "/dashboard/help/troubleshooting");
-    expect(screen.queryByRole("link", { name: /Payments/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /Payments/ })).toHaveAttribute(
+      "href",
+      "/dashboard/help/payments",
+    );
   });
 
-  it("marks categories that only have drafts as coming soon", () => {
+  it("shows no coming soon marker once every category is published", () => {
     render(<HelpIndexPage />);
-    const payments = screen
-      .getByRole("heading", { name: "Payments" })
-      .closest("section");
-    expect(
-      within(payments as HTMLElement).getByText("Coming soon."),
-    ).toBeVisible();
-    const troubleshooting = screen
-      .getByRole("heading", { name: "Troubleshooting" })
-      .closest("section");
-    expect(
-      within(troubleshooting as HTMLElement).queryByText("Coming soon."),
-    ).toBeNull();
+    expect(screen.queryByText("Coming soon.")).toBeNull();
   });
 });
 
@@ -75,14 +67,11 @@ describe("help article page", () => {
     );
   });
 
-  it("404s a draft and an unknown slug", async () => {
-    await expect(
-      HelpArticlePage({ params: Promise.resolve({ slug: "payments" }) }),
-    ).rejects.toThrow("NEXT_NOT_FOUND");
+  it("404s an unknown slug", async () => {
     await expect(
       HelpArticlePage({ params: Promise.resolve({ slug: "nope" }) }),
     ).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(notFound).toHaveBeenCalledTimes(2);
+    expect(notFound).toHaveBeenCalledTimes(1);
   });
 
   it("pre-renders published slugs only", () => {

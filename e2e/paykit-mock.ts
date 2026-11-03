@@ -232,12 +232,33 @@ function handleLookup(store: MockStore, orderRef: string | null, send: Send) {
   send(200, statusBody(tx));
 }
 
+// A vendor with PayNow on file, whatever the vendor id. It unlocks the booth
+// form's "Take payment" switch; no e2e spec depends on that switch being locked.
+const DEMO_VENDOR_CONFIG = {
+  has_config: true,
+  display_name: "Kopitiam Cart",
+  kind: "paynow",
+  payee_name: "Kopitiam Cart Pte Ltd",
+  uen: null,
+  mobile: "91234567",
+  label: null,
+  url: null,
+  qr_image_url: null,
+};
+
 /** Handles the JSON API routes; false when the path is not one of them. */
 function handleApi(
   store: MockStore,
   { method, url, chunks }: { method: string; url: URL; chunks: Buffer[] },
   send: Send,
 ): boolean {
+  if (
+    method === "GET" &&
+    /^\/api\/v1\/vendors\/[^/]+\/config$/.test(url.pathname)
+  ) {
+    send(200, DEMO_VENDOR_CONFIG);
+    return true;
+  }
   if (url.pathname === "/api/v1/checkout") {
     if (method === "POST") handleCreateCheckout(store, chunks, send);
     else if (method === "GET")

@@ -430,8 +430,10 @@ async function enablePayment(page, boothId) {
       "Take payment is locked: paykit has no PayNow setup on file for the demo vendor (or is unreachable). Point NEXT_PUBLIC_PAYKIT_URL at a paykit that has one. See README.md.",
     );
   }
-  await glideClick(page, take);
-  await pause(page, 450);
+  if ((await take.getAttribute("aria-checked")) !== "true") {
+    await glideClick(page, take);
+    await pause(page, 450);
+  }
   const save = page.getByRole("button", { name: /Save booth/ });
   await center(page, save);
   await glideClick(page, save);
