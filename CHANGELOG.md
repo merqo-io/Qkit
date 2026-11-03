@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Demo recorder: the `come-back` scene now records the vendor socials footer and the Telegram connect beat. `pnpm demo:merqo` runs a stand-in for merqo's connect-token and notify endpoints, `seed-socials.sql` gives the demo booth its links, and `tour`, `paynow`, `sold-out`, `multi-booth` and `come-back` each record and compose to a 1080x1920 mp4 against the local stack. The recorder also falls back to `docker exec` when `psql` is missing.
 - Help upkeep: a pre-commit note names the vendor help articles whose `covers` files are staged, the admin dashboard lists articles not reviewed for over 90 days, and the help drift test now decodes entities and ignores comments when matching UI labels.
 - Vendor user guide: the Payments, Printing, Customer alerts and Plans articles are written and published at `/dashboard/help`, so the guide no longer has any "Coming soon" entries. Each is checked against the code by the help drift test.
 - Vendor user guide: the Getting started, Running a service and Menu and stock articles are written and published at `/dashboard/help`. They cover creating a booth and printing its QR, working the live board, walk-up and batch orders, restarting the service count, the customer screen, and item, daily and per-order limits.

@@ -237,7 +237,7 @@ async function signUp(page) {
   await glideClick(page, page.getByRole("button", { name: "Create account" }));
   // enable_confirmations=false, so the session is granted and /dashboard
   // sends a new vendor to /onboarding.
-  await page.waitForURL(/\/onboarding/, { timeout: 15000 });
+  await page.waitForURL(/\/onboarding/, { timeout: 40000 });
 }
 
 async function nameStall(page) {
@@ -351,6 +351,7 @@ async function createBooth(page, opts = {}) {
   }
   await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
   await pause(page, 700);
+  await dismissTour(page);
   await slowType(page, page.locator("#booth-name"), name);
 
   if (opts.arrival) {
@@ -359,14 +360,13 @@ async function createBooth(page, opts = {}) {
     await glideClick(page, hold);
   }
 
-  await dismissTour(page);
   const save = page.getByRole("button", { name: /Save booth/ });
   await center(page, save);
   await glideClick(page, save);
   // A new booth only gets its menu editor after the first save, and saving the
   // menu lands on the booth's QR page.
   await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
-    timeout: 15000,
+    timeout: 40000,
   });
   const boothId = page
     .url()
@@ -380,10 +380,18 @@ async function createBooth(page, opts = {}) {
   await pause(page, 300);
   const saveMenu = page.getByRole("button", { name: "Save menu" });
   await center(page, saveMenu);
+  const qrUrl = new RegExp(`/dashboard/booths/${boothId}/qr`);
   await glideClick(page, saveMenu);
-  await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
-    timeout: 15000,
-  });
+  // The dev server occasionally answers the first save with a redirect to the
+  // login page; the editor keeps its state, so one more tap lands the save.
+  const saved = await page
+    .waitForURL(qrUrl, { timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!saved) {
+    await glideClick(page, saveMenu);
+    await page.waitForURL(qrUrl, { timeout: 45000 });
+  }
   await pause(page, 900);
   return boothId;
 }
@@ -483,7 +491,7 @@ async function customerOrder(page, boothId, opts) {
     });
   } else if (after === "pay") {
     await page.waitForURL((u) => !u.href.startsWith(state.baseUrl), {
-      timeout: 20000,
+      timeout: 45000,
     });
   }
   await pause(page, 1000);
@@ -524,12 +532,16 @@ async function payOnPaykit(page, boothId, { withProof = true } = {}) {
 
 const ACTION = /Mark paid & start|Start now|Mark Ready|Mark Picked Up|Undo/;
 
-/** The ticket for a customer: the innermost block holding their name and an action. */
+/**
+ * The ticket for a customer: the innermost block holding their name and an
+ * action. Matches by button text, not role, because the phone layout hides one
+ * of the Incoming/Accepted columns and role queries skip hidden buttons.
+ */
 function ticket(page, name) {
   return page
     .locator("div")
     .filter({ hasText: name })
-    .filter({ has: page.getByRole("button", { name: ACTION }) })
+    .filter({ has: page.locator("button", { hasText: ACTION }) })
     .last();
 }
 
@@ -543,27 +555,51 @@ async function openBoard(page) {
   await pause(page, 900);
 }
 
-/** On a phone only one of Incoming/Accepted shows; flip to the one with this ticket. */
+/**
+ * On a phone only one of the board columns shows, and a realtime update can
+ * flip it back, so keep trying each column until the ticket button is visible.
+ */
+async function tapTicket(page, name, label) {
+  const card = ticket(page, name);
+  await card.waitFor({ state: "attached", timeout: 30000 });
+  const button = card.locator("button", { hasText: label });
+  const tabs = page
+    .getByRole("group", { name: "Which orders to show" })
+    .getByRole("button");
+  const deadline = Date.now() + 40000;
+  while (Date.now() < deadline) {
+    const shown = await button
+      .waitFor({ state: "visible", timeout: 1200 })
+      .then(() => true)
+      .catch(() => false);
+    if (shown) break;
+    const count = await tabs.count();
+    for (let i = 0; i < count && !shown; i++) {
+      await tabs.nth(i).click();
+      const here = await button
+        .waitFor({ state: "visible", timeout: 800 })
+        .then(() => true)
+        .catch(() => false);
+      if (here) break;
+    }
+  }
+  await button.waitFor({ state: "visible", timeout: 2000 });
+  await center(page, button);
+  await glideClick(page, button);
+}
+
 async function revealTicket(page, name) {
   const card = ticket(page, name);
   await card.waitFor({ state: "attached", timeout: 30000 });
-  if (await card.isVisible()) return;
   const tabs = page
     .getByRole("group", { name: "Which orders to show" })
     .getByRole("button");
   const count = await tabs.count();
   for (let i = 0; i < count; i++) {
-    await tabs.nth(i).click();
     if (await card.isVisible()) return;
+    await tabs.nth(i).click();
+    await pause(page, 300);
   }
-}
-
-async function tapTicket(page, name, label) {
-  await revealTicket(page, name);
-  const button = ticket(page, name).getByRole("button", { name: label });
-  await button.waitFor({ state: "visible", timeout: 30000 });
-  await center(page, button);
-  await glideClick(page, button);
 }
 
 /** Start, ready and hand over one order. "Undo" holds the next button back a few seconds. */
@@ -576,14 +612,33 @@ async function fulfil(page, name, { start = true } = {}) {
 // Seeding ------------------------------------------------------------------
 
 function upgradeToPro() {
+  runDemoSql("upgrade-pro.sql");
+}
+
+function runDemoSql(file) {
   const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
-  const res = spawnSync(
-    "psql",
-    [dbUrl, "-v", "ON_ERROR_STOP=1", "-f", path.join(HERE, "upgrade-pro.sql")],
-    { stdio: "inherit" },
-  );
-  if (res.status !== 0)
-    throw new Error("psql failed upgrading the demo vendor");
+  const sql = path.join(HERE, file);
+  let res = spawnSync("psql", [dbUrl, "-v", "ON_ERROR_STOP=1", "-f", sql], {
+    stdio: "inherit",
+  });
+  if (res.error?.code === "ENOENT") {
+    // Windows has no host psql; the local Supabase db container carries one.
+    res = spawnSync(
+      "docker",
+      [
+        "exec",
+        "-i",
+        process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+        "psql",
+        "-U",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+      ],
+      { input: fs.readFileSync(sql), stdio: ["pipe", "inherit", "inherit"] },
+    );
+  }
+  if (res.status !== 0) throw new Error(`psql failed running ${file}`);
 }
 
 /**
@@ -1049,21 +1104,28 @@ async function imHereScene({ browser, scene, dir }) {
   });
 }
 
-// What this scene shows depends on merqo (vendor socials, the Telegram link),
-// which a local qkit stack lacks, so each optional beat is looked for and
-// skipped when absent rather than failing the recording.
+// The footer needs social links on the booth (seeded by SQL, unrecorded) and
+// the Telegram link needs a merqo to hand out a connect token, so this scene
+// expects `pnpm demo:merqo` and a dev server started with its env (README).
 async function comeBackScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
+  runDemoSql("seed-socials.sql");
   const page = await openRecorded(browser, dir, "main");
+
   await step(C.footer, async () => {
     await customerOrder(page, seed.boothId, { name: CUSTOMER });
-    await scrollPage(page, 1200);
+    await beat(800);
+    const follow = page.getByText(/^Follow /).first();
+    await follow.waitFor({ timeout: 15000 });
+    await center(page, follow);
+    await beat(2200);
   });
   await step(C.telegram, async () => {
     const link = page.getByText(/Get notified on Telegram/).first();
-    if (await link.isVisible().catch(() => false)) await center(page, link);
-    await beat(2200);
+    await link.waitFor({ timeout: 15000 });
+    await center(page, link);
+    await beat(2400);
   });
 
   const vendor = await openFast(browser, seed.storageState);
@@ -1073,12 +1135,13 @@ async function comeBackScene({ browser, scene, dir }) {
 
   await step(C.reorder, async () => {
     await page.reload({ waitUntil: "domcontentloaded" });
-    const again = page.getByRole("button", { name: "Reorder" });
-    await again.waitFor({ timeout: 10000 }).catch(() => {});
-    if (await again.isVisible().catch(() => false)) {
-      await center(page, again);
-      await glideClick(page, again);
-    }
+    const again = page.getByRole("button", {
+      name: /Reorder these items|Order this again/,
+    });
+    await again.waitFor({ timeout: 15000 });
+    await center(page, again);
+    await beat(900);
+    await glideClick(page, again);
     await beat(2200);
   });
 }
@@ -1168,8 +1231,8 @@ async function main() {
         2,
       ),
     );
-    console.log(`\n✓ Recorded ${videos.map((v) => v.file).join(", ")}`);
-    console.log(`✓ ${state.steps.length} captioned beats, steps.json`);
+    console.log(`\nâœ“ Recorded ${videos.map((v) => v.file).join(", ")}`);
+    console.log(`âœ“ ${state.steps.length} captioned beats, steps.json`);
     console.log(`Next: node scripts/demo/compose.mjs --scene ${scene.name}\n`);
   } finally {
     await browser.close();
@@ -1177,6 +1240,11 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("\n✗ Recording failed:", err.message);
+  console.error("\nâœ— Recording failed:", err.message);
+  const where = String(err.stack ?? "")
+    .split("\n")
+    .filter((l) => l.includes("record.mjs"))
+    .slice(0, 3);
+  if (where.length) console.error(where.join("\n"));
   process.exit(1);
 });

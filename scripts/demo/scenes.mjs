@@ -196,7 +196,7 @@ export const SCENES = [
       telegram: "Updates on Telegram, no app",
       reorder: "One tap to order again",
     },
-    note: "Socials and the Telegram link come from merqo (vendor profile, connect token); a local qkit stack without merqo shows neither, so those captions land on whatever is on screen.",
+    note: "Needs the merqo mock (pnpm demo:merqo) and a dev server started with its env; the socials are seeded by seed-socials.sql.",
   },
 ];
 

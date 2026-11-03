@@ -48,16 +48,18 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
 
 ## Files
 
-| File              | Does                                                                                         |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `scenes.mjs`      | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                |
-| `filters.mjs`     | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                 |
-| `reset.sql`       | Wipes the fixed demo account so each run starts identical                                    |
-| `upgrade-pro.sql` | Gives the demo vendor Pro; run by `record.mjs` only for scenes that show a Pro-gated feature |
-| `record.mjs`      | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                        |
-| `compose.mjs`     | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`          |
-| `base-url.mjs`    | Loopback-only guards for the app origin and `DEMO_DB_URL`                                    |
-| `out/`            | Generated artifacts (git-ignored)                                                            |
+| File               | Does                                                                                         |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| `scenes.mjs`       | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                |
+| `filters.mjs`      | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                 |
+| `merqo-mock.mjs`   | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                  |
+| `seed-socials.sql` | Gives the demo booth social links for the come-back footer                                   |
+| `reset.sql`        | Wipes the fixed demo account so each run starts identical                                    |
+| `upgrade-pro.sql`  | Gives the demo vendor Pro; run by `record.mjs` only for scenes that show a Pro-gated feature |
+| `record.mjs`       | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                        |
+| `compose.mjs`      | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`          |
+| `base-url.mjs`     | Loopback-only guards for the app origin and `DEMO_DB_URL`                                    |
+| `out/`             | Generated artifacts (git-ignored)                                                            |
 
 ## Prerequisites
 
@@ -77,8 +79,11 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    ```
    The mock's pay page is a plain test fixture, not paykit's real page. Do not
    use real payment credentials.
+   For `come-back` also run `pnpm demo:merqo` (127.0.0.1:4320) and add
+   `MERQO_BASE_URL=http://127.0.0.1:4320 MERQO_CUSTOMER_SECRET=demo-merqo-secret`
+   to the dev server env. Without it the Telegram link is absent and the beat times out.
 4. **ffmpeg** on PATH.
-5. For `sold-out` and `multi-booth` only: `DEMO_DB_URL` set to the local
+5. For `sold-out`, `multi-booth` and `come-back`: `DEMO_DB_URL` set to the local
    Postgres URL (from `pnpm exec supabase status`) and `psql` on PATH. Free
    plan has no stock limits and one booth, so these scenes run
    `upgrade-pro.sql` after sign-up. Loopback hosts only.
@@ -138,9 +143,10 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - The "other person" in a scene (a walk-in, the crowd on a busy board) is an
   unrecorded browser context, so tickets arrive through the real realtime
   subscription.
-- Verification status: `options` (single) and `live-pop` (split) were recorded
-  and composed end to end against a local stack. The other scenes' locators
-  were read from the components but not yet run live.
+- Verification status: `tour`, `paynow`, `sold-out`, `multi-booth`,
+  `come-back`, `options` and `live-pop` were recorded and composed end to end
+  against a local stack. The other scenes' locators were read from the
+  components but not yet run live.
 - `reset.sql` also seeds a cached "legal current" row for the demo email. The
   dashboard's legal gate asks merqo, which a local stack cannot reach, and
   would otherwise send the new vendor to `/legal/accept`.
