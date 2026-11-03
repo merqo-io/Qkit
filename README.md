@@ -68,7 +68,9 @@ before applying changes. Do not reset or seed a production database as part of
 routine development.
 
 Local tests require Docker and a running local Supabase stack. The pgTAP suite
-creates its own fixtures and rolls them back. Customer E2E tests additionally
+creates its own fixtures and rolls them back. It also covers the customer RPC
+rate and unpaid-order caps from migration 0111; see
+[supabase/tests/README.md](supabase/tests/README.md). Customer E2E tests additionally
 need the CI auth bootstrap and coffee-cart seed; the vendor fulfillment E2E
 also needs the `e2e-merqo-stub.sql` seed. Some shared Merqo integration paths
 require the sibling schema; see [E2E setup](e2e/README.md) and
