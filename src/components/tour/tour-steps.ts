@@ -18,6 +18,10 @@ const examplePreparingBadge = renderToStaticMarkup(
   createElement(OrderStatusBadge, { status: "preparing" }),
 );
 
+const guideLink = renderToStaticMarkup(
+  createElement("a", { href: "/dashboard/help" }, "user guide"),
+);
+
 // Desktop: nav links are visible, so we can spotlight each landmark.
 const DESKTOP: TourStep[] = [
   {
@@ -61,7 +65,9 @@ const DESKTOP: TourStep[] = [
     element: sel("tour-replay"),
     title: "Replay anytime",
     description:
-      'Tap here to run this tour again whenever you like. Ready? Go create your first booth. Menu is the only required part. Payment, Printing, and Booking Status are all optional, and each one already says so on the booth page, so it\'s safe to skip them for now. Stuck on anything? The <a href="/dashboard/help">user guide</a> has step-by-step answers.',
+      "Tap here to run this tour again whenever you like. Ready? Go create your first booth. Menu is the only required part. Payment, Printing, and Booking Status are all optional, and each one already says so on the booth page, so it's safe to skip them for now. Stuck on anything? The " +
+      guideLink +
+      " has step-by-step answers.",
   },
 ];
 

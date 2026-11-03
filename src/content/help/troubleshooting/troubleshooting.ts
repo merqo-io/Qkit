@@ -13,6 +13,7 @@ export const article: HelpArticle = {
     "Live updates interrupted, reconnecting",
     "Says paid. Check the payment",
     "View payment proof",
+    "Accept & start",
     "Accept payment",
     "Decline",
     "Confirm payment received",
@@ -101,7 +102,8 @@ export const article: HelpArticle = {
       items: [
         "Open the order and tap View payment proof to see what the customer sent.",
         "Check that the money landed in your account for the right amount.",
-        "Tap Accept payment to confirm it, or Decline to send the order back to unpaid so the customer can try again. On a ticket you have already started, the button reads Confirm payment received.",
+        "Tap Accept & start to confirm the payment and start the order, or Decline to send it back to unpaid so the customer can try again. Once the order has been started, the same button reads Accept payment.",
+        "On a started order's ticket, the Confirm payment received button also confirms a claimed payment without opening the proof.",
       ],
     },
     {
@@ -128,7 +130,7 @@ export const article: HelpArticle = {
       items: [
         "The Free plan serves one booth at a time. If you have more than one open booth, only the oldest open booth serves. The others show Over plan limit on the Booths page even though they are open.",
         "Pause the extra booths, or move to a plan with more booths from the Plan page in your account menu.",
-        "A booth can also stop for a daily limit. See the sold out and limit messages below.",
+        "A booth can also stop for a daily limit (Pass and Pro). See the sold out and limit messages below.",
       ],
     },
 

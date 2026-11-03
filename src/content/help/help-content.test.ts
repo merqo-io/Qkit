@@ -13,7 +13,10 @@ import {
 
 const ROOT = path.resolve(__dirname, "../../..");
 const SRC = path.join(ROOT, "src");
-const HELP_DIR = path.join(SRC, "content", "help");
+const EXCLUDED_DIRS = [
+  path.join(SRC, "content", "help"),
+  path.join(SRC, "app", "dashboard", "help"),
+];
 const SOURCE_EXT = /\.(ts|tsx)$/;
 const TEST_FILE = /\.test\.(ts|tsx)$/;
 const EM_DASH = "—";
@@ -21,7 +24,7 @@ const EM_DASH = "—";
 function collectSources(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const full = path.join(dir, name);
-    if (full === HELP_DIR) continue;
+    if (EXCLUDED_DIRS.includes(full)) continue;
     if (statSync(full).isDirectory()) collectSources(full, out);
     else if (SOURCE_EXT.test(name) && !TEST_FILE.test(name)) out.push(full);
   }
@@ -31,6 +34,23 @@ function collectSources(dir: string, out: string[] = []): string[] {
 const sourceText = collectSources(SRC)
   .map((file) => readFileSync(file, "utf8"))
   .join("\n");
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+// A label counts only where a user could see it: at the start of a string
+// literal or of JSX text, so "Decline" does not match an identifier like
+// onDecline. Spaces match any whitespace because a JSX label can wrap lines.
+function appearsAsUiText(label: string): RegExp {
+  const body = label
+    .split(/\s+/)
+    .map(escapeRegExp)
+    .join(String.raw`\s+`);
+  return new RegExp(
+    String.raw`(?:["'\x60>]|\})\s*` + body + String.raw`(?![A-Za-z0-9])`,
+  );
+}
 
 function blockStrings(block: HelpBlock): string[] {
   switch (block.type) {
@@ -58,7 +78,7 @@ describe("help content drift", () => {
     "%s quotes only UI strings that still exist in src/",
     (_slug, article) => {
       const missing = article.uiLabels.filter(
-        (label) => !sourceText.includes(label),
+        (label) => !appearsAsUiText(label).test(sourceText),
       );
       const quoted = missing.map((m) => JSON.stringify(m)).join(", ");
       expect(
