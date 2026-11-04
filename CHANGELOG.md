@@ -22,6 +22,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The "Live updates interrupted" banner no longer appears on a fresh `pnpm dev` dashboard: the realtime subscription now uses a unique channel per mount and ignores callbacks after cleanup, so React StrictMode's double mount ends connected.
 - CI order e2e: the seed vendor is on the qkit tier, so the TV display spec sees counter ops again. The free-plan booth-cap check in `signed-in-smoke` now runs as a dedicated free vendor created by the e2e helper.
 - The order board tests no longer fail when they run in the first minutes after SGT midnight; they now pin the clock to mid-day SGT.
 - The order board and Completed page showed the wrong display number after more than one "Start new service" in a day (#002 where the customer saw #001). The restart log is now read with the service client, scoped to the vendor's own booths, and a failed log read logs the booth ids and error code. No migration. If the log read fails anyway, both pages show "Order numbers may be off. Refresh to retry."
