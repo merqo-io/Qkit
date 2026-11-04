@@ -6,17 +6,8 @@ export const article: HelpArticle = {
   title: "Plans",
   summary:
     "What Free, Starter and qkit include and what Over plan limit means.",
-  reviewed: "2026-11-03",
-  uiLabels: [
-    "Event pass",
-    "Over plan limit",
-    "New booth",
-    "Unlimited items & customization",
-    "Extra booths",
-    "Scheduled auto-close hours",
-    "Sold-out stock caps",
-    "Full history & trends (7/30/90d)",
-  ],
+  reviewed: "2026-11-04",
+  uiLabels: ["Event pass", "Over plan limit", "New booth"],
   covers: [
     "src/lib/plan.ts",
     "src/lib/booth/access.ts",
@@ -39,8 +30,8 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Free: the live order board and QR posters, one booth, up to 6 menu items, up to 3 option groups on an item, and the last 24 hours of stats.",
-        "Starter: one booth with Unlimited items & customization, Scheduled auto-close hours, Sold-out stock caps and the daily item limit. Stats stay at the last 24 hours.",
-        "qkit: everything in Starter, plus Extra booths, the customer queue display on the TV, order labels, order-ready push alerts and Full history & trends (7/30/90d) on the Stats page.",
+        "Starter: one booth with unlimited items and customization, scheduled auto-close hours, sold-out stock caps and the daily item limit. Stats stay at the last 24 hours.",
+        "qkit: everything in Starter, plus extra booths, the customer queue display on the TV, order labels, order-ready push alerts and full history and trends (7, 30 and 90 days) on the Stats page.",
         "Event Pass: a window of dates that gives you the qkit plan's features while it runs, with stats from the day it starts. The Plan page shows the countdown.",
       ],
     },

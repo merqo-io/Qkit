@@ -1,5 +1,6 @@
 import { Sparkles, Ticket } from "lucide-react";
-import { PlanComparisonTable } from "@merqo/ui";
+import type { ReactNode } from "react";
+import { PricingLadder, fetchPlanCatalog } from "@merqo/ui";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { TIER_LABEL } from "@/lib/plan";
 import { PassCountdown } from "./pass-countdown";
@@ -7,54 +8,32 @@ import { PageHeader } from "@/components/widgets/page-header";
 
 export const revalidate = 0;
 
-const FEATURES: {
-  label: string;
-  free: boolean;
-  starter: boolean;
-  qkit: boolean;
-}[] = [
-  { label: "Live order board", free: true, starter: true, qkit: true },
-  { label: "QR posters", free: true, starter: true, qkit: true },
-  {
-    label: "Unlimited items & customization",
-    free: false,
-    starter: true,
-    qkit: true,
-  },
-  {
-    label: "Scheduled auto-close hours",
-    free: false,
-    starter: true,
-    qkit: true,
-  },
-  { label: "Sold-out stock caps", free: false, starter: true, qkit: true },
-  { label: "Extra booths", free: false, starter: false, qkit: true },
-  {
-    label: "Customer queue display (TV)",
-    free: false,
-    starter: false,
-    qkit: true,
-  },
-  { label: "Order labels", free: false, starter: false, qkit: true },
-  { label: "Order-ready push alerts", free: false, starter: false, qkit: true },
-  {
-    label: "Full history & trends (7/30/90d)",
-    free: false,
-    starter: false,
-    qkit: true,
-  },
-];
+const STARTER_COPY = "For testing the waters as a solo operator.";
 
-const INCLUDES = {
-  free: "1 booth with up to 6 menu items, the live order board, QR posters and today's stats.",
-  starter:
-    "1 booth with unlimited menu items and customization, scheduled auto-close hours, sold-out stock caps and today's stats.",
-  qkit: "Unlimited booths, the customer queue display, order labels, order-ready push alerts and full sales history.",
-} as const;
+function describePlans(currentSlug: string) {
+  const current = (
+    <span className="font-semibold text-primary">Your current plan</span>
+  );
+  const descriptions: Record<string, ReactNode> = {
+    starter: <>{STARTER_COPY}</>,
+  };
+  descriptions[currentSlug] =
+    currentSlug === "starter" ? (
+      <>
+        {current}. {STARTER_COPY}
+      </>
+    ) : (
+      current
+    );
+  return descriptions;
+}
 
 export default async function PlanPage() {
   const { entitlement } = await requireEntitledVendor();
   const { tier, eventPass } = entitlement;
+  const catalog = await fetchPlanCatalog(
+    process.env.MERQO_BASE_URL ?? "https://www.merqo.io",
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-7">
@@ -84,25 +63,22 @@ export default async function PlanPage() {
         </p>
       )}
 
-      <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-        {INCLUDES[tier]}
-      </p>
-
       <p className="rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-muted-foreground">
         Change plan from your Merqo account.
       </p>
 
-      <PlanComparisonTable
-        tiers={[
-          { key: "free", label: "Free" },
-          { key: "starter", label: "Starter" },
-          { key: "qkit", label: "qkit" },
-        ]}
-        rows={FEATURES.map((f) => ({
-          label: f.label,
-          values: { free: f.free, starter: f.starter, qkit: f.qkit },
-        }))}
-      />
+      {catalog ? (
+        <PricingLadder
+          catalog={catalog}
+          highlight="qkit"
+          descriptions={describePlans(tier)}
+        />
+      ) : (
+        <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+          You are on the {TIER_LABEL[tier]} plan. Prices are unavailable right
+          now, please check back soon.
+        </p>
+      )}
     </div>
   );
 }
