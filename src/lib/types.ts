@@ -795,6 +795,10 @@ export interface Database {
         Args: { p_booth_id: string };
         Returns: number;
       };
+      vendor_cups_between: {
+        Args: { p_vendor_id: string; p_from: string; p_to: string };
+        Returns: number;
+      };
       start_new_service: {
         Args: { p_booth_id: string };
         Returns: boolean;
