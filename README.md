@@ -14,7 +14,8 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit tagged `v0.34.2`, which treats a Next.js `redirect()` from a server
+commit tagged `v0.39.0`, which adds the `PricingLadder` the plan page renders.
+Since `v0.34.2` it treats a Next.js `redirect()` from a server
 action as navigation, so the dashboard's Sign out no longer flashes
 "NEXT_REDIRECT". Since `v0.34.0` it has `DataCollectionNotice`, the PDPA
 point-of-collection line the customer order form shows above its submit button

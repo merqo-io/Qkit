@@ -1,25 +1,43 @@
 // @vitest-environment jsdom
-// Render the page with a mocked entitlement read.
+// Render the page with a mocked entitlement read and plan catalog.
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 import type { Entitlement, Tier } from "@/lib/plan";
 import PlanPage from "./page";
 
-// The tier badge at the top of the page can share text with the grid's own
-// tier column headers (most notably "Free" on the free tier), so every
-// assertion below is scoped to the grid's own container.
-function getGrid(container: HTMLElement) {
-  const grid = container.querySelector(".overflow-hidden.rounded-2xl.border");
-  if (!grid) throw new Error("comparison grid container not found");
-  return within(grid as HTMLElement);
-}
-
-const { requireEntitledVendor } = vi.hoisted(() => ({
+const { requireEntitledVendor, fetchPlanCatalog } = vi.hoisted(() => ({
   requireEntitledVendor: vi.fn(),
+  fetchPlanCatalog: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/get-entitlement", () => ({ requireEntitledVendor }));
+vi.mock("@merqo/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@merqo/ui")>()),
+  fetchPlanCatalog,
+}));
+
+const CATALOG = {
+  plans: [
+    {
+      slug: "starter",
+      kind: "tier",
+      name: "Starter",
+      monthly_cents: 900,
+      annual_cents: 9000,
+      kits: ["qkit"],
+    },
+    {
+      slug: "qkit",
+      kind: "kit",
+      name: "qkit",
+      monthly_cents: 1600,
+      annual_cents: 16000,
+      kits: ["qkit"],
+    },
+  ],
+  event_pass: { per_cup_cents: 15, min_cents: 1000, cap_cents: 5000, days: 3 },
+};
 
 function entitlement(tier: Tier, over: Partial<Entitlement> = {}) {
   return { entitlement: { ...ENTITLEMENTS[tier], ...over } };
@@ -27,58 +45,56 @@ function entitlement(tier: Tier, over: Partial<Entitlement> = {}) {
 
 beforeEach(() => {
   requireEntitledVendor.mockReset();
+  fetchPlanCatalog.mockReset().mockResolvedValue(CATALOG);
 });
 
 describe("PlanPage", () => {
-  it("renders the Free/Starter/qkit header columns via PlanComparisonTable", async () => {
+  it("fetches the catalog from the merqo base url", async () => {
     requireEntitledVendor.mockResolvedValue(entitlement("free"));
-    const { container } = render(await PlanPage());
-    const grid = getGrid(container);
-
-    expect(grid.getByText("Feature")).toBeInTheDocument();
-    expect(grid.getByText("Free")).toBeInTheDocument();
-    expect(grid.getByText("Starter")).toBeInTheDocument();
-    expect(grid.getByText("qkit")).toBeInTheDocument();
-  });
-
-  it("renders every FEATURES row label, in order", async () => {
-    requireEntitledVendor.mockResolvedValue(entitlement("free"));
-    const { container } = render(await PlanPage());
-
-    const rowDivs = Array.from(
-      container.querySelectorAll(
-        ".overflow-hidden.rounded-2xl.border > .border-t",
-      ),
+    render(await PlanPage());
+    expect(fetchPlanCatalog).toHaveBeenCalledWith(
+      process.env.MERQO_BASE_URL ?? "https://www.merqo.io",
     );
-    expect(rowDivs.map((el) => el.querySelector("span")?.textContent)).toEqual([
-      "Live order board",
-      "QR posters",
-      "Unlimited items & customization",
-      "Scheduled auto-close hours",
-      "Sold-out stock caps",
-      "Extra booths",
-      "Customer queue display (TV)",
-      "Order labels",
-      "Order-ready push alerts",
-      "Full history & trends (7/30/90d)",
-    ]);
   });
 
-  it("marks the right tiers on a row", async () => {
+  it("renders the ladder with qkit highlighted and live prices", async () => {
     requireEntitledVendor.mockResolvedValue(entitlement("free"));
     const { container } = render(await PlanPage());
-    const grid = getGrid(container);
 
-    const extraBooths = grid.getByText("Extra booths").closest("div");
-    expect(extraBooths?.querySelectorAll("svg").length).toBe(1);
-    const liveBoard = grid.getByText("Live order board").closest("div");
-    expect(liveBoard?.querySelectorAll("svg").length).toBe(3);
+    expect(screen.getByText("S$16")).toBeInTheDocument();
+    expect(screen.getByText("S$9")).toBeInTheDocument();
+    const highlighted = container.querySelector("li[aria-current='true']");
+    expect(highlighted).toHaveTextContent("qkit");
+    expect(highlighted).toHaveTextContent("Recommended");
+    expect(highlighted).not.toHaveTextContent("Starter");
   });
 
-  it("shows no prices and points to the Merqo account for changes", async () => {
+  it("marks the vendor's current tier and keeps the Starter identity copy", async () => {
     requireEntitledVendor.mockResolvedValue(entitlement("starter"));
     const { container } = render(await PlanPage());
-    expect(container.textContent).not.toMatch(/\$\s?\d/);
+
+    const starterCard = screen
+      .getByRole("heading", { name: "Starter" })
+      .closest("li");
+    expect(starterCard).toHaveTextContent("Your current plan");
+    expect(starterCard).toHaveTextContent("testing the waters");
+    expect(container.textContent?.match(/Your current plan/g)).toHaveLength(1);
+  });
+
+  it("shows the current plan and a calm line, with no prices, when the catalog is null", async () => {
+    fetchPlanCatalog.mockResolvedValue(null);
+    requireEntitledVendor.mockResolvedValue(entitlement("starter"));
+    const { container } = render(await PlanPage());
+
+    expect(container.textContent).toContain("You are on the Starter plan");
+    expect(container.textContent).toContain("Prices are unavailable");
+    expect(container.textContent).not.toMatch(/S?\$\s?\d/);
+    expect(container.querySelector("li")).toBeNull();
+  });
+
+  it("points to the Merqo account for changes", async () => {
+    requireEntitledVendor.mockResolvedValue(entitlement("starter"));
+    const { container } = render(await PlanPage());
     expect(container.textContent).toContain("Change plan from your Merqo");
   });
 
