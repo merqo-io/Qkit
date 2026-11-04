@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ENTITLEMENTS } from "@/lib/plan.fixtures";
 import type { Entitlement, Tier } from "@/lib/plan";
+import type { PlanCatalog } from "@merqo/ui";
 import PlanPage from "./page";
 
 const { requireEntitledVendor, fetchPlanCatalog } = vi.hoisted(() => ({
@@ -17,7 +18,7 @@ vi.mock("@merqo/ui", async (importOriginal) => ({
   fetchPlanCatalog,
 }));
 
-const CATALOG = {
+const CATALOG: PlanCatalog = {
   plans: [
     {
       slug: "starter",
@@ -89,6 +90,46 @@ describe("PlanPage", () => {
     expect(container.textContent).toContain("You are on the Starter plan");
     expect(container.textContent).toContain("Prices are unavailable");
     expect(container.textContent).not.toMatch(/S?\$\s?\d/);
+    expect(container.querySelector("li")).toBeNull();
+  });
+
+  it("states the current plan when the catalog has no matching plan for a free vendor", async () => {
+    requireEntitledVendor.mockResolvedValue(entitlement("free"));
+    const { container } = render(await PlanPage());
+
+    expect(container.textContent).toContain("You are on the Free plan.");
+    expect(container.textContent).not.toContain("Your current plan");
+    expect(container.querySelectorAll("li")).toHaveLength(2);
+  });
+
+  it("states the current plan when catalog slugs do not match the tier", async () => {
+    fetchPlanCatalog.mockResolvedValue({
+      ...CATALOG,
+      plans: CATALOG.plans.map((plan) => ({
+        ...plan,
+        slug: `other_${plan.slug}`,
+      })),
+    });
+    requireEntitledVendor.mockResolvedValue(entitlement("starter"));
+    const { container } = render(await PlanPage());
+
+    expect(container.textContent).toContain("You are on the Starter plan.");
+    expect(container.textContent).not.toContain("Your current plan");
+  });
+
+  it("does not repeat the plan line when the current tier is listed", async () => {
+    requireEntitledVendor.mockResolvedValue(entitlement("starter"));
+    const { container } = render(await PlanPage());
+    expect(container.textContent).not.toContain("You are on the");
+  });
+
+  it("falls back when the catalog fetch rejects", async () => {
+    fetchPlanCatalog.mockRejectedValue(new Error("boom"));
+    requireEntitledVendor.mockResolvedValue(entitlement("qkit"));
+    const { container } = render(await PlanPage());
+
+    expect(container.textContent).toContain("You are on the qkit plan");
+    expect(container.textContent).toContain("Prices are unavailable");
     expect(container.querySelector("li")).toBeNull();
   });
 
