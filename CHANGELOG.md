@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists, matching `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 - The vendor plan page renders the shared `PricingLadder` (`@merqo/ui` v0.39.0) with live prices from merqo's plan catalog, qkit highlighted and the vendor's current tier marked, replacing the hard-coded comparison table. When the catalog is unreachable it shows the current plan and a calm "prices unavailable" line.
 - Demo recorder: the `come-back` scene now records the vendor socials footer and the Telegram connect beat. `pnpm demo:merqo` runs a stand-in for merqo's connect-token and notify endpoints, `seed-socials.sql` gives the demo booth its links, and `sold-out`, `multi-booth` and `come-back` each record and compose to a 1080x1920 mp4 against the local stack. The recorder also falls back to `docker exec` when `psql` is missing.
 - Demo recorder: the `tour` and `paynow` scenes are live-verified. The tour dismisses the first-visit booths overlay before typing the stall name, and board taps re-open the Incoming or Accepted tab until the ticket is on screen. The paykit mock's pay page now mirrors paykit's PayNow page (QR, screenshot upload, I've paid), and multi-line captions wrap evenly.

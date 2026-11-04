@@ -148,7 +148,7 @@ describe("admin vendor detail", () => {
     expect(screen.getByText("$6.00")).toBeInTheDocument();
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(screen.getByText("0d ago")).toBeInTheDocument();
-    expect(screen.getByText("qkit (founder)")).toBeInTheDocument();
+    expect(screen.getByText("Pro (founder)")).toBeInTheDocument();
     expect(predicates).toHaveBeenCalledWith("orders", "booth_id", [
       "b",
       "a",

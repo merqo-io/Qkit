@@ -128,7 +128,7 @@ describe("PlanPage", () => {
     requireEntitledVendor.mockResolvedValue(entitlement("qkit"));
     const { container } = render(await PlanPage());
 
-    expect(container.textContent).toContain("You are on the qkit plan");
+    expect(container.textContent).toContain("You are on the Pro plan");
     expect(container.textContent).toContain("Prices are unavailable");
     expect(container.querySelector("li")).toBeNull();
   });

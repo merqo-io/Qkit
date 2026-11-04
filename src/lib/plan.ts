@@ -2,10 +2,15 @@ export type Tier = "free" | "starter" | "qkit";
 
 export type StatsRange = "24h" | "7d" | "30d" | "90d";
 
+/**
+ * Server-safe copy of the shared `tierLabel` from `@merqo/ui`, which is
+ * client-only and fails when called from a Server Component. Keep the labels
+ * identical to it.
+ */
 export const TIER_LABEL: Record<Tier, string> = {
   free: "Free",
   starter: "Starter",
-  qkit: "qkit",
+  qkit: "Pro",
 };
 
 const ALL_RANGES: readonly StatsRange[] = ["24h", "7d", "30d", "90d"];

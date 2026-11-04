@@ -1,8 +1,8 @@
 import { Sparkles, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import { PricingLadder, fetchPlanCatalog } from "@merqo/ui";
-import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { TIER_LABEL } from "@/lib/plan";
+import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { PassCountdown } from "./pass-countdown";
 import { PageHeader } from "@/components/widgets/page-header";
 
