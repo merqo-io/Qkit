@@ -14,6 +14,7 @@
 
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
@@ -431,6 +432,7 @@ async function editMenu(page, boothId, { prices = false, stock = {} } = {}) {
  * demo vendor.
  */
 async function enablePayment(page, boothId) {
+  seedPaykit();
   await page.goto(`${state.baseUrl}/dashboard/booths/${boothId}`, {
     waitUntil: "domcontentloaded",
   });
@@ -460,86 +462,8 @@ async function enablePayment(page, boothId) {
  * land: "status" (numbered status page), "pay" (sent off to paykit's page) or
  * "form" (stop with the checkout sheet's Place order tapped, no wait).
  */
-/** Deterministic QR-looking grid; a visual stand-in, not a scannable code. */
-function fakeQrSvg(seed) {
-  const n = 25;
-  const corners = [
-    [0, 0],
-    [0, n - 7],
-    [n - 7, 0],
-  ];
-  let h = 2166136261;
-  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  let cells = "";
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      const corner = corners.find(
-        ([fr, fc]) => r >= fr && r < fr + 7 && c >= fc && c < fc + 7,
-      );
-      let on;
-      if (corner) {
-        const d = Math.min(
-          r - corner[0],
-          corner[0] + 6 - r,
-          c - corner[1],
-          corner[1] + 6 - c,
-        );
-        on = d === 0 || d >= 2;
-      } else {
-        h = Math.imul(h ^ (r * 31 + c), 16777619) >>> 0;
-        on = (h >>> 7) % 100 < 48;
-      }
-      if (on) cells += `<rect x="${c}" y="${r}" width="1" height="1"/>`;
-    }
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" width="260" height="260"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#6d1a8b">${cells}</g></svg>`;
-}
-
-/**
- * The local paykit mock serves a bare test page. For the recording, swap its
- * GET /pay/:id response for a PayNow-style screen that posts to the same claim
- * action, so the mock's behaviour is unchanged and only the look differs.
- */
-async function dressPayPage(page) {
-  await page.route(/\/pay\/[^/?]+(\?.*)?$/, async (route) => {
-    if (route.request().method() !== "GET") return route.continue();
-    const upstream = await route.fetch();
-    const html = await upstream.text();
-    const action = /action="([^"]+)"/.exec(html)?.[1];
-    const amount = /Amount:\s*([\d.]+)/.exec(html)?.[1];
-    if (!action || !amount) return route.fulfill({ response: upstream });
-    const id = /\/pay\/([^/]+)\/claim/.exec(action)?.[1] ?? "demo";
-    const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pay with PayNow</title><style>
-body{margin:0;font-family:system-ui,sans-serif;background:#f6f1fa;color:#1d1226}
-main{max-width:390px;margin:0 auto;padding:28px 20px;text-align:center}
-.brand{font-weight:700;color:#6d1a8b;letter-spacing:.04em}
-h1{font-size:34px;margin:8px 0 2px}
-.sub{color:#6b5a78;font-size:14px;margin-bottom:18px}
-.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 6px 24px rgba(80,30,110,.12)}
-.hint{font-size:13px;color:#6b5a78;margin:12px 0}
-label.up{display:block;border:1.5px dashed #b89acb;border-radius:12px;padding:12px;font-size:14px;color:#6d1a8b;margin:12px 0}
-button{width:100%;border:0;border-radius:14px;background:#6d1a8b;color:#fff;font-size:18px;font-weight:600;padding:15px}
-</style></head><body><main>
-<div class="brand">PayNow</div>
-<h1>S$${amount}</h1>
-<div class="sub">Sunrise Coffee Cart</div>
-<form class="card" method="post" action="${action}" enctype="multipart/form-data">
-${fakeQrSvg(id)}
-<div class="hint">Scan with your banking app, then tap the button.</div>
-<label class="up">Add payment screenshot <input type="file" name="proof" accept="image/*" style="display:block;margin:8px auto 0;max-width:100%"></label>
-<button type="submit">I've paid</button>
-</form></main></body></html>`;
-    return route.fulfill({
-      status: 200,
-      contentType: "text/html; charset=utf-8",
-      body,
-    });
-  });
-}
-
 async function customerOrder(page, boothId, opts) {
   const { name, after = "status", plainIndex = 0 } = opts;
-  if (after === "pay") await dressPayPage(page);
   await page.goto(`${state.baseUrl}/order/${boothId}`, {
     waitUntil: "domcontentloaded",
   });
@@ -609,7 +533,33 @@ async function payOnPaykit(page, boothId, { withProof = true } = {}) {
     timeout: 20000,
   });
   await page.getByText(/payment sent/i).waitFor({ timeout: 10000 });
+  await deliverPaykitCallback(boothId);
   await beat(900);
+}
+
+/**
+ * Paykit only calls a kit back over https, which a loopback stack cannot
+ * serve, so the recorder sends the same notification itself. qkit ignores the
+ * body beyond order_ref and re-reads the status from paykit, so the order
+ * reaches the board exactly as it would in production.
+ */
+async function deliverPaykitCallback(boothId) {
+  const secret = process.env.DEMO_PAYKIT_CALLBACK_SECRET;
+  if (!process.env.DEMO_PAYKIT_DB_URL || !secret) return;
+  const orderId = psql({
+    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
+    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+    query: `select id from qkit.orders where booth_id = '${boothId}' order by created_at desc limit 1`,
+  });
+  const res = await fetch(`${state.baseUrl}/api/paykit/payment-status`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify({ order_ref: orderId }),
+  });
+  if (!res.ok) throw new Error(`paykit callback failed (${res.status})`);
 }
 
 // Vendor board helpers -----------------------------------------------------
@@ -699,30 +649,79 @@ function grantQkitTier() {
   runDemoSql("grant-qkit-tier.sql");
 }
 
-function runDemoSql(file) {
-  const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
-  const sql = path.join(HERE, file);
-  let res = spawnSync("psql", [dbUrl, "-v", "ON_ERROR_STOP=1", "-f", sql], {
-    stdio: "inherit",
-  });
+/**
+ * Run a SQL file or one query against a loopback Postgres. Windows has no host
+ * psql, so it falls back to the db container's own, which ignores the url for
+ * the connection but still needs it set as the loopback guard.
+ */
+function psql({ dbUrl, container, file, query, vars = {} }) {
+  const varArgs = Object.entries(vars).flatMap(([k, v]) => ["-v", `${k}=${v}`]);
+  const base = ["-v", "ON_ERROR_STOP=1", ...varArgs];
+  const sqlPath = file ? path.join(HERE, file) : undefined;
+  const target = query ? ["-tA", "-c", query] : ["-f", sqlPath];
+  const opts = { encoding: "utf8", stdio: ["pipe", "pipe", "inherit"] };
+  let res = spawnSync("psql", [dbUrl, ...base, ...target], opts);
   if (res.error?.code === "ENOENT") {
-    // Windows has no host psql; the local Supabase db container carries one.
     res = spawnSync(
       "docker",
       [
         "exec",
         "-i",
-        process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+        container,
         "psql",
         "-U",
         "postgres",
-        "-v",
-        "ON_ERROR_STOP=1",
+        ...base,
+        ...(query ? target : []),
       ],
-      { input: fs.readFileSync(sql), stdio: ["pipe", "inherit", "inherit"] },
+      { ...opts, input: query ? undefined : fs.readFileSync(sqlPath) },
     );
   }
-  if (res.status !== 0) throw new Error(`psql failed running ${file}`);
+  if (res.status !== 0) throw new Error(`psql failed (${file ?? query})`);
+  return res.stdout.trim();
+}
+
+function runDemoSql(file) {
+  psql({
+    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
+    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+    file,
+  });
+}
+
+/**
+ * With DEMO_PAYKIT_DB_URL set, the recording talks to a real local paykit
+ * (README), which needs the demo vendor, a PayNow setup and qkit's kit key on
+ * file before qkit offers "Take payment". Unset, the e2e paykit mock answers
+ * and there is nothing to seed.
+ */
+function seedPaykit() {
+  if (!process.env.DEMO_PAYKIT_DB_URL) return;
+  const vendorId = psql({
+    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
+    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+    query: `select id from auth.users where email = '${EMAIL}'`,
+  });
+  if (!/^[0-9a-f-]{36}$/.test(vendorId)) {
+    throw new Error(
+      "Demo vendor not found in qkit auth.users for paykit seed.",
+    );
+  }
+  const secret = process.env.DEMO_PAYKIT_KIT_SECRET;
+  if (!secret) throw new Error("DEMO_PAYKIT_KIT_SECRET is not set (README).");
+  psql({
+    dbUrl: localDemoDbUrl(process.env.DEMO_PAYKIT_DB_URL, "DEMO_PAYKIT_DB_URL"),
+    container:
+      process.env.DEMO_PAYKIT_DB_CONTAINER ?? "supabase_db_paykit_demo",
+    file: "seed-paykit.sql",
+    vars: {
+      vendor_id: vendorId,
+      kit_secret_hash: createHash("sha256")
+        .update(secret, "utf8")
+        .digest("hex"),
+      return_origin: state.baseUrl,
+    },
+  });
 }
 
 /**
@@ -910,6 +909,7 @@ async function paynowScene({ browser, scene, dir }) {
   });
   await step(C.proof, () => payOnPaykit(phone, seed.boothId));
   await step(C.tap, async () => {
+    await openBoard(board);
     await revealTicket(board, PAYING_CUSTOMER);
     markPop();
     await beat(900);

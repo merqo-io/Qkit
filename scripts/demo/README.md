@@ -23,22 +23,22 @@ alone, so a caption or layout change never needs a re-record.
 `node scripts/demo/record.mjs --list` prints this table. Unknown scene names
 exit non-zero with the list.
 
-| Scene         | Episode | Layout | Status      | Notes                                                                                                                  |
-| ------------- | ------- | ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `tour`        | none    | single | implemented | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                             |
-| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                                                      |
-| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                                          |
-| `paynow`      | 3       | split  | implemented | Runs against the paykit mock (`pnpm demo:paykit`). The screenshot upload is on paykit's page and is skipped if absent. |
-| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                                               |
-| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                                                      |
-| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                                               |
-| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                                                |
-| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                     |
-| `sold-out`    | 9       | single | implemented | Needs the qkit tier (stock limits); see `DEMO_DB_URL`.                                                                 |
-| `stats`       | 10      | single | implemented | Free plan only: no history, trends or margin.                                                                          |
-| `multi-booth` | 11      | single | implemented | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                     |
-| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                                                  |
-| `come-back`   | 13      | single | implemented | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`.                           |
+| Scene         | Episode | Layout | Status      | Notes                                                                                        |
+| ------------- | ------- | ------ | ----------- | -------------------------------------------------------------------------------------------- |
+| `tour`        | none    | single | implemented | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                   |
+| `live-pop`    | 1       | split  | implemented | Customer orders, ticket pops on the board, chime.                                            |
+| `setup`       | 2       | single | implemented | Sign up, stall name, menu, QR, all on camera.                                                |
+| `paynow`      | 3       | split  | implemented | Shows paykit's real hosted pay page; needs the local paykit stack (see "Real paykit stack"). |
+| `status`      | 4       | split  | implemented | Two orders seeded ahead, so "orders ahead of you" shows.                                     |
+| `tv-screen`   | 5       | single | implemented | Landscape 1280x720 pickup screen.                                                            |
+| `options`     | 6       | single | implemented | Milk and Sugar options, then the ticket.                                                     |
+| `walk-up`     | 7       | split  | implemented | QR order, then New order for a walk-up.                                                      |
+| `batch`       | 8       | single | implemented | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                           |
+| `sold-out`    | 9       | single | implemented | Needs the qkit tier (stock limits); see `DEMO_DB_URL`.                                       |
+| `stats`       | 10      | single | implemented | Free plan only: no history, trends or margin.                                                |
+| `multi-booth` | 11      | single | implemented | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                           |
+| `im-here`     | 12      | split  | implemented | Booth set to hold prep until arrival.                                                        |
+| `come-back`   | 13      | single | implemented | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`. |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -48,18 +48,20 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
 
 ## Files
 
-| File                  | Does                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| `scenes.mjs`          | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                      |
-| `filters.mjs`         | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                       |
-| `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                        |
-| `seed-socials.sql`    | Gives the demo booth social links for the come-back footer                                         |
-| `reset.sql`           | Wipes the fixed demo account so each run starts identical                                          |
-| `grant-qkit-tier.sql` | Gives the demo vendor the qkit tier; run by `record.mjs` only for scenes that show a gated feature |
-| `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                              |
-| `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                |
-| `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                          |
-| `out/`                | Generated artifacts (git-ignored)                                                                  |
+| File                  | Does                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `scenes.mjs`          | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                              |
+| `filters.mjs`         | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                               |
+| `paykit-stack.mjs`    | Copies paykit's migrations to a scratch Supabase project and starts or stops it (`pnpm demo:paykit-stack`) |
+| `seed-paykit.sql`     | Per-run paykit rows: the demo vendor's PayNow config and qkit's kit key                                    |
+| `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                                |
+| `seed-socials.sql`    | Gives the demo booth social links for the come-back footer                                                 |
+| `reset.sql`           | Wipes the fixed demo account so each run starts identical                                                  |
+| `grant-qkit-tier.sql` | Gives the demo vendor the qkit tier; run by `record.mjs` only for scenes that show a gated feature         |
+| `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                                      |
+| `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                        |
+| `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                                  |
+| `out/`                | Generated artifacts (git-ignored)                                                                          |
 
 ## Prerequisites
 
@@ -78,7 +80,8 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    NEXT_PUBLIC_PAYKIT_URL=http://127.0.0.1:4319 PAYKIT_KIT_SECRET=e2e-mock-secret pnpm dev
    ```
    The mock's pay page is a plain test fixture, not paykit's real page. Do not
-   use real payment credentials.
+   use real payment credentials. `paynow` shows the real page instead; see
+   "Real paykit stack" below.
    For `come-back` also run `pnpm demo:merqo` (127.0.0.1:4320) and add
    `MERQO_BASE_URL=http://127.0.0.1:4320 MERQO_CUSTOMER_SECRET=demo-merqo-secret`
    to the dev server env. Without it the Telegram link is absent and the beat times out. The link shows
@@ -92,6 +95,47 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    `DEMO_DB_CONTAINER` (default `supabase_db_qkit`). That fallback ignores
    `DEMO_DB_URL` for the connection, but the variable must still be set (for
    example `postgresql://postgres:postgres@127.0.0.1:54322/postgres`).
+
+## Real paykit stack (for `paynow`)
+
+paykit's own Supabase project would collide with qkit's ports, so the helper
+copies paykit's migrations into a scratch project (id `paykit_demo`, every port
+shifted by +100) outside both repos. Nothing in `../paykit` or qkit's
+`supabase/config.toml` is touched.
+
+```bash
+export DEMO_PAYKIT_REPO="/path/to/paykit"   # default ../paykit; needed from a nested worktree
+pnpm demo:paykit-stack up                    # scratch stack: API 54421, DB 54422, studio 54423
+```
+
+Then run paykit with the scratch stack's URL and keys (from
+`pnpm exec supabase status -o env --workdir <tmpdir>/qkit-demo-paykit`):
+
+```bash
+# in the paykit repo
+NEXT_PUBLIC_SUPABASE_URL=... NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... SUPABASE_SECRET_KEY=... pnpm exec next dev -p 3002
+```
+
+and start qkit's `pnpm dev` with the kit secret and callback secret (any 64 hex
+chars for the kit secret; paykit stores only its sha256):
+
+```bash
+NEXT_PUBLIC_PAYKIT_URL=http://127.0.0.1:3002 PAYKIT_KIT_SECRET=<64 hex> PAYKIT_CALLBACK_SECRET=<any> pnpm dev
+```
+
+Record with the same values so the recorder can seed paykit per run
+(`seed-paykit.sql`):
+
+```bash
+DEMO_PAYKIT_DB_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres DEMO_PAYKIT_KIT_SECRET=<the PAYKIT_KIT_SECRET above> DEMO_PAYKIT_CALLBACK_SECRET=<the PAYKIT_CALLBACK_SECRET above> node scripts/demo/record.mjs --scene paynow
+```
+
+`DEMO_PAYKIT_DB_CONTAINER` (default `supabase_db_paykit_demo`) is the `docker exec`
+fallback when `psql` is missing. paykit only calls a kit back over https, which
+a loopback stack cannot serve, so after the customer claims, the recorder posts
+the same notification to qkit's `/api/paykit/payment-status`; qkit then reads
+the status from paykit as in production. Stop the stack with
+`pnpm demo:paykit-stack down`.
 
 ## Run
 

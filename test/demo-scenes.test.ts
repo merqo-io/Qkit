@@ -195,3 +195,17 @@ describe("page host guard", () => {
     );
   });
 });
+
+describe("paykit scratch stack config", () => {
+  it("renames the project and smtp table and shifts every active port", async () => {
+    const { patchConfig } = await import("../scripts/demo/paykit-stack.mjs");
+    const out = patchConfig(
+      'project_id = "paykit"\n[api]\nport = 54321\n# port = 1\n[local_smtp]\nsmtp_port = 2525',
+    );
+    expect(out).toContain('project_id = "paykit_demo"');
+    expect(out).toContain("port = 54421");
+    expect(out).toContain("# port = 1");
+    expect(out).toContain("[inbucket]");
+    expect(out).toContain("smtp_port = 2625");
+  });
+});
