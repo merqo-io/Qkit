@@ -5,7 +5,7 @@ export const article: HelpArticle = {
   category: "getting-started",
   title: "Getting started",
   summary: "Build your first booth, print the QR and take your first order.",
-  reviewed: "2026-11-03",
+  reviewed: "2026-11-05",
   uiLabels: [
     "Create account",
     "Continue with Google",
@@ -68,7 +68,7 @@ export const article: HelpArticle = {
         "On the dashboard, tap Add your first booth. Later booths are added from the Booths page with New booth.",
         "Type your Booth name. Customers see it at the top of the ordering page. You can add a banner photo too.",
         "On a new booth, leave the Open for orders box ticked to take orders as soon as it is saved. Untick it to keep the booth paused for now.",
-        "Everything else on the form can wait. Opening hours that open and close the booth automatically are available on the Starter and qkit plans and during an Event Pass.",
+        "Everything else on the form can wait. Opening hours that open and close the booth automatically are available on the Starter and Pro plans and during an Event Pass.",
         "Tap Save booth.",
       ],
     },

@@ -4,9 +4,8 @@ export const article: HelpArticle = {
   slug: "plans",
   category: "plans",
   title: "Plans",
-  summary:
-    "What Free, Starter and qkit include and what Over plan limit means.",
-  reviewed: "2026-11-04",
+  summary: "What Free, Starter and Pro include and what Over plan limit means.",
+  reviewed: "2026-11-05",
   uiLabels: ["Event pass", "Over plan limit", "New booth"],
   covers: [
     "src/lib/plan.ts",
@@ -22,7 +21,7 @@ export const article: HelpArticle = {
   body: [
     {
       type: "paragraph",
-      text: "qkit has three plans: Free, Starter and qkit, plus an optional Event Pass for a set of dates. Your current plan is shown at the top of the Plan page. This guide lists what each one allows, and what happens to your booths when your plan changes.",
+      text: "qkit has three plans: Free, Starter and Pro, plus an optional Event Pass for a set of dates. Your current plan is shown at the top of the Plan page. This guide lists what each one allows, and what happens to your booths when your plan changes.",
     },
 
     { type: "heading", level: 2, text: "What each plan includes" },
@@ -31,13 +30,13 @@ export const article: HelpArticle = {
       items: [
         "Free: the live order board and QR posters, one booth, up to 6 menu items, up to 3 option groups on an item, and the last 24 hours of stats.",
         "Starter: one booth with unlimited items and customization, scheduled auto-close hours, sold-out stock caps and the daily item limit. Stats stay at the last 24 hours.",
-        "qkit: everything in Starter, plus extra booths, the customer queue display on the TV, order labels, order-ready push alerts and full history and trends (7, 30 and 90 days) on the Stats page.",
-        "Event Pass: a window of dates that gives you the qkit plan's features while it runs, with stats from the day it starts. The Plan page shows the countdown.",
+        "Pro: everything in Starter, plus extra booths, the customer queue display on the TV, order labels, order-ready push alerts and full history and trends (7, 30 and 90 days) on the Stats page.",
+        "Event Pass: a window of dates that gives you the Pro plan's features while it runs, with stats from the day it starts. The Plan page shows the countdown.",
       ],
     },
     {
       type: "paragraph",
-      text: "Some things work on every plan: taking payment through paykit, Telegram alerts, walk-up entry, and the Max items per order limit. The TV queue screen, order labels and order-ready push alerts need the qkit plan or a running Event Pass.",
+      text: "Some things work on every plan: taking payment through paykit, Telegram alerts, walk-up entry, and the Max items per order limit. The TV queue screen, order labels and order-ready push alerts need the Pro plan or a running Event Pass.",
     },
     {
       type: "note",
@@ -50,9 +49,9 @@ export const article: HelpArticle = {
       items: [
         "Menu items: on Free, Add item is replaced by an upgrade prompt once you have 6 items.",
         "Option groups: on Free, an item can carry 3 groups of choices such as size or toppings.",
-        "Opening hours: Free shows a locked card instead of the hours editor. You open and pause by hand. Starter and qkit can set hours so ordering stops automatically.",
+        "Opening hours: Free shows a locked card instead of the hours editor. You open and pause by hand. Starter and Pro can set hours so ordering stops automatically.",
         "Sold-out limit and Daily item limit: locked on Free, with an upgrade prompt in place of the field.",
-        "Stats: Free and Starter show the last 24 hours. qkit adds 7, 30 and 90 day views.",
+        "Stats: Free and Starter show the last 24 hours. Pro adds 7, 30 and 90 day views.",
       ],
     },
 
@@ -66,7 +65,7 @@ export const article: HelpArticle = {
       items: [
         "An Over plan limit booth still exists and you can edit it, but customers cannot order from it.",
         "This is different from Paused, which is the switch you turn yourself. Paused booths come back when you open them.",
-        "Moving to the qkit plan or starting an Event Pass serves every active booth again. Nothing is deleted or reset.",
+        "Moving to the Pro plan or starting an Event Pass serves every active booth again. Nothing is deleted or reset.",
         "On Free, New booth is replaced by Upgrade to add booths once you already have a booth, counting any that are over the limit.",
       ],
     },
