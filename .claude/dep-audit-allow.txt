@@ -1,0 +1,4 @@
+# Dependency-audit allowlist, read by .claude/deps-gate.sh. One advisory per line:
+#   <GHSA-... | CVE-...> <YYYY-MM-DD expiry> <reason>
+# An entry stops suppressing on its expiry date and may not be more than 180 days out.
+# Add an entry only for an advisory that was audited and cannot be fixed by upgrading yet.

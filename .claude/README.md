@@ -6,6 +6,8 @@ The Claude Code agent harness for this project: hooks, project skills, harness i
 
 ## Contents
 
+- `deps-gate.sh` + `dep-audit-allow.txt`: the fail-closed dependency-audit gate
+  run by `security.yml`, and its expiring advisory allowlist.
 - `harness.json` — templateCentral drift-tracking manifest: records `templatecentral_version` (5.15.0), the stack adaptation note ("Next 16 + Supabase — not better-auth/Drizzle"), a running `review_note` log of what was/wasn't adopted from later templateCentral versions, `adoWiki`/`richReadme` (per-folder-README opt-ins from 5.10/5.11 — both explicit booleans, not left implicit), and `seeded_files` (per-file SHA-256 `origin_hash`) used to detect drift against the upstream template — now covering the full husky-based hook/git-hook layer plus the 5.13 comment-hygiene enforcement layer (see below), not just the pre-migration set.
 - `comment-hygiene-patterns.txt` — the canonical change-narration/oversized-comment-block pattern list (13 lines: 10 anchored keyword patterns + a date/ticket-ref/issue-ref set) read at runtime by `hooks/post-edit-comment-check.sh`, `.husky/lib/comment-hygiene.sh`, and the `comment-hygiene` CI job — one source, three enforcement surfaces.
 - `hooks/` — shell/JS scripts invoked by the hook commands wired in `settings.json`: `protect-files.sh`, `block-no-verify.sh`, `user-prompt-guard.cjs`, `post-edit-typecheck.sh`, `post-edit-comment-check.sh`, `post-tool-failure.sh`, `stop-checks.sh`, `subagent-stop.sh`, `session-context.sh`, `skill-usage-log.sh`, plus the pre-existing manual `verify.sh` gate (own README).

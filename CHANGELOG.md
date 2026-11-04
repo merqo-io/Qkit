@@ -36,6 +36,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Internal: the AI harness follows templateCentral 7.2.2. `engines.node` is `>=24.22.1` and CI pins Node 24.22.1, the dependency audit is the fail-closed `.claude/deps-gate.sh` with an expiring allowlist in `.claude/dep-audit-allow.txt`, and the guard against committing to `main` accepts a strict `&&` chain whose `cd` lands on a feature branch.
 - The plan page shows no prices and points vendors to their Merqo account. `vendor-status` reports the effective tier, `vendor-activity` reports `pro` for any paid tier, and `metrics` counts paid vendors from the entitlement cache (`pending_upgrade_requests` is now always 0).
 - The admin console no longer manages plans, passes or pricing; the vendor list and detail page show each vendor's cached tier and Event Pass.
 - Internal: pgTAP coverage for migration 0111 (`supabase/tests/order-limiter-hardening.test.sql`): the `ORDER_BUSY` cap at 30 unpaid orders, the 180 a minute basket-hold limit and the `place_order`/`hold_cart` grants.
