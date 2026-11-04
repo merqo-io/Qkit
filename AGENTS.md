@@ -1,4 +1,4 @@
-<!-- templateCentral: nextjs@6.0.4 (Supabase variant — NOT better-auth/Drizzle) -->
+<!-- templateCentral: nextjs@7.2.2 (Supabase variant — NOT better-auth/Drizzle) -->
 
 # AGENTS.md — qkit
 
@@ -17,7 +17,7 @@ orders; customers order from a QR-linked booth page and track status in realtime
 
 Next.js 16 · App Router · Turbopack · TypeScript strict · Tailwind v4 · shadcn/ui
 (new-york) · React Hook Form · Zod · Supabase (`@supabase/ssr`)
-Vitest · pnpm 11 · Node ≥24 · deploy target: Vercel
+Vitest · pnpm 11 · Node ≥24.22.1 · deploy target: Vercel
 
 ## Commands
 
@@ -132,8 +132,8 @@ Full text: `docs/meta/ai-harness-reference.md`. Manifest: `.claude/harness.json`
 - UserPromptSubmit `user-prompt-guard.cjs`: advises on injection phrases, blocks embedded credentials.
 - PostToolUse: incremental typecheck and comment-hygiene feedback after edits.
 - Stop and SubagentStop: run tests or the type gate on uncommitted work; skipped on a clean tree.
-- SessionStart `session-context.sh` re-injects the first 30 lines of this file
-  and `docs/CONSTITUTION.md`. Keep lines 1-30 stable.
+- SessionStart `session-context.sh` prints the always-on invariants and
+  `docs/CONSTITUTION.md` only; this file is read through `CLAUDE.md`, not printed.
 - Permissions: deny rules cover secrets, build artefacts and irreversible ops; they
   are a guardrail, not a sandbox.
 - Git hooks (husky): pre-commit format/lint/tsc/gitleaks, commit-msg Conventional

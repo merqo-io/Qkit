@@ -56,16 +56,11 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24
+          node-version: 24.22.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Hard gate on PRODUCTION deps (what actually ships): fails on high/critical.
-      # devDependencies (test toolchain — jsdom/vitest/stryker → undici, etc.) are
-      # not shipped and often can't be patched without an upstream release; those
-      # are tracked by Dependabot security PRs instead of blocking CI.
-      - run: pnpm audit --prod --audit-level=high
-      # Full audit incl. devDeps — informational only, never fails the build.
-      - run: pnpm audit --audit-level=high || true
+      # Fail-closed audit of PRODUCTION deps; .claude/dep-audit-allow.txt holds expiring exceptions.
+      - run: bash .claude/deps-gate.sh
 
   codeql:
     name: CodeQL (javascript-typescript)

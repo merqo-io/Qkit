@@ -33,8 +33,8 @@ Every hook command is anchored on `${CLAUDE_PROJECT_DIR}` and each script
 `cd`s there first, so the hooks keep working after the shell changes
 directory; each carries a timeout.
 SessionStart (startup|resume|clear|compact): `session-context.sh` re-injects
-the first 30 lines of this file, all of `docs/CONSTITUTION.md`, and a fixed
-list of always-on invariants. PostCompact also fires after compaction and its
+all of `docs/CONSTITUTION.md` and a fixed list of always-on invariants (this
+file is read through `CLAUDE.md`, not printed). PostCompact also fires after compaction and its
 stdout is injected as context too — both PostCompact and
 `SessionStart(source: compact)` are valid re-injection mechanisms, but
 SessionStart also covers session resume and startup, so it stays the single
@@ -52,7 +52,7 @@ governance files: `AGENTS.md`,
 `.claude/settings.local.json`. Deny always wins over ask/allow (enforced even
 under bypass); it's a guardrail, not a sandbox — prefix-matched and
 wrapper-bypassable. CI security: `.github/workflows/security.yml`
-(gitleaks v3 + CodeQL + `pnpm audit`) and `.github/dependabot.yml` (security-only).
+(gitleaks v3 + CodeQL + the fail-closed deps gate `.claude/deps-gate.sh`) and `.github/dependabot.yml` (security-only).
 Git hooks (husky): `pre-commit` runs format/lint (`prettier`+`eslint --fix`
 on staged `.ts/.tsx/.js/.mjs/.cjs`), format-docs (`prettier --write` on staged
 `.json/.md/.css`), `tsc --noEmit`, a frozen-lockfile install check, a gitleaks

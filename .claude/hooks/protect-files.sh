@@ -39,6 +39,8 @@ if (input.tool_name === "Read") process.exit(0);
 let reason = "";
 if (["agents.md", "claude.md"].includes(base) || /(^|\/)docs\/constitution\.md$/.test(rel)) {
   reason = "agent instructions and binding invariants require human approval";
+} else if (/(^|\/)\.claude\/dep-audit-allow\.txt$/.test(rel)) {
+  reason = "dependency-audit allowlist — editing it can silently suppress a known vulnerability";
 } else if (/(^|\/)\.claude\/(settings(\.local)?\.json|harness\.json|(verify|regen)-harness\.sh|comment-hygiene-patterns\.txt)$/.test(rel)
   || /(^|\/)\.claude\/(hooks|agents|\.harness-base)\//.test(rel)
   || /(^|\/)\.codex\/(hooks\.json|hooks\/)/.test(rel)

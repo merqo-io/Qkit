@@ -53,6 +53,24 @@ check 2 "block: bare commit, Windows-form cwd" "$mn_win"  "git commit -m \"msg h
 # A cd target that cannot be resolved keeps the project-root (main) fallback.
 check 2 "block: cd to unresolvable target"     "$wt"      "cd \"\$SOMEWHERE\" && git commit -m x"
 
+# A strict && chain only reaches git after every cd before it succeeded, so a protected cwd drops out.
+nl=$'\n'
+q_wt="\"$wt_mixed\""
+q_mn="\"$mn_mixed\""
+check 0 "allow: strict chain cd feature && commit from main cwd"   "$main" "cd $q_wt && git commit -m x"
+check 0 "allow: strict chain add && commit with 2>&1"              "$main" "cd $q_wt && git add -A && git commit -m x 2>&1"
+check 0 "allow: strict chain true && cd && push -f HEAD"           "$main" "true && cd $q_wt && git push -f origin HEAD"
+check 2 "block: strict chain cd feature && cd main && commit"      "$main" "cd $q_wt && cd $q_mn && git commit -m x"
+check 2 "block: strict chain cd feature && git -C main commit"     "$main" "cd $q_wt && git -C $q_mn commit -m x"
+# Anything short of a strict chain of literal cds keeps the protected cwd a candidate.
+check 2 "block: cd feature || commit"                              "$main" "cd $q_wt || git commit -m x"
+check 2 "block: subshell cd feature && commit"                     "$main" "(cd $q_wt && git commit -m x)"
+check 2 "block: command cd inside chain"                           "$main" "cd $q_wt && command cd $q_mn && git commit -m x"
+check 2 "block: env -C inside chain"                               "$main" "cd $q_wt && env -C $q_mn git commit -m x"
+check 2 "block: assignment before git in chain"                    "$main" "cd $q_wt && x=1 git commit -m x"
+check 2 "block: second line commit after chain"                    "$main" "cd $q_wt && git commit -m x${nl}git commit -m y"
+check 2 "block: cd to missing dir && commit"                       "$main" "cd nosuch && git commit -m x"
+
 # A hook cwd that does not exist must not weaken any check.
 check 2 "block: missing cwd, --no-verify"      "C:\\nonexistent dir" "git commit --no-verify -m x"
 check 2 "block: missing cwd, -n"               "C:\\nonexistent dir" "git commit -n -m x"

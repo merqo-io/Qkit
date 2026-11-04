@@ -31,7 +31,7 @@ operations must remain server-only and explicitly constrain their target.
 
 ## Getting started
 
-Use Node 24 and the pnpm version declared in `package.json`.
+Use Node 24.22.1 or newer and the pnpm version declared in `package.json`.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -131,7 +131,7 @@ pnpm test:coverage  # v8 coverage across production source, including untested f
 pnpm build          # production build
 pnpm test:e2e       # Playwright; local Supabase required for order flows
 pnpm test:mutation  # advisory mutation analysis of src/lib
-pnpm audit --prod --audit-level=high
+bash .claude/deps-gate.sh
 ```
 
 Coverage measures executed code, not security assurance. Mocked tests do not
