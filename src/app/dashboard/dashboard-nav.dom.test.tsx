@@ -79,7 +79,7 @@ describe("DashboardNav", () => {
       "Switch products",
       "Profile",
       "Settings",
-      "Plan · free",
+      "Plan · Free",
       "Get help",
       "Feedback",
       "User guide",
@@ -89,6 +89,9 @@ describe("DashboardNav", () => {
     expect(
       screen.getByRole("menuitem", { name: "User guide" }),
     ).toHaveAttribute("href", "/dashboard/help");
+    expect(
+      screen.getByRole("menuitem", { name: "User guide" }).querySelector("svg"),
+    ).not.toBeNull();
     expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
       "href",
       "/dashboard/settings",
@@ -126,7 +129,7 @@ describe("DashboardNav", () => {
     const user = userEvent.setup();
     render(<DashboardNav {...baseProps} tier="qkit" />);
     await user.click(screen.getByRole("button", { name: /account menu/i }));
-    expect(screen.getByText("qkit")).toBeInTheDocument();
+    expect(screen.getByText("Pro")).toBeInTheDocument();
   });
 
   it("marks the active nav link via aria-current", () => {

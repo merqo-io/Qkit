@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DashboardNav as SharedDashboardNav, getSwitchKits } from "@merqo/ui";
+import { BookOpen } from "lucide-react";
+import {
+  DashboardNav as SharedDashboardNav,
+  getSwitchKits,
+  tierLabel,
+} from "@merqo/ui";
 import { cn } from "@/lib/utils";
-import { TIER_LABEL, type Tier } from "@/lib/plan";
+import type { Tier } from "@/lib/plan";
 import type { SupportMessageInput } from "@/lib/schemas";
 import { submitFeedback } from "@/app/actions/feedback";
 import { submitSupportMessage } from "@/app/actions/support";
@@ -30,15 +35,15 @@ function tourAnchor(href: string): string {
 // filled with the brand's olive, so a full-kit stall is legible at a glance.
 const TIER_BADGE: Record<Tier, { label: string; className: string }> = {
   free: {
-    label: TIER_LABEL.free,
+    label: tierLabel("free"),
     className: "bg-muted text-muted-foreground ring-border",
   },
   starter: {
-    label: TIER_LABEL.starter,
+    label: tierLabel("starter"),
     className: "bg-primary/12 text-primary ring-primary/25",
   },
   qkit: {
-    label: TIER_LABEL.qkit,
+    label: tierLabel("qkit"),
     className: "bg-secondary text-secondary-foreground ring-secondary",
   },
 };
@@ -149,7 +154,11 @@ export function DashboardNav({
         const res = await submitFeedback({ source: "vendor", nps, message });
         if (!res.success) throw new Error(res.error);
       }}
-      extraLink={{ href: "/dashboard/help", label: "User guide" }}
+      extraLink={{
+        href: "/dashboard/help",
+        label: "User guide",
+        icon: BookOpen,
+      }}
       feedbackSource="vendor"
       feedbackMetric="nps"
       showNps

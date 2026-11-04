@@ -3,7 +3,8 @@ import { ChevronRight, Ticket } from "lucide-react";
 import { Paginated } from "@/components/widgets/paginated";
 import { StatusChip } from "./vendor-status";
 import type { VendorStatus } from "@/lib/admin/vendor-health";
-import { TIER_LABEL, type Tier } from "@/lib/plan";
+import { tierLabel } from "@merqo/ui";
+import type { Tier } from "@/lib/plan";
 
 export type VendorListItem = {
   id: string;
@@ -57,7 +58,7 @@ export function VendorList({ vendors }: { vendors: VendorListItem[] }) {
               <StatusChip status={v.status} />
             </div>
             <p className="truncate font-mono text-xs text-muted-foreground">
-              {TIER_LABEL[v.tier]}
+              {tierLabel(v.tier)}
               {v.passHoursLeft !== null && (
                 <span className="ml-1.5 inline-flex items-center gap-0.5 text-success">
                   <Ticket className="inline size-3" /> {v.passHoursLeft}h

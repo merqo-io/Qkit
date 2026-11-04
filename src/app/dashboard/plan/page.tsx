@@ -1,8 +1,7 @@
 import { Sparkles, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
-import { PricingLadder, fetchPlanCatalog } from "@merqo/ui";
+import { PricingLadder, fetchPlanCatalog, tierLabel } from "@merqo/ui";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
-import { TIER_LABEL } from "@/lib/plan";
 import { PassCountdown } from "./pass-countdown";
 import { PageHeader } from "@/components/widgets/page-header";
 
@@ -50,7 +49,7 @@ export default async function PlanPage() {
           }`}
         >
           {tier === "qkit" && <Sparkles className="size-3.5" />}
-          {TIER_LABEL[tier]}
+          {tierLabel(tier)}
         </span>
       </div>
 
@@ -70,7 +69,7 @@ export default async function PlanPage() {
 
       {catalog && !currentListed && (
         <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-          You are on the {TIER_LABEL[tier]} plan.
+          You are on the {tierLabel(tier)} plan.
         </p>
       )}
 
@@ -82,7 +81,7 @@ export default async function PlanPage() {
         />
       ) : (
         <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-          You are on the {TIER_LABEL[tier]} plan. Prices are unavailable right
+          You are on the {tierLabel(tier)} plan. Prices are unavailable right
           now, please check back soon.
         </p>
       )}

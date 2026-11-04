@@ -2,12 +2,6 @@ export type Tier = "free" | "starter" | "qkit";
 
 export type StatsRange = "24h" | "7d" | "30d" | "90d";
 
-export const TIER_LABEL: Record<Tier, string> = {
-  free: "Free",
-  starter: "Starter",
-  qkit: "qkit",
-};
-
 const ALL_RANGES: readonly StatsRange[] = ["24h", "7d", "30d", "90d"];
 
 const SHORT_RANGES: readonly StatsRange[] = ["24h"];
