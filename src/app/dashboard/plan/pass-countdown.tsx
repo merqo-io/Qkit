@@ -36,7 +36,7 @@ export function PassCountdown({ expiresAt }: { expiresAt: string }) {
       <Ticket className="size-5 shrink-0 text-primary" />
       <div>
         <p className="font-display text-lg font-semibold text-primary">
-          Pro until {until}
+          Event Pass until {until}
         </p>
         <p className="text-sm text-muted-foreground">
           {left === null || left === undefined ? " " : format(left)}

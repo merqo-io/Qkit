@@ -15,6 +15,8 @@ menu-manager sub-routes.
 
 `page.tsx` is the edit form (the shared `booth-form.tsx` pre-filled with this booth's data, saved via `saveBooth`/`deleteBooth` in `../actions.ts`); `qr/` is the printable QR-code sub-route for this specific booth, linked from `booth-list.tsx`'s QR button; `menu/` is the menu-manager sub-route, linked from `booth-form.tsx`'s "Manage menu" link once the booth has an id.
 
+The edit page's tests assume the cached-tier caps described in the parent booths README.
+
 ## Parent
 
 [booths](../README.md)

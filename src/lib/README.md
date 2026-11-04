@@ -100,9 +100,6 @@ boothId, orderNumber, createdAt?)`: the day's rank when the vendor has daily
 - `env.ts` — `publicEnv`: fail-fast validated `NEXT_PUBLIC_SUPABASE_URL`/
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, client-safe (no secrets), read via
   literal `process.env.NEXT_PUBLIC_*` so Next.js still inlines them at build.
-- `events.ts` — `eventLabel(license)`: display name for a paid pass/event
-  (vendor's own label, or a dated default like "Pass · 7 Jun").
-- `events.test.ts` — tests label fallback and whitespace-only-label handling.
 - `hours-editor.ts` — pure state transitions behind the working-hours editor:
   `WEEKDAY_KEYS`, `DEFAULT_WINDOW`, `emptyWeek`, `dailyHours`, `weekFromDaily`,
   `dailyFromWeek` — the daily↔weekly conversions, kept out of the component so
@@ -292,8 +289,22 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   confirm/status); see its own README. Replaced the local PayNow QR builder
   and payment-method adapter registry that used to live at `payments/`
   (deleted in the paykit cutover).
-- `plan.test.ts` — tests entitlement resolution across plan/pass/pro
-  combinations and the `canAdd*`/`canHaveOptionGroups` gates.
+- `counter-ops.ts`, `vendorHasCounterOps(supabase, vendorId)` and
+  `orderHasCounterOps(supabase, orderId)`: the server-side counter-ops check
+  (customer TV display, printkit labels, order-ready push) for paths that run
+  without the vendor's session. Reads the `vendor_entitlements` cache and
+  answers false on a read error.
+- `counter-ops.test.ts`, tiers, running/scheduled/ended passes, lapsed
+  expiry, fail-closed read errors and the order-to-vendor lookup.
+- `plan.ts`, the entitlement model: `Tier` (`free | starter | qkit`),
+  `StoredEntitlement` (the cached merqo push), `resolveEntitlement(stored,
+nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
+  `storedFromRow`, `canAddBooth`, `canAddMenuItem`, `canHaveOptionGroups`.
+  The TS mirror of the SQL helpers in migration 0113.
+- `plan.test.ts`, tier lapse, per-tier caps, Event Pass windows (scheduled,
+  running, ended, boundaries) and the cap helpers.
+- `plan.fixtures.ts`, `ENTITLEMENTS`, a resolved entitlement per tier for
+  tests.
 - `payment-marker.ts` — everything that reads or writes the `{kind}` marker
   on `booths.payment`: `paymentKindOf(data)` (the stored kind, or null),
   `expectsPayment(kind)` (false for null), and `paymentMarker(kind)` (what to
@@ -302,10 +313,6 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   no payment.
 - `payment-marker.test.ts` — each kind read from a marker and from a full
   config, null for anything else (`stripe` included), and a round trip.
-- `plan.ts` — `Entitlement`/`Tier` model (`FREE`/`PASS`/`PRO` presets),
-  `getEntitlement` (resolves a vendor's effective entitlement from
-  `plan`+license expiry), `normalizePlan`, `canAddBooth`, `canAddMenuItem`,
-  `canHaveOptionGroups`.
 - `platform-settings.ts` — `PlatformSettingsConfig` type and
   `DEFAULT_PLATFORM_SETTINGS` (banner off): the fail-safe fallback when the
   `platform_settings` row can't be read, so a read failure never shows a
@@ -320,8 +327,6 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   location-registration and printer-status APIs; see its own README. Unlike
   `paykit/`, an unset `NEXT_PUBLIC_PRINTKIT_URL` has no fallback host — it
   fails closed rather than guessing a deployment.
-- `pricing.ts` — `PricingConfig` type and `DEFAULT_PRICING` (zeroed fallback
-  when the `pricing` row is unreadable, e.g. pre-migration).
 - `qkit-printkit-auth.ts` — `printkitCallbackBearerOk`: constant-time bearer
   check against `PRINTKIT_CALLBACK_SECRET` for `POST
 /api/printkit/print-status` — a plain shared secret, no `kit_slug:` prefix
@@ -416,7 +421,6 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   ping, `.default(true)` so every pre-existing `board_settings` row, which
   predates this key, keeps notifying exactly as before — no migration, this
   is a JSONB column key not a SQL column),
-  `pricingFormSchema`/`grantPassSchema`,
   `parseMenuItems`/`parseOrderItems`, `menuCategorySchema`/
   `menuCategoriesSchema`/`parseMenuCategories` (booth's ordered
   `{id, label}` menu sections, edited through the menu manager). `boothFormSchema` also carries `walkup_default: z.boolean()
@@ -479,12 +483,12 @@ orderNumber)`: the customer-facing order number (daily-reset number when the
   role) plus entitlement/user/vendor read helpers; see its own README.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration
-  0060 — `Plan`, `PaymentKind`, `MenuItem`, `CartItem`,
+  0060, `PaymentKind`, `MenuItem`, `CartItem`,
   `OrderItem`, `BoardSettings`/`DEFAULT_BOARD_SETTINGS` — now also
   `daily_order_number_reset`/`default_prep_minutes`, migration 0062), and the
   full `Database["qkit"]` `Tables`/`Functions`/`Enums` shape (vendors, admins,
-  admin_audit, events, licenses, payments, pricing, feedback,
-  purchase_requests, booths — now also `walkup_default:
+  admin_audit, events, payments, vendor_entitlements, feedback,
+  booths, now also `walkup_default:
 boolean`, migration 0080 — orders, booth_item_sold —
   `vendor_telegram`/`telegram_link_tokens` from migration 0076 were dropped
   again in migration 0077, Phase A2's retirement of qkit's own Telegram bot;
@@ -492,9 +496,9 @@ boolean`, migration 0080 — orders, booth_item_sold —
   `next_order_number`, `booth_remaining_stock`, `booth_servable`,
   `check_rate_limit`, `place_order`, `place_walkup_order` (now with `p_paid`,
   migration 0061), `get_booth_for_order`, `regenerate_short_code`,
-  `submit_feedback`, `set_license_label`, `gen_short_code`) plus derived
+  `submit_feedback`, `apply_vendor_entitlement`, `gen_short_code`) plus derived
   row-type aliases (`Vendor`, `Booth`, `Order`, `BoardOrder` = `Order` minus
-  `access_token`, `License`, `Pricing`, `Payment`, `Feedback`, `Admin`,
+  `access_token`, `Payment`, `Feedback`, `Admin`,
   `AdminAudit`). Must be kept in sync with `supabase/migrations/` by hand (or
   via `supabase gen types typescript`).
 - `tour-ids.ts` — `TOUR_IDS`/`TourId`/`tourIdSchema`: the allowlist for

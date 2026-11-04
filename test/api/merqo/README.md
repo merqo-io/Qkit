@@ -2,46 +2,18 @@
 
 ## Purpose
 
-Tests for the `src/app/api/merqo/` route handlers — the bearer-token-gated
-feed that exposes qkit's business metrics to the Merqo umbrella product.
+Tests for the `src/app/api/merqo/` route handlers, the bearer-token-gated surface Merqo calls.
 
 ## Contents
 
-- `metrics.test.ts` — tests `GET /api/merqo/metrics`
-  (`src/app/api/merqo/metrics/route.ts`). Mocks
-  `@/lib/supabase/server`'s `createServiceClient` with a thenable
-  query-builder stub. Asserts: 401 when the `Authorization` bearer is
-  missing, wrong, or the server's `MERQO_METRICS_SECRET` env var is unset;
-  200 with the full metrics contract shape (`revenue_cents_30d`,
-  `revenue_cents_all`, `gmv_cents_30d`, `active_vendors`, `orders_7d`,
-  `orders_prev_7d`, `signups_7d`, `pro_vendors`, `total_vendors`,
-  `pending_upgrade_requests`, and a `funnel` object with
-  `signed_up`/`with_booth`/`with_order`/`pro`) on a valid bearer, wired
-  through five sequential `.from()` reads (vendors, booths, orders, payments,
-  purchase_requests count); and 503 (`{"error":"Upstream unavailable"}`) when
-  any of those five reads errors.
-- `vendor-provision.test.ts` — tests `POST /api/merqo/vendor-provision`
-  (`src/app/api/merqo/vendor-provision/route.ts`). Mocks
-  `@/lib/supabase/server`'s `createServiceClient` with a chainable
-  `insert()` / `select().eq().maybeSingle()` stub, and mocks
-  `@/lib/merqo/vendor-profile`'s `getOrCreateVendorProfile`. Asserts: 401
-  when the bearer is missing; 400 when `user_id` isn't a UUID or the insert
-  hits a `23503` (unknown `user_id`); 200 with
-  `{ ok: true, already_existed, plan }` on both first provisioning (seeds
-  the profile) and a repeat call (`23505` duplicate-key — no-op, profile
-  not re-seeded, and the vendor's real current plan, e.g. `pro`, is
-  reported rather than assumed `free`); and 500 when the profile seed
-  throws.
+- `entitlement.test.ts` - tests `POST /api/merqo/entitlement`: 401 without the provision bearer, 429 when rate limited, 400 for malformed JSON, contract violations (missing field, bad timestamp, unknown tier, `paid` for qkit) and a payload for another kit, 404 `unknown_vendor`, 503 on a failed directory lookup, 200 `{ ok: true }` after calling `apply_vendor_entitlement` with the mapped arguments, 200 when the SQL function reports a stale push, and 500 when the write fails.
+- `metrics.test.ts` - tests `GET /api/merqo/metrics`. Mocks `createServiceClient` with a thenable query-builder stub. Asserts 401 for a missing, wrong or unconfigured bearer, the full contract shape on success (paid vendors come from the `vendor_entitlements` cache; `pending_upgrade_requests` is a constant 0) and 503 when a read errors.
+- `vendor-provision.test.ts` - tests `POST /api/merqo/vendor-provision`: 401 without the bearer, 400 for a non-UUID or unknown user, 200 `{ ok, already_existed }` for first and repeat provisioning (the profile is only seeded the first time) and 500 when the insert or profile seed fails.
+- `vendor-status.test.ts` - tests `GET /api/merqo/vendor-status`: auth, validation and rate limiting, the matched-vendor-only lookup, the effective tier from the entitlement cache, and fail-closed 503s.
 
 ## Connectivity
 
-Tests `src/app/api/merqo/metrics/route.ts`, which itself is built on
-`@/lib/merqo/metrics.ts`'s `computeMerqoMetrics` (and transitively
-`@/lib/admin/stats.ts`), and `src/app/api/merqo/vendor-provision/route.ts`,
-which calls `@/lib/merqo/auth.ts`'s `provisionBearerOk` and
-`@/lib/merqo/vendor-profile.ts`'s `getOrCreateVendorProfile`. The mocked
-`createServiceClient` stands in for the real RLS-bypassing service-role
-client the routes use to read/write across all vendors.
+Tests the route handlers in `src/app/api/merqo/`, which build on `@/lib/merqo/*` and `@/lib/plan`. The mocked `createServiceClient` stands in for the real RLS-bypassing service-role client.
 
 ## Parent
 

@@ -3,12 +3,12 @@ import { ChevronRight, Ticket } from "lucide-react";
 import { Paginated } from "@/components/widgets/paginated";
 import { StatusChip } from "./vendor-status";
 import type { VendorStatus } from "@/lib/admin/vendor-health";
-import type { Plan } from "@/lib/types";
+import { TIER_LABEL, type Tier } from "@/lib/plan";
 
 export type VendorListItem = {
   id: string;
   name: string;
-  plan: Plan;
+  tier: Tier;
   created_at: string;
   passHoursLeft: number | null;
   status: VendorStatus;
@@ -57,7 +57,7 @@ export function VendorList({ vendors }: { vendors: VendorListItem[] }) {
               <StatusChip status={v.status} />
             </div>
             <p className="truncate font-mono text-xs text-muted-foreground">
-              {v.plan === "pro" ? "Pro" : "Free"}
+              {TIER_LABEL[v.tier]}
               {v.passHoursLeft !== null && (
                 <span className="ml-1.5 inline-flex items-center gap-0.5 text-success">
                   <Ticket className="inline size-3" /> {v.passHoursLeft}h

@@ -82,6 +82,7 @@ const {
 });
 
 vi.mock("@/lib/supabase/server", () => ({
+  createServiceClient: () => Promise.resolve({}),
   createServerClient: () =>
     Promise.resolve({
       from: (table: string) => {
@@ -123,6 +124,13 @@ vi.mock("@/lib/merqo/customer-notify", () => ({
   notifyCustomer: notifyCustomerMock,
 }));
 
+const { orderHasCounterOpsMock } = vi.hoisted(() => ({
+  orderHasCounterOpsMock: vi.fn(),
+}));
+vi.mock("@/lib/counter-ops", () => ({
+  orderHasCounterOpsForAction: orderHasCounterOpsMock,
+}));
+
 const { sendOrderReadyPushMock, afterMock } = vi.hoisted(() => ({
   sendOrderReadyPushMock: vi.fn(),
   // Runs the deferred callback at once; a test may queue it instead.
@@ -154,6 +162,7 @@ vi.mock("@/lib/ops-events", () => ({
 const ID = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
+  orderHasCounterOpsMock.mockReset().mockResolvedValue(true);
   notifyPrintkitMock.mockReset().mockResolvedValue(undefined);
   getUserMock.mockReset().mockResolvedValue({ id: "v1" });
   maybeSingle.mockReset();
@@ -299,6 +308,16 @@ describe("advanceOrder", () => {
     await advanceOrder(ID);
     expect(afterMock).toHaveBeenCalledTimes(1);
     expect(sendOrderReadyPushMock).toHaveBeenCalledWith(ID);
+  });
+
+  it("skips the web push quietly when the plan has no counter ops", async () => {
+    orderHasCounterOpsMock.mockResolvedValue(false);
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "not_required" },
+    });
+    const res = await advanceOrder(ID);
+    expect(res).toEqual({ success: true, status: "ready" });
+    expect(sendOrderReadyPushMock).not.toHaveBeenCalled();
   });
 
   it("does not wait for the web push before returning", async () => {

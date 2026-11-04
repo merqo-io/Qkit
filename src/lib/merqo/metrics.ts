@@ -1,4 +1,3 @@
-import type { Plan } from "@/lib/types";
 import { summarizeVendors, activationFunnel } from "@/lib/admin/stats";
 import { MS_PER_DAY } from "@/lib/utils";
 
@@ -23,7 +22,7 @@ export type MerqoMetrics = {
 
 export type MerqoMetricsInput = {
   nowMs: number;
-  vendors: { id: string; plan: Plan; created_at: string }[];
+  vendors: { id: string; paid: boolean; created_at: string }[];
   booths: { id: string; vendor_id: string }[];
   orders: {
     booth_id: string;
@@ -32,12 +31,10 @@ export type MerqoMetricsInput = {
     created_at: string;
   }[];
   payments: { amount_cents: number; created_at: string }[];
-  pendingUpgradeCount: number;
 };
 
 export function computeMerqoMetrics(input: MerqoMetricsInput): MerqoMetrics {
-  const { nowMs, vendors, booths, orders, payments, pendingUpgradeCount } =
-    input;
+  const { nowMs, vendors, booths, orders, payments } = input;
   const cutoff30d = new Date(nowMs - 30 * MS_PER_DAY).toISOString();
   const cutoff7d = new Date(nowMs - 7 * MS_PER_DAY).toISOString();
   const cutoff14d = new Date(nowMs - 14 * MS_PER_DAY).toISOString();
@@ -61,11 +58,11 @@ export function computeMerqoMetrics(input: MerqoMetricsInput): MerqoMetrics {
   ).length;
 
   const vstat = summarizeVendors(
-    vendors.map((v) => ({ plan: v.plan, created_at: v.created_at })),
+    vendors.map((v) => ({ paid: v.paid, created_at: v.created_at })),
     nowMs,
   );
   const f = activationFunnel(
-    vendors.map((v) => ({ id: v.id, plan: v.plan })),
+    vendors.map((v) => ({ id: v.id, paid: v.paid })),
     booths,
     orders.map((o) => o.booth_id),
   );
@@ -78,14 +75,16 @@ export function computeMerqoMetrics(input: MerqoMetricsInput): MerqoMetrics {
     orders_7d,
     orders_prev_7d,
     signups_7d: vstat.new7d,
-    pro_vendors: vstat.pro,
+    pro_vendors: vstat.paid,
     total_vendors: vstat.total,
-    pending_upgrade_requests: pendingUpgradeCount,
+    // Required by merqo's metrics schema; upgrade requests no longer exist
+    // now that merqo owns subscriptions.
+    pending_upgrade_requests: 0,
     funnel: {
       signed_up: f.signedUp,
       with_booth: f.withBooth,
       with_order: f.withOrder,
-      pro: f.pro,
+      pro: f.paid,
     },
   };
 }

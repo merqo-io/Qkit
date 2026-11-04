@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-const { path, refresh, support, purchase, error } = vi.hoisted(() => ({
+const { path, refresh, support, error } = vi.hoisted(() => ({
   path: { value: "/admin" },
   refresh: vi.fn(),
   support: vi.fn(),
-  purchase: vi.fn(),
   error: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
@@ -14,18 +13,15 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("./actions", () => ({
   resolveSupportMessage: support,
-  resolvePurchaseRequest: purchase,
 }));
 vi.mock("sonner", () => ({ toast: { error } }));
 import { AdminNav } from "./admin-nav";
 import { VendorList, type VendorListItem } from "./vendor-list";
 import { ResolveMessageButton } from "./resolve-message-button";
-import { ResolveRequestButton } from "./resolve-request-button";
 beforeEach(() => {
   vi.clearAllMocks();
   path.value = "/admin";
   support.mockResolvedValue({ success: true });
-  purchase.mockResolvedValue({ success: true });
 });
 describe("admin navigation and directory", () => {
   it.each([
@@ -51,7 +47,7 @@ describe("admin navigation and directory", () => {
     const base: VendorListItem = {
       id: "a",
       name: "Coffee",
-      plan: "pro",
+      tier: "qkit",
       created_at: "2026-10-01",
       passHoursLeft: 4,
       status: "attention",
@@ -67,7 +63,7 @@ describe("admin navigation and directory", () => {
             ...base,
             id: "b",
             name: "Tea",
-            plan: "free",
+            tier: "free",
             passHoursLeft: null,
             lastOrderAt: null,
             status: "new",
@@ -89,7 +85,6 @@ describe("admin navigation and directory", () => {
 });
 describe.each([
   { label: "support", Button: ResolveMessageButton, action: support },
-  { label: "purchase", Button: ResolveRequestButton, action: purchase },
 ])("resolve $label", ({ Button, action }) => {
   it("refreshes only after successful resolution", async () => {
     render(<Button id="request-a" />);

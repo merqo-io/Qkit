@@ -43,14 +43,21 @@ function chainable(result: { data: unknown; error: unknown }) {
 
 type Fixtures = {
   users?: { id: string; email: string | null }[];
-  vendor?: { id: string; plan: "free" | "pro"; created_at: string } | null;
+  vendor?: { id: string; created_at: string } | null;
   booths?: {
     id: string;
     vendor_id: string;
     created_at: string;
     is_active: boolean;
   }[];
-  licenses?: { vendor_id: string; valid_from: string; expires_at: string }[];
+  entitlement?: {
+    tier: "free" | "starter" | "qkit";
+    founder: boolean;
+    stats_window: "24h" | "90d";
+    event_pass_starts_at: string | null;
+    event_pass_ends_at: string | null;
+    valid_until: string | null;
+  } | null;
   messages?: { id: string; status: string }[];
   orders?: {
     booth_id: string;
@@ -62,7 +69,7 @@ type Fixtures = {
   errorTable?:
     | "vendors"
     | "booths"
-    | "licenses"
+    | "vendor_entitlements"
     | "support_messages"
     | "orders"
     | "ops_events";
@@ -74,7 +81,7 @@ function makeSupabase(fx: Fixtures) {
   const dataByTable: Record<string, unknown> = {
     vendors: fx.vendor ?? null,
     booths: fx.booths ?? [],
-    licenses: fx.licenses ?? [],
+    vendor_entitlements: fx.entitlement ?? null,
     support_messages: fx.messages ?? [],
     orders: fx.orders ?? [],
     ops_events: fx.opsEvents ?? [],
@@ -127,7 +134,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     bearerOkMock.mockReturnValue(true);
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       booths: [
         {
           id: "b1",
@@ -202,7 +209,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     bearerOkMock.mockReturnValue(true);
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       booths: [
         {
           id: "b1",
@@ -237,11 +244,51 @@ describe("GET /api/merqo/vendor-activity", () => {
     expect(body.lastActivityAt).not.toBeNull();
   });
 
+  it("reports the cached paid tier as plan pro and a running pass as expiring", async () => {
+    bearerOkMock.mockReturnValue(true);
+    const now = Date.now();
+    fixtures = {
+      users: [{ id: "u1", email: "vendor@example.com" }],
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
+      entitlement: {
+        tier: "starter",
+        founder: false,
+        stats_window: "24h",
+        event_pass_starts_at: new Date(now - 3_600_000).toISOString(),
+        event_pass_ends_at: new Date(now + 10 * 3_600_000).toISOString(),
+        valid_until: null,
+      },
+      booths: [
+        {
+          id: "b1",
+          vendor_id: "u1",
+          created_at: "2026-01-02T00:00:00Z",
+          is_active: true,
+        },
+      ],
+      orders: [
+        {
+          booth_id: "b1",
+          status: "completed",
+          total_cents: 100,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
+
+    const body = vendorActivityPayloadSchema.parse(
+      await (await GET(requestWith("vendor@example.com"))).json(),
+    );
+
+    expect(body.plan).toBe("pro");
+    expect(body.status).toBe("expiring");
+  });
+
   it("an open support message surfaces as status attention", async () => {
     bearerOkMock.mockReturnValue(true);
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       booths: [],
       orders: [],
       messages: [{ id: "m1", status: "open" }],
@@ -258,7 +305,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     bearerOkMock.mockReturnValue(true);
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       errorTable: "booths",
     };
 
@@ -271,7 +318,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     const at = new Date().toISOString();
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       opsEvents: [
         {
           kind: "webhook_rejected",
@@ -310,7 +357,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     bearerOkMock.mockReturnValue(true);
     fixtures = {
       users: [{ id: "u1", email: "vendor@example.com" }],
-      vendor: { id: "u1", plan: "free", created_at: "2026-01-01T00:00:00Z" },
+      vendor: { id: "u1", created_at: "2026-01-01T00:00:00Z" },
       errorTable: "ops_events",
     };
 

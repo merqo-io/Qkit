@@ -24,6 +24,14 @@ const request = (email = "vendor@example.com") =>
   new Request(
     `https://qkit.example/api/merqo/vendor-status?email=${encodeURIComponent(email)}`,
   );
+const entitlementRow = {
+  tier: "qkit",
+  founder: false,
+  stats_window: "90d",
+  event_pass_starts_at: null,
+  event_pass_ends_at: null,
+  valid_until: null,
+};
 beforeEach(() => {
   vi.clearAllMocks();
   auth.mockReturnValue(true);
@@ -32,13 +40,18 @@ beforeEach(() => {
     data: { users: [{ id: "vendor-id", email: "Vendor@example.com" }] },
     error: null,
   });
-  result.data = { id: "vendor-id", plan: "pro" };
+  result.data = { id: "vendor-id" };
   result.error = null;
-  from.mockImplementation(() => ({
+  from.mockImplementation((table: string) => ({
     select: () => ({
       eq: (column: string, value: string) => {
         filter(column, value);
-        return { maybeSingle: async () => result };
+        return {
+          maybeSingle: async () =>
+            table === "vendor_entitlements"
+              ? { data: entitlementRow, error: null }
+              : result,
+        };
       },
     }),
   }));
@@ -61,8 +74,9 @@ describe("Merqo vendor status", () => {
   it("queries only the matched vendor instead of a capped fleet list", async () => {
     const response = await GET(request());
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ active: true, plan: "pro" });
-    expect(filter).toHaveBeenCalledExactlyOnceWith("id", "vendor-id");
+    expect(await response.json()).toEqual({ active: true, plan: "qkit" });
+    expect(filter).toHaveBeenCalledWith("id", "vendor-id");
+    expect(filter).toHaveBeenCalledWith("vendor_id", "vendor-id");
   });
   it("does not query vendors for an absent auth account", async () => {
     users.mockResolvedValue({

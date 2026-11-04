@@ -597,11 +597,17 @@ async function fulfil(page, name, { start = true } = {}) {
 
 // Seeding ------------------------------------------------------------------
 
-function upgradeToPro() {
+function grantQkitTier() {
   const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
   const res = spawnSync(
     "psql",
-    [dbUrl, "-v", "ON_ERROR_STOP=1", "-f", path.join(HERE, "upgrade-pro.sql")],
+    [
+      dbUrl,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-f",
+      path.join(HERE, "grant-qkit-tier.sql"),
+    ],
     { stdio: "inherit" },
   );
   if (res.status !== 0)
@@ -618,7 +624,7 @@ async function seedVendor(browser, scene, opts = {}) {
   await signUp(page);
   await nameStall(page);
   await dismissTour(page);
-  if (scene.pro) upgradeToPro();
+  if (scene.pro) grantQkitTier();
 
   const boothIds = [];
   const names = opts.booths ?? [STALL];

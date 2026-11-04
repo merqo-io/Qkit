@@ -8,9 +8,8 @@ import {
   findAuthUserByEmail,
   listAllAuthUsers,
 } from "@/lib/merqo/auth";
-import { latestActivePassByVendor } from "@/lib/admin/stats";
+import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { computeVendorActivity } from "@/lib/merqo/vendor-activity";
-import type { Plan } from "@/lib/types";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { summarizeIncidents } from "@/lib/ops-events";
@@ -30,7 +29,7 @@ async function readActivityData(
   const merqoClient =
     supabase as unknown as SupabaseClient<MerqoSupportMessagesSchema>;
 
-  const [booths, licenses, messages] = await Promise.all([
+  const [booths, entitlement, messages] = await Promise.all([
     readAllRows((from, to) =>
       supabase
         .from("booths")
@@ -39,14 +38,13 @@ async function readActivityData(
         .order("id")
         .range(from, to),
     ),
-    readAllRows((from, to) =>
-      supabase
-        .from("licenses")
-        .select("vendor_id, valid_from, expires_at")
-        .eq("vendor_id", vendorId)
-        .order("id")
-        .range(from, to),
-    ),
+    supabase
+      .from("vendor_entitlements")
+      .select(
+        "tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+      )
+      .eq("vendor_id", vendorId)
+      .maybeSingle(),
     readAllRows((from, to) =>
       merqoClient
         .schema("merqo")
@@ -73,7 +71,39 @@ async function readActivityData(
       )),
     );
   }
-  return { booths, licenses, messages, orders };
+  if (entitlement.error) throw new Error(entitlement.error.message);
+  return { booths, entitlement: entitlement.data, messages, orders };
+}
+
+async function buildActivity(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  vendor: { id: string; created_at: string },
+) {
+  const [{ booths, entitlement, messages, orders }, incidents] =
+    await Promise.all([
+      readActivityData(supabase, vendor.id),
+      summarizeIncidents(supabase, vendor.id),
+    ]);
+
+  const nowMs = Date.now();
+  const resolved = resolveEntitlement(
+    entitlement ? storedFromRow(entitlement) : null,
+    nowMs,
+  );
+  const passExpiresAt = resolved.eventPass?.running
+    ? resolved.eventPass.endsAt
+    : null;
+
+  const payload = computeVendorActivity(
+    {
+      id: vendor.id,
+      paid: resolved.tier !== "free",
+      created_at: vendor.created_at,
+    },
+    { booths, orders, passExpiresAt, hasOpenMessage: messages.length > 0 },
+    nowMs,
+  );
+  return incidents ? { ...payload, ...incidents } : payload;
 }
 
 export async function GET(request: Request) {
@@ -123,7 +153,7 @@ export async function GET(request: Request) {
 
   const vendorRes = await supabase
     .from("vendors")
-    .select("id, plan, created_at")
+    .select("id, created_at")
     .eq("id", user.id)
     .maybeSingle();
   if (vendorRes.error) {
@@ -142,30 +172,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [{ booths, licenses, messages, orders }, incidents] =
-      await Promise.all([
-        readActivityData(supabase, vendor.id),
-        summarizeIncidents(supabase, vendor.id),
-      ]);
-
-    const nowMs = Date.now();
-    const passExpiresAt =
-      latestActivePassByVendor(licenses, nowMs).get(vendor.id) ?? null;
-
-    const payload = computeVendorActivity(
-      vendor as { id: string; plan: Plan; created_at: string },
-      {
-        booths,
-        orders,
-        passExpiresAt,
-        hasOpenMessage: messages.length > 0,
-      },
-      nowMs,
-    );
-
-    return NextResponse.json(
-      incidents ? { ...payload, ...incidents } : payload,
-    );
+    return NextResponse.json(await buildActivity(supabase, vendor));
   } catch (error) {
     console.error("merqo vendor-activity: read failed", error);
     return NextResponse.json(

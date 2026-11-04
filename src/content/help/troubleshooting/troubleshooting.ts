@@ -130,7 +130,7 @@ export const article: HelpArticle = {
       items: [
         "The Free plan serves one booth at a time. If you have more than one open booth, only the oldest open booth serves. The others show Over plan limit on the Booths page even though they are open.",
         "Pause the extra booths, or move to a plan with more booths from the Plan page in your account menu.",
-        "A booth can also stop for a daily limit (Pass and Pro). See the sold out and limit messages below.",
+        "A booth can also stop for a daily limit (Starter, qkit and Event Pass). See the sold out and limit messages below.",
       ],
     },
 
@@ -143,7 +143,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Scheduled hours are always read in Singapore time (SGT), whatever time zone your phone is in. Check your hours against SGT.",
-        "Scheduled hours are part of the Pass and Pro plans. On Free, saving a booth clears any scheduled hours, and the booth takes orders whenever it is Open and stops when you pause it.",
+        "Scheduled hours are part of the Starter and qkit plans and an Event Pass. On Free, saving a booth clears any scheduled hours, and the booth takes orders whenever it is Open and stops when you pause it.",
       ],
     },
 
@@ -206,7 +206,7 @@ export const article: HelpArticle = {
     { type: "heading", level: 2, text: "My stats only show the last 24 hours" },
     {
       type: "paragraph",
-      text: "The 7, 30 and 90 day ranges are part of the Pro plan. Free and Pass accounts see the 24 hour view.",
+      text: "The 7, 30 and 90 day ranges are part of the qkit plan and a running Event Pass. Free and Starter accounts see the 24 hour view.",
     },
   ],
 };

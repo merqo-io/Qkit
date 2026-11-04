@@ -16,7 +16,7 @@ const hoursFromNow = (n: number) => new Date(NOW + n * 3_600_000).toISOString();
 
 function signals(over: Partial<Parameters<typeof vendorStatus>[0]> = {}) {
   return {
-    plan: "free" as const,
+    paid: false,
     createdAt: daysAgo(30),
     passExpiresAt: null,
     boothCount: 1,
@@ -82,10 +82,10 @@ describe("vendorStatus", () => {
     ).toBe("stuck");
   });
 
-  it("stuck: Pro but zero orders ever", () => {
+  it("stuck: paid but zero orders ever", () => {
     expect(
       vendorStatus(
-        signals({ plan: "pro", orderCount: 0, lastOrderAt: null }),
+        signals({ paid: true, orderCount: 0, lastOrderAt: null }),
         NOW,
       ),
     ).toBe("stuck");
@@ -131,8 +131,8 @@ describe("statusRank", () => {
 
 describe("buildVendorHealth", () => {
   const vendors: VendorLite[] = [
-    { id: "v1", plan: "free", created_at: daysAgo(30), passExpiresAt: null },
-    { id: "v2", plan: "free", created_at: daysAgo(2), passExpiresAt: null },
+    { id: "v1", paid: false, created_at: daysAgo(30), passExpiresAt: null },
+    { id: "v2", paid: false, created_at: daysAgo(2), passExpiresAt: null },
   ];
   const booths: BoothLite[] = [
     { id: "b1", vendor_id: "v1", created_at: daysAgo(25) },

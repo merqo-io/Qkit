@@ -48,13 +48,13 @@ export function WorkingHoursEditor({
     value?.mode === "weekly" ? value.days : emptyWeek(),
   );
 
-  // Scheduled auto-close is Pro/pass. Free booths open/close with the Active
+  // Scheduled auto-close needs Starter or higher. Free booths open/close with the Active
   // toggle only; show a locked card that nudges to the plan page. (After hooks
   // so hook order stays stable across renders.)
   if (!entitlement.autoCloseHours) {
     return (
       <div className="space-y-2">
-        <ProLock feature="auto_close_hours" label="Pro" />
+        <ProLock feature="auto_close_hours" label="Starter" />
         <p className="text-xs text-muted-foreground">
           Schedule open/close times so orders stop automatically, no need to
           pause the booth by hand. Upgrade to set hours.

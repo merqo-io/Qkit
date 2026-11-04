@@ -91,7 +91,7 @@ export const article: HelpArticle = {
     },
     {
       type: "note",
-      text: "The Sold-out limit is available on the Event pass and Pro plans. On other plans the field shows a Pro prompt.",
+      text: "The Sold-out limit is available on the Starter and qkit plans and during an Event Pass. On Free the field shows an upgrade prompt.",
     },
     {
       type: "tip",
@@ -116,7 +116,7 @@ export const article: HelpArticle = {
       items: [
         "The count starts again from zero at midnight.",
         "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
-        "The daily item limit is available on the Event pass and Pro plans. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
+        "The daily item limit is available on the Starter and qkit plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],
     },
     {

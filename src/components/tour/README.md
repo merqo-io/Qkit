@@ -52,6 +52,8 @@ The dashboard's guided tours: qkit's wiring of `@merqo/ui`'s
   into a "use server" file's import graph (`tour-actions.ts` needs the
   allowlist too), which Next.js rejects as a bundle-boundary error.
 
+Tour copy points vendors to their Merqo account for plan changes; there are no in-app upgrade steps.
+
 ## Parent
 
 [components](../README.md)

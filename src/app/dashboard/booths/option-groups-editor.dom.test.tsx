@@ -9,13 +9,17 @@ import type { Entitlement } from "@/lib/plan";
 import type { AllergenTag } from "@/lib/schemas";
 
 const ENTITLEMENT: Entitlement = {
-  tier: "pro",
+  tier: "qkit",
   maxBooths: null,
   maxMenuItems: 100,
   maxOptionGroupsPerItem: 10,
   autoCloseHours: true,
   stockCaps: true,
-  statsRanges: ["24h", "7d", "30d"],
+  statsRanges: ["24h", "7d", "30d", "90d"],
+  founder: false,
+  eventPass: null,
+  counterOps: true,
+  statsSince: null,
 };
 
 function Host({

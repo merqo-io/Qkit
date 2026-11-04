@@ -46,7 +46,7 @@ export function StatsControls({ range, booth, booths, allowedRanges }: Props) {
             : {
                 ...r,
                 lockedHref: "/dashboard/plan",
-                lockedTitle: "Upgrade to unlock longer ranges",
+                lockedTitle: "Longer ranges are not on your plan",
               },
         )}
       />

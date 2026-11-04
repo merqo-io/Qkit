@@ -336,6 +336,8 @@ resizes it in the browser, checks type and size, and stores it with the
 transaction; qkit has no `resizeToWebp` call, no proof schema and no upload
 action.
 
+Push subscription actions are gated on the booth vendor's counter ops and fail quietly for the customer when the plan does not include them.
+
 ## Parent
 
 [[boothId]](../README.md)

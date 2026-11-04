@@ -63,6 +63,10 @@ const ENTITLEMENT: Entitlement = {
   autoCloseHours: false,
   stockCaps: false,
   statsRanges: ["24h"],
+  founder: false,
+  eventPass: null,
+  counterOps: false,
+  statsSince: null,
 };
 
 const NO_SETUP = { state: "none" } as const;

@@ -15,6 +15,7 @@ const {
   createServiceClientMock,
   fromMock,
   getBoothQueueDisplay,
+  counterOpsMock,
 } = vi.hoisted(() => ({
   // Real notFound() throws to abort rendering — mirror that so a test
   // hitting the notFound branch doesn't fall through into the rest of
@@ -25,12 +26,14 @@ const {
   createServiceClientMock: vi.fn(),
   fromMock: vi.fn(),
   getBoothQueueDisplay: vi.fn(),
+  counterOpsMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ notFound: notFoundMock }));
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: createServiceClientMock,
 }));
+vi.mock("@/lib/counter-ops", () => ({ vendorHasCounterOps: counterOpsMock }));
 vi.mock("./actions", () => ({ getBoothQueueDisplay }));
 vi.mock("./queue-display", () => ({
   QueueDisplay: ({
@@ -55,9 +58,10 @@ beforeEach(() => {
   fromMock.mockReset();
   createServiceClientMock.mockReset().mockResolvedValue({ from: fromMock });
   getBoothQueueDisplay.mockReset().mockResolvedValue([]);
+  counterOpsMock.mockReset().mockResolvedValue(true);
 });
 
-function boothChain(data: { name: string } | null) {
+function boothChain(data: { name: string; vendor_id: string } | null) {
   return {
     select: () => ({
       eq: () => ({
@@ -87,7 +91,9 @@ describe("BoothQueueDisplayPage", () => {
   });
 
   it("renders the queue display for a real booth", async () => {
-    fromMock.mockReturnValue(boothChain({ name: "Kopi Cart" }));
+    fromMock.mockReturnValue(
+      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
+    );
     getBoothQueueDisplay.mockResolvedValue([
       { orderNumber: "1", displayNumber: "001", status: "ready" },
     ]);
@@ -104,8 +110,27 @@ describe("BoothQueueDisplayPage", () => {
     );
   });
 
+  it("shows a plain notice, with no queue read, when the plan has no counter ops", async () => {
+    fromMock.mockReturnValue(
+      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
+    );
+    counterOpsMock.mockResolvedValue(false);
+
+    render(
+      await BoothQueueDisplayPage({
+        params: Promise.resolve({ boothId: BOOTH_ID }),
+      }),
+    );
+
+    expect(screen.queryByTestId("queue-display")).not.toBeInTheDocument();
+    expect(getBoothQueueDisplay).not.toHaveBeenCalled();
+    expect(screen.getByText(/not available/)).toBeInTheDocument();
+  });
+
   it("degrades to an empty order list when the read fails", async () => {
-    fromMock.mockReturnValue(boothChain({ name: "Kopi Cart" }));
+    fromMock.mockReturnValue(
+      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
+    );
     getBoothQueueDisplay.mockResolvedValue(null);
 
     const el = await BoothQueueDisplayPage({

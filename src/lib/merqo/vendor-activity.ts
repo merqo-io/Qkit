@@ -1,4 +1,3 @@
-import type { Plan } from "@/lib/types";
 import { formatPrice, MS_PER_DAY } from "@/lib/utils";
 import {
   buildVendorHealth,
@@ -11,13 +10,14 @@ export type VendorActivityMetric = { label: string; value: string };
 
 export type VendorActivity = {
   active: boolean;
-  plan: Plan | null;
+  /** merqo's activity contract only knows free|pro, so any paid tier is "pro". */
+  plan: "free" | "pro" | null;
   status: VendorStatus | null;
   metrics: VendorActivityMetric[];
   lastActivityAt: string | null;
 };
 
-export type VAVendor = { id: string; plan: Plan; created_at: string };
+export type VAVendor = { id: string; paid: boolean; created_at: string };
 export type VABooth = BoothLite & { is_active: boolean };
 export type VAOrder = OrderLite & { total_cents: number };
 
@@ -50,7 +50,7 @@ export function computeVendorActivity(
       vendors: [
         {
           id: vendor.id,
-          plan: vendor.plan,
+          paid: vendor.paid,
           created_at: vendor.created_at,
           passExpiresAt,
         },
@@ -71,7 +71,7 @@ export function computeVendorActivity(
 
   return {
     active: true,
-    plan: vendor.plan,
+    plan: vendor.paid ? "pro" : "free",
     status: health.status,
     metrics: [
       { label: "Orders (30d)", value: String(orders30d.length) },

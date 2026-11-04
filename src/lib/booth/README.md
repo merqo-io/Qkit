@@ -41,6 +41,8 @@ graceMs })` picks the objects in a vendor folder that nothing references and
   that are older than `UNSAVED_UPLOAD_GRACE_MS` (24h): uploads from a form the
   vendor never saved. Used by `dashboard/booths/sweep-unsaved-uploads.ts`.
 
+Booth servability follows the cached entitlement: qkit tier or a running Event Pass serves every active booth, free only the oldest.
+
 ## Parent
 
 [lib](../README.md)

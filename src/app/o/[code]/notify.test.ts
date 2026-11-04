@@ -34,6 +34,12 @@ function readChain(maybeSingle: () => unknown) {
   return node;
 }
 
+const { counterOpsMock } = vi.hoisted(() => ({ counterOpsMock: vi.fn() }));
+vi.mock("@/lib/counter-ops", () => ({ vendorHasCounterOps: counterOpsMock }));
+beforeEach(() => {
+  counterOpsMock.mockReset().mockResolvedValue(true);
+});
+
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: () =>
     Promise.resolve({
@@ -103,6 +109,13 @@ describe("notifyPrintkit run more than once for one order", () => {
       ["id", "o1"],
       ["print_status", "not_required"],
     ]);
+  });
+
+  it("prints nothing when the plan has no counter ops", async () => {
+    counterOpsMock.mockResolvedValue(false);
+    await notifyPrintkit(BOOTH, "0007");
+    expect(createPrintJobMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it("treats printkit's 409 as already queued: no error logged, guarded write still made", async () => {

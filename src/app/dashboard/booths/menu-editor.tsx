@@ -576,7 +576,7 @@ export function MenuEditor({
           {atItemCap ? (
             <ProLock
               feature="menu_items"
-              label={`${entitlement.maxMenuItems}-item limit · Pro`}
+              label={`${entitlement.maxMenuItems}-item limit · Starter`}
             />
           ) : (
             <Button
