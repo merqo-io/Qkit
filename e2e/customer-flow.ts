@@ -7,7 +7,7 @@ export const CODE = "e2eKopitiam01";
 
 /**
  * Places an order on the seeded booth as a customer named `name`, pays on
- * the paykit mock's stub page and returns on the live status page, where the
+ * the paykit mock's pay page and returns on the live status page, where the
  * claimed order waits for the vendor. Returns the order number the status
  * page shows (the same number the board and the TV screen show).
  */
@@ -33,7 +33,7 @@ export async function placeClaimedOrder(
   // pay step sends the customer to paykit's page (the mock stands in for it).
   await page.waitForURL(/\/pay\/mock-tx-\d+\?k=mock/);
   await expect(
-    page.getByRole("heading", { name: /pay on paykit/i }),
+    page.getByRole("heading", { name: /scan with your paynow banking app/i }),
   ).toBeVisible();
 
   // paykit claims the payment and sends the customer back to qkit, whose pay

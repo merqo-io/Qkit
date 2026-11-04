@@ -277,6 +277,20 @@ export function hasEmDash(text) {
  * kept whole rather than split.
  */
 export function wrapCaption(text, maxChars) {
+  const greedy = wrapGreedy(text, maxChars);
+  if (greedy.length < 2) return greedy;
+  // Shrink the width while the line count holds, so a trailing word does not
+  // end up alone on the last line.
+  let best = greedy;
+  for (let width = maxChars - 1; width > 0; width--) {
+    const lines = wrapGreedy(text, width);
+    if (lines.length !== greedy.length) break;
+    best = lines;
+  }
+  return best;
+}
+
+function wrapGreedy(text, maxChars) {
   const lines = [];
   let line = "";
   for (const word of text.split(/\s+/).filter(Boolean)) {

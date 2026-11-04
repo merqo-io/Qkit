@@ -1,4 +1,7 @@
 import { createServer, type Server, type ServerResponse } from "node:http";
+import { createElement, type ComponentType } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import QRCode from "react-qr-code";
 
 // Minimal stand-in for paykit's live `/api/v1/checkout*` surface (see
 // src/lib/paykit/client.ts), so e2e can exercise the real checkout-cutover
@@ -178,8 +181,39 @@ function claimTransaction(tx: MockTransaction) {
   fireCallback(tx);
 }
 
+type QrProps = { value: string; size: number };
+// Node's native ESM wraps this CJS package, so the component can sit on .default.
+const qrModule = QRCode as unknown as ComponentType<QrProps> & {
+  default?: ComponentType<QrProps>;
+};
+const QrComponent: ComponentType<QrProps> = qrModule.default ?? qrModule;
+
+// Mirrors the layout and palette of paykit's hosted PayNow page (heading,
+// amount, QR, save button, screenshot upload, "I've paid") so demo footage
+// reads as the real flow. The upload is optional here because the mock keeps
+// no file and e2e submits the form without one.
 function payPageHtml(tx: MockTransaction): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pay</title></head><body><main><h1>Pay on paykit</h1><p>Amount: ${(tx.amountCents / 100).toFixed(2)}</p><form method="post" action="/pay/${tx.id}/claim?k=mock"><button type="submit">I've paid</button></form></main></body></html>`;
+  const qr = renderToStaticMarkup(
+    createElement(QrComponent, { value: `MOCKPAYNOW:${tx.id}`, size: 200 }),
+  );
+  const amount = `S$${(tx.amountCents / 100).toFixed(2)}`;
+  const css = `
+    *{box-sizing:border-box}
+    body{margin:0;background:#f3efe3;color:#1d2321;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{max-width:420px;margin:0 auto;padding:28px 24px;text-align:center}
+    h1{font-family:Fraunces,Georgia,serif;font-size:20px;font-weight:600;margin:0 0 6px;text-wrap:balance}
+    .sub{font-size:14px;color:#737373;margin:0}
+    .amount{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:30px;font-weight:700;margin:20px 0}
+    .qr{display:inline-block;background:#fff;padding:16px;border-radius:12px}
+    .qr svg{display:block}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;border:1px solid #dcdcdc;background:transparent;color:#1d2321;font:600 14px inherit;font-family:inherit;cursor:pointer}
+    .btn.small{width:auto;height:44px;margin:14px auto 0;padding:0 18px}
+    .btn.primary{background:#2f6b5e;border-color:#2f6b5e;color:#f3efe3}
+    .hint{font-size:12px;color:#737373;margin:10px auto 0;max-width:300px}
+    .stack{display:grid;gap:10px;margin-top:22px}
+    input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+  `;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pay</title><style>${css}</style></head><body><main><h1>Scan with your PayNow banking app to pay</h1><p class="sub">Sunrise Coffee Cart</p><p class="amount">${amount}</p><div class="qr">${qr}</div><button type="button" class="btn small">Save QR image</button><p class="hint">On this phone? Save the QR, then open your banking app and scan it from your photos.</p><form method="post" action="/pay/${tx.id}/claim?k=mock" class="stack"><input id="payment-proof" type="file" accept="image/*"><label for="payment-proof" class="btn" id="proof-label">Upload payment screenshot</label><button type="submit" class="btn primary">I've paid</button><p class="hint">The seller checks your screenshot, then you go back to your order.</p></form><script>document.getElementById("payment-proof").addEventListener("change",function(e){var f=e.target.files[0];if(f){document.getElementById("proof-label").textContent="Screenshot attached: "+f.name}})</script></main></body></html>`;
 }
 
 function handleConfirm(store: MockStore, id: string, send: Send) {
