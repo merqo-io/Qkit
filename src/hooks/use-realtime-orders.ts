@@ -11,6 +11,8 @@ import type { BoardOrder } from "@/lib/types";
 
 export type RealtimeStatus = "connecting" | "connected" | "disconnected";
 
+let channelSeq = 0;
+
 export function useRealtimeOrders(
   boothIds: string[],
   initialOrders: BoardOrder[],
@@ -99,9 +101,13 @@ export function useRealtimeOrders(
   useEffect(() => {
     if (boothIds.length === 0) return;
     const requests = resyncVersion;
+    // removeChannel is async and channel() reuses a same-topic channel, so a
+    // StrictMode remount on a fixed topic would adopt the channel being torn
+    // down. A unique topic per run, plus the flag below, isolates each run.
+    let active = true;
 
     const channel = supabase
-      .channel("vendor-orders")
+      .channel(`vendor-orders:${++channelSeq}`)
       .on(
         "postgres_changes",
         {
@@ -111,6 +117,7 @@ export function useRealtimeOrders(
           filter: `booth_id=in.(${filterString})`,
         },
         (payload) => {
+          if (!active) return;
           // Realtime payloads are untrusted — validate before use.
           const event = parseRealtimeOrderEvent(payload);
           if (!event) return;
@@ -125,6 +132,7 @@ export function useRealtimeOrders(
       )
       // Every subscription reconciles, including the SSR-to-hydration gap.
       .subscribe((channelStatus) => {
+        if (!active) return;
         if (channelStatus === "SUBSCRIBED") {
           setStatus("connected");
           void resync();
@@ -139,6 +147,7 @@ export function useRealtimeOrders(
       });
 
     return () => {
+      active = false;
       requests.current++;
       supabase.removeChannel(channel);
     };
