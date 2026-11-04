@@ -12,7 +12,9 @@ Picked Up, with the customer page and the TV screen following). Batch select,
 1. Docker running, then `supabase start`
 2. apply migrations + the `supabase/seed/coffee-cart.sql` seed (CI first
    applies `ci-auth-bootstrap.sql`), and `supabase/seed/e2e-merqo-stub.sql`
-   for the vendor spec (qkit's own migrations have no `merqo` schema)
+   for the vendor spec (qkit's own migrations have no `merqo` schema); the
+   seed vendor needs the `qkit` tier (a `vendor_entitlements` row, as
+   `ci-auth-bootstrap.sql` and `demo-two-booths.sql` insert) for the TV display
 3. export the local `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` (from
    `supabase status -o env`, see `e2e/README.md`), then `pnpm test:e2e`
