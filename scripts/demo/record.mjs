@@ -14,7 +14,6 @@
 
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
@@ -23,7 +22,6 @@ import {
   localDemoBaseUrl,
   localDemoDbUrl,
 } from "./base-url.mjs";
-import { DB_CONTAINER } from "./paykit-stack.mjs";
 import { formatSceneList, parseArgs, resolveScene } from "./scenes.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -205,6 +203,24 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
   return page;
 }
 
+/**
+ * The customer pane of a split scene. It loads the booth page before the
+ * vendor pane's board opens, so the pane is never a blank white lead-in.
+ */
+async function openCustomer(browser, sceneDir, boothId) {
+  const page = await openRecorded(browser, sceneDir, "customer");
+  await page.goto(`${state.baseUrl}/order/${boothId}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page
+    .getByRole("button", { name: "Add", exact: true })
+    .first()
+    .waitFor();
+  const entry = state.videos.find((v) => v.page === page);
+  if (entry) entry.readyMs = now();
+  return page;
+}
+
 /** An unrecorded context for setup and for the "other person" in a scene. */
 async function openFast(browser, storageState) {
   const context = await browser.newContext({
@@ -239,7 +255,7 @@ async function signUp(page) {
   await glideClick(page, page.getByRole("button", { name: "Create account" }));
   // enable_confirmations=false, so the session is granted and /dashboard
   // sends a new vendor to /onboarding.
-  await page.waitForURL(/\/onboarding/, { timeout: 40000 });
+  await page.waitForURL(/\/onboarding/, { timeout: 15000 });
 }
 
 async function nameStall(page) {
@@ -353,6 +369,7 @@ async function createBooth(page, opts = {}) {
   }
   await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
   await pause(page, 700);
+  // The first-visit booths tour overlay opens on arrival and blocks typing.
   await dismissTour(page);
   await slowType(page, page.locator("#booth-name"), name);
 
@@ -362,13 +379,14 @@ async function createBooth(page, opts = {}) {
     await glideClick(page, hold);
   }
 
+  await dismissTour(page);
   const save = page.getByRole("button", { name: /Save booth/ });
   await center(page, save);
   await glideClick(page, save);
   // A new booth only gets its menu editor after the first save, and saving the
   // menu lands on the booth's QR page.
   await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
-    timeout: 40000,
+    timeout: 15000,
   });
   const boothId = page
     .url()
@@ -382,24 +400,10 @@ async function createBooth(page, opts = {}) {
   await pause(page, 300);
   const saveMenu = page.getByRole("button", { name: "Save menu" });
   await center(page, saveMenu);
-  const qrUrl = new RegExp(`/dashboard/booths/${boothId}/qr`);
   await glideClick(page, saveMenu);
-  // The dev server occasionally answers the first save with a redirect to the
-  // login page; the editor keeps its state, so one more tap lands the save.
-  const saved = await page
-    .waitForURL(qrUrl, { timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!saved) {
-    if (!new URL(page.url()).pathname.startsWith("/login")) {
-      throw new Error(
-        `Save menu did not reach the QR page and the browser is not on /login (at ${page.url()}).`,
-      );
-    }
-    console.warn("Save menu bounced to /login; retrying the save once.");
-    await glideClick(page, saveMenu);
-    await page.waitForURL(qrUrl, { timeout: 45000 });
-  }
+  await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+    timeout: 15000,
+  });
   await pause(page, 900);
   return boothId;
 }
@@ -433,7 +437,6 @@ async function editMenu(page, boothId, { prices = false, stock = {} } = {}) {
  * demo vendor.
  */
 async function enablePayment(page, boothId) {
-  seedPaykit();
   await page.goto(`${state.baseUrl}/dashboard/booths/${boothId}`, {
     waitUntil: "domcontentloaded",
   });
@@ -465,9 +468,10 @@ async function enablePayment(page, boothId) {
  */
 async function customerOrder(page, boothId, opts) {
   const { name, after = "status", plainIndex = 0 } = opts;
-  await page.goto(`${state.baseUrl}/order/${boothId}`, {
-    waitUntil: "domcontentloaded",
-  });
+  const boothUrl = `${state.baseUrl}/order/${boothId}`;
+  if (page.url() !== boothUrl) {
+    await page.goto(boothUrl, { waitUntil: "domcontentloaded" });
+  }
   await pause(page, 1100);
   if (opts.customize) {
     // The customizable item shows "Customize" and opens the options sheet.
@@ -500,7 +504,7 @@ async function customerOrder(page, boothId, opts) {
     });
   } else if (after === "pay") {
     await page.waitForURL((u) => !u.href.startsWith(state.baseUrl), {
-      timeout: 45000,
+      timeout: 20000,
     });
   }
   await pause(page, 1000);
@@ -534,55 +538,19 @@ async function payOnPaykit(page, boothId, { withProof = true } = {}) {
     timeout: 20000,
   });
   await page.getByText(/payment sent/i).waitFor({ timeout: 10000 });
-  await deliverPaykitCallback(boothId);
   await beat(900);
-}
-
-/**
- * Paykit only calls a kit back over https, which a loopback stack cannot
- * serve, so the recorder sends the same notification itself. qkit ignores the
- * body beyond order_ref and re-reads the status from paykit, so the order
- * reaches the board exactly as it would in production.
- */
-async function deliverPaykitCallback(boothId) {
-  if (!process.env.DEMO_PAYKIT_DB_URL) return;
-  const secret = process.env.DEMO_PAYKIT_CALLBACK_SECRET;
-  if (!secret) {
-    throw new Error("DEMO_PAYKIT_CALLBACK_SECRET is not set (README).");
-  }
-  const orderId = psql({
-    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
-    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
-    query: `select id from qkit.orders where booth_id = '${boothId}' order by created_at desc limit 1`,
-  });
-  if (!/^[0-9a-f-]{36}$/.test(orderId)) {
-    throw new Error("No order found for the paykit callback.");
-  }
-  const res = await fetch(`${state.baseUrl}/api/paykit/payment-status`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${secret}`,
-    },
-    body: JSON.stringify({ order_ref: orderId }),
-  });
-  if (!res.ok) throw new Error(`paykit callback failed (${res.status})`);
 }
 
 // Vendor board helpers -----------------------------------------------------
 
 const ACTION = /Mark paid & start|Start now|Mark Ready|Mark Picked Up|Undo/;
 
-/**
- * The ticket for a customer: the innermost block holding their name and an
- * action. Matches by button text, not role, because the phone layout hides one
- * of the Incoming/Accepted columns and role queries skip hidden buttons.
- */
+/** The ticket for a customer: the innermost block holding their name and an action. */
 function ticket(page, name) {
   return page
     .locator("div")
     .filter({ hasText: name })
-    .filter({ has: page.locator("button", { hasText: ACTION }) })
+    .filter({ has: page.getByRole("button", { name: ACTION }) })
     .last();
 }
 
@@ -596,51 +564,47 @@ async function openBoard(page) {
   await pause(page, 900);
 }
 
-/**
- * On a phone only one of the board columns shows, and a realtime update can
- * flip it back, so keep trying each column until the ticket button is visible.
- */
-async function tapTicket(page, name, label) {
-  const card = ticket(page, name);
-  await card.waitFor({ state: "attached", timeout: 30000 });
-  const button = card.locator("button", { hasText: label });
-  const tabs = page
-    .getByRole("group", { name: "Which orders to show" })
-    .getByRole("button");
-  const deadline = Date.now() + 40000;
-  while (Date.now() < deadline) {
-    const shown = await button
-      .waitFor({ state: "visible", timeout: 1200 })
-      .then(() => true)
-      .catch(() => false);
-    if (shown) break;
-    const count = await tabs.count();
-    for (let i = 0; i < count && !shown; i++) {
-      await tabs.nth(i).click();
-      const here = await button
-        .waitFor({ state: "visible", timeout: 800 })
-        .then(() => true)
-        .catch(() => false);
-      if (here) break;
-    }
-  }
-  await button.waitFor({ state: "visible", timeout: 2000 });
-  await center(page, button);
-  await glideClick(page, button);
-}
-
+/** On a phone only one of Incoming/Accepted shows; flip to the one with this ticket. */
 async function revealTicket(page, name) {
   const card = ticket(page, name);
   await card.waitFor({ state: "attached", timeout: 30000 });
+  // The hidden tab's card stays in the DOM, so the card locator can resolve to
+  // a visible ancestor; the customer's name is the reliable visibility signal.
+  const heading = page.getByText(name, { exact: true }).first();
+  if (await heading.isVisible()) return;
   const tabs = page
     .getByRole("group", { name: "Which orders to show" })
     .getByRole("button");
   const count = await tabs.count();
   for (let i = 0; i < count; i++) {
-    if (await card.isVisible()) return;
     await tabs.nth(i).click();
-    await pause(page, 300);
+    const shown = await heading
+      .waitFor({ state: "visible", timeout: 2000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (shown) return;
   }
+}
+
+async function tapTicket(page, name, label) {
+  const button = ticket(page, name).getByRole("button", { name: label });
+  // The board can fall back to the Incoming tab after a status refresh, so
+  // reveal again until the action button is on screen.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await revealTicket(page, name);
+    const ready = await button
+      .waitFor({ state: "visible", timeout: 4000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (ready) break;
+  }
+  await button.waitFor({ state: "visible", timeout: 10000 });
+  await center(page, button);
+  await glideClick(page, button);
 }
 
 /** Start, ready and hand over one order. "Undo" holds the next button back a few seconds. */
@@ -657,77 +621,36 @@ function grantQkitTier() {
 }
 
 /**
- * Run a SQL file or one query against a loopback Postgres. Windows has no host
- * psql, so it falls back to the db container's own, which ignores the url for
- * the connection but still needs it set as the loopback guard.
+ * Run a SQL file against the loopback Postgres. Windows has no host psql, so
+ * it falls back to the db container's own, which ignores the url for the
+ * connection but still needs it set as the loopback guard.
  */
-function psql({ dbUrl, container, file, query, vars = {} }) {
-  const varArgs = Object.entries(vars).flatMap(([k, v]) => ["-v", `${k}=${v}`]);
-  const base = ["-v", "ON_ERROR_STOP=1", ...varArgs];
-  const sqlPath = file ? path.join(HERE, file) : undefined;
-  const target = query ? ["-tA", "-c", query] : ["-f", sqlPath];
-  const opts = { encoding: "utf8", stdio: ["pipe", "pipe", "inherit"] };
-  let res = spawnSync("psql", [dbUrl, ...base, ...target], opts);
+function runDemoSql(file) {
+  const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
+  const base = ["-v", "ON_ERROR_STOP=1"];
+  const sqlPath = path.join(HERE, file);
+  let res = spawnSync("psql", [dbUrl, ...base, "-f", sqlPath], {
+    stdio: "inherit",
+  });
   if (res.error?.code === "ENOENT") {
     res = spawnSync(
       "docker",
       [
         "exec",
         "-i",
-        container,
+        process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
         "psql",
         "-U",
         "postgres",
         ...base,
-        ...(query ? target : []),
       ],
-      { ...opts, input: query ? undefined : fs.readFileSync(sqlPath) },
+      {
+        input: fs.readFileSync(sqlPath),
+        stdio: ["pipe", "inherit", "inherit"],
+      },
     );
   }
-  if (res.status !== 0) throw new Error(`psql failed (${file ?? query})`);
-  return res.stdout.trim();
-}
-
-function runDemoSql(file) {
-  psql({
-    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
-    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
-    file,
-  });
-}
-
-/**
- * With DEMO_PAYKIT_DB_URL set, the recording talks to a real local paykit
- * (README), which needs the demo vendor, a PayNow setup and qkit's kit key on
- * file before qkit offers "Take payment". Unset, the e2e paykit mock answers
- * and there is nothing to seed.
- */
-function seedPaykit() {
-  if (!process.env.DEMO_PAYKIT_DB_URL) return;
-  const vendorId = psql({
-    dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
-    container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
-    query: `select id from auth.users where email = '${EMAIL}'`,
-  });
-  if (!/^[0-9a-f-]{36}$/.test(vendorId)) {
-    throw new Error(
-      "Demo vendor not found in qkit auth.users for paykit seed.",
-    );
-  }
-  const secret = process.env.DEMO_PAYKIT_KIT_SECRET;
-  if (!secret) throw new Error("DEMO_PAYKIT_KIT_SECRET is not set (README).");
-  psql({
-    dbUrl: localDemoDbUrl(process.env.DEMO_PAYKIT_DB_URL, "DEMO_PAYKIT_DB_URL"),
-    container: process.env.DEMO_PAYKIT_DB_CONTAINER ?? DB_CONTAINER,
-    file: "seed-paykit.sql",
-    vars: {
-      vendor_id: vendorId,
-      kit_secret_hash: createHash("sha256")
-        .update(secret, "utf8")
-        .digest("hex"),
-      return_origin: state.baseUrl,
-    },
-  });
+  if (res.status !== 0) throw new Error(`psql failed running ${file}`);
 }
 
 /**
@@ -852,7 +775,7 @@ async function setupScene({ browser, scene, dir }) {
 async function livePopScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -900,7 +823,7 @@ async function paynowScene({ browser, scene, dir }) {
     prices: true,
     payment: true,
   });
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -929,7 +852,7 @@ async function statusScene({ browser, scene, dir }) {
   // Two orders already waiting, so the customer sees a real queue position.
   await backgroundOrder(browser, seed.boothId, "Marcus");
   await backgroundOrder(browser, seed.boothId, "Dina");
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -1014,7 +937,7 @@ async function optionsScene({ browser, scene, dir }) {
 async function walkUpScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -1164,7 +1087,7 @@ async function multiBoothScene({ browser, scene, dir }) {
 async function imHereScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene, { arrival: true });
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -1266,6 +1189,7 @@ async function finishRecording(dir) {
       role: v.role,
       file,
       startMs: v.startMs,
+      readyMs: v.readyMs,
       viewport: v.viewport,
     });
   }
@@ -1330,10 +1254,5 @@ async function main() {
 
 main().catch((err) => {
   console.error("\n✗ Recording failed:", err.message);
-  const where = String(err.stack ?? "")
-    .split("\n")
-    .filter((l) => l.includes("record.mjs"))
-    .slice(0, 3);
-  if (where.length) console.error(where.join("\n"));
   process.exit(1);
 });

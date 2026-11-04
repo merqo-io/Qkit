@@ -274,11 +274,23 @@ export function hasEmDash(text) {
 /**
  * Break a caption into lines of at most `maxChars`. drawtext cannot wrap, and
  * a long hook would run off a 1080px frame. A word longer than the limit is
- * kept whole rather than split. Once the line count is known, the limit is
- * tightened so the lines come out even instead of leaving a lone short word
- * ("... We take" over "0.") on its own line.
+ * kept whole rather than split.
  */
-function greedyWrap(text, maxChars) {
+export function wrapCaption(text, maxChars) {
+  const greedy = wrapGreedy(text, maxChars);
+  if (greedy.length < 2) return greedy;
+  // Shrink the width while the line count holds, so a trailing word does not
+  // end up alone on the last line.
+  let best = greedy;
+  for (let width = maxChars - 1; width > 0; width--) {
+    const lines = wrapGreedy(text, width);
+    if (lines.length !== greedy.length) break;
+    best = lines;
+  }
+  return best;
+}
+
+function wrapGreedy(text, maxChars) {
   const lines = [];
   let line = "";
   for (const word of text.split(/\s+/).filter(Boolean)) {
@@ -291,15 +303,4 @@ function greedyWrap(text, maxChars) {
   }
   if (line) lines.push(line);
   return lines;
-}
-
-export function wrapCaption(text, maxChars) {
-  const lines = greedyWrap(text, maxChars);
-  let best = lines;
-  for (let limit = maxChars - 1; limit > 0; limit--) {
-    const tighter = greedyWrap(text, limit);
-    if (tighter.length !== lines.length) break;
-    best = tighter;
-  }
-  return best;
 }

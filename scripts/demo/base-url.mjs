@@ -4,8 +4,8 @@ const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
  * Restrict the database the recorder may run upgrade SQL against to a
  * loopback Postgres, so a mis-set DEMO_DB_URL can never touch a hosted project.
  */
-export function localDemoDbUrl(value, name = "DEMO_DB_URL") {
-  if (!value) throw new Error(`${name} is not set`);
+export function localDemoDbUrl(value) {
+  if (!value) throw new Error("DEMO_DB_URL is not set");
   const url = new URL(value);
   // libpq lets ?host=, ?hostaddr= and ?service= override the hostname, so any
   // query string could redirect psql to a hosted database.
@@ -16,7 +16,7 @@ export function localDemoDbUrl(value, name = "DEMO_DB_URL") {
     url.search
   ) {
     throw new Error(
-      `${name} must point at a loopback Postgres, without query parameters`,
+      "DEMO_DB_URL must point at a loopback Postgres, without query parameters",
     );
   }
   return value;

@@ -87,7 +87,7 @@ describe("caption wrapping", () => {
       "Your customers order.",
       "You just make.",
     ]);
-    expect(wrapCaption("Grab takes 30%. We take 0.", 24)).toEqual([
+    expect(wrapCaption("Grab takes 30%. We take 0.", 22)).toEqual([
       "Grab takes 30%.",
       "We take 0.",
     ]);
@@ -145,11 +145,34 @@ describe("compose filtergraph", () => {
     }).join(";");
     expect(graph).toContain("[0:v]");
     expect(graph).toContain("[1:v]");
-    expect(graph).toContain("tpad=start_duration=2.50");
+    expect(graph).toContain("tpad=start_mode=clone:start_duration=2.80");
+    expect(graph).toContain("tpad=start_mode=clone:start_duration=0.30");
     expect(graph).toContain(`overlay=x=${panelX(0)}:y=${SPLIT.top}`);
     expect(graph).toContain(`overlay=x=${panelX(1)}:y=${SPLIT.top}`);
     expect(graph).toContain("s=1080x1920");
     expect(graph).toContain("[v]");
+  });
+
+  it("drops the warm-up up to the settled mark and keeps frames aligned", () => {
+    const items = captionItems(meta, 10);
+    const graph = buildVideoGraph({
+      mode: "split",
+      videos: [
+        { role: "customer", startMs: 100, readyMs: 2100, viewport },
+        { role: "vendor", startMs: 700, viewport },
+      ],
+      items,
+      textPaths: items.map((_, i) => `/tmp/c${i}.txt`),
+      fontPath: "/f.ttf",
+      durS: 10,
+      outroS: 2.8,
+    }).join(";");
+    expect(graph).toContain(
+      "trim=start=2.00,setpts=PTS-STARTPTS,tpad=start_mode=clone:start_duration=2.10",
+    );
+    expect(graph).toContain(
+      "trim=start=0.30,setpts=PTS-STARTPTS,tpad=start_mode=clone:start_duration=1.00",
+    );
   });
 
   it("places the chime at the pop time", () => {
@@ -193,49 +216,5 @@ describe("page host guard", () => {
     expect(() => assertLoopback("https://pay.example.com/pay/1")).toThrow(
       /loopback/,
     );
-  });
-});
-
-describe("paykit scratch stack config", () => {
-  it("renames the project and smtp table and shifts every active port", async () => {
-    const { patchConfig } = await import("../scripts/demo/paykit-stack.mjs");
-    const out = patchConfig(
-      'project_id = "paykit"\n[api]\nport = 54321\n# port = 1\n[local_smtp]\nsmtp_port = 2525',
-    );
-    expect(out).toContain('project_id = "paykit_demo"');
-    expect(out).toContain("port = 54421");
-    expect(out).toContain("# port = 1");
-    expect(out).toContain("[inbucket]");
-    expect(out).toContain("smtp_port = 2625");
-  });
-
-  it("leaves no unshifted 543xx port in a config shaped like paykit's", async () => {
-    const { patchConfig } = await import("../scripts/demo/paykit-stack.mjs");
-    const out = patchConfig(
-      [
-        'project_id = "paykit"',
-        "[api]",
-        "port = 54321",
-        "[db]",
-        "port = 54322",
-        "shadow_port = 54320",
-        "[db.pooler]",
-        "port = 54329",
-        "[studio]",
-        "port = 54323",
-        "[local_smtp]",
-        "port = 54324",
-        "# smtp_port = 54325",
-        "[edge_runtime]",
-        "inspector_port = 8083",
-        "[analytics]",
-        "port = 54327",
-      ].join("\n"),
-    );
-    const active = (out as string)
-      .split("\n")
-      .filter((l: string) => !l.startsWith("#"));
-    expect(active.join("\n")).not.toMatch(/=\s*543\d\d\b/);
-    expect(out).toContain("inspector_port = 8183");
   });
 });
