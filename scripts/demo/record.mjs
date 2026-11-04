@@ -203,6 +203,24 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
   return page;
 }
 
+/**
+ * The customer pane of a split scene. It loads the booth page before the
+ * vendor pane's board opens, so the pane is never a blank white lead-in.
+ */
+async function openCustomer(browser, sceneDir, boothId) {
+  const page = await openRecorded(browser, sceneDir, "customer");
+  await page.goto(`${state.baseUrl}/order/${boothId}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page
+    .getByRole("button", { name: "Add", exact: true })
+    .first()
+    .waitFor();
+  const entry = state.videos.find((v) => v.page === page);
+  if (entry) entry.readyMs = now();
+  return page;
+}
+
 /** An unrecorded context for setup and for the "other person" in a scene. */
 async function openFast(browser, storageState) {
   const context = await browser.newContext({
@@ -450,9 +468,10 @@ async function enablePayment(page, boothId) {
  */
 async function customerOrder(page, boothId, opts) {
   const { name, after = "status", plainIndex = 0 } = opts;
-  await page.goto(`${state.baseUrl}/order/${boothId}`, {
-    waitUntil: "domcontentloaded",
-  });
+  const boothUrl = `${state.baseUrl}/order/${boothId}`;
+  if (page.url() !== boothUrl) {
+    await page.goto(boothUrl, { waitUntil: "domcontentloaded" });
+  }
   await pause(page, 1100);
   if (opts.customize) {
     // The customizable item shows "Customize" and opens the options sheet.
@@ -736,7 +755,7 @@ async function setupScene({ browser, scene, dir }) {
 async function livePopScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -784,7 +803,7 @@ async function paynowScene({ browser, scene, dir }) {
     prices: true,
     payment: true,
   });
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -813,7 +832,7 @@ async function statusScene({ browser, scene, dir }) {
   // Two orders already waiting, so the customer sees a real queue position.
   await backgroundOrder(browser, seed.boothId, "Marcus");
   await backgroundOrder(browser, seed.boothId, "Dina");
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -898,7 +917,7 @@ async function optionsScene({ browser, scene, dir }) {
 async function walkUpScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -1048,7 +1067,7 @@ async function multiBoothScene({ browser, scene, dir }) {
 async function imHereScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene, { arrival: true });
-  const phone = await openRecorded(browser, dir, "customer");
+  const phone = await openCustomer(browser, dir, seed.boothId);
   const board = await openRecorded(browser, dir, "vendor", {
     storageState: seed.storageState,
   });
@@ -1142,6 +1161,7 @@ async function finishRecording(dir) {
       role: v.role,
       file,
       startMs: v.startMs,
+      readyMs: v.readyMs,
       viewport: v.viewport,
     });
   }

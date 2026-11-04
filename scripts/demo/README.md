@@ -109,6 +109,9 @@ CUSTOMER and VENDOR labels, the hook on top and step captions below.
 - The two recordings start at different moments. `record.mjs` writes each one's
   `startMs` on the scene clock (zero at the first recorded context) into
   `steps.json`; compose delays the later one with `tpad` so frames line up.
+- The customer pane loads the booth page before the board opens. `readyMs` in
+  `steps.json` marks when it settled; compose drops everything before it (0.3s
+  when absent) and holds the first settled frame, so no pane opens blank.
 - Captions and the chime (`popMs`, when the order lands or turns Ready) use that
   same clock.
 - `steps.json` shape: `{scene, mode, hook, popMs, videos: [{role, file,

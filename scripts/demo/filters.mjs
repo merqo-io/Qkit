@@ -8,7 +8,6 @@ export const CANVAS_W = 1080;
 export const CANVAS_H = 1920;
 export const FPS = 30;
 export const BG = "0x181410"; // Market Ochre dark, the pillarbox backdrop
-const PANEL_BG = "0x0c0a08";
 const PANEL_BORDER = "0x3a3128";
 
 export const HOOK = { fontsize: 62, maxChars: 24, y: 64, lineHeight: 78 };
@@ -125,6 +124,8 @@ const pad = (s) => s.toFixed(2);
  * tpad, so two contexts opened at different moments line up on one timeline.
  * `textPaths[i]` is the file holding `items[i].text`.
  */
+const WARMUP_S = 0.3;
+
 export function buildVideoGraph({
   mode,
   videos,
@@ -140,12 +141,19 @@ export function buildVideoGraph({
     `${inLabel}${[...extra, ...caps].join(",")}${extra.length || caps.length ? "," : ""}` +
     `fps=${FPS},format=yuv420p,fade=t=out:st=${pad(durS - 0.6)}:d=0.6[vmain]`;
 
-  const timeline = (v, color) => {
-    const delay = v.startMs / 1000;
-    const lead =
-      delay > 0 ? `tpad=start_duration=${pad(delay)}:color=${color},` : "";
+  // A recording opens on a blank or skeleton page. Drop that warm-up (up to
+  // readyMs when the recorder saw the page settle, else a fixed 0.3s) and hold
+  // the first settled frame for the same time plus the start offset, so every
+  // pane shows its page from frame 0 and later frames stay aligned.
+  const timeline = (v) => {
+    const warm =
+      typeof v.readyMs === "number" && v.readyMs > v.startMs
+        ? (v.readyMs - v.startMs) / 1000
+        : WARMUP_S;
     return (
-      `${lead}tpad=stop_mode=clone:stop_duration=30,` +
+      `trim=start=${pad(warm)},setpts=PTS-STARTPTS,` +
+      `tpad=start_mode=clone:start_duration=${pad(v.startMs / 1000 + warm)},` +
+      `tpad=stop_mode=clone:stop_duration=30,` +
       `trim=duration=${pad(durS)},setpts=PTS-STARTPTS`
     );
   };
@@ -159,7 +167,7 @@ export function buildVideoGraph({
       graph.push(
         `[${i}:v]fps=${FPS},scale=${sizes[i].w}:${sizes[i].h},setsar=1,` +
           `pad=${outerW}:${outerH}:${SPLIT.border}:${SPLIT.border}:color=${PANEL_BORDER},` +
-          `${timeline(v, PANEL_BG)}[p${i}]`,
+          `${timeline(v)}[p${i}]`,
       );
     });
     graph.push(
@@ -182,7 +190,7 @@ export function buildVideoGraph({
         `[0:v]fps=${FPS},` +
           `scale=${CANVAS_W}:${CANVAS_H}:force_original_aspect_ratio=decrease,` +
           `pad=${CANVAS_W}:${CANVAS_H}:(ow-iw)/2:(oh-ih)/2:color=${BG},setsar=1,` +
-          `${timeline(v, BG)},`,
+          `${timeline(v)},`,
         [],
       ),
     );

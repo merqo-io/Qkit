@@ -145,11 +145,34 @@ describe("compose filtergraph", () => {
     }).join(";");
     expect(graph).toContain("[0:v]");
     expect(graph).toContain("[1:v]");
-    expect(graph).toContain("tpad=start_duration=2.50");
+    expect(graph).toContain("tpad=start_mode=clone:start_duration=2.80");
+    expect(graph).toContain("tpad=start_mode=clone:start_duration=0.30");
     expect(graph).toContain(`overlay=x=${panelX(0)}:y=${SPLIT.top}`);
     expect(graph).toContain(`overlay=x=${panelX(1)}:y=${SPLIT.top}`);
     expect(graph).toContain("s=1080x1920");
     expect(graph).toContain("[v]");
+  });
+
+  it("drops the warm-up up to the settled mark and keeps frames aligned", () => {
+    const items = captionItems(meta, 10);
+    const graph = buildVideoGraph({
+      mode: "split",
+      videos: [
+        { role: "customer", startMs: 100, readyMs: 2100, viewport },
+        { role: "vendor", startMs: 700, viewport },
+      ],
+      items,
+      textPaths: items.map((_, i) => `/tmp/c${i}.txt`),
+      fontPath: "/f.ttf",
+      durS: 10,
+      outroS: 2.8,
+    }).join(";");
+    expect(graph).toContain(
+      "trim=start=2.00,setpts=PTS-STARTPTS,tpad=start_mode=clone:start_duration=2.10",
+    );
+    expect(graph).toContain(
+      "trim=start=0.30,setpts=PTS-STARTPTS,tpad=start_mode=clone:start_duration=1.00",
+    );
   });
 
   it("places the chime at the pop time", () => {
