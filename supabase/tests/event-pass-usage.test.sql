@@ -19,6 +19,8 @@ insert into qkit.vendors(id) values
  ('40000000-0000-0000-0000-000000000001'),
  ('40000000-0000-0000-0000-000000000002'),
  ('40000000-0000-0000-0000-000000000003');
+insert into qkit.vendor_entitlements(vendor_id, tier, stats_window, issued_at) values
+ ('40000000-0000-0000-0000-000000000001','qkit','90d',now());
 insert into qkit.booths (id, vendor_id, name, is_active) values
  ('40000000-0000-0000-0000-0000000000b1','40000000-0000-0000-0000-000000000001','Cart One',true),
  ('40000000-0000-0000-0000-0000000000b2','40000000-0000-0000-0000-000000000001','Cart Two',true),
