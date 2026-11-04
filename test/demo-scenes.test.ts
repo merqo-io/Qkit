@@ -208,4 +208,34 @@ describe("paykit scratch stack config", () => {
     expect(out).toContain("[inbucket]");
     expect(out).toContain("smtp_port = 2625");
   });
+
+  it("leaves no unshifted 543xx port in a config shaped like paykit's", async () => {
+    const { patchConfig } = await import("../scripts/demo/paykit-stack.mjs");
+    const out = patchConfig(
+      [
+        'project_id = "paykit"',
+        "[api]",
+        "port = 54321",
+        "[db]",
+        "port = 54322",
+        "shadow_port = 54320",
+        "[db.pooler]",
+        "port = 54329",
+        "[studio]",
+        "port = 54323",
+        "[local_smtp]",
+        "port = 54324",
+        "# smtp_port = 54325",
+        "[edge_runtime]",
+        "inspector_port = 8083",
+        "[analytics]",
+        "port = 54327",
+      ].join("\n"),
+    );
+    const active = (out as string)
+      .split("\n")
+      .filter((l: string) => !l.startsWith("#"));
+    expect(active.join("\n")).not.toMatch(/=\s*543\d\d\b/);
+    expect(out).toContain("inspector_port = 8183");
+  });
 });

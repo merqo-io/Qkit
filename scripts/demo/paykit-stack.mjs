@@ -15,10 +15,19 @@ const PAYKIT_SUPABASE =
   process.env.DEMO_PAYKIT_REPO !== undefined
     ? path.join(process.env.DEMO_PAYKIT_REPO, "supabase")
     : path.resolve(QKIT_ROOT, "..", "paykit", "supabase");
-const WORKDIR =
-  process.env.DEMO_PAYKIT_WORKDIR ?? path.join(os.tmpdir(), "qkit-demo-paykit");
+const WORKDIR = path.resolve(
+  process.env.DEMO_PAYKIT_WORKDIR ?? path.join(os.tmpdir(), "qkit-demo-paykit"),
+);
 const PORT_SHIFT = 100;
-const PROJECT_ID = "paykit_demo";
+export const PROJECT_ID = "paykit_demo";
+// The supabase CLI names the db container after the project id.
+export const DB_CONTAINER = `supabase_db_${PROJECT_ID}`;
+const MARKER = ".qkit-demo-scratch";
+
+function isInside(child, parent) {
+  const rel = path.relative(parent, child);
+  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
 
 /** Shift every active `*port = N` line and rename the project. */
 export function patchConfig(toml) {
@@ -27,6 +36,8 @@ export function patchConfig(toml) {
     .map((line) => {
       if (/^\s*project_id\s*=/.test(line))
         return `project_id = "${PROJECT_ID}"`;
+      // paykit's config targets a newer CLI that calls this table local_smtp;
+      // the CLI pinned here only knows inbucket and rejects the unknown key.
       if (/^\s*\[local_smtp\]/.test(line)) return "[inbucket]";
       if (line.trimStart().startsWith("#")) return line;
       return line.replace(
@@ -37,10 +48,28 @@ export function patchConfig(toml) {
     .join("\n");
 }
 
+/** Only ever delete a previous scratch copy: inside tmp, outside both repos, marked. */
+function assertScratchDest(dest) {
+  const repos = [QKIT_ROOT, path.dirname(PAYKIT_SUPABASE)];
+  if (
+    !isInside(WORKDIR, os.tmpdir()) ||
+    repos.some((r) => WORKDIR === r || isInside(WORKDIR, r))
+  ) {
+    throw new Error(
+      `DEMO_PAYKIT_WORKDIR must be inside ${os.tmpdir()} and outside both repos`,
+    );
+  }
+  if (fs.existsSync(dest) && !fs.existsSync(path.join(dest, MARKER))) {
+    throw new Error(`${dest} is not a previous scratch copy (no ${MARKER})`);
+  }
+}
+
 function prepare() {
   const dest = path.join(WORKDIR, "supabase");
+  assertScratchDest(dest);
   fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(dest, { recursive: true });
+  fs.writeFileSync(path.join(dest, MARKER), "");
   const config = fs.readFileSync(
     path.join(PAYKIT_SUPABASE, "config.toml"),
     "utf8",
@@ -54,9 +83,11 @@ function prepare() {
 }
 
 function supabase(args, stdio = "inherit") {
+  // pnpm is a .cmd shim on Windows, which Node refuses to spawn without a
+  // shell, so the workdir is quoted for it instead.
   return execFileSync(
     "pnpm",
-    ["exec", "supabase", ...args, "--workdir", WORKDIR],
+    ["exec", "supabase", ...args, "--workdir", `"${WORKDIR}"`],
     { cwd: QKIT_ROOT, stdio, shell: true },
   );
 }

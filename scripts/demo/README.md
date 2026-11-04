@@ -116,11 +116,15 @@ Then run paykit with the scratch stack's URL and keys (from
 NEXT_PUBLIC_SUPABASE_URL=... NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... SUPABASE_SECRET_KEY=... pnpm exec next dev -p 3002
 ```
 
-and start qkit's `pnpm dev` with the kit secret and callback secret (any 64 hex
-chars for the kit secret; paykit stores only its sha256):
+and run qkit as a production build with the kit secret and callback secret (any
+64 hex chars for the kit secret; paykit stores only its sha256). Use
+`pnpm build && pnpm start`, not `pnpm dev`: in dev, React StrictMode closes the
+board's realtime channel on its double mount, so the vendor board shows "Live
+updates interrupted, reconnecting" for the whole recording.
 
 ```bash
-NEXT_PUBLIC_PAYKIT_URL=http://127.0.0.1:3002 PAYKIT_KIT_SECRET=<64 hex> PAYKIT_CALLBACK_SECRET=<any> pnpm dev
+NEXT_PUBLIC_PAYKIT_URL=http://127.0.0.1:3002 PAYKIT_KIT_SECRET=<64 hex> PAYKIT_CALLBACK_SECRET=<any> pnpm build
+PAYKIT_KIT_SECRET=<64 hex> PAYKIT_CALLBACK_SECRET=<any> pnpm start -p 3001
 ```
 
 Record with the same values so the recorder can seed paykit per run

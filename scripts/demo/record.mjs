@@ -23,6 +23,7 @@ import {
   localDemoBaseUrl,
   localDemoDbUrl,
 } from "./base-url.mjs";
+import { DB_CONTAINER } from "./paykit-stack.mjs";
 import { formatSceneList, parseArgs, resolveScene } from "./scenes.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -544,13 +545,19 @@ async function payOnPaykit(page, boothId, { withProof = true } = {}) {
  * reaches the board exactly as it would in production.
  */
 async function deliverPaykitCallback(boothId) {
+  if (!process.env.DEMO_PAYKIT_DB_URL) return;
   const secret = process.env.DEMO_PAYKIT_CALLBACK_SECRET;
-  if (!process.env.DEMO_PAYKIT_DB_URL || !secret) return;
+  if (!secret) {
+    throw new Error("DEMO_PAYKIT_CALLBACK_SECRET is not set (README).");
+  }
   const orderId = psql({
     dbUrl: localDemoDbUrl(process.env.DEMO_DB_URL),
     container: process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
     query: `select id from qkit.orders where booth_id = '${boothId}' order by created_at desc limit 1`,
   });
+  if (!/^[0-9a-f-]{36}$/.test(orderId)) {
+    throw new Error("No order found for the paykit callback.");
+  }
   const res = await fetch(`${state.baseUrl}/api/paykit/payment-status`, {
     method: "POST",
     headers: {
@@ -711,8 +718,7 @@ function seedPaykit() {
   if (!secret) throw new Error("DEMO_PAYKIT_KIT_SECRET is not set (README).");
   psql({
     dbUrl: localDemoDbUrl(process.env.DEMO_PAYKIT_DB_URL, "DEMO_PAYKIT_DB_URL"),
-    container:
-      process.env.DEMO_PAYKIT_DB_CONTAINER ?? "supabase_db_paykit_demo",
+    container: process.env.DEMO_PAYKIT_DB_CONTAINER ?? DB_CONTAINER,
     file: "seed-paykit.sql",
     vars: {
       vendor_id: vendorId,
@@ -909,7 +915,6 @@ async function paynowScene({ browser, scene, dir }) {
   });
   await step(C.proof, () => payOnPaykit(phone, seed.boothId));
   await step(C.tap, async () => {
-    await openBoard(board);
     await revealTicket(board, PAYING_CUSTOMER);
     markPop();
     await beat(900);
