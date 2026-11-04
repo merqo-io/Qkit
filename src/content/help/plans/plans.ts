@@ -41,7 +41,7 @@ export const article: HelpArticle = {
     },
     {
       type: "note",
-      text: "Plans are bought and changed in your Merqo account, not in qkit. The Plan page shows your current plan and what each plan includes. Nothing in this guide quotes a price.",
+      text: "Plans are bought and changed in your Merqo account, not in qkit. The Plan page shows your current plan and the plan ladder with live prices. Nothing in this guide quotes a price.",
     },
 
     { type: "heading", level: 2, text: "Where you meet a limit" },

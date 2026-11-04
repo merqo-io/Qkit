@@ -33,7 +33,8 @@ export default async function PlanPage() {
   const { tier, eventPass } = entitlement;
   const catalog = await fetchPlanCatalog(
     process.env.MERQO_BASE_URL ?? "https://www.merqo.io",
-  );
+  ).catch(() => null);
+  const currentListed = catalog?.plans.some((plan) => plan.slug === tier);
 
   return (
     <div className="mx-auto max-w-2xl space-y-7">
@@ -66,6 +67,12 @@ export default async function PlanPage() {
       <p className="rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-muted-foreground">
         Change plan from your Merqo account.
       </p>
+
+      {catalog && !currentListed && (
+        <p className="rounded-xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+          You are on the {TIER_LABEL[tier]} plan.
+        </p>
+      )}
 
       {catalog ? (
         <PricingLadder
