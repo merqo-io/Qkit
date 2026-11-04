@@ -1,14 +1,14 @@
 import { readAllRows } from "@/lib/supabase/read-all";
 import { notFound } from "next/navigation";
 import { Check, Circle } from "lucide-react";
-import { BackButton, tierLabel } from "@merqo/ui";
+import { BackButton } from "@merqo/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
-import { resolveEntitlement, storedFromRow } from "@/lib/plan";
+import { TIER_LABEL, resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { buildVendorHealth, passHoursLeft } from "@/lib/admin/vendor-health";
 import { cn, formatPrice, MS_PER_DAY } from "@/lib/utils";
 import { Stat } from "../../stat";
@@ -169,7 +169,7 @@ export default async function AdminVendorDetailPage({
           </h1>
           <StatusChip status={health.status} />
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-            {tierLabel(entitlement.tier)}
+            {TIER_LABEL[entitlement.tier]}
             {passLeftHours !== null && ` · pass ${passLeftHours}h`}
           </span>
         </div>
@@ -251,7 +251,7 @@ export default async function AdminVendorDetailPage({
         </h2>
         <div className="space-y-1 rounded-xl border border-border bg-card px-4 py-3 text-sm">
           <p>
-            {tierLabel(entitlement.tier)}
+            {TIER_LABEL[entitlement.tier]}
             {entitlement.founder && " (founder)"}
           </p>
           {entitlement.eventPass && (

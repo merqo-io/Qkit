@@ -8,8 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
+- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists, matching `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 - The vendor plan page renders the shared `PricingLadder` (`@merqo/ui` v0.39.0) with live prices from merqo's plan catalog, qkit highlighted and the vendor's current tier marked, replacing the hard-coded comparison table. When the catalog is unreachable it shows the current plan and a calm "prices unavailable" line.
 - Demo recorder: the `come-back` scene now records the vendor socials footer and the Telegram connect beat. `pnpm demo:merqo` runs a stand-in for merqo's connect-token and notify endpoints, `seed-socials.sql` gives the demo booth its links, and `sold-out`, `multi-booth` and `come-back` each record and compose to a 1080x1920 mp4 against the local stack. The recorder also falls back to `docker exec` when `psql` is missing.
 - Demo recorder: the `tour` and `paynow` scenes are live-verified. The tour dismisses the first-visit booths overlay before typing the stall name, and board taps re-open the Incoming or Accepted tab until the ticket is on screen. The paykit mock's pay page now mirrors paykit's PayNow page (QR, screenshot upload, I've paid), and multi-line captions wrap evenly.
@@ -80,8 +79,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - Expand eligible persisted item quantities into bounded Printkit label batches after the existing Start/payment gates, with explicit handling for empty and invalid snapshots. Requires Printkit migration 0011 and physical staging verification.
 
 ## [0.3.0] - 2026-10-29
@@ -92,8 +89,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Labels wait for confirmed payment on payment orders, and vendor Start on non-payment orders. Printing-enabled QR and walk-up orders no longer automatically start; customer arrival leaves them awaiting vendor Start. Requires owner-applied migration `0107`.
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - `qkit.ops_events` failure log (migration `0108`, service-role only, purged after 30 days). Rejected paykit callbacks are recorded as `webhook_rejected` (`signature_invalid`, `transaction_missing`, `transaction_mismatch`) and generic order-board action failures as `action_error` (code = action name). `GET /api/merqo/vendor-activity` now returns `incidents` and `recent` for the last 72 hours. Requires owner-applied migration `0108`.
 - NCS November 6 readiness checklist covering shared-number incident capture, retries, venue Wi-Fi, a 200-cup rehearsal and the Ops lead handoff.
@@ -115,8 +110,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The order page's "Earn a stamp" link never showed: it called loopkit's `/api/merqo/qkit-earn-config` with qkit's metrics secret, but the per-kit secrets differ. It now reads loopkit's `qkit_earn_offer` RPC (loopkit migration `0062`) with the service client, still failing closed.
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - Signed-in render smoke and CSP e2e specs; the public-smoke e2e job serves the production build.
 - `docs/security/2026-10-24-data-inventory.md`.
@@ -147,8 +140,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `next` and `eslint-config-next` 16.3.8 to 16.4.2. next `>=16.0.0 <=16.4.0` has two critical unauthenticated remote code execution advisories, GHSA-2464-fhr4-w9xw (Image Optimization API with SVG files) and GHSA-673q-mjm6-r5xr (`use cache` functions returning typed arrays), and a high Server Actions denial of service, GHSA-p3m5-59mp-jv5r. They failed the dependency-audit job on every open PR. `pnpm audit --prod --audit-level=high` is clean again.
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - Staging rollout: `docs/DEPLOY.md` lists qkit's full set of `Preview` overrides now that paykit, printkit and loopkit join staging (staging `PAYKIT_*` and `PRINTKIT_*` pairs matching each kit's `staging-kit-keys.sql`, the kits' staging URLs, the auth cookie domain for the `staging` branch only) and notes that Vercel Deployment Protection is off on this project. The `staging sync` workflow now triggers the Vercel deploy hook in `VERCEL_STAGING_DEPLOY_HOOK`, since Vercel does not git-deploy a commit it already built for production.
 
@@ -515,8 +506,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - qkit now hears from paykit when a payment changes. paykit calls
   `POST /api/paykit/payment-status`; qkit reads the payment's real status back
   from paykit and gives the order its number, alerts the vendor, sends the
@@ -672,8 +661,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - A booth can stop taking orders after a set number of cups each day
   (`booths.daily_cup_cap`, migration 0094). An event working to a fixed stock
   ("200 cups, then we stop") previously had only `booths.hours`, a wall-clock
@@ -736,8 +723,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The tablet and desktop two-column layout is unchanged.
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - An order card carries a "Passed over" badge when a later order from the same
   booth is already ready or collected (`overtakenOrderIds` in
@@ -857,8 +842,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - `GET /api/printkit/printer-status`, so the booth page can ask printkit
   whether a booth's printer is set up and reachable without the
   `PRINTKIT_KIT_SECRET` ever reaching the browser. A printkit outage answers
@@ -960,8 +943,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - Saving a brand-new booth's first menu now lands on its QR page (with a
   "here's your QR to start taking orders" toast) instead of the plain
   booth-edit page — nothing previously nudged a first-time vendor toward
@@ -1009,8 +990,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   consequence (an order just preps slightly out of its natural order).
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - The Booths page now has its own dashboard tour (anchored on "New booth"),
   instead of the tour button always redirecting to `/dashboard` regardless
@@ -1190,8 +1169,6 @@ actions.ts`, `merqo-customer-notify.ts`) pointed at a stale, pre-custom-
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - `/about`, a public "Why Merqo" page rendering `@merqo/ui`'s shared
   `AboutMerqo` origin-story component, linked from the landing `Nav` and
   a new `Footer` component (extracted from `src/app/page.tsx`'s
@@ -1212,8 +1189,6 @@ actions.ts`, `merqo-customer-notify.ts`) pointed at a stale, pre-custom-
   `/legal/*` page).
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - Legal-document gate. `/legal/terms` and `/legal/privacy` render the shared
   `@merqo/ui` documents (also linked from the landing footer), and a signed-in
@@ -1530,8 +1505,6 @@ available`, matching each item by exact name to update in place rather
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - printkit print-job integration: a new `orders.print_status` enum column
   (`not_required`|`queued`|`sent`|`printed`|`failed`, migration 0081).
   `placeOrder` now fires an outbound job-creation call to printkit's
@@ -1720,8 +1693,6 @@ available`, matching each item by exact name to update in place rather
   above moved checkout rendering to paykit's API.
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - **"Save QR image" on the customer order page's payment panel**, plus
   clearer same-device PayNow instructions. A QR checkout previously had no
@@ -2137,8 +2108,6 @@ plan='pro'` on their own row via a direct PostgREST call — a free→pro
 
 ### Added
 
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
-
 - New cross-kit endpoint `GET /api/merqo/vendor-activity?email=` for merqo's
   admin vendor-detail page: bearer-authed (`MERQO_METRICS_SECRET`, same
   secret as `/api/merqo/metrics`), resolves the vendor by email and returns
@@ -2156,8 +2125,6 @@ plan='pro'` on their own row via a direct PostgREST call — a free→pro
 ## [0.1.0] - 2026-06-05
 
 ### Added
-
-- Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists via `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.
 
 - Supabase email/password auth — login and register (creates the vendor row).
 - Database schema (`supabase/migrations/0001_initial_schema.sql`): `vendors`,
