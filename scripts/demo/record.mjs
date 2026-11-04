@@ -617,20 +617,40 @@ async function fulfil(page, name, { start = true } = {}) {
 // Seeding ------------------------------------------------------------------
 
 function grantQkitTier() {
+  runDemoSql("grant-qkit-tier.sql");
+}
+
+/**
+ * Run a SQL file against the loopback Postgres. Windows has no host psql, so
+ * it falls back to the db container's own, which ignores the url for the
+ * connection but still needs it set as the loopback guard.
+ */
+function runDemoSql(file) {
   const dbUrl = localDemoDbUrl(process.env.DEMO_DB_URL);
-  const res = spawnSync(
-    "psql",
-    [
-      dbUrl,
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-f",
-      path.join(HERE, "grant-qkit-tier.sql"),
-    ],
-    { stdio: "inherit" },
-  );
-  if (res.status !== 0)
-    throw new Error("psql failed upgrading the demo vendor");
+  const base = ["-v", "ON_ERROR_STOP=1"];
+  const sqlPath = path.join(HERE, file);
+  let res = spawnSync("psql", [dbUrl, ...base, "-f", sqlPath], {
+    stdio: "inherit",
+  });
+  if (res.error?.code === "ENOENT") {
+    res = spawnSync(
+      "docker",
+      [
+        "exec",
+        "-i",
+        process.env.DEMO_DB_CONTAINER ?? "supabase_db_qkit",
+        "psql",
+        "-U",
+        "postgres",
+        ...base,
+      ],
+      {
+        input: fs.readFileSync(sqlPath),
+        stdio: ["pipe", "inherit", "inherit"],
+      },
+    );
+  }
+  if (res.status !== 0) throw new Error(`psql failed running ${file}`);
 }
 
 /**
@@ -1096,21 +1116,28 @@ async function imHereScene({ browser, scene, dir }) {
   });
 }
 
-// What this scene shows depends on merqo (vendor socials, the Telegram link),
-// which a local qkit stack lacks, so each optional beat is looked for and
-// skipped when absent rather than failing the recording.
+// The footer needs social links on the booth (seeded by SQL, unrecorded) and
+// the Telegram link needs a merqo to hand out a connect token, so this scene
+// expects `pnpm demo:merqo` and a dev server started with its env (README).
 async function comeBackScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
+  runDemoSql("seed-socials.sql");
   const page = await openRecorded(browser, dir, "main");
+
   await step(C.footer, async () => {
     await customerOrder(page, seed.boothId, { name: CUSTOMER });
-    await scrollPage(page, 1200);
+    await beat(800);
+    const follow = page.getByText(/^Follow /).first();
+    await follow.waitFor({ timeout: 15000 });
+    await center(page, follow);
+    await beat(2200);
   });
   await step(C.telegram, async () => {
     const link = page.getByText(/Get notified on Telegram/).first();
-    if (await link.isVisible().catch(() => false)) await center(page, link);
-    await beat(2200);
+    await link.waitFor({ timeout: 15000 });
+    await center(page, link);
+    await beat(2400);
   });
 
   const vendor = await openFast(browser, seed.storageState);
@@ -1120,12 +1147,13 @@ async function comeBackScene({ browser, scene, dir }) {
 
   await step(C.reorder, async () => {
     await page.reload({ waitUntil: "domcontentloaded" });
-    const again = page.getByRole("button", { name: "Reorder" });
-    await again.waitFor({ timeout: 10000 }).catch(() => {});
-    if (await again.isVisible().catch(() => false)) {
-      await center(page, again);
-      await glideClick(page, again);
-    }
+    const again = page.getByRole("button", {
+      name: /Reorder these items|Order this again/,
+    });
+    await again.waitFor({ timeout: 15000 });
+    await center(page, again);
+    await beat(900);
+    await glideClick(page, again);
     await beat(2200);
   });
 }

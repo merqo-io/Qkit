@@ -38,7 +38,7 @@ exit non-zero with the list.
 | `stats`       | 10      | single | implemented   | Free plan only: no history, trends or margin.                                                                           |
 | `multi-booth` | 11      | single | implemented   | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                      |
 | `im-here`     | 12      | split  | implemented   | Booth set to hold prep until arrival.                                                                                   |
-| `come-back`   | 13      | single | skeleton      | Socials and the Telegram link come from merqo, absent on a local qkit stack; those beats are skipped when not found.    |
+| `come-back`   | 13      | single | live-verified | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`.                            |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -55,6 +55,8 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
 | `reset.sql`           | Wipes the fixed demo account so each run starts identical                                          |
 | `grant-qkit-tier.sql` | Gives the demo vendor the qkit tier; run by `record.mjs` only for scenes that show a gated feature |
 | `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                              |
+| `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                        |
+| `seed-socials.sql`    | Gives the demo booth social links for the `come-back` footer; run by `record.mjs`                  |
 | `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                |
 | `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                          |
 | `out/`                | Generated artifacts (git-ignored)                                                                  |
@@ -77,8 +79,12 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
    ```
    The mock's pay page is a plain test fixture, not paykit's real page. Do not
    use real payment credentials.
+   For `come-back` also run `pnpm demo:merqo` (127.0.0.1:4320) and add
+   `MERQO_BASE_URL=http://127.0.0.1:4320 MERQO_CUSTOMER_SECRET=demo-merqo-secret`
+   to the dev server env. Without it the Telegram link is absent and the beat
+   times out. The link shows only for orders that are not ready yet.
 4. **ffmpeg** on PATH.
-5. For `sold-out` and `multi-booth` only: `DEMO_DB_URL` set to the local
+5. For `sold-out`, `multi-booth` and `come-back`: `DEMO_DB_URL` set to the local
    Postgres URL (from `pnpm exec supabase status`) and `psql` on PATH. Free
    plan has no stock limits and one booth, so these scenes run
    `grant-qkit-tier.sql` after sign-up. Loopback hosts only.
@@ -141,14 +147,16 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - The "other person" in a scene (a walk-in, the crowd on a busy board) is an
   unrecorded browser context, so tickets arrive through the real realtime
   subscription.
-- Verification status: `options`, `live-pop`, `tour` and `paynow` were recorded
+- Verification status: `options`, `live-pop`, `tour`, `paynow`, `sold-out`,
+  `multi-booth` and `come-back` were recorded
   and composed end to end against a local stack. The other scenes' locators
   were read from the components but not yet run live.
 - `reset.sql` also seeds a cached "legal current" row for the demo email. The
   dashboard's legal gate asks merqo, which a local stack cannot reach, and
   would otherwise send the new vendor to `/legal/accept`.
 - Run `reset.sql` only against the local stack (the `docker exec` into `supabase_db_qkit` below), never against a hosted database; nothing in code guards it.
-- Without `psql` on PATH, pipe the SQL through the db container:
+- Without `psql` on PATH, the recorder falls back to `docker exec` into the db
+  container (`DEMO_DB_CONTAINER`, default `supabase_db_qkit`). To reset by hand, pipe the SQL through the db container:
   `Get-Content scripts/demo/reset.sql | docker exec -i supabase_db_qkit psql -U postgres`.
 - The board's live pop needs a working Realtime. An old local volume run with
   an older Realtime image than the one that created it fails with
