@@ -3,6 +3,7 @@ import { BOOTH } from "./customer-flow";
 import { E2E_BASE_URL } from "./paykit-mock";
 import {
   SEED_VENDOR_ID,
+  signInFreeVendor,
   signInSeedAdmin,
   signInSeedVendor,
 } from "./vendor-auth";
@@ -14,14 +15,6 @@ test("every dashboard page renders signed in", async ({ browser, baseURL }) => {
   const context = await browser.newContext();
   await signInSeedVendor(context, baseURL ?? E2E_BASE_URL);
   const page = await context.newPage();
-
-  // The free seeded vendor already owns a booth. Wait for the streamed
-  // plan redirect before starting another navigation.
-  await page.goto("/dashboard/booths/new");
-  await expect(page).toHaveURL(/\/dashboard\/plan$/);
-  await expect(
-    page.getByRole("heading", { name: "Plan", exact: true }),
-  ).toBeVisible();
 
   // Dynamic: Playwright loads specs as CJS and the helper is ESM-only.
   const { renderSmoke } = await import("@merqo/ui/testing");
@@ -40,6 +33,25 @@ test("every dashboard page renders signed in", async ({ browser, baseURL }) => {
   ]);
 
   expect(failures).toEqual([]);
+  await context.close();
+});
+
+test("a free vendor with a booth is sent to the plan page for a second", async ({
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(240_000);
+  const context = await browser.newContext();
+  await signInFreeVendor(context, baseURL ?? E2E_BASE_URL);
+  const page = await context.newPage();
+
+  // The free vendor already owns a booth. Wait for the streamed
+  // plan redirect before starting another navigation.
+  await page.goto("/dashboard/booths/new");
+  await expect(page).toHaveURL(/\/dashboard\/plan$/);
+  await expect(
+    page.getByRole("heading", { name: "Plan", exact: true }),
+  ).toBeVisible();
   await context.close();
 });
 

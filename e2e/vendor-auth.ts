@@ -95,6 +95,37 @@ async function sessionCookies(
   return live;
 }
 
+type VendorIdentity = { email: string; id: string };
+
+// The legal gate asks merqo, which e2e cannot reach, and fails closed; a fresh
+// cached "current" answer lets the dashboard through. Marking both tours seen
+// keeps their overlay off the board.
+async function signInVendor(
+  { env, admin }: { env: ReturnType<typeof localSupabaseEnv>; admin: Admin },
+  context: BrowserContext,
+  baseURL: string,
+  vendor: VendorIdentity,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const qkit = admin.schema("qkit");
+  const { error: legalError } = await qkit.from("legal_check_state").upsert({
+    email: vendor.email.toLowerCase(),
+    checked_at: now,
+    is_current: true,
+  });
+  if (legalError) throw new Error(`legal_check_state: ${legalError.message}`);
+  const { error: tourError } = await qkit
+    .from("vendors")
+    .update({ tours_seen: { orders: now, booths: now } })
+    .eq("id", vendor.id);
+  if (tourError) throw new Error(`vendors.tours_seen: ${tourError.message}`);
+
+  const cookies = await sessionCookies(env, admin, vendor, { mfa: false });
+  await context.addCookies(
+    cookies.map(([name, value]) => ({ name, value, url: baseURL })),
+  );
+}
+
 /** Signs `context` in as the seed booth's vendor, past the dashboard's gates. */
 export async function signInSeedVendor(
   context: BrowserContext,
@@ -111,31 +142,63 @@ export async function signInSeedVendor(
       `Seed vendor ${SEED_VENDOR_ID} not found; apply the coffee-cart seed`,
     );
   }
+  await signInVendor({ env, admin }, context, baseURL, {
+    email,
+    id: SEED_VENDOR_ID,
+  });
+}
 
-  // The legal gate asks merqo, which e2e cannot reach, and fails closed; a
-  // fresh cached "current" answer lets the dashboard through. Marking both
-  // tours seen keeps their overlay off the board.
-  const now = new Date().toISOString();
+const FREE_VENDOR_EMAIL = "e2e-free@qkit.test";
+const FREE_BOOTH_ID = "c0ffee02-0000-4000-8000-000000000001";
+
+/**
+ * Signs `context` in as a dedicated free-tier vendor with exactly one booth.
+ * The seed vendor holds the qkit tier (the order specs need counter ops), so
+ * the free plan's one-booth cap needs its own vendor; creating it here keeps
+ * local runs working without an extra seed, and never touches the seed
+ * vendor's entitlement.
+ */
+export async function signInFreeVendor(
+  context: BrowserContext,
+  baseURL: string,
+): Promise<void> {
+  const env = localSupabaseEnv();
+  const admin = serviceClient(env);
+
+  const created = await admin.auth.admin.createUser({
+    email: FREE_VENDOR_EMAIL,
+    email_confirm: true,
+  });
+  let id = created.data.user?.id;
+  if (!id) {
+    const { data: list, error: listError } = await admin.auth.admin.listUsers({
+      perPage: 1000,
+    });
+    if (listError) throw new Error(`listUsers: ${listError.message}`);
+    id = list.users.find((u) => u.email === FREE_VENDOR_EMAIL)?.id;
+  }
+  if (!id) throw new Error("Could not create or find the e2e free vendor");
+
   const qkit = admin.schema("qkit");
-  const { error: legalError } = await qkit
-    .from("legal_check_state")
-    .upsert({ email: email.toLowerCase(), checked_at: now, is_current: true });
-  if (legalError) throw new Error(`legal_check_state: ${legalError.message}`);
-  const { error: tourError } = await qkit
+  const { error: vendorError } = await qkit
     .from("vendors")
-    .update({ tours_seen: { orders: now, booths: now } })
-    .eq("id", SEED_VENDOR_ID);
-  if (tourError) throw new Error(`vendors.tours_seen: ${tourError.message}`);
+    .upsert({ id }, { onConflict: "id", ignoreDuplicates: true });
+  if (vendorError) throw new Error(`vendors: ${vendorError.message}`);
+  const { error: boothError } = await qkit.from("booths").upsert(
+    {
+      id: FREE_BOOTH_ID,
+      vendor_id: id,
+      name: "Free Test Cart",
+      is_active: true,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+  if (boothError) throw new Error(`booths: ${boothError.message}`);
 
-  const cookies = await sessionCookies(
-    env,
-    admin,
-    { email, id: SEED_VENDOR_ID },
-    { mfa: false },
-  );
-  await context.addCookies(
-    cookies.map(([name, value]) => ({ name, value, url: baseURL })),
-  );
+  await signInVendor({ env, admin }, context, baseURL, {
+    email: FREE_VENDOR_EMAIL,
+    id,
+  });
 }
 
 const ADMIN_EMAIL = "e2e-admin@qkit.test";
