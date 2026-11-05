@@ -165,9 +165,10 @@ checks; inspect `.github/workflows/` for the actual job conditions.
 - [October audit](docs/meta/2026-10-07-project-audit.md): findings, verification,
   remaining risks and the tracked-file inventory.
 
-Vercel deployments use the Singapore region (`vercel.json`) and deploy only `main`
-from git; branch previews are off (see `docs/DEPLOY.md`). Preview and
-Production currently share a database; treat preview writes as real data changes.
+Vercel deployments use the Singapore region (`vercel.json`) and deploy `main`
+(production) and `staging` (`qkit-staging.merqo.io`) from git; branch previews are
+off (see `docs/DEPLOY.md`). Preview uses the staging Supabase project, not
+production.
 
 CSV exports quote embedded line breaks and prefix spreadsheet formula-like text
 with an apostrophe. Prices and derived monetary totals remain numeric. Importing

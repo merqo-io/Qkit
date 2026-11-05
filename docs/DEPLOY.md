@@ -82,10 +82,10 @@ full list of `Preview` env vars and the end-to-end check live in merqo's
   only, so one sign-in covers the staging hosts. Never on other previews.
 
 Vercel Deployment Protection is off on this project: it still challenged
-the branch-assigned staging domain. The `staging sync` workflow also calls
-the project's Vercel deploy hook (repo secret `VERCEL_STAGING_DEPLOY_HOOK`),
-because Vercel does not git-deploy a commit it already built for
-production.
+the branch-assigned staging domain. Vercel's git integration deploys the
+`staging` branch whenever a PR merges into it. After a `staging` -> `main`
+promotion the `staging sync` workflow only fast-forwards `staging` to main's
+commit; it does not trigger a deploy.
 
 Load staging's schema with `scripts/staging-migrate.sh`, not
 `supabase db push`: every kit shares one migration history table and
