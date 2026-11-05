@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Release flow is now `feat/*` or `fix/*` -> `staging` -> `main`. PRs merge into `staging`, which Vercel's git integration deploys to `qkit-staging.merqo.io`; `staging` is promoted to `main` with a merge commit. CI also runs on pushes to `staging`. The `staging sync` workflow only fast-forwards `staging` after a promotion, and the `VERCEL_STAGING_DEPLOY_HOOK` deploy-hook step is removed.
+
 ### Added
 
 - Dashboard nav: the User guide link shows a book icon, and the stored `qkit` tier reads "Pro" in the tier badge, plan page and admin lists, matching `tierLabel` from `@merqo/ui` v0.41.0 (pinned by commit until the tag is pushed). Stored tier values are unchanged.

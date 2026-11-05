@@ -36,6 +36,13 @@ Gate before a PR: the `next-verify` skill (typecheck + lint + test + build), or
 runs it, so run one suite at a time.
 E2E and mutation testing procedure: `docs/TESTING.md`.
 
+## Git Workflow
+
+- Branch `feat/*` or `fix/*` from `staging`. Open the PR into `staging` (squash is fine); CI runs on it.
+- After merge, Vercel's git integration deploys `qkit-staging.merqo.io` (Preview env, staging Supabase). Test there, not on `*.vercel.app`: the sign-in cookie only works on merqo.io hosts and branch previews are disabled.
+- Promote with a PR `staging` -> `main` merged as a MERGE COMMIT (never squash or rebase) so `staging-sync` can fast-forward `staging` to main.
+- Never commit directly to `main` or `staging`.
+
 ## Data model (summary)
 
 - `vendors` (id = auth.users.id), `booths` (JSONB `menu_items`), `orders` (JSONB
