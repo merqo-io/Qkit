@@ -1,20 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
+import { ConfirmDialog } from "@merqo/ui";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { regenerateShortCode } from "../../actions";
 
 /**
@@ -31,23 +22,14 @@ export function RegenerateButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
 
-  function confirm() {
-    startTransition(async () => {
-      try {
-        const res = await regenerateShortCode(boothId);
-        if (!res.success) {
-          toast.error(res.error ?? "Could not regenerate QR");
-          return;
-        }
-        toast.success("New QR generated, reprint to use it.");
-        setOpen(false);
-        router.refresh();
-      } catch {
-        toast.error("Could not regenerate QR. Try again.");
-      }
-    });
+  async function confirm() {
+    // A rejected call becomes an empty message so the dialog shows its own
+    // friendly errorMessage instead of a raw network error.
+    const res = await regenerateShortCode(boothId).catch(() => null);
+    if (!res?.success) throw new Error(res?.error ?? "");
+    toast.success("New QR generated, reprint to use it.");
+    router.refresh();
   }
 
   return (
@@ -61,32 +43,16 @@ export function RegenerateButton({
         <RefreshCw className="size-4" /> Regenerate QR
       </Button>
 
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Regenerate QR for &ldquo;{boothName}&rdquo;?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Every printed or saved code for this booth stops working
-              immediately. You&apos;ll need to reprint the QR.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                // keep the dialog open until the action resolves
-                e.preventDefault();
-                confirm();
-              }}
-              disabled={pending}
-            >
-              {pending ? "Regenerating…" : "Regenerate QR"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={`Regenerate QR for \u201C${boothName}\u201D?`}
+        description="Every printed or saved code for this booth stops working immediately. You'll need to reprint the QR."
+        confirmLabel="Regenerate QR"
+        pendingLabel="Regenerating…"
+        errorMessage="Could not regenerate QR. Try again."
+        onConfirm={confirm}
+      />
     </>
   );
 }

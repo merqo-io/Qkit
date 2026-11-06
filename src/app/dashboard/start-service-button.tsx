@@ -1,20 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RotateCcw } from "lucide-react";
+import { ConfirmDialog } from "@merqo/ui";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -46,24 +37,15 @@ export function StartServiceButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
 
-  function confirm() {
-    startTransition(async () => {
-      try {
-        const res = await startNewService(boothId);
-        if (!res.success) {
-          toast.error(res.error ?? "Could not start a new service");
-          return;
-        }
-        toast.success(`New service started. ${boothName} is back to 0 items.`);
-        setOpen(false);
-        if (res.startedAt) onStarted?.(boothId, res.startedAt);
-        router.refresh();
-      } catch {
-        toast.error("Could not start a new service. Try again.");
-      }
-    });
+  async function confirm() {
+    // A rejected call becomes an empty message so the dialog shows its own
+    // friendly errorMessage instead of a raw network error.
+    const res = await startNewService(boothId).catch(() => null);
+    if (!res?.success) throw new Error(res?.error ?? "");
+    toast.success(`New service started. ${boothName} is back to 0 items.`);
+    if (res.startedAt) onStarted?.(boothId, res.startedAt);
+    router.refresh();
   }
 
   return (
@@ -95,30 +77,16 @@ export function StartServiceButton({
         </Button>
       )}
 
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Start a new service?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The item count for {boothName} goes back to 0, so it can take a
-              full daily limit again. Orders already placed are not changed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                // keep the dialog open until the action resolves
-                e.preventDefault();
-                confirm();
-              }}
-              disabled={pending}
-            >
-              {pending ? "Starting…" : "Start new service"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Start a new service?"
+        description={`The item count for ${boothName} goes back to 0, so it can take a full daily limit again. Orders already placed are not changed.`}
+        confirmLabel="Start new service"
+        pendingLabel="Starting…"
+        errorMessage="Could not start a new service. Try again."
+        onConfirm={confirm}
+      />
     </>
   );
 }

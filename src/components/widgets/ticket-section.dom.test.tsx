@@ -44,10 +44,14 @@ describe("Section", () => {
     await user.hover(
       screen.getByRole("button", { name: /more about stall name/i }),
     );
-    // Require the visible tooltip, not only a hidden accessible-name copy.
+    // Radix renders the visible bubble plus a visually hidden role=tooltip
+    // copy for assistive tech; require the visible one.
     const matches = await screen.findAllByText("extra detail");
-    expect(matches).toHaveLength(1);
-    expect(matches[0]).toHaveAttribute("role", "tooltip");
-    expect(matches[0]).toHaveAttribute("data-state", "delayed-open");
+    expect(
+      matches.some((el) => el.getAttribute("data-state") === "delayed-open"),
+    ).toBe(true);
+    expect(matches.some((el) => el.getAttribute("role") === "tooltip")).toBe(
+      true,
+    );
   });
 });

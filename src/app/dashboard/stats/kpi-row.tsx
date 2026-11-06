@@ -1,6 +1,6 @@
 import { cn, formatPrice } from "@/lib/utils";
 import type { StatsSummary } from "@/lib/stats";
-import { StatTile as SharedStatTile, DeltaPill } from "@merqo/ui";
+import { StatCard, DeltaPill } from "@merqo/ui";
 import { StatBreakdownTile, type BreakdownRow } from "./stat-breakdown";
 import { WIDE_ON_PHONE } from "./tile-layout";
 
@@ -22,9 +22,8 @@ function Delta({ pct }: { pct: number | null }) {
 
 /**
  * The one tile the whole stats strip is built from — wraps `@merqo/ui`'s shared
- * `StatTile` (label/value/delta content) in qkit's own card shell (a bordered,
- * fade-rise-animated frame with an ember `primary` accent) since that outer
- * treatment doesn't match loopkit's/merqo's own. Money KPIs, order counts, and
+ * `StatCard` with its elevated shell flattened back to qkit's bordered,
+ * fade-rise-animated frame with an ember `primary` accent. Money KPIs, order counts, and
  * the qualitative context tiles (best seller, busiest hour, avg wait) all render
  * through this, so the strip reads as one grid instead of a mix of styles.
  */
@@ -50,17 +49,18 @@ export function StatTile({
   index?: number;
 }) {
   return (
+    // The card takes no inline style, so the animation lives on this wrapper.
     <div
-      className={cn(
-        "fade-rise rounded-xl border bg-card p-4",
-        primary ? "border-primary/30" : "border-border",
-        wide && WIDE_ON_PHONE,
-      )}
+      className={cn("fade-rise", wide && WIDE_ON_PHONE)}
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <SharedStatTile
+      <StatCard
         label={label}
         value={value}
+        className={cn(
+          "h-full rounded-xl shadow-none",
+          primary ? "border-primary/30" : "border-border",
+        )}
         valueClassName="font-mono"
         captionClassName="font-mono"
         caption={caption}

@@ -9,7 +9,7 @@ import { servableBoothIds, isBoothPaused } from "@/lib/booth/access";
 import { ProLock } from "@/components/widgets/pro-lock";
 import { Ticket } from "@/components/widgets/ticket";
 import { BoothList } from "./booth-list";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -42,29 +42,31 @@ export default async function BoothsPage() {
 
   return (
     <div>
-      <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <PageHeader eyebrow="Your stalls" title="Booths" responsive />
-        </div>
-        {canCreate ? (
-          <Button asChild className="rounded-lg" data-tour="new-booth">
-            <Link href="/dashboard/booths/new">
-              <Plus className="size-4" /> New booth
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-lg"
-            data-tour="new-booth"
-          >
-            <Link href="/dashboard/plan">
-              <Sparkles className="size-4" /> Upgrade to add booths
-            </Link>
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Your stalls"
+        title="Booths"
+        responsive
+        action={
+          canCreate ? (
+            <Button asChild className="rounded-lg" data-tour="new-booth">
+              <Link href="/dashboard/booths/new">
+                <Plus className="size-4" /> New booth
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-lg"
+              data-tour="new-booth"
+            >
+              <Link href="/dashboard/plan">
+                <Sparkles className="size-4" /> Upgrade to add booths
+              </Link>
+            </Button>
+          )
+        }
+      />
 
       {pausedCount > 0 && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm">

@@ -106,7 +106,9 @@ describe("StartServiceButton", () => {
       wrapper: TooltipProvider,
     });
     await openAndConfirm();
-    expect(errorToast).toHaveBeenCalledWith("Booth not found");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Booth not found",
+    );
     expect(refresh).not.toHaveBeenCalled();
   });
 
@@ -116,7 +118,7 @@ describe("StartServiceButton", () => {
       wrapper: TooltipProvider,
     });
     await openAndConfirm();
-    expect(errorToast).toHaveBeenCalledWith(
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not start a new service. Try again.",
     );
   });

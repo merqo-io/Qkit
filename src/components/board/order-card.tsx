@@ -9,17 +9,8 @@ import {
   useMemo,
 } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@merqo/ui";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { OrderStatusBadge } from "@/components/board/order-status-badge";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
@@ -508,17 +499,6 @@ function OrderCardInner({
     });
   }
 
-  function cancelOrder() {
-    return run(async () => {
-      const res = await cancelOrderAction(order.id);
-      if (!res.success) {
-        toast.error(res.error);
-      } else {
-        setStatus("cancelled");
-      }
-    });
-  }
-
   function bump() {
     return run(async () => {
       const res = await bumpOrder(order.id);
@@ -691,30 +671,35 @@ function OrderCardInner({
       {/* Opened from the "more" menu. An auto-completed order gets its own
           wording: the auto-clear sweep can beat a vendor's own cancel tap, and
           cancelOrder accepts that case specifically (see its own comment). */}
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel order #{number}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {closed
-                ? "This order was auto-completed before you cancelled it. Cancelling now permanently removes it from the board. This can't be undone."
-                : "This permanently cancels the order and removes it from the board. This can't be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={updating}>
-              Keep order
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={cancelOrder}
-              disabled={updating}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
-              Cancel order
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title={`Cancel order #${number}?`}
+        description={
+          closed
+            ? "This order was auto-completed before you cancelled it. Cancelling now permanently removes it from the board. This can't be undone."
+            : "This permanently cancels the order and removes it from the board. This can't be undone."
+        }
+        confirmLabel="Cancel order"
+        cancelLabel="Keep order"
+        variant="destructive"
+        errorMessage="Could not cancel the order. Try again."
+        onConfirm={async () => {
+          // Failure is captured and rethrown after run() so the in-flight flag
+          // still gates the bump/advance buttons while the dialog, not run(),
+          // decides how the error is shown.
+          let failure: Error | null = null;
+          await run(async () => {
+            const res = await cancelOrderAction(order.id).catch(() => null);
+            if (!res?.success) {
+              failure = new Error(res?.error ?? "");
+              return;
+            }
+            setStatus("cancelled");
+          });
+          if (failure) throw failure;
+        }}
+      />
     </Ticket>
   );
 }
