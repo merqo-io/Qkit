@@ -454,6 +454,32 @@ describe("OrderCard", () => {
         screen.queryByRole("button", { name: "Mark Ready" }),
       ).not.toBeInTheDocument(),
     );
+    // The shared dialog closes only after the action settles; leaving it open
+    // would keep Radix's body pointer-events lock into the next test.
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
+    expect(document.body.style.pointerEvents).not.toBe("none");
+  });
+
+  it("keeps the cancel dialog open with an inline error when cancelling fails", async () => {
+    const user = userEvent.setup();
+    cancelOrder.mockRejectedValue(new Error("Failed to fetch"));
+    render(<OrderCard order={makeOrder({ status: "preparing" })} />, {
+      wrapper: TooltipProvider,
+    });
+
+    await openMore(user);
+    await user.click(screen.getByRole("menuitem", { name: /cancel order/i }));
+    await user.click(screen.getByRole("button", { name: "Cancel order" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Could not cancel the order. Try again.");
+    expect(alert).not.toHaveTextContent("Failed to fetch");
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Mark Ready", hidden: true }),
+    ).toBeInTheDocument();
   });
 
   it("shows no action buttons for a completed order", () => {
@@ -1321,6 +1347,9 @@ describe("OrderCard — restore auto-completed", () => {
     expect(cancelOrder).toHaveBeenCalledWith("o1");
     await waitFor(() =>
       expect(screen.getByText("Cancelled")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
   });
 });

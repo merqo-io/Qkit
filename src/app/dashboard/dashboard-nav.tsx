@@ -6,9 +6,8 @@ import { BookOpen } from "lucide-react";
 import {
   DashboardNav as SharedDashboardNav,
   getSwitchKits,
-  tierLabel,
+  TierChip,
 } from "@merqo/ui";
-import { cn } from "@/lib/utils";
 import type { Tier } from "@/lib/plan";
 import type { SupportMessageInput } from "@/lib/schemas";
 import { submitFeedback } from "@/app/actions/feedback";
@@ -28,38 +27,6 @@ function isActive(path: string, href: string): boolean {
 /** Stable anchor id for the onboarding tour, e.g. "/dashboard/booths" → "nav-booths". */
 function tourAnchor(href: string): string {
   return `nav-${href === "/dashboard" ? "orders" : href.split("/").pop()}`;
-}
-
-// A small mono "ticket stamp" for the account's tier. Free reads as a quiet
-// muted chip; Starter borrows the primary tint; qkit is the one that pops,
-// filled with the brand's olive, so a full-kit stall is legible at a glance.
-const TIER_BADGE: Record<Tier, { label: string; className: string }> = {
-  free: {
-    label: tierLabel("free"),
-    className: "bg-muted text-muted-foreground ring-border",
-  },
-  starter: {
-    label: tierLabel("starter"),
-    className: "bg-primary/12 text-primary ring-primary/25",
-  },
-  qkit: {
-    label: tierLabel("qkit"),
-    className: "bg-secondary text-secondary-foreground ring-secondary",
-  },
-};
-
-function TierBadge({ tier }: { tier: Tier }) {
-  const { label, className } = TIER_BADGE[tier];
-  return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[0.6rem] font-semibold uppercase tracking-wider ring-1 ring-inset",
-        className,
-      )}
-    >
-      {label}
-    </span>
-  );
 }
 
 // Category list/labels for the nav's Get-help sheet.
@@ -138,7 +105,7 @@ export function DashboardNav({
       signOutAction={signOut}
       kitLocalSettingsHref="/dashboard/settings"
       switchKits={getSwitchKits("qkit")}
-      tierBadge={<TierBadge tier={tier} />}
+      tierBadge={<TierChip tier={tier} />}
       getHelp={{
         type: "form",
         onSubmit: async ({ message, category }) => {

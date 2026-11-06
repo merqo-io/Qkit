@@ -17,7 +17,7 @@ import { MS_PER_DAY } from "@/lib/utils";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { Stat } from "../stat";
 import { VendorList, type VendorListItem } from "../vendor-list";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -154,9 +154,7 @@ export default async function AdminVendorsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-7">
-      <div>
-        <PageHeader eyebrow="Internal" title="Vendors" />
-      </div>
+      <PageHeader eyebrow="Internal" title="Vendors" className="mb-8" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Vendors" value={vstat.total} delay={0} />

@@ -9,7 +9,7 @@ import { npsBreakdown } from "@/lib/nps";
 import { summarizeReviews, type ReviewRow } from "@/lib/reviews";
 import { Paginated } from "@/components/widgets/paginated";
 import { Ticket } from "@/components/widgets/ticket";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -169,9 +169,7 @@ export default async function AdminFeedbackPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-5 py-7">
-      <div>
-        <PageHeader eyebrow="Internal" title="Feedback" />
-      </div>
+      <PageHeader eyebrow="Internal" title="Feedback" className="mb-8" />
 
       {/* ── Hero: vendor NPS (qkit's own loyalty metric) ─────────────────── */}
       <Ticket as="section" shadow="none" className="fade-rise bg-card">

@@ -10,7 +10,7 @@ import {
 } from "@/lib/numbering-baselines";
 import { Ticket } from "@/components/widgets/ticket";
 import { Paginated } from "@/components/widgets/paginated";
-import { SegmentedControl } from "@/components/widgets/segmented-control";
+import { SegmentedControl } from "@merqo/ui";
 import { Input } from "@/components/ui/input";
 import {
   Select,

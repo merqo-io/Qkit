@@ -2,17 +2,8 @@
 
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
+import { ConfirmDialog } from "@merqo/ui";
 import { Switch } from "@/components/ui/switch";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { usePrinterStatus } from "@/hooks/use-printer-status";
 import { PrinterStatus } from "./printer-status";
 import { SettingRow } from "./setting-row";
@@ -147,24 +138,14 @@ export function PrintingSection({
         </p>
       )}
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Printer offline</AlertDialogTitle>
-            <AlertDialogDescription>
-              This booth&apos;s printer isn&apos;t reachable right now. Orders
-              will wait in Incoming until it comes back, or you can turn this on
-              anyway and sort the printer out later.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => onChange(true)}>
-              Turn on anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Printer offline"
+        description="This booth's printer isn't reachable right now. Orders will wait in Incoming until it comes back, or you can turn this on anyway and sort the printer out later."
+        confirmLabel="Turn on anyway"
+        onConfirm={() => onChange(true)}
+      />
     </div>
   );
 }

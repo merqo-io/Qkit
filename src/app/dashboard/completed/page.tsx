@@ -6,7 +6,7 @@ import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { NumbersDegradedBanner } from "../board-sections";
 import { CompletedOrdersList } from "./completed-orders-list";
 import type { BoardOrder } from "@/lib/types";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -54,9 +54,7 @@ export default async function CompletedOrdersPage() {
 
   return (
     <div>
-      <header className="mb-7">
-        <PageHeader eyebrow="Order history" title="Completed orders" />
-      </header>
+      <PageHeader eyebrow="Order history" title="Completed orders" />
       {numbersDegraded && <NumbersDegradedBanner />}
       <CompletedOrdersList
         booths={booths ?? []}

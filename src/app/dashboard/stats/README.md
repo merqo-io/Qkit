@@ -34,7 +34,7 @@ The live review list keeps its explicit 500-row recent limit.
   module because one tile file is a Client Component: a Server Component
   importing a string from it would get a client reference, not the string.
 - `kpi-row.tsx` — `StatTile` (qkit's bordered/fade-rise card shell wrapping
-  `@merqo/ui`'s shared `StatTile` content — label + delta pill + mono value
+  `@merqo/ui`'s shared `StatCard` content — label + delta pill + mono value
   - caption) and `KpiRow({ summary, deltas, pro, rangeLabel,
 allTime })`: renders Revenue/Orders (as `StatBreakdownTile`s with a
     per-item hover/tap breakdown) + Avg order, and (trends only) Fulfilled
