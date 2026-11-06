@@ -14,7 +14,7 @@ The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in
 `pnpm-workspace.yaml`; update that permission alongside the dependency and
 lockfile when adopting a new shared UI revision. The current revision is the
-commit that is `v0.42.0`, which supplies the `PageHeader`, `SegmentedControl`, `StatCard`, `ConfirmDialog` and `TierChip` that qkit now uses in place of local copies, on top of the User guide nav icon and `tierLabel` (the stored `qkit` tier reads "Pro") from `v0.41.0`. Since `v0.39.0` it has the `PricingLadder` the plan page renders.
+commit that is `v0.42.1`, which supplies the `PageHeader`, `SegmentedControl`, `StatCard`, `ConfirmDialog` and `TierChip` that qkit now uses in place of local copies, on top of the User guide nav icon and `tierLabel` (the stored `qkit` tier reads "Pro") from `v0.41.0`. Since `v0.39.0` it has the `PricingLadder` the plan page renders.
 Since `v0.34.2` it treats a Next.js `redirect()` from a server
 action as navigation, so the dashboard's Sign out no longer flashes
 "NEXT_REDIRECT". Since `v0.34.0` it has `DataCollectionNotice`, the PDPA

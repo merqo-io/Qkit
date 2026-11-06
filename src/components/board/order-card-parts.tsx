@@ -160,11 +160,8 @@ export function TicketMenu({
   onCancel?: () => void;
 }) {
   if (!onBump && !onCancel) return null;
-  // Non-modal: @merqo/ui bundles its own Radix copy, so two DismissableLayer
-  // stacks exist and a modal menu leaves body pointer-events:none after the
-  // cancel dialog closes.
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
