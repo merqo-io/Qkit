@@ -683,10 +683,21 @@ function OrderCardInner({
         confirmLabel="Cancel order"
         cancelLabel="Keep order"
         variant="destructive"
+        errorMessage="Could not cancel the order. Try again."
         onConfirm={async () => {
-          const res = await cancelOrderAction(order.id);
-          if (!res.success) throw new Error(res.error);
-          setStatus("cancelled");
+          // Failure is captured and rethrown after run() so the in-flight flag
+          // still gates the bump/advance buttons while the dialog, not run(),
+          // decides how the error is shown.
+          let failure: Error | null = null;
+          await run(async () => {
+            const res = await cancelOrderAction(order.id).catch(() => null);
+            if (!res?.success) {
+              failure = new Error(res?.error ?? "");
+              return;
+            }
+            setStatus("cancelled");
+          });
+          if (failure) throw failure;
         }}
       />
     </Ticket>

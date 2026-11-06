@@ -160,9 +160,9 @@ export function TicketMenu({
   onCancel?: () => void;
 }) {
   if (!onBump && !onCancel) return null;
-  // Non-modal: the cancel ConfirmDialog ships its own Radix copy, so a modal
-  // menu's body pointer-events lock would be restored by the wrong copy and
-  // leave the page unclickable after the dialog closes.
+  // Non-modal: @merqo/ui bundles its own Radix copy, so two DismissableLayer
+  // stacks exist and a modal menu leaves body pointer-events:none after the
+  // cancel dialog closes.
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
