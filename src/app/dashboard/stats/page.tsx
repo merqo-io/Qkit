@@ -19,7 +19,7 @@ import { StatsControls } from "./stats-controls";
 import { StatsView } from "./stats-view";
 import { ReviewsCard } from "./reviews-card";
 import { fetchOrders, fetchAllTimeTotals, fetchReviewRows } from "./queries";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -121,9 +121,7 @@ export default async function StatsPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-7">
-      <div>
-        <PageHeader eyebrow="Performance" title="Stats" />
-      </div>
+      <PageHeader eyebrow="Performance" title="Stats" />
 
       <StatsControls
         range={range}

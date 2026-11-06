@@ -30,14 +30,11 @@ describe("RegenerateButton", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /regenerate|confirm/i }),
     );
-    expect(errorToast).toHaveBeenCalledWith(
+    // The dialog stays open with the error inline so the vendor can retry.
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not regenerate QR. Try again.",
     );
-    // The dialog closes and the button leaves its pending state a tick after
-    // the rejection, so wait for it instead of reading the DOM at once.
-    expect(
-      await screen.findByRole("button", { name: "Regenerate QR" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
   it("names the booth in the confirmation and calls the action on confirm", async () => {
     regenerate.mockResolvedValue({ success: true });

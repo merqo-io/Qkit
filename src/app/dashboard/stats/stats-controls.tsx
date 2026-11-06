@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { SegmentedControl } from "@/components/widgets/segmented-control";
+import Link from "next/link";
+import { Lock } from "lucide-react";
+import { SegmentedControl } from "@merqo/ui";
 import {
   Select,
   SelectContent,
@@ -16,6 +18,44 @@ const RANGES: { value: string; label: string }[] = [
   { value: "30d", label: "30 days" },
   { value: "90d", label: "90 days" },
 ];
+
+// The shared SegmentedControl has no link-style option, so ranges outside the
+// plan render as upgrade links after the switchable ones inside one shared
+// track. RANGES runs short to long, so the locked ranges are always the tail.
+export function RangeControl({
+  range,
+  allowedRanges,
+  onChange,
+}: {
+  range: string;
+  allowedRanges: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  const switchable = RANGES.filter((r) => allowedRanges.includes(r.value));
+  const locked = RANGES.filter((r) => !allowedRanges.includes(r.value));
+  return (
+    <div className="inline-flex rounded-lg border border-border p-0.5 text-sm">
+      <SegmentedControl
+        ariaLabel="Date range"
+        value={range}
+        onChange={onChange}
+        options={switchable}
+        className="rounded-none border-0 p-0"
+      />
+      {locked.map((r) => (
+        <Link
+          key={r.value}
+          href="/dashboard/plan"
+          title="Longer ranges are not on your plan"
+          className="flex items-center gap-1 rounded-md px-3 py-1.5 font-medium text-muted-foreground/60 transition-colors hover:text-foreground [@media(pointer:coarse)]:min-h-11"
+        >
+          <Lock className="size-3" />
+          {r.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 interface Props {
   range: string;
@@ -36,19 +76,10 @@ export function StatsControls({ range, booth, booths, allowedRanges }: Props) {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <SegmentedControl
-        ariaLabel="Date range"
-        value={range}
+      <RangeControl
+        range={range}
+        allowedRanges={allowedRanges}
         onChange={(value) => setParam("range", value)}
-        options={RANGES.map((r) =>
-          allowedRanges.includes(r.value)
-            ? r
-            : {
-                ...r,
-                lockedHref: "/dashboard/plan",
-                lockedTitle: "Longer ranges are not on your plan",
-              },
-        )}
       />
 
       {booths.length > 1 && (

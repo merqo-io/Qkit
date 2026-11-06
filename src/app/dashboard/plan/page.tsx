@@ -4,7 +4,7 @@ import { PricingLadder, fetchPlanCatalog } from "@merqo/ui";
 import { TIER_LABEL } from "@/lib/plan";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { PassCountdown } from "./pass-countdown";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -39,9 +39,7 @@ export default async function PlanPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-7">
       <div className="flex items-end justify-between gap-3">
-        <div>
-          <PageHeader eyebrow="Billing" title="Plan" />
-        </div>
+        <PageHeader eyebrow="Billing" title="Plan" className="mb-0" />
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
             tier === "free"

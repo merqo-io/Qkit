@@ -168,14 +168,14 @@ describe("RealtimeOrderBoard sort toggle", () => {
 
     expect(numbersInOrder()).toEqual(["#0001", "#0002"]);
     expect(
-      screen.getByRole("button", { name: "Earliest", pressed: true }),
+      screen.getByRole("radio", { name: "Earliest", checked: true }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Latest" }));
+    await user.click(screen.getByRole("radio", { name: "Latest" }));
 
     expect(numbersInOrder()).toEqual(["#0002", "#0001"]);
     expect(
-      screen.getByRole("button", { name: "Latest", pressed: true }),
+      screen.getByRole("radio", { name: "Latest", checked: true }),
     ).toBeInTheDocument();
   });
 });

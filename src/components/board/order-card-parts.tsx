@@ -160,8 +160,11 @@ export function TicketMenu({
   onCancel?: () => void;
 }) {
   if (!onBump && !onCancel) return null;
+  // Non-modal: the cancel ConfirmDialog ships its own Radix copy, so a modal
+  // menu's body pointer-events lock would be restored by the wrong copy and
+  // leave the page unclickable after the dialog closes.
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"

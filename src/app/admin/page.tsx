@@ -30,7 +30,7 @@ import {
   type OrderStatusEventLite,
 } from "@/lib/stuck-orders";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 const SUPPORT_CATEGORY_LABEL: Record<string, string> = {
   pass: "Event pass",
@@ -242,9 +242,7 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-7">
-      <div>
-        <PageHeader eyebrow="Internal" title="Overview" />
-      </div>
+      <PageHeader eyebrow="Internal" title="Overview" className="mb-8" />
 
       {messages.length > 0 && (
         <section className="space-y-3">

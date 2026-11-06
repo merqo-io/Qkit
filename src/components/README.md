@@ -18,7 +18,7 @@ shadcn primitive (`ui/`) or ordering-flow-specific (`order/`).
 - `board/` — the vendor's order ticket (`OrderCard`), its status badge and the payment-proof viewer. See its own README.
 - `layout/` — app-shell pieces mounted once in the root layout (providers, service-worker registrar, maintenance banner). See its own README.
 - `tour/` — the dashboard's guided tours and their step config. See its own README.
-- `widgets/` — presentational pieces used by more than one feature (ticket shell, hints, pagination, images, segmented switch, page header, ...). See its own README.
+- `widgets/` — presentational pieces used by more than one feature (ticket shell, hints, pagination, images, ...). See its own README.
 
 ## Connectivity
 

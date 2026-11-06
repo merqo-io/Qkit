@@ -286,9 +286,9 @@ describe("CompletedOrdersList", () => {
 
     // Defaults to "Today" — only the order from within the last 3h shows.
     expect(
-      screen.getByRole("button", { name: "Today", pressed: true }),
+      screen.getByRole("radio", { name: "Today", checked: true }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Today" })).toHaveClass(
+    expect(screen.getByRole("radio", { name: "Today" })).toHaveClass(
       "text-primary",
     );
     expect(
@@ -301,7 +301,7 @@ describe("CompletedOrdersList", () => {
       screen.queryByText(byOrderNumber("#0003"), ORDER_NUMBER_OPTS),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "7 days" }));
+    await user.click(screen.getByRole("radio", { name: "7 days" }));
     expect(
       screen.getByText(byOrderNumber("#0001"), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
@@ -312,7 +312,7 @@ describe("CompletedOrdersList", () => {
       screen.queryByText(byOrderNumber("#0003"), ORDER_NUMBER_OPTS),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "All time" }));
+    await user.click(screen.getByRole("radio", { name: "All time" }));
     expect(
       screen.getByText(byOrderNumber("#0003"), ORDER_NUMBER_OPTS),
     ).toBeInTheDocument();
@@ -409,7 +409,7 @@ describe("CompletedOrdersList", () => {
     it("keeps an earlier day's ticket on its permanent number", async () => {
       const user = userEvent.setup();
       renderList();
-      await user.click(screen.getByRole("button", { name: "All time" }));
+      await user.click(screen.getByRole("radio", { name: "All time" }));
       expect(
         screen.getByText(byOrderNumber("#0030"), ORDER_NUMBER_OPTS),
       ).toBeInTheDocument();

@@ -3,7 +3,7 @@ import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { BackButton } from "@merqo/ui";
 import { currentPrepEstimate, type StatsOrder } from "@/lib/stats";
 import { SettingsForm } from "./settings-form";
-import { PageHeader } from "@/components/widgets/page-header";
+import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
 
@@ -39,15 +39,19 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-8 md:max-w-4xl">
-      <header>
-        <div className="mb-2 -ml-2.5">
-          <BackButton href="/dashboard" label="Back to board" />
-        </div>
-        <PageHeader eyebrow="Live orders" title="Board settings">
-          How the order board alerts you and flags a ticket that&apos;s waiting
-          too long. Synced to your account, so it follows you to any device.
-        </PageHeader>
-      </header>
+      <PageHeader
+        eyebrow="Live orders"
+        title="Board settings"
+        className="mb-8"
+        back={
+          <div className="-ml-2.5">
+            <BackButton href="/dashboard" label="Back to board" />
+          </div>
+        }
+      >
+        How the order board alerts you and flags a ticket that&apos;s waiting
+        too long. Synced to your account, so it follows you to any device.
+      </PageHeader>
 
       <SettingsForm
         initial={vendor.board_settings}

@@ -454,6 +454,11 @@ describe("OrderCard", () => {
         screen.queryByRole("button", { name: "Mark Ready" }),
       ).not.toBeInTheDocument(),
     );
+    // The shared dialog closes only after the action settles; leaving it open
+    // would keep Radix's body pointer-events lock into the next test.
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("shows no action buttons for a completed order", () => {
@@ -1321,6 +1326,9 @@ describe("OrderCard — restore auto-completed", () => {
     expect(cancelOrder).toHaveBeenCalledWith("o1");
     await waitFor(() =>
       expect(screen.getByText("Cancelled")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
   });
 });

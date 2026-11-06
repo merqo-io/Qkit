@@ -56,7 +56,7 @@ import { fireNewOrderNotification, playSound } from "@/lib/order-alerts";
 import { toggleBoothActive } from "./booths/actions";
 import { sweepReadyOrders, sweepAbandonedPayments } from "./order-actions";
 import { WalkupOrderDialog } from "./walkup-order-dialog";
-import { SegmentedControl } from "@/components/widgets/segmented-control";
+import { SegmentedControl } from "@merqo/ui";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 import {
   BATCH_BUTTON,
