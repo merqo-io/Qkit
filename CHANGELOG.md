@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Data retention (X-26): migration 0118 adds a daily purge (`qkit.purge_order_idempotency_keys()`, pg_cron job `qkit-order-idempotency-purge`) that clears `orders.idempotency_key` 24 hours after the order is created, since the key only guards a double-tap while the order is being placed. The order freeze trigger allows only that one clearing, and only from the purge.
+
 ### Changed
 
 - Moved to `@merqo/ui` v0.42.1 and deleted qkit's local `PageHeader`, `SegmentedControl` and `TierBadge`, using the shared `PageHeader`, `SegmentedControl` and `TierChip` instead. The admin and Stats tiles wrap the shared `StatCard` (qkit keeps its flat shell and mono numerals through `className`). Start new service, Regenerate QR, the printer-offline prompt and Cancel order use the shared `ConfirmDialog`: a failed action now shows its message inside the dialog and the dialog stays open, instead of a toast. The date-range, sort and ranking switches are now a radio group with arrow-key navigation. Out-of-plan Stats ranges stay upgrade links beside the shared control, and the booth delete and close-booth dialogs stay local because they run a custom body.
