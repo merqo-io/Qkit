@@ -27,7 +27,7 @@ BEGIN
       AND NOT (
         OLD.idempotency_key IS NOT NULL
         AND NEW.idempotency_key IS NULL
-        AND current_setting('qkit.retention_purge', true) = 'on'
+        AND coalesce(current_setting('qkit.retention_purge', true), '') = 'on'
       )
     )
     OR NEW.payment_method_kind IS DISTINCT FROM OLD.payment_method_kind
