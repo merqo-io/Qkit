@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Data retention (X-26): migration 0118 adds a daily purge (`qkit.purge_order_idempotency_keys()`, pg_cron job `qkit-order-idempotency-purge`) that clears `orders.idempotency_key` 24 hours after the order is created, since the key only guards a double-tap while the order is being placed. The order freeze trigger allows only that one clearing, and only from the purge.
+
 ### Changed
 
 - Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
