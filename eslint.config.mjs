@@ -105,8 +105,8 @@ const eslintConfig = [
     },
   },
   {
-    // Moved unchanged out of the former single actions module; these two actions are still over the
-    // complexity limits and need a function-level split, not a file split.
+    // advanceOrder and confirmPaymentAndStart exceed the complexity limits; a
+    // function-level split is tracked separately.
     files: [
       "src/app/dashboard/order-advance-actions.ts",
       "src/app/dashboard/order-payment-actions.ts",
