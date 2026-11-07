@@ -66,7 +66,7 @@ md:grid-cols-2` over all four: a CSS grid's row tracks size to the tallest
   window" (`undo_seconds`, 2-15s, validated live via `boardSettingsSchema`),
   "Auto-clear after" (`ready_auto_clear_min`, 1-60min, blank/empty =
   `null` = the auto-clear sweep is off for that vendor entirely — see
-  `sweepReadyOrders` in `src/app/dashboard/order-actions.ts`); "Save timing"
+  `sweepReadyOrders` in `src/app/dashboard/order-sweep-actions.ts`); "Save timing"
   covers only those four fields. "New-order
   sound" is a `ToggleGroup` of `SOUND_OPTIONS` —
   chime/bell/ding/horn/triple/off — that previews via `playSound` on pick and
@@ -93,7 +93,7 @@ md:grid-cols-2` over all four: a CSS grid's row tracks size to the tallest
     `boardSettingsSchema`'s own `.default(true)`); this is a vendor-side
     opt-out layered on the customer's own already-given consent (merqo's
     connect flow), not a re-ask — see `customerNotifyEnabled` in
-    `src/app/dashboard/order-actions.ts`. "Customer order screen" has three controls: a `Switch` labeled
+    `src/app/dashboard/order-advance-actions.ts`. "Customer order screen" has three controls: a `Switch` labeled
     "Simple daily order number" for `daily_order_number_reset` (see
     `displayOrderNumber` in `@/lib/orders` — zero-padded to 3 digits, e.g.
     "#003"); a `Switch` labeled "Show wait-time estimate" for

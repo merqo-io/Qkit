@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { toggleBoothActive } from "./booths/actions";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";
-import { advanceOrder, revertOrderAdvance } from "./order-actions";
+import { advanceOrder, revertOrderAdvance } from "./order-advance-actions";
 import { toast } from "sonner";
 import { playSound } from "@/lib/order-alerts";
 import { DEFAULT_BOARD_SETTINGS } from "@/lib/types";
@@ -92,9 +92,11 @@ vi.mock("./booths/actions", () => ({
 }));
 vi.mock("./walkup-menu-actions", () => ({ getWalkupMenu: vi.fn() }));
 vi.mock("./walkup-actions", () => ({ placeWalkupOrder: vi.fn() }));
-vi.mock("./order-actions", () => ({
+vi.mock("./order-sweep-actions", () => ({
   sweepReadyOrders: vi.fn(),
   sweepAbandonedPayments: vi.fn(),
+}));
+vi.mock("./order-advance-actions", () => ({
   advanceOrder: vi.fn(),
   revertOrderAdvance: vi.fn(),
 }));

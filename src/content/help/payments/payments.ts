@@ -29,7 +29,7 @@ export const article: HelpArticle = {
   covers: [
     "src/components/board/order-card-parts.tsx",
     "src/components/board/order-card.tsx",
-    "src/app/dashboard/order-actions.ts",
+    "src/app/dashboard/order-payment-actions.ts",
     "src/app/dashboard/booths/payment-section.tsx",
     "src/app/dashboard/booths/booking-status-section.tsx",
     "src/app/dashboard/walkup-pay-step.tsx",
