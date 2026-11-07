@@ -21,10 +21,10 @@ insert into qkit.orders (id, booth_id, customer_name, items, total_cents, status
 values
   ('01180000-0000-0000-0000-0000000000a1', '01180000-0000-0000-0000-0000000000b1',
    'Old', '[{"menuItemId":"coffee","quantity":1}]', 500, 'pending', 'pending',
-   'key-old', now() - interval '25 hours'),
+   '01180000-0000-0000-0000-0000000000c1', now() - interval '25 hours'),
   ('01180000-0000-0000-0000-0000000000a2', '01180000-0000-0000-0000-0000000000b1',
    'Recent', '[{"menuItemId":"coffee","quantity":1}]', 500, 'pending', 'pending',
-   'key-recent', now() - interval '23 hours'),
+   '01180000-0000-0000-0000-0000000000c2', now() - interval '23 hours'),
   ('01180000-0000-0000-0000-0000000000a3', '01180000-0000-0000-0000-0000000000b1',
    'Nokey', '[{"menuItemId":"coffee","quantity":1}]', 500, 'pending', 'pending',
    null, now() - interval '48 hours');
@@ -41,18 +41,18 @@ select throws_ok(
     where id = '01180000-0000-0000-0000-0000000000a1'$$,
   'P0001', null, 'clearing the key directly still raises ORDER_IMMUTABLE_COLUMN');
 select throws_ok(
-  $$update qkit.orders set idempotency_key = 'other'
+  $$update qkit.orders set idempotency_key = '01180000-0000-0000-0000-0000000000c9'
     where id = '01180000-0000-0000-0000-0000000000a1'$$,
   'P0001', null, 'changing the key directly still raises');
 
 -- Even with the flag on, only non-NULL -> NULL is allowed.
 select set_config('qkit.retention_purge', 'on', true);
 select throws_ok(
-  $$update qkit.orders set idempotency_key = 'other'
+  $$update qkit.orders set idempotency_key = '01180000-0000-0000-0000-0000000000c9'
     where id = '01180000-0000-0000-0000-0000000000a1'$$,
   'P0001', null, 'changing the key to another value raises with the flag on');
 select throws_ok(
-  $$update qkit.orders set idempotency_key = 'new'
+  $$update qkit.orders set idempotency_key = '01180000-0000-0000-0000-0000000000c8'
     where id = '01180000-0000-0000-0000-0000000000a3'$$,
   'P0001', null, 'setting a key on a keyless order raises with the flag on');
 select throws_ok(
@@ -78,7 +78,7 @@ select is(
   'purge clears a key on a 25-hour-old order');
 select is(
   (select idempotency_key from qkit.orders
-    where id = '01180000-0000-0000-0000-0000000000a2'), 'key-recent',
+    where id = '01180000-0000-0000-0000-0000000000a2'), '01180000-0000-0000-0000-0000000000c2',
   'purge keeps a key on a 23-hour-old order');
 select is(
   qkit.purge_order_idempotency_keys(), 0,
