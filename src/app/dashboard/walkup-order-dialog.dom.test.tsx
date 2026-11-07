@@ -15,7 +15,7 @@ const { getWalkupMenu, placeWalkupOrder, confirmOrderPayment } = vi.hoisted(
 
 vi.mock("./walkup-menu-actions", () => ({ getWalkupMenu }));
 vi.mock("./walkup-actions", () => ({ placeWalkupOrder }));
-vi.mock("./order-actions", () => ({ confirmOrderPayment }));
+vi.mock("./order-payment-actions", () => ({ confirmOrderPayment }));
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));

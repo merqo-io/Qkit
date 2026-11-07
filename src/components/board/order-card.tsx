@@ -32,15 +32,19 @@ import {
 } from "@/lib/ticket";
 import {
   advanceOrder,
+  revertOrderAdvance,
+  restoreAutoCompleted,
+} from "@/app/dashboard/order-advance-actions";
+import {
   bumpOrder,
   cancelOrder as cancelOrderAction,
+} from "@/app/dashboard/order-cancel-actions";
+import {
   confirmOrderPayment,
   confirmPaymentAndStart,
   declinePaymentClaim,
-  revertOrderAdvance,
   revertPaymentAndStart,
-  restoreAutoCompleted,
-} from "@/app/dashboard/order-actions";
+} from "@/app/dashboard/order-payment-actions";
 import { useNow } from "@/hooks/use-now";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { AlertTriangle, Banknote, Clock, Printer, Zap } from "lucide-react";

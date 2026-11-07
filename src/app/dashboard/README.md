@@ -22,7 +22,15 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
   exact conditional writes, Paykit response state, payment isolation on pickup
   and undo, and best-effort notification behavior, plus one `action_error`
   incident test per action. Database RLS is tested separately.
-- `order-actions.ts` — validated vendor actions using the authenticated client
+- `order-action-helpers.ts` — non-action helpers shared by the order action
+  files (`loadOwnOrder`, `failWithIncident`, `notifyOrderReady`) and the notes on
+  how the authenticated client and RLS authorize them.
+- `order-advance-actions.ts`, `order-payment-actions.ts`,
+  `order-cancel-actions.ts`, `order-sweep-actions.ts` — the `"use server"` action
+  groups (advance/undo/restore, payment confirm/decline/start, bump/cancel,
+  background sweeps). A `"use server"` file cannot re-export actions, so callers
+  import from the group file directly.
+- Validated vendor actions (the group files above) using the authenticated client
   and RLS. `advanceOrder` and `revertOrderAdvance` condition writes on the expected
   status and modify only fulfillment state/timestamps; the ready transition sends
   best-effort customer notifications: the Telegram ping unless the vendor opts
@@ -74,9 +82,9 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 
 ## Connectivity
 
-`layout.tsx` gates every route under `/dashboard` (auth/vendor/admin/legal-acceptance redirects) and renders `dashboard-nav.tsx` around `{children}`; `page.tsx` is the `/dashboard` index route and renders `realtime-order-board.tsx`, which calls the order-mutation actions in `order-actions.ts` indirectly via `OrderCard` and subscribes through `@/hooks/use-realtime-orders`. `dashboard-nav.tsx` links out to `completed/`, `booths/`, `plan/`, `profile/`, `settings/`, `stats/`, `feedback/` — the dashboard's sub-routes for order history, booth management, billing, account, board preferences, analytics, and support respectively. `tour-actions.ts` is called by `DashboardTour` (in `@/components`) once the tour completes. `payment-evidence-actions.ts` is called by `PaymentProofViewer` (`@/components/board/payment-proof-viewer.tsx`), the proof photo `OrderCard` opens on a claimed order. `proof-actions.ts` is now called only from there, for orders whose screenshot is still in qkit's own bucket; it can be deleted once no open order has a `payment_proof_path`.
+`layout.tsx` gates every route under `/dashboard` (auth/vendor/admin/legal-acceptance redirects) and renders `dashboard-nav.tsx` around `{children}`; `page.tsx` is the `/dashboard` index route and renders `realtime-order-board.tsx`, which calls the order-mutation actions in the `order-*-actions.ts` files indirectly via `OrderCard` and subscribes through `@/hooks/use-realtime-orders`. `dashboard-nav.tsx` links out to `completed/`, `booths/`, `plan/`, `profile/`, `settings/`, `stats/`, `feedback/` — the dashboard's sub-routes for order history, booth management, billing, account, board preferences, analytics, and support respectively. `tour-actions.ts` is called by `DashboardTour` (in `@/components`) once the tour completes. `payment-evidence-actions.ts` is called by `PaymentProofViewer` (`@/components/board/payment-proof-viewer.tsx`), the proof photo `OrderCard` opens on a claimed order. `proof-actions.ts` is now called only from there, for orders whose screenshot is still in qkit's own bucket; it can be deleted once no open order has a `payment_proof_path`.
 
-Plan badge and tier labels come from `tierLabel` in `@merqo/ui` in client files and `TIER_LABEL` in `@/lib/plan` in Server Components (the stored `qkit` tier reads "Pro" in both); the order-ready push in `order-actions.ts` only fires for vendors with counter ops (`orderHasCounterOpsForAction` in `@/lib/counter-ops`). Plan gates read the entitlement cache Merqo pushes (`@/lib/plan`, `@/lib/supabase/get-entitlement`); there is no local plan column, pricing or licence.
+Plan badge and tier labels come from `tierLabel` in `@merqo/ui` in client files and `TIER_LABEL` in `@/lib/plan` in Server Components (the stored `qkit` tier reads "Pro" in both); the order-ready push in `order-action-helpers.ts` only fires for vendors with counter ops (`orderHasCounterOpsForAction` in `@/lib/counter-ops`). Plan gates read the entitlement cache Merqo pushes (`@/lib/plan`, `@/lib/supabase/get-entitlement`); there is no local plan column, pricing or licence.
 
 ## Parent
 

@@ -60,7 +60,7 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   arrival timestamp (`sgtClock`, bare time — or `shortDateTime`, date+time,
   when `showDate` is set, for the completed-orders history list where every
   card isn't from today), expandable item options, and the advance/cancel/
-  confirm-payment action buttons wired to `@/app/dashboard/order-actions`. A
+  confirm-payment action buttons wired to the `@/app/dashboard/order-*-actions` files. A
   still-`pending` order with an outstanding payment claim (`payment_status`
   not `confirmed`/`not_required` — keyed on order state via `needsPaymentReview`
   in `@/lib/orders`, not `order.source`, so an unpaid walk-up order gets it

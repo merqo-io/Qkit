@@ -34,16 +34,20 @@ const {
   restoreAutoCompleted: vi.fn(),
 }));
 
-vi.mock("@/app/dashboard/order-actions", () => ({
+vi.mock("@/app/dashboard/order-advance-actions", () => ({
   advanceOrder,
+  revertOrderAdvance,
+  restoreAutoCompleted,
+}));
+vi.mock("@/app/dashboard/order-payment-actions", () => ({
   confirmOrderPayment,
   confirmPaymentAndStart,
   declinePaymentClaim,
   revertPaymentAndStart,
+}));
+vi.mock("@/app/dashboard/order-cancel-actions", () => ({
   cancelOrder,
   bumpOrder,
-  revertOrderAdvance,
-  restoreAutoCompleted,
 }));
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));

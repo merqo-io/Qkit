@@ -481,6 +481,12 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   across all four non-terminal statuses plus sort order.
 - `supabase/` — the three Supabase client factories (browser/server/service-
   role) plus entitlement/user/vendor read helpers; see its own README.
+- `db-types/` — the `Database["qkit"]` shape split by table group, composed
+  back into `Database` in `types.ts`: `account-tables.ts` (vendors, admins,
+  admin_audit, events, entitlements, payments, platform_settings, legal state,
+  feedback), `order-tables.ts` (booths, orders, status events, push
+  subscriptions, service starts, ops_events) and `functions.ts` (RPC
+  signatures). No barrel file; import the file you need or `@/lib/types`.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration
   0060, `PaymentKind`, `MenuItem`, `CartItem`,

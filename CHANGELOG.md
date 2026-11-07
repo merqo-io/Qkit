@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Moved to `@merqo/ui` v0.42.1 and deleted qkit's local `PageHeader`, `SegmentedControl` and `TierBadge`, using the shared `PageHeader`, `SegmentedControl` and `TierChip` instead. The admin and Stats tiles wrap the shared `StatCard` (qkit keeps its flat shell and mono numerals through `className`). Start new service, Regenerate QR, the printer-offline prompt and Cancel order use the shared `ConfirmDialog`: a failed action now shows its message inside the dialog and the dialog stays open, instead of a toast. The date-range, sort and ranking switches are now a radio group with arrow-key navigation. Out-of-plan Stats ranges stay upgrade links beside the shared control, and the booth delete and close-booth dialogs stay local because they run a custom body.
 - Release flow is now `feat/*` or `fix/*` -> `staging` -> `main`. PRs merge into `staging`, which Vercel's git integration deploys to `qkit-staging.merqo.io`; `staging` is promoted to `main` with a merge commit. CI also runs on pushes to `staging`. The `staging sync` workflow only fast-forwards `staging` after a promotion, and the `VERCEL_STAGING_DEPLOY_HOOK` deploy-hook step is removed.
 
@@ -42,6 +43,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Help articles (plans, troubleshooting, menu and stock, getting started) now call the top tier "Pro", matching the in-app tier label. Stored tier values are unchanged.
 - Internal: the AI harness follows templateCentral 7.2.2. `engines.node` is `>=24.22.1` and CI pins Node 24.22.1, the dependency audit is the fail-closed `.claude/deps-gate.sh` with an expiring allowlist in `.claude/dep-audit-allow.txt`, and the guard against committing to `main` accepts a strict `&&` chain whose `cd` lands on a feature branch.
 - The plan page shows no prices and points vendors to their Merqo account. `vendor-status` reports the effective tier, `vendor-activity` reports `pro` for any paid tier, and `metrics` counts paid vendors from the entitlement cache (`pending_upgrade_requests` is now always 0).
@@ -60,6 +62,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Landing: show a Piloting badge, drop the public pricing section and plan names for a single free-during-the-pilot line with 30 days' notice, and reword FAQ, metadata and manifest copy (lowercase qkit, no em dash).
 - Landing wordmark renders as lowercase qkit, and the hero carousel label now reads Sample orders.
 - Bump `@merqo/ui` to v0.36.0.
@@ -80,6 +83,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Index the five foreign key columns the Supabase advisor flagged as unindexed (migration 0109) and add pgTAP coverage for index presence, RLS on every table and own-vendor-only payments reads.
 
 ## [0.4.0] - 2026-10-30
@@ -125,6 +129,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Lint config now consumes the shared `@merqo/ui/eslint` preset (`@merqo/ui` v0.35.0): comment and directive hygiene, size and complexity limits, and a ban on colour literals in `src`. `eslint-plugin-sonarjs` 4.2.2 and `@eslint-community/eslint-plugin-eslint-comments` 4.8.1 pinned. The local temporal-dead-zone rule stays at `error`; `eslint.config.test.ts` asserts it and the preset rules. Files over the size or complexity limits are listed in two baseline blocks, shrunk by the split-long-files task.
 - Eleven functions take a grouped argument instead of five or more positional ones; the upgrade and downgrade request routes share one vendor lookup; null checks use an `isNil` helper. No behaviour change.
 - Order board test asserts `Mark Ready` and `Mark Picked Up` are named buttons and every card button has an accessible name.
@@ -161,6 +166,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - `NEXT_PUBLIC_BASE_URL` dropped from `.env.example` and the README env table. No code reads it (the app takes its origin from the request host, see `src/lib/request-origin.ts`), and the Vercel variable is being removed.
 
 - The paykit fallback URL, used when `NEXT_PUBLIC_PAYKIT_URL` is unset, is now `https://paykit.merqo.io` instead of the deleted `paykit-sg.vercel.app`. Applies to the API client (`src/lib/paykit/client.ts`) and the booth page's payment setup link. Production sets the variable, so nothing changes live.
@@ -391,6 +397,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Payment details are now entered in paykit only. A booth's Payment section
   is a switch ("Take payment for orders at this booth"), one line naming what
   paykit has on file, and a link to paykit's payment setup page, which offers
@@ -572,6 +579,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Separate pickup and its undo from payment confirmation; retain explicit
   Paykit-backed settlement for completed unpaid orders and preserve concurrent confirmations.
 - Merge section-owned board settings atomically under vendor RLS, preserving
@@ -703,6 +711,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - The customer's order page now says what it will do, "Keep this page open. It
   turns to Ready when your order is up.", instead of only "Remember this number
   for pickup". The chime, desktop notification and title flash
@@ -799,6 +808,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - `src/lib/booth-images.ts` now uses `@merqo/ui`'s shared
   `storagePathFromPublicUrl` instead of its own copy. Behaviour for real
   uploads is unchanged; the shared parser additionally rejects a path with an
@@ -889,6 +899,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - The booth Printing section now reports the booth's printer from printkit
   over HTTP, instead of subscribing to printkit's realtime presence channel
   with qkit's own Supabase client. printkit now supports printers that reach
@@ -960,6 +971,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - `BackButton`, `ElevatedCard`, `SOCIAL_LINK_FIELDS`/`SocialLinksFields`,
   `MoneyInput`, and the landing `Footer` now come from `@merqo/ui`
   (bumped to v0.29.1) instead of a qkit-local copy — each was confirmed
@@ -1115,6 +1127,7 @@ actions.ts`, `merqo-customer-notify.ts`) pointed at a stale, pre-custom-
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - `src/lib/printkit/client.ts`'s two functions now share one request helper
   (`printkitRequest`, mirroring paykit's own) instead of duplicating the
   fetch/timeout/error-handling logic.
@@ -1165,6 +1178,7 @@ actions.ts`, `merqo-customer-notify.ts`) pointed at a stale, pre-custom-
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Onboarding tour's final step now tells a vendor which booth-page
   sections are optional (Payment, Printing, Booking Status) before they
   create their first booth, instead of leaving them to discover it
@@ -1185,6 +1199,7 @@ actions.ts`, `merqo-customer-notify.ts`) pointed at a stale, pre-custom-
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Dropped the required typed legal-name field from terms/privacy
   acceptance — a plain ToS/Privacy clickwrap doesn't need a signatory
   name for evidentiary strength beyond the existing (vendor_email,
@@ -1421,6 +1436,7 @@ available`, matching each item by exact name to update in place rather
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Menu item card's Available/Duplicate/Delete cluster: Available stays its
   own standalone toggle, Duplicate and Remove now live behind a "More
   actions" kebab menu instead of two more equal-weight icon buttons next to
@@ -1638,6 +1654,7 @@ available`, matching each item by exact name to update in place rather
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Second-pass frontend-design/impeccable critique, hunting for what the
   first pass missed: the app's dark theme (a full `.dark` palette in
   `globals.css`, contrast-audited as recently as the previous entry) was
@@ -2026,6 +2043,7 @@ plan='pro'` on their own row via a direct PostgREST call — a free→pro
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Migrated git hooks from lefthook to husky — lefthook's unsigned
   `lefthook.exe` is unconditionally blocked by Windows Smart App Control on
   this machine; husky has no native binary. Same checks, same rigor.
@@ -2153,6 +2171,7 @@ plan='pro'` on their own row via a direct PostgREST call — a free→pro
 
 ### Changed
 
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Upgraded `@supabase/ssr` 0.6 → 0.10 for `@supabase/supabase-js` 2.107 type
   compatibility (older ssr made every typed query resolve to `never`).
 

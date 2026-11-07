@@ -6,12 +6,16 @@ import { CompletedOrdersList } from "./completed-orders-list";
 import type { BoardOrder } from "@/lib/types";
 import type { NumberingBaselines } from "@/lib/numbering-baselines";
 
-vi.mock("@/app/dashboard/order-actions", () => ({
+vi.mock("@/app/dashboard/order-advance-actions", () => ({
   advanceOrder: vi.fn(),
+  revertOrderAdvance: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-payment-actions", () => ({
   confirmOrderPayment: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-cancel-actions", () => ({
   cancelOrder: vi.fn(),
   bumpOrder: vi.fn(),
-  revertOrderAdvance: vi.fn(),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
