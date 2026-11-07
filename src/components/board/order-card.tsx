@@ -398,7 +398,7 @@ function OrderCardInner({
     onUndoWindowChange?.(orderId, false);
   }
 
-  // All mutations go through validated server actions (order-actions.ts); the
+  // All mutations go through validated server actions (the order-*-actions.ts files); the
   // DB enforces ownership (RLS) and column integrity (a freeze trigger).
   function advanceStatus() {
     if (!ADVANCE[status]) return;

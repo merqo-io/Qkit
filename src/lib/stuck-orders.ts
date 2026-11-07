@@ -19,8 +19,8 @@ export type OrderForStatusSince = {
 /**
  * When did each order enter its CURRENT status? `order_status_events`
  * (migration 0078) only logs a transition made via advanceOrder/
- * revertOrderAdvance/cancelOrder/sweepReadyOrders (src/app/dashboard/
- * order-actions.ts) — placement itself (place_order/place_walkup_order, SQL)
+ * revertOrderAdvance/cancelOrder/sweepReadyOrders (src/app/dashboard/order-*-actions.ts),
+ * placement itself (place_order/place_walkup_order, SQL)
  * writes no row, so an order that's never advanced has no event at all and
  * has been in its current ("pending") status since order.created_at. When
  * events exist, the latest one's created_at is the current status's start

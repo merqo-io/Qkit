@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { sgtClock, shortDateTime } from "@/lib/tz";
 import type { BoardOrder } from "@/lib/types";
 
-// The card delegates mutations to server actions (order-actions.ts). We mock
+// The card delegates mutations to server actions (order-*-actions.ts). We mock
 // those and assert the card calls the right one with the order id; the patch
 // content is the server action's job (covered in order-actions.test.ts).
 const {

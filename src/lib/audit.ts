@@ -18,7 +18,7 @@ export type OrderStatusEventEntry =
  * `admin_audit` has no INSERT policy for `authenticated`/`anon` (service-
  * role-write-only, migration 0006) — this always goes through its own
  * service-role client, so callers running on the authenticated client (e.g.
- * order-actions.ts) can use it exactly like a service-role caller would.
+ * order-action-helpers.ts) can use it exactly like a service-role caller would.
  */
 export async function recordAudit(entry: AuditEntry): Promise<void> {
   try {

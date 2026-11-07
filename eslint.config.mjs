@@ -105,7 +105,7 @@ const eslintConfig = [
     },
   },
   {
-    // Moved out of order-actions.ts unchanged; these two actions are still over the
+    // Moved unchanged out of the former single actions module; these two actions are still over the
     // complexity limits and need a function-level split, not a file split.
     files: [
       "src/app/dashboard/order-advance-actions.ts",
