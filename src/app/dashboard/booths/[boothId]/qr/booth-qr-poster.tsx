@@ -1,5 +1,6 @@
 "use client";
 
+import { downloadBlob } from "@/lib/download";
 import { useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
@@ -71,12 +72,7 @@ export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
       ctx.drawImage(img, 0, 0, size, size);
       canvas.toBlob((blob) => {
         if (!blob) return;
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = `${slugify(name)}-qr.png`;
-        a.click();
-        URL.revokeObjectURL(objectUrl);
+        downloadBlob(blob, `${slugify(name)}-qr.png`);
       }, "image/png");
     };
     img.src = svgUrl;

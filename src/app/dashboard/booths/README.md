@@ -128,5 +128,6 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
 - `menu-editor.tsx` holds the section and item layout and drag-and-drop.
   `use-menu-mutations.ts` owns every item and category edit (add, remove with
   undo, duplicate, price, cost, stock, allergens, section rename).
+  `menu-item-allergens.tsx` is its collapsible allergen section and
   `menu-item-row.tsx` renders one item card and `menu-section-group.tsx` the
   named sections and the "No section" group.

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uuidSchema } from "@/lib/schemas";
 import { createServiceClient } from "@/lib/supabase/server";
 import { printkitCallbackBearerOk } from "@/lib/qkit-printkit-auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -10,8 +11,8 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 // accepted. A body whose two names disagree is refused, not guessed at.
 const bodySchema = z
   .object({
-    source_ref: z.uuid().optional(),
-    order_id: z.uuid().optional(),
+    source_ref: uuidSchema.optional(),
+    order_id: uuidSchema.optional(),
     status: z.enum(["printed", "failed"]),
     attempt_at: z.string().datetime({ precision: 6 }),
   })
