@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SelectionBar } from "./board-batch";
 
-vi.mock("./order-actions", () => ({
+vi.mock("./order-advance-actions", () => ({
   advanceOrder: vi.fn(),
   revertOrderAdvance: vi.fn(),
 }));

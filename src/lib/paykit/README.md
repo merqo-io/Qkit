@@ -81,7 +81,7 @@ calls `getBookingStatus`,
 prefilling `BookingStatusSection`), `src/app/order/[boothId]/
 [orderNumber]/page.tsx` and `payment-actions.ts`
 (`createCheckout` on the pay page; `transactionIdForOrder` then `unclaimCheckout` in the actions, customer side), and
-`src/app/dashboard/order-actions.ts` (`confirmOrderPayment` and `confirmPaymentAndStart`, through `transactionIdForOrder`, vendor side).
+`src/app/dashboard/order-payment-actions.ts` (`confirmOrderPayment` and `confirmPaymentAndStart`, through `transactionIdForOrder`, vendor side).
 `PAYKIT_KIT_SECRET` / `NEXT_PUBLIC_PAYKIT_URL` are the two env vars this
 module reads — see `.env.example` for what they must equal on paykit's side.
 

@@ -33,6 +33,13 @@ vi.mock("@/lib/paykit/payment-setup", async (importOriginal) => ({
   vendorPaymentSetup: vendorPaymentSetupMock,
 }));
 
+const { drainProofDeletionsMock } = vi.hoisted(() => ({
+  drainProofDeletionsMock: vi.fn(),
+}));
+vi.mock("@/lib/proof-storage-cleanup", () => ({
+  drainProofDeletions: drainProofDeletionsMock,
+}));
+
 const { registerPrintLocationMock } = vi.hoisted(() => ({
   registerPrintLocationMock: vi.fn(),
 }));
@@ -741,6 +748,28 @@ describe("deleteBooth — printkit location deregistration", () => {
     const res = await deleteBooth(BOOTH_ID);
 
     expect(res).toEqual({ success: true });
+  });
+});
+
+describe("deleteBooth — payment screenshot cleanup", () => {
+  beforeEach(() => {
+    drainProofDeletionsMock.mockReset();
+  });
+
+  it("drains the proof deletion queue after a successful delete", async () => {
+    const res = await deleteBooth(BOOTH_ID);
+
+    expect(res).toEqual({ success: true });
+    expect(drainProofDeletionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not drain when the booth was not deleted", async () => {
+    h.state.deleteResult = { count: 0, error: null };
+
+    const res = await deleteBooth(BOOTH_ID);
+
+    expect(res.success).toBe(false);
+    expect(drainProofDeletionsMock).not.toHaveBeenCalled();
   });
 });
 

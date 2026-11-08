@@ -11,6 +11,13 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 
 ## Contents
 
+- `proof-storage-cleanup.ts` — `drainProofDeletions(limit = 100)`: removes the
+  payment-screenshot objects that migration 0119's trigger queued when their
+  order was deleted, using the service-role client, and clears the queue rows.
+  Only a Storage call without an error counts as done (Storage already
+  returns no error for a missing object); any error bumps `attempts` and sets
+  `last_error`, and rows at 5 attempts are no longer read but stay for manual
+  inspection. Never throws, so callers run it best-effort after a delete.
 - `action-result.ts` — `ActionResult<T>` discriminated union
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
@@ -481,6 +488,13 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   across all four non-terminal statuses plus sort order.
 - `supabase/` — the three Supabase client factories (browser/server/service-
   role) plus entitlement/user/vendor read helpers; see its own README.
+- `db-types/` — the `Database["qkit"]` shape split by table group, composed
+  back into `Database` in `types.ts`: `account-tables.ts` (vendors, admins,
+  admin_audit, events, entitlements, payments, platform_settings, legal state,
+  feedback), `order-tables.ts` (booths, orders, status events, push
+  subscriptions, service starts, ops_events), `proof-storage-tables.ts` (the
+  payment-screenshot deletion queue) and `functions.ts` (RPC
+  signatures). No barrel file; import the file you need or `@/lib/types`.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration
   0060, `PaymentKind`, `MenuItem`, `CartItem`,

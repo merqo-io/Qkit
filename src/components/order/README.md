@@ -159,3 +159,16 @@ are what stash the reorder handoff `OrderForm` reads on mount.
 ## Parent
 
 [components](../README.md)
+
+## Order form pieces
+
+`order-form.tsx` keeps the cart, availability and form state and composes:
+
+- `basket-limits.tsx`: the low-stock and per-order limit notices above the menu.
+- `order-menu.tsx`: the grouped (section nav) or flat menu list.
+- `cart-summary.tsx`: the collapsible "Your order" ticket.
+- `checkout-sheet.tsx`: the bottom sheet with the order summary, name and
+  phone fields and the Place order button.
+- `use-order-submission.ts`: the place-order flow with its one network retry,
+  the saved pending attempt that lets a lost response be recovered, and the
+  recent-orders write and redirect.

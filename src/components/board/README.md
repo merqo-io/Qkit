@@ -60,7 +60,7 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   arrival timestamp (`sgtClock`, bare time — or `shortDateTime`, date+time,
   when `showDate` is set, for the completed-orders history list where every
   card isn't from today), expandable item options, and the advance/cancel/
-  confirm-payment action buttons wired to `@/app/dashboard/order-actions`. A
+  confirm-payment action buttons wired to the `@/app/dashboard/order-*-actions` files. A
   still-`pending` order with an outstanding payment claim (`payment_status`
   not `confirmed`/`not_required` — keyed on order state via `needsPaymentReview`
   in `@/lib/orders`, not `order.source`, so an unpaid walk-up order gets it
@@ -133,6 +133,12 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   (`declinePaymentClaim`: the claim goes back to unpaid so the customer can
   pay again). A live ticket's status badge sits bottom-right of its bottom
   strip, opposite the waiting time; "Preparing" goes unsaid.
+- `use-order-card-actions.ts` — `useOrderCardActions`: the card's status, payment, cancel and undo actions with their toasts.
+- `use-undo-window.ts` — the timed undo window after a status change.
+- `use-auto-clear-countdown.ts` — time left before a ready order is auto-completed, for the drain bar.
+- `order-card-heading.tsx` — `TicketHeading`: the ticket top block (select box, booth, number, name, more menu).
+- `order-card-footer.tsx` — `ticketAge`, `TicketFooter` and `AttentionLine`: ticket aging, the bottom strip and the attention line.
+- `order-card-cancel-dialog.tsx` — `CancelOrderDialog`: the confirm-cancel dialog.
 - `order-status-badge.tsx` — `OrderStatusBadge({ status })`: a colour-coded
   pill for each `OrderStatus` (pending/confirmed/preparing/ready/completed/
   cancelled), shared by the dashboard board and the customer status page.

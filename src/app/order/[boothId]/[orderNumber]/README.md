@@ -26,7 +26,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   successful `{ success: true, status: "completed" }` for the one legal
   transition — flips the order to `completed` via the same
   `buildAdvancePatch`/guarded-UPDATE/re-read-on-0-rows pattern
-  `advanceOrder` (`src/app/dashboard/order-actions.ts`) uses, then logs a
+  `advanceOrder` (`src/app/dashboard/order-advance-actions.ts`) uses, then logs a
   `recordOrderStatusEvent` with `actor: null` (no authenticated user at an
   unattended kiosk, unlike every other caller of that function).
 - `collect-actions.test.ts` — unit tests for the ready/not-ready/already-
@@ -112,6 +112,9 @@ subscription)`: saves the customer's web push subscription for the
   it is showing, which fills in the order number of an entry recorded before
   payment. The relative "Placed 3 min ago" line shows only while the order is live;
   a finished order's header stamp already gives the placed time.
+- `order-status-copy.ts` — the status headlines and details, and the stale-connection notice.
+- `order-status-parts.tsx` — `StageTrack`, `StatusHeadline`, `WaitEstimate` and `ReadyAlerts`, the poller's presentational pieces.
+- `use-ready-alert.ts` — `useReadyAlert`: popup, chime and title flash when the order turns ready.
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.

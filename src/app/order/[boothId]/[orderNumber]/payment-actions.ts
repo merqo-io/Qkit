@@ -20,7 +20,7 @@ import type { PaymentStatus } from "@/lib/types";
  *
  * Reads qkit's local `orders.payment_status` mirror rather than paykit
  * directly — paykit is the source of truth for whether a claim/confirm
- * *succeeded* (see dashboard/order-actions.ts's
+ * *succeeded* (see dashboard/order-payment-actions.ts's
  * confirmOrderPayment), but this mirror is kept in sync on every successful
  * write, so a poll every few seconds can stay a cheap local read instead of
  * round-tripping paykit's HTTP API each tick.
@@ -225,7 +225,7 @@ export async function loadPreClaimContext(
 // order back to 'pending'. Same idempotency shape as the claim on paykit's page.
 //
 // There's no stored paykit transaction id for an order, so it is looked up
-// by the order's id (transactionIdForOrder), the same way confirmOrderPayment (dashboard/order-actions.ts) reaches it.
+// by the order's id (transactionIdForOrder), the same way confirmOrderPayment (dashboard/order-payment-actions.ts) reaches it.
 // `unclaimCheckout` is paykit's own authority on whether a revert is still
 // allowed — it refuses to revert a 'confirmed' transaction and just echoes
 // that status back, so the pre-check below (against the local mirror) is a

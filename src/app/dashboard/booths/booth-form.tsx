@@ -3,9 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import {
-  Trash2,
   Store,
   Clock,
   UtensilsCrossed,
@@ -15,37 +13,16 @@ import {
   ScanLine,
   ClipboardList,
   ArrowRight,
-  Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  commitPendingImages,
-  ImageUploader,
-  PendingImageUploadError,
-} from "@merqo/ui";
+import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";
-import {
-  removeUnsavedImages,
-  uploadQkitImage,
-} from "@/lib/image-upload-adapter";
-import { resizeToWebp } from "@merqo/ui";
-import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
+import { uploadQkitImage } from "@/lib/image-upload-adapter";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { WorkingHoursEditor } from "./working-hours-editor";
 import { PaymentSection } from "./payment-section";
@@ -54,15 +31,14 @@ import { SocialLinksSection } from "./social-links-section";
 import { BookingStatusSection } from "./booking-status-section";
 import { CloseBoothControl } from "./close-booth-control";
 import { SettingRow } from "./setting-row";
-import { saveBooth, deleteBooth } from "./actions";
-import { boothFormSchema } from "@/lib/schemas";
+import { BoothDangerZone } from "./booth-danger-zone";
+import { BoothLimitsSection } from "./booth-limits-section";
+import { useBoothDelete, useBoothSave } from "./use-booth-save";
 import type { Entitlement } from "@/lib/plan";
-import { ProLock } from "@/components/widgets/pro-lock";
 import type { BoothHours } from "@/lib/hours";
 import type { SocialLinks } from "@/lib/types";
 import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 import type { BookingStatus } from "@/lib/paykit/client";
-import { StartServiceButton } from "../start-service-button";
 
 interface Props {
   vendorId: string;
@@ -99,106 +75,6 @@ interface Props {
     // mean here.
     bookingStatus?: BookingStatus | null;
   };
-}
-
-// A blank number field means "no limit", sent as null (the same convention as
-// board_settings.default_prep_minutes in the dashboard settings form).
-function limitOrNull(text: string): number | null {
-  return text.trim() === "" ? null : Number(text.trim());
-}
-
-function LimitField({
-  id,
-  label,
-  hint,
-  hintLabel,
-  max,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  hintLabel: string;
-  max: number;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <SettingRow label={label} hint={hint} hintLabel={hintLabel} htmlFor={id}>
-      <Input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min={1}
-        max={max}
-        placeholder="No limit"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-28 rounded-lg"
-      />
-    </SettingRow>
-  );
-}
-
-const DAILY_LIMIT_LABEL = "Daily item limit";
-const DAILY_LIMIT_HINT_LABEL = "About the daily item limit";
-const DAILY_LIMIT_HINT =
-  "Ordering stops once the booth sells this many items in a day. Counts every item, so an order of four counts four. Leave blank for no limit. It starts again from zero at midnight, or sooner when you tap Start new service, so a morning and an afternoon service can each take the full limit.";
-
-// The daily limit on a plan without stock caps. With none set it is an
-// upgrade prompt. With one already set (from a pass that has since ended) it
-// keeps working, and the vendor can see it and take it off, but not change it.
-function LockedDailyLimit({
-  value,
-  onRemove,
-}: {
-  value: string;
-  onRemove: () => void;
-}) {
-  if (value === "")
-    return (
-      <SettingRow
-        label={DAILY_LIMIT_LABEL}
-        hint={DAILY_LIMIT_HINT}
-        hintLabel={DAILY_LIMIT_HINT_LABEL}
-      >
-        <ProLock feature="stock_cap" label="Starter" />
-      </SettingRow>
-    );
-  return (
-    <SettingRow
-      label={DAILY_LIMIT_LABEL}
-      hint="It keeps working until you remove it. Changing it needs the Starter plan or higher."
-      hintLabel={DAILY_LIMIT_HINT_LABEL}
-    >
-      <span className="text-sm text-muted-foreground">Set to {value}</span>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="rounded-lg"
-        onClick={onRemove}
-      >
-        Remove limit
-      </Button>
-    </SettingRow>
-  );
-}
-
-/**
- * Uploads the form's pending images. On an upload failure, deletes whatever
- * did upload, tells the vendor, and returns null so the save stops.
- */
-async function commitImages(values: (string | null)[]) {
-  try {
-    return await commitPendingImages(values);
-  } catch (error) {
-    if (error instanceof PendingImageUploadError)
-      void removeUnsavedImages(error.uploaded);
-    toast.error("Could not upload the image. Try again.");
-    return null;
-  }
 }
 
 export function BoothForm({
@@ -250,9 +126,6 @@ export function BoothForm({
       ? String(initial.max_items_per_order)
       : "",
   );
-  const { pending: saving, run: runSave } = useAsyncAction(
-    "Could not save the booth. Refresh to check its status before retrying.",
-  );
   // Everything "Save booth" would write, as text, against what the form
   // opened with. Open/paused is left out for a saved booth: its control saves
   // by itself the moment it is used.
@@ -273,75 +146,22 @@ export function BoothForm({
   ]);
   const [openedWith] = useState(snapshot);
   const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
-  const { pending: deleting, run: runDelete } = useAsyncAction(
-    "Could not delete the booth. Refresh to check its status before retrying.",
-  );
-
-  function onDelete() {
-    if (!initial?.boothId) return;
-    return runDelete(async () => {
-      const result = await deleteBooth(initial.boothId);
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Booth deleted");
-      router.replace("/dashboard/booths");
-      await navigatingAway();
-    });
-  }
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const isCreate = !initial?.boothId;
-
-    return runSave(async () => {
-      // The banner uploader defers its upload, so a vendor who picks an
-      // image and leaves without saving leaves nothing in storage.
-      const committed = await commitImages([imageUrl]);
-      if (!committed) return;
-      const [committedBanner] = committed.urls;
-      const candidate = {
-        boothId: initial?.boothId,
-        name,
-        image_url: committedBanner ?? null,
-        is_active: isActive,
-        hours,
-        takes_payment: takesPayment,
-        social_links: socialLinks,
-        requires_arrival_confirm: requiresArrivalConfirm,
-        walkup_default: walkupDefault,
-        print_enabled: printEnabled,
-        pickup_scan_enabled: pickupScanEnabled,
-        paykit_booking_id: paykitBookingId,
-        daily_cup_cap: limitOrNull(dailyCupCap),
-        max_items_per_order: limitOrNull(maxItemsPerOrder),
-      };
-      const parsed = boothFormSchema.safeParse(candidate);
-      if (!parsed.success) {
-        void removeUnsavedImages(committed.uploaded);
-        toast.error(parsed.error.issues[0]?.message ?? "Check the form");
-        return;
-      }
-
-      const result = await saveBooth(parsed.data, committed.uploaded);
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Booth saved");
-      // replace + no refresh: a refresh here races and cancels the navigation
-      // (same bug as onboarding). The list is revalidate=0 so it refetches on nav.
-      // A fresh create goes straight to the menu page — saveMenuItems needs a
-      // real boothId, which only exists after this first save.
-      router.replace(
-        isCreate
-          ? `/dashboard/booths/${result.boothId}/menu?new=1`
-          : "/dashboard/booths",
-      );
-      await navigatingAway();
-    });
-  }
+  const { deleting, onDelete } = useBoothDelete(initial?.boothId);
+  const { saving, onSubmit } = useBoothSave(initial?.boothId, {
+    name,
+    imageUrl,
+    isActive,
+    hours,
+    takesPayment,
+    socialLinks,
+    requiresArrivalConfirm,
+    walkupDefault,
+    printEnabled,
+    pickupScanEnabled,
+    paykitBookingId,
+    dailyCupCap,
+    maxItemsPerOrder,
+  });
 
   const saveCancelRow = (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">
@@ -500,52 +320,16 @@ export function BoothForm({
             )}
           </Section>
 
-          <Section
-            icon={<Gauge className="size-5" />}
-            eyebrow="How much you take"
-            title="Limits"
-            description="Cap what one day or one order can take."
-          >
-            {entitlement.stockCaps ? (
-              <LimitField
-                id="daily-cup-cap"
-                label={DAILY_LIMIT_LABEL}
-                hint={DAILY_LIMIT_HINT}
-                hintLabel={DAILY_LIMIT_HINT_LABEL}
-                max={100000}
-                value={dailyCupCap}
-                onChange={setDailyCupCap}
-              />
-            ) : (
-              <LockedDailyLimit
-                value={dailyCupCap}
-                onRemove={() => setDailyCupCap("")}
-              />
-            )}
-
-            {/* Keyed on the saved limit, not the field: a limit typed but not
-                yet saved has no count behind it to reset. */}
-            {initial?.boothId &&
-              initial.daily_cup_cap !== null &&
-              initial.daily_cup_cap !== undefined && (
-                <div className="flex justify-end">
-                  <StartServiceButton
-                    boothId={initial.boothId}
-                    boothName={initial.name}
-                  />
-                </div>
-              )}
-
-            <LimitField
-              id="max-items-per-order"
-              label="Max items per order"
-              hint="Stops one customer taking the whole tray. Orders you key in yourself are not limited. Leave blank for no limit."
-              hintLabel="About the per-order item limit"
-              max={100}
-              value={maxItemsPerOrder}
-              onChange={setMaxItemsPerOrder}
-            />
-          </Section>
+          <BoothLimitsSection
+            entitlement={entitlement}
+            dailyCupCap={dailyCupCap}
+            onDailyCupCapChange={setDailyCupCap}
+            maxItemsPerOrder={maxItemsPerOrder}
+            onMaxItemsPerOrderChange={setMaxItemsPerOrder}
+            boothId={initial?.boothId}
+            boothName={initial?.name}
+            savedDailyCupCap={initial?.daily_cup_cap}
+          />
         </div>
 
         <div>
@@ -643,50 +427,12 @@ export function BoothForm({
 
       {initial?.boothId ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div className="space-y-2.5 rounded-xl border border-destructive/30 bg-destructive/[0.03] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
-              Danger zone
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Deleting this booth permanently removes it and every order placed
-              at it. The data can&apos;t be retrieved.
-            </p>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-lg border-destructive/40 text-destructive hover:bg-destructive hover:text-white"
-                  disabled={deleting || saving}
-                >
-                  <Trash2 className="size-4" />
-                  {deleting ? "Deleting…" : "Delete booth"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete “{initial.name}”?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently deletes the booth and every order placed at
-                    it. This can&apos;t be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deleting}>
-                    Keep booth
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onDelete}
-                    disabled={deleting}
-                    className="bg-destructive text-white hover:bg-destructive/90"
-                  >
-                    Delete booth
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-
+          <BoothDangerZone
+            boothName={initial.name}
+            deleting={deleting}
+            saving={saving}
+            onDelete={onDelete}
+          />
           {saveCancelRow}
         </div>
       ) : (

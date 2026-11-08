@@ -6,8 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Data retention (X-26): a payment screenshot is now deleted when its order is deleted, and only then. Migration 0119 adds `qkit.proof_storage_deletions` and a trigger on `qkit.orders` that queues the `payment-proofs` object path, including on cascade deletes from booths, vendors and auth users. `drainProofDeletions()` removes the queued objects and `deleteBooth` runs it best-effort. Vendor or account deletion that happens outside qkit must drain the queue itself.
+- Data retention (X-26): migration 0118 adds a daily purge (`qkit.purge_order_idempotency_keys()`, pg_cron job `qkit-order-idempotency-purge`) that clears `orders.idempotency_key` 24 hours after the order is created, since the key only guards a double-tap while the order is being placed. The order freeze trigger allows only that one clearing, and only from the purge.
+
 ### Changed
 
+- Split the booth form, menu editor, settings form and order form into smaller files by responsibility, with no change in behaviour (K5). The size and complexity baseline block for these files is gone; three form components keep a complexity exemption.
+- Re-pinned `@merqo/ui` to v0.44.0 (commit `250a4edd5399809b3c182cd381ba310d12dec5a7`) with matching build permission. It carries the new legal text, so vendors re-accept the terms on next sign-in.
+- Split the order board, order card, walk-up dialog and order status poller into smaller files by responsibility, with no change in behaviour (K5).
+- Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
 - Moved to `@merqo/ui` v0.42.1 and deleted qkit's local `PageHeader`, `SegmentedControl` and `TierBadge`, using the shared `PageHeader`, `SegmentedControl` and `TierChip` instead. The admin and Stats tiles wrap the shared `StatCard` (qkit keeps its flat shell and mono numerals through `className`). Start new service, Regenerate QR, the printer-offline prompt and Cancel order use the shared `ConfirmDialog`: a failed action now shows its message inside the dialog and the dialog stays open, instead of a toast. The date-range, sort and ranking switches are now a radio group with arrow-key navigation. Out-of-plan Stats ranges stay upgrade links beside the shared control, and the booth delete and close-booth dialogs stay local because they run a custom body.
 - Release flow is now `feat/*` or `fix/*` -> `staging` -> `main`. PRs merge into `staging`, which Vercel's git integration deploys to `qkit-staging.merqo.io`; `staging` is promoted to `main` with a merge commit. CI also runs on pushes to `staging`. The `staging sync` workflow only fast-forwards `staging` after a promotion, and the `VERCEL_STAGING_DEPLOY_HOOK` deploy-hook step is removed.
 
