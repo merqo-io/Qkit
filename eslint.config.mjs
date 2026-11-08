@@ -91,11 +91,7 @@ const eslintConfig = [
     files: [
       "src/app/dashboard/booths/booth-form.tsx",
       "src/app/dashboard/booths/menu-editor.tsx",
-      "src/app/dashboard/realtime-order-board.tsx",
       "src/app/dashboard/settings/settings-form.tsx",
-      "src/app/dashboard/walkup-order-dialog.tsx",
-      "src/app/order/[[]boothId]/[[]orderNumber]/order-status-poller.tsx",
-      "src/components/board/order-card.tsx",
       "src/components/order/order-form.tsx",
     ],
     rules: {

@@ -133,6 +133,12 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   (`declinePaymentClaim`: the claim goes back to unpaid so the customer can
   pay again). A live ticket's status badge sits bottom-right of its bottom
   strip, opposite the waiting time; "Preparing" goes unsaid.
+- `use-order-card-actions.ts` — `useOrderCardActions`: the card's status, payment, cancel and undo actions with their toasts.
+- `use-undo-window.ts` — the timed undo window after a status change.
+- `use-auto-clear-countdown.ts` — time left before a ready order is auto-completed, for the drain bar.
+- `order-card-heading.tsx` — `TicketHeading`: the ticket top block (select box, booth, number, name, more menu).
+- `order-card-footer.tsx` — `ticketAge`, `TicketFooter` and `AttentionLine`: ticket aging, action buttons and the attention line.
+- `order-card-cancel-dialog.tsx` — `CancelOrderDialog`: the confirm-cancel dialog.
 - `order-status-badge.tsx` — `OrderStatusBadge({ status })`: a colour-coded
   pill for each `OrderStatus` (pending/confirmed/preparing/ready/completed/
   cancelled), shared by the dashboard board and the customer status page.
