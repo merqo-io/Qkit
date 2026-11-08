@@ -34,7 +34,7 @@ import {
 import { placeOrderSchema, type PlaceOrderInput } from "@/lib/schemas";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder, type WalkupPayment } from "./walkup-actions";
-import { confirmOrderPayment } from "./order-actions";
+import { confirmOrderPayment } from "./order-payment-actions";
 import { WalkupPayStep } from "./walkup-pay-step";
 import type { MenuItem, SelectedOption } from "@/lib/types";
 

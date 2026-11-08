@@ -8,16 +8,19 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   advanceOrder,
   revertOrderAdvance,
+  restoreAutoCompleted,
+} from "./order-advance-actions";
+import {
   confirmOrderPayment,
   confirmPaymentAndStart,
   declinePaymentClaim,
   revertPaymentAndStart,
-  cancelOrder,
-  bumpOrder,
-  restoreAutoCompleted,
+} from "./order-payment-actions";
+import { cancelOrder, bumpOrder } from "./order-cancel-actions";
+import {
   sweepReadyOrders,
   sweepAbandonedPayments,
-} from "./order-actions";
+} from "./order-sweep-actions";
 
 it("rejects omitted runtime undo states before reading or writing", async () => {
   const result = await revertOrderAdvance(

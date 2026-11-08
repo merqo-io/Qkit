@@ -26,7 +26,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   successful `{ success: true, status: "completed" }` for the one legal
   transition — flips the order to `completed` via the same
   `buildAdvancePatch`/guarded-UPDATE/re-read-on-0-rows pattern
-  `advanceOrder` (`src/app/dashboard/order-actions.ts`) uses, then logs a
+  `advanceOrder` (`src/app/dashboard/order-advance-actions.ts`) uses, then logs a
   `recordOrderStatusEvent` with `actor: null` (no authenticated user at an
   unattended kiosk, unlike every other caller of that function).
 - `collect-actions.test.ts` — unit tests for the ready/not-ready/already-

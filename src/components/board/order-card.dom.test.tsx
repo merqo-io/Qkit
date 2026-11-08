@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { sgtClock, shortDateTime } from "@/lib/tz";
 import type { BoardOrder } from "@/lib/types";
 
-// The card delegates mutations to server actions (order-actions.ts). We mock
+// The card delegates mutations to server actions (order-*-actions.ts). We mock
 // those and assert the card calls the right one with the order id; the patch
 // content is the server action's job (covered in order-actions.test.ts).
 const {
@@ -34,16 +34,20 @@ const {
   restoreAutoCompleted: vi.fn(),
 }));
 
-vi.mock("@/app/dashboard/order-actions", () => ({
+vi.mock("@/app/dashboard/order-advance-actions", () => ({
   advanceOrder,
+  revertOrderAdvance,
+  restoreAutoCompleted,
+}));
+vi.mock("@/app/dashboard/order-payment-actions", () => ({
   confirmOrderPayment,
   confirmPaymentAndStart,
   declinePaymentClaim,
   revertPaymentAndStart,
+}));
+vi.mock("@/app/dashboard/order-cancel-actions", () => ({
   cancelOrder,
   bumpOrder,
-  revertOrderAdvance,
-  restoreAutoCompleted,
 }));
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));

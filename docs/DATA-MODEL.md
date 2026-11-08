@@ -60,7 +60,7 @@ Moved from `AGENTS.md` (context diet). A short summary stays in `AGENTS.md`; thi
   `board_settings` key, `customer_telegram_notify_enabled:
 z.boolean().default(true)` — a vendor-side opt-out for the `ready`-transition
   Telegram ping, distinct from the customer's own consent above (which this
-  never touches). `advanceOrder` (`src/app/dashboard/order-actions.ts`)
+  never touches). `advanceOrder` (`src/app/dashboard/order-advance-actions.ts`)
   reads+parses the vendor's `board_settings` via a new
   `customerNotifyEnabled` helper before firing `notifyCustomer`, skipping
   the call only on an explicit `false`; an unparseable/missing row (every
@@ -81,7 +81,7 @@ vendor PayNow/pointer config now saves to paykit's vendor-scoped
 `vendor_payment_config` (`dashboard/booths/actions.ts`'s `saveBooth`, still
 surfaced through the unchanged `PaymentSection` UI), and the customer
 checkout render + claim + vendor confirm (`order/[boothId]/[orderNumber]/
-page.tsx`+`payment-actions.ts`, `dashboard/order-actions.ts`'s
+page.tsx`+`payment-actions.ts`, `dashboard/order-payment-actions.ts`'s
 `confirmOrderPayment`) call paykit's `createCheckout`/`claimCheckout`/
 `confirmCheckout`. `src/lib/payments/` (the local EMVCo QR builder +
 render-adapter) is deleted — nothing reads/writes the full `booths.payment`
