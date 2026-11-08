@@ -245,11 +245,7 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
   }
   // The delete cascades to orders; a trigger queued their payment screenshots.
   // Drained here even when the booth read came back empty.
-  try {
-    await drainProofDeletions();
-  } catch (error) {
-    console.error("deleteBooth proof cleanup failed", error);
-  }
+  await drainProofDeletions();
   return { success: true };
 }
 

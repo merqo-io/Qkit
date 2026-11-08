@@ -763,14 +763,6 @@ describe("deleteBooth — payment screenshot cleanup", () => {
     expect(drainProofDeletionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it("still succeeds when the drain rejects", async () => {
-    drainProofDeletionsMock.mockRejectedValue(new Error("storage down"));
-
-    const res = await deleteBooth(BOOTH_ID);
-
-    expect(res).toEqual({ success: true });
-  });
-
   it("does not drain when the booth was not deleted", async () => {
     h.state.deleteResult = { count: 0, error: null };
 

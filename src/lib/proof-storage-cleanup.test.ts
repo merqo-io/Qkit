@@ -18,6 +18,8 @@ const h = vi.hoisted(() => ({
   deletedIds: [] as number[],
   updates: [] as { id: number; patch: Record<string, unknown> }[],
   clientThrows: false,
+  ltCalls: [] as [string, number][],
+  updateError: null as { message: string } | null,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -26,10 +28,15 @@ vi.mock("@/lib/supabase/server", () => ({
     return {
       from: () => ({
         select: () => ({
-          order: () => ({
-            limit: () =>
-              Promise.resolve({ data: h.rows, error: h.selectError }),
-          }),
+          lt: (col: string, value: number) => {
+            h.ltCalls.push([col, value]);
+            return {
+              order: () => ({
+                limit: () =>
+                  Promise.resolve({ data: h.rows, error: h.selectError }),
+              }),
+            };
+          },
         }),
         delete: () => ({
           in: (_col: string, ids: number[]) => {
@@ -40,7 +47,7 @@ vi.mock("@/lib/supabase/server", () => ({
         update: (patch: Record<string, unknown>) => ({
           eq: (_col: string, id: number) => {
             h.updates.push({ id, patch });
-            return Promise.resolve({ error: null });
+            return Promise.resolve({ error: h.updateError });
           },
         }),
       }),
@@ -67,6 +74,8 @@ beforeEach(() => {
   h.deletedIds = [];
   h.updates = [];
   h.clientThrows = false;
+  h.ltCalls = [];
+  h.updateError = null;
 });
 
 describe("drainProofDeletions", () => {
@@ -81,11 +90,22 @@ describe("drainProofDeletions", () => {
     expect(h.updates).toEqual([]);
   });
 
-  it("treats a not-found error as success", async () => {
-    h.removeResult = { error: { message: "Object not found" } };
+  it("keeps the rows and counts an attempt when the bucket is not found", async () => {
+    h.removeResult = { error: { message: "Bucket not found" } };
     await drainProofDeletions();
-    expect(h.deletedIds).toEqual([1, 2]);
-    expect(h.updates).toEqual([]);
+    expect(h.deletedIds).toEqual([]);
+    expect(h.updates.map((u) => u.patch.attempts)).toEqual([1, 3]);
+  });
+
+  it("only reads rows under the attempts cap", async () => {
+    await drainProofDeletions();
+    expect(h.ltCalls).toEqual([["attempts", 5]]);
+  });
+
+  it("does not throw when recording a failed attempt fails", async () => {
+    h.removeResult = { error: { message: "storage unavailable" } };
+    h.updateError = { message: "db down" };
+    await expect(drainProofDeletions()).resolves.toBeUndefined();
   });
 
   it("increments attempts and records the error on a real failure", async () => {

@@ -14,8 +14,10 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 - `proof-storage-cleanup.ts` — `drainProofDeletions(limit = 100)`: removes the
   payment-screenshot objects that migration 0119's trigger queued when their
   order was deleted, using the service-role client, and clears the queue rows.
-  A not-found counts as done; a real failure bumps `attempts` and sets
-  `last_error`. Never throws, so callers run it best-effort after a delete.
+  Only a Storage call without an error counts as done (Storage already
+  returns no error for a missing object); any error bumps `attempts` and sets
+  `last_error`, and rows at 5 attempts are no longer read but stay for manual
+  inspection. Never throws, so callers run it best-effort after a delete.
 - `action-result.ts` — `ActionResult<T>` discriminated union
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
