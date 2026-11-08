@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -21,21 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ItemCustomizer } from "@/components/order/item-customizer";
-import { cartKey, cartTotal } from "@/lib/cart";
+import { cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
-import {
-  count,
-  formatOptions,
-  formatPrice,
-  menuItemActionLabel,
-  orderHasPricing,
-} from "@/lib/utils";
+import { count, formatPrice, orderHasPricing } from "@/lib/utils";
 import { placeOrderSchema, type PlaceOrderInput } from "@/lib/schemas";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder, type WalkupPayment } from "./walkup-actions";
 import { confirmOrderPayment } from "./order-payment-actions";
 import { WalkupPayStep } from "./walkup-pay-step";
+import { WalkupMenuSection } from "./walkup-menu-grid";
+import { WalkupOrderSummary } from "./walkup-order-summary";
 import type { MenuItem, SelectedOption } from "@/lib/types";
 
 interface Booth {
@@ -312,103 +305,6 @@ export function WalkupOrderDialog({
 
   const multiBooth = booths.length > 1;
 
-  let menuSection: ReactNode;
-  if (booths.length === 0) {
-    menuSection = (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        No open booths to take a walk-up order for. Turn one on first.
-      </p>
-    );
-  } else if (loadingMenu) {
-    menuSection = (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Loading menu…
-      </p>
-    );
-  } else if (menuItems.length === 0) {
-    menuSection = (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        This booth has no menu items yet.
-      </p>
-    );
-  } else {
-    menuSection = (
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-2">
-        {menuItems.map((item) => {
-          const hasOptions =
-            !!item.option_groups && item.option_groups.length > 0;
-          const plainKey = cartKey(item.id);
-          const plainInCart = hasOptions ? undefined : cart.get(plainKey);
-          const left = remainingFor(remaining, item.id);
-          const soldOut = left !== null && left <= 0;
-          let cardTone: string;
-          if (soldOut) cardTone = "border-border opacity-60";
-          else if (plainInCart)
-            cardTone = "border-primary/40 bg-primary/[0.04]";
-          else cardTone = "border-border";
-          return (
-            <div
-              key={item.id}
-              className={`flex flex-col justify-between gap-2 rounded-xl border p-3 transition-colors ${cardTone}`}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{item.name}</p>
-                {item.price_cents !== null &&
-                  item.price_cents !== undefined && (
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {formatPrice(item.price_cents)}
-                    </p>
-                  )}
-                {left !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    {soldOut ? "Sold out" : `${left} left`}
-                  </p>
-                )}
-              </div>
-              {plainInCart ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="size-8 rounded-lg"
-                    onClick={() => decrement(plainKey)}
-                    aria-label={`Remove one ${item.name}`}
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <span className="w-5 text-center font-mono text-sm font-bold">
-                    {plainInCart.quantity}
-                  </span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="size-8 rounded-lg"
-                    onClick={() => increment(plainKey)}
-                    aria-label={`Add one ${item.name}`}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-full rounded-lg"
-                  onClick={() => onAddClick(item)}
-                  disabled={soldOut}
-                >
-                  {menuItemActionLabel(soldOut, hasOptions)}
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -469,121 +365,34 @@ export function WalkupOrderDialog({
                 </div>
               )}
 
-              {menuSection}
+              <WalkupMenuSection
+                boothCount={booths.length}
+                loading={loadingMenu}
+                menuItems={menuItems}
+                cart={cart}
+                remaining={remaining}
+                onDecrement={decrement}
+                onIncrement={increment}
+                onAddClick={onAddClick}
+              />
             </div>
 
-            {/* Order summary pane — sticky within its own column on md+, so a
-              staff member never has to scroll past the whole menu to see
-              what's in the order or to hit submit. */}
-            <div className="flex flex-col border-t border-border md:w-72 md:shrink-0 md:overflow-y-auto md:border-t-0 md:border-l">
-              <div className="flex-1 space-y-4 p-4">
-                <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-                  <ShoppingCart className="size-3.5" />
-                  Order{hasItems && ` (${count(itemCount, "item")})`}
-                </h2>
-
-                {hasItems ? (
-                  <div className="space-y-3">
-                    {cartEntries.map(([key, item]) => {
-                      const options = formatOptions(item.options);
-                      return (
-                        <div
-                          key={key}
-                          className="flex items-start justify-between gap-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
-                              {item.name}
-                            </p>
-                            {options && (
-                              <p className="truncate text-xs text-muted-foreground">
-                                {options}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="size-7 rounded-lg"
-                              onClick={() => decrement(key)}
-                              aria-label={`Decrease ${item.name}`}
-                            >
-                              <Minus className="size-3" />
-                            </Button>
-                            <span className="w-4 text-center font-mono text-sm font-bold">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              type="button"
-                              size="icon"
-                              className="size-7 rounded-lg"
-                              onClick={() => increment(key)}
-                              aria-label={`Increase ${item.name}`}
-                            >
-                              <Plus className="size-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {cartPriced && (
-                      <div className="flex items-baseline justify-between border-t border-border pt-3">
-                        <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                          Total
-                        </span>
-                        <span className="font-mono text-lg font-bold">
-                          {formatPrice(total)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No items yet. Tap items on the left to add them.
-                  </p>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="walkup-customer-name"
-                    className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                  >
-                    Customer name
-                  </Label>
-                  <Input
-                    id="walkup-customer-name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Walk-up"
-                    className="h-10 rounded-xl"
-                    maxLength={100}
-                  />
-                </div>
-
-                {/* A free order has nothing to collect, so no payment step
-                    follows it (see pendingPayment in walkup-actions). */}
-                {expectsPayment && total > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Payment comes next. After you add the order, this screen
-                    shows the amount and your payment QR for the customer.
-                  </p>
-                )}
-              </div>
-
-              <div className="border-t border-border p-4">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-12 w-full rounded-xl font-semibold"
-                  disabled={submitting || !hasItems}
-                  onClick={onSubmit}
-                >
-                  {submitLabel}
-                </Button>
-              </div>
-            </div>
+            {/* Sticky within its own column on md+, so a staff member never
+              has to scroll past the whole menu to see the order or submit. */}
+            <WalkupOrderSummary
+              entries={cartEntries}
+              itemCount={itemCount}
+              total={total}
+              priced={cartPriced}
+              customerName={customerName}
+              onCustomerNameChange={setCustomerName}
+              expectsPayment={expectsPayment}
+              submitLabel={submitLabel}
+              submitDisabled={submitting || !hasItems}
+              onDecrement={decrement}
+              onIncrement={increment}
+              onSubmit={onSubmit}
+            />
           </div>
         )}
 
