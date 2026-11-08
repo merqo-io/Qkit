@@ -117,3 +117,16 @@ item and option short codes.
 `actions.ts` passes grouped arguments to `syncPrintLocation` and `checkActiveBoothCap`; `menu-order.ts`'s `resolveItemDrop` takes the drag target as one object.
 
 Booth creation, menu item and option-group caps follow the cached tier (free: 1 booth, 6 items, 3 option groups per item; the same caps are enforced by database triggers), and the printing toggle is disabled with a reason when the plan has no counter ops.
+
+## Form and menu editor pieces
+
+- `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard.
+  `use-booth-save.ts` owns `useBoothSave` (Zod parse, image commit,
+  `saveBooth`) and `useBoothDelete`. `booth-limits-section.tsx` renders the
+  Limits card (daily item limit, per-order limit, Start new service) and
+  `booth-danger-zone.tsx` the delete confirmation.
+- `menu-editor.tsx` holds the section and item layout and drag-and-drop.
+  `use-menu-mutations.ts` owns every item and category edit (add, remove with
+  undo, duplicate, price, cost, stock, allergens, section rename).
+  `menu-item-row.tsx` renders one item card and `menu-section-group.tsx` the
+  named sections and the "No section" group.

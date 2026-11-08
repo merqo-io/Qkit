@@ -87,20 +87,6 @@ const eslintConfig = [
     },
   },
   {
-    // Over the size and complexity limits until Task K5 (split long files) shrinks them.
-    files: [
-      "src/app/dashboard/booths/booth-form.tsx",
-      "src/app/dashboard/booths/menu-editor.tsx",
-      "src/app/dashboard/settings/settings-form.tsx",
-      "src/components/order/order-form.tsx",
-    ],
-    rules: {
-      "max-lines": "off",
-      complexity: "off",
-      "sonarjs/cognitive-complexity": "off",
-    },
-  },
-  {
     // advanceOrder and confirmPaymentAndStart exceed the complexity limits; a
     // function-level split is tracked separately.
     files: [
@@ -110,6 +96,17 @@ const eslintConfig = [
     rules: {
       complexity: "off",
       "sonarjs/cognitive-complexity": "off",
+    },
+  },
+  {
+    // Form components whose branching is optional JSX (plan locks, conditional fields), not control flow.
+    files: [
+      "src/app/dashboard/booths/booth-form.tsx",
+      "src/app/dashboard/booths/menu-item-row.tsx",
+      "src/app/dashboard/settings/settings-form.tsx",
+    ],
+    rules: {
+      complexity: "off",
     },
   },
   {

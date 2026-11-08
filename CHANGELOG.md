@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Split the booth form, menu editor, settings form and order form into smaller files by responsibility, with no change in behaviour (K5). The size and complexity baseline block for these files is gone; three form components keep a complexity exemption.
 - Re-pinned `@merqo/ui` to v0.44.0 (commit `250a4edd5399809b3c182cd381ba310d12dec5a7`) with matching build permission. It carries the new legal text, so vendors re-accept the terms on next sign-in.
 - Split the order board, order card, walk-up dialog and order status poller into smaller files by responsibility, with no change in behaviour (K5).
 - Split `src/lib/types.ts` (the `Database` table and function shapes now live in `src/lib/db-types/`) and `src/app/dashboard/order-actions.ts` (replaced by `order-advance-actions.ts`, `order-payment-actions.ts`, `order-cancel-actions.ts` and `order-sweep-actions.ts`, with shared helpers in `order-action-helpers.ts`) to stay under the 500-line limit. Callers import the group file directly. No behaviour change.
