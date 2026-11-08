@@ -22,6 +22,7 @@ import {
 import { setupKind, vendorPaymentSetup } from "@/lib/paykit/payment-setup";
 import { registerPrintLocation } from "@/lib/printkit/client";
 import { sweepUnsavedUploads } from "./sweep-unsaved-uploads";
+import { drainProofDeletions } from "@/lib/proof-storage-cleanup";
 import type { ActionResult } from "@/lib/action-result";
 import type { Database, PaymentKind } from "@/lib/types";
 import { paymentMarker } from "@/lib/payment-marker";
@@ -242,6 +243,9 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
       "deleteBooth",
     );
   }
+  // The delete cascades to orders; a trigger queued their payment screenshots.
+  // Drained here even when the booth read came back empty.
+  await drainProofDeletions();
   return { success: true };
 }
 

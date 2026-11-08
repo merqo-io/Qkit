@@ -1,6 +1,7 @@
 import type { AccountTables } from "@/lib/db-types/account-tables";
 import type { DbFunctions } from "@/lib/db-types/functions";
 import type { OrderTables } from "@/lib/db-types/order-tables";
+import type { ProofStorageTables } from "@/lib/db-types/proof-storage-tables";
 
 export type Json =
   | string
@@ -212,7 +213,7 @@ export type OrderItem = {
 
 export interface Database {
   qkit: {
-    Tables: AccountTables & OrderTables;
+    Tables: AccountTables & OrderTables & ProofStorageTables;
     Views: {
       [_ in never]: never;
     };
