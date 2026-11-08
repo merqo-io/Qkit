@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uuidSchema } from "@/lib/schemas";
 import { createServiceClient } from "@/lib/supabase/server";
 import { bearerOk } from "@/lib/merqo/auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -8,7 +9,7 @@ export const revalidate = 0;
 
 const querySchema = z
   .object({
-    vendor_id: z.uuid(),
+    vendor_id: uuidSchema,
     starts_at: z.iso.datetime({ offset: true }),
     ends_at: z.iso.datetime({ offset: true }),
   })

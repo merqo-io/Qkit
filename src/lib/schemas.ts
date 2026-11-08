@@ -257,7 +257,7 @@ export const orderNumberSchema = z.string().min(1).max(40);
 // Per-order access token minted by place_order; gates the status page + its
 // polling/claim reads so booth_id + sequential order_number alone can't
 // enumerate other customers' orders.
-export const orderTokenSchema = z.uuid();
+export const orderTokenSchema = uuidSchema;
 
 export type OrderRef = { boothId: string; orderNumber: string; token: string };
 export type ParseOrderRefResult =
@@ -343,7 +343,7 @@ export function resolveSocialLinks(
 }
 
 export const boothFormSchema = z.object({
-  boothId: z.uuid().optional(),
+  boothId: uuidSchema.optional(),
   name: z.string().min(1, "Booth name is required").max(100),
   image_url: imageUrlString.nullable(),
   is_active: z.boolean(),
@@ -415,11 +415,11 @@ export type BannerFormInput = z.infer<typeof bannerFormSchema>;
 export const feedbackSchema = z
   .object({
     source: z.enum(["customer", "vendor"]),
-    boothId: z.uuid().optional(),
+    boothId: uuidSchema.optional(),
     orderNumber: orderNumberSchema.optional(),
     // Per-order access token — proves a customer reviewer actually placed the
     // order (the RPC rejects customer feedback whose token doesn't match).
-    token: z.uuid().optional(),
+    token: uuidSchema.optional(),
     // customer order rating
     rating: z.number().int().min(1).max(5).optional(),
     // vendor → qkit loyalty

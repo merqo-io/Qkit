@@ -11,7 +11,6 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,9 +27,38 @@ import { SortableItemCard } from "./menu-sortables";
 import type { MenuMutations } from "./use-menu-mutations";
 import type { Entitlement } from "@/lib/plan";
 import { cn } from "@/lib/utils";
-import { ALLERGEN_TAGS, type MenuItemFormInput } from "@/lib/schemas";
+import type { MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory, OptionGroup } from "@/lib/types";
-import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
+import { MenuItemAllergens } from "./menu-item-allergens";
+
+function AvailabilityToggle({
+  available,
+  onToggle,
+}: {
+  available: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      role="switch"
+      aria-checked={available}
+      aria-label="Available"
+      title={
+        available
+          ? "Available, tap to hide from the menu"
+          : "Hidden, tap to make available again"
+      }
+      onClick={onToggle}
+      className="rounded-lg text-muted-foreground hover:text-foreground data-[unavailable=true]:border-dashed data-[unavailable=true]:text-muted-foreground/60"
+      data-unavailable={!available}
+    >
+      {available ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+    </Button>
+  );
+}
 
 interface Props {
   item: MenuItemFormInput;
@@ -156,28 +184,10 @@ export function MenuItemRow({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                role="switch"
-                aria-checked={item.available}
-                aria-label="Available"
-                title={
-                  item.available
-                    ? "Available, tap to hide from the menu"
-                    : "Hidden, tap to make available again"
-                }
-                onClick={() => update(index, { available: !item.available })}
-                className="rounded-lg text-muted-foreground hover:text-foreground data-[unavailable=true]:border-dashed data-[unavailable=true]:text-muted-foreground/60"
-                data-unavailable={!item.available}
-              >
-                {item.available ? (
-                  <Eye className="size-4" />
-                ) : (
-                  <EyeOff className="size-4" />
-                )}
-              </Button>
+              <AvailabilityToggle
+                available={item.available}
+                onToggle={() => update(index, { available: !item.available })}
+              />
             </div>
           </div>
 
@@ -192,64 +202,14 @@ export function MenuItemRow({
             onCategory={(category) => update(index, { category })}
           />
 
-          {/* Advanced: fixed/inherent allergens — collapsed by default,
-                most items need none. Anything that varies by customization
-                choice is tagged on the choice itself (OptionGroupsEditor). */}
-          <div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onToggleAdvanced(item.id)}
-                className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11"
-              >
-                {isAdvancedOpen ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
-                Advanced
-              </button>
-              {/* At-a-glance allergen summary so a vendor scanning the list
-                    doesn't need to expand every item — icon-only, only when set. */}
-              {(item.allergens ?? []).length > 0 && (
-                <span
-                  className="flex items-center gap-0.5"
-                  aria-label={`Contains allergens: ${(item.allergens ?? []).join(", ")}`}
-                >
-                  {(item.allergens ?? []).map((tag) => (
-                    <span key={tag} aria-hidden="true">
-                      {ALLERGEN_ICONS[tag]}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </div>
-            {isAdvancedOpen && (
-              <div className="mt-2 space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  Allergens always present in this item, regardless of
-                  customization.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {ALLERGEN_TAGS.map((tag) => (
-                    <label
-                      key={tag}
-                      className="flex items-center gap-1.5 text-xs capitalize"
-                    >
-                      <Checkbox
-                        checked={(item.allergens ?? []).includes(tag)}
-                        onCheckedChange={(checked) =>
-                          toggleItemAllergen(index, tag, checked === true)
-                        }
-                      />
-                      <span aria-hidden="true">{ALLERGEN_ICONS[tag]}</span>
-                      {tag}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <MenuItemAllergens
+            allergens={item.allergens ?? []}
+            isOpen={isAdvancedOpen}
+            onToggleOpen={() => onToggleAdvanced(item.id)}
+            onToggleAllergen={(tag, checked) =>
+              toggleItemAllergen(index, tag, checked)
+            }
+          />
 
           {/* Customization — collapsed by default; most items have none. */}
           <div className="border-t border-border pt-3">

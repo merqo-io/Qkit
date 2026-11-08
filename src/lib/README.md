@@ -406,6 +406,8 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   list plus uncapped totals; ends with a `Total items` row).
 - `sales-summary.test.ts` — tests the v1 mapping and CSV serialization
   (including cell-quoting of values containing commas/quotes/newlines).
+- `download.ts` — `downloadBlob(blob, filename)`: saves a Blob through a transient anchor; the one place that creates and revokes the object URL (CSV exports, QR poster PNG).
+- `download.test.ts` — tests the anchor click, filename and URL revoke.
 - `schemas.ts` — the Zod schema library for every form/action/JSONB boundary:
   `loginSchema`, `vendorSchema`, `menuItemFormSchema`/`menuItemSchema`,
   `optionGroupSchema`/`sanitizeOptionGroups`, `boothHoursSchema`/

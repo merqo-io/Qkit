@@ -13,6 +13,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Admin overview (QK-02): every query is now a `head` count or carries a 30-day (orders 14-day) window or a limit, instead of reading whole tables. Active vendors and the activation funnel now cover the last 30 days, and a test fails if a page query loses its bound.
+- Refactor (QK-05, QK-06): one `downloadBlob` helper for CSV and PNG downloads, the shared `uuidSchema` at every raw uuid boundary, a parity test between `servableBoothIds` and SQL `booth_servable` over one JSON fixture, and `menu-item-row.tsx` split under the complexity limit.
 - Split the booth form, menu editor, settings form and order form into smaller files by responsibility, with no change in behaviour (K5). The size and complexity baseline block for these files is gone; three form components keep a complexity exemption.
 - Re-pinned `@merqo/ui` to v0.44.0 (commit `250a4edd5399809b3c182cd381ba310d12dec5a7`) with matching build permission. It carries the new legal text, so vendors re-accept the terms on next sign-in.
 - Split the order board, order card, walk-up dialog and order status poller into smaller files by responsibility, with no change in behaviour (K5).

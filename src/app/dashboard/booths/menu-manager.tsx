@@ -1,5 +1,6 @@
 "use client";
 
+import { downloadBlob } from "@/lib/download";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -67,13 +68,7 @@ function formatChoiceRow(choice: CsvChoiceRow): string {
 }
 
 function downloadCsv(filename: string, text: string) {
-  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([text], { type: "text/csv;charset=utf-8" }), filename);
 }
 
 export function MenuManager({

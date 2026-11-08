@@ -15,7 +15,7 @@ export function ActivationFunnelView({ funnel }: { funnel: ActivationFunnel }) {
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="mb-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Activation
+        Activation · signups in the last 30 days
       </h2>
       <div className="space-y-3">
         {STAGES.map((stage, i) => {

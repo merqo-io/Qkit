@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uuidSchema } from "@/lib/schemas";
 import { createServiceClient } from "@/lib/supabase/server";
 import { paykitCallbackBearerOk } from "@/lib/qkit-paykit-auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -21,7 +22,7 @@ type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 // answers with when asked, so a forged, replayed or out-of-order body can
 // never set a status paykit does not hold. The uuid check also keeps the
 // value safe to use as a filter.
-const bodySchema = z.object({ order_ref: z.uuid() });
+const bodySchema = z.object({ order_ref: uuidSchema });
 
 type CallbackOrder = {
   id: string;

@@ -62,9 +62,21 @@ beforeEach(() => {
   from.mockImplementation((table: string) => {
     const result = { data: fixtures[table] ?? null, error: null };
     let orderIds: string[] | undefined;
+    let head = false;
+    const eqFilters: [string, unknown][] = [];
+    const matching = () =>
+      ((fixtures[table] ?? []) as Record<string, unknown>[]).filter((row) =>
+        eqFilters.every(([column, value]) => row[column] === value),
+      );
     const chain = {
-      select: () => chain,
+      select: (_columns?: string, options?: { head?: boolean }) => {
+        head = options?.head === true;
+        return chain;
+      },
       order: () => chain,
+      gte: () => chain,
+      lt: () => chain,
+      or: () => chain,
       range: async (from: number, to: number) => {
         ranges(table, from, to);
         if (failures[table] === from)
@@ -78,6 +90,7 @@ beforeEach(() => {
       limit: () => chain,
       eq: (column: string, value: unknown) => {
         predicates(table, column, value);
+        eqFilters.push([column, value]);
         return chain;
       },
       in: (column: string, value: unknown) => {
@@ -86,8 +99,10 @@ beforeEach(() => {
         return chain;
       },
       maybeSingle: async () => result,
-      then: <T,>(resolve: (value: typeof result) => T) =>
-        Promise.resolve(result).then(resolve),
+      then: <T,>(resolve: (value: unknown) => T) =>
+        Promise.resolve(
+          head ? { data: null, count: matching().length, error: null } : result,
+        ).then(resolve),
     };
     return chain;
   });
@@ -254,18 +269,16 @@ describe("admin overview", () => {
     );
   });
 });
-it("includes fleet rows beyond the first API page", async () => {
+it("reads the signup cohort beyond the first API page and counts the fleet by head query", async () => {
   fixtures.vendors = Array.from({ length: 1001 }, (_, index) => ({
     id: `vendor-${index}`,
-    created_at: "2026-01-01T00:00:00Z",
+    created_at: new Date().toISOString(),
   }));
   fixtures.orders = [];
   fixtures.booths = [];
   render(await AdminPage());
-  expect(names).toHaveBeenCalledWith(
-    expect.anything(),
-    expect.arrayContaining(["vendor-1000"]),
-  );
+  expect(ranges).toHaveBeenCalledWith("vendors", 1000, 1999);
+  expect(screen.getAllByText("1001").length).toBeGreaterThan(0);
 });
 
 it("does not render partial fleet totals after a later page fails", async () => {

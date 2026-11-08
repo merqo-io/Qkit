@@ -13,6 +13,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
 
 ## Contents
 
+- `booth-servable-parity.test.sql` — runs `qkit.booth_servable` over the shared `fixtures/booth-servable.json`; `src/lib/booth/servable-parity.test.ts` runs `servableBoothIds` over the same file and checks this file embeds an identical literal.
 - `review-hardening.test.sql` — rolled-back regression fixtures for migration
   `0095`: plan and printer-id INSERT restrictions, service-only order numbering,
   daily-cap editing, nested menu-cost privacy, paid-order stock reservation,

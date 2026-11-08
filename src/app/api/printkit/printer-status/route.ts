@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uuidSchema } from "@/lib/schemas";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPrinterStatus, printkitConfigured } from "@/lib/printkit/client";
 
-const querySchema = z.object({ booth: z.uuid() });
+const querySchema = z.object({ booth: uuidSchema });
 
 /**
  * The browser's way to refresh a booth's printer status. It exists so the

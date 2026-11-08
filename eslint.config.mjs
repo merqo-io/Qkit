@@ -102,7 +102,6 @@ const eslintConfig = [
     // Form components whose branching is optional JSX (plan locks, conditional fields), not control flow.
     files: [
       "src/app/dashboard/booths/booth-form.tsx",
-      "src/app/dashboard/booths/menu-item-row.tsx",
       "src/app/dashboard/settings/settings-form.tsx",
     ],
     rules: {
