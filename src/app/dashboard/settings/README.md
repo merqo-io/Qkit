@@ -173,3 +173,14 @@ blank here) disables the sweep entirely for that vendor.
 ## Parent
 
 [dashboard](../README.md)
+
+## Settings form pieces
+
+- `board-timing-section.tsx` renders the order-board timing card (amber and
+  red thresholds, undo window, ready auto-clear) and its Save button.
+- `desktop-notify-section.tsx` owns the desktop notification permission flow
+  (`useDesktopNotifySection`) and its card.
+- `save-board-settings-section.ts` validates and saves one group of board
+  settings, shared by the Save buttons.
+- `backup-prep-help-text.tsx` is the help text under the default prep time,
+  explaining the estimate from recent orders.
