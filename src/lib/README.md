@@ -11,6 +11,11 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 
 ## Contents
 
+- `proof-storage-cleanup.ts` — `drainProofDeletions(limit = 100)`: removes the
+  payment-screenshot objects that migration 0119's trigger queued when their
+  order was deleted, using the service-role client, and clears the queue rows.
+  A not-found counts as done; a real failure bumps `attempts` and sets
+  `last_error`. Never throws, so callers run it best-effort after a delete.
 - `action-result.ts` — `ActionResult<T>` discriminated union
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
@@ -485,7 +490,8 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   back into `Database` in `types.ts`: `account-tables.ts` (vendors, admins,
   admin_audit, events, entitlements, payments, platform_settings, legal state,
   feedback), `order-tables.ts` (booths, orders, status events, push
-  subscriptions, service starts, ops_events) and `functions.ts` (RPC
+  subscriptions, service starts, ops_events), `proof-storage-tables.ts` (the
+  payment-screenshot deletion queue) and `functions.ts` (RPC
   signatures). No barrel file; import the file you need or `@/lib/types`.
 - `types.ts` — the hand-maintained mirror of the `qkit` Postgres schema: core
   domain types (`OrderStatus`, `OrderSource` — `"qr"` | `"walkup"`, migration

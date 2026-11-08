@@ -45,7 +45,7 @@ success and retain retry availability.
 
 `actions.ts` also exposes `toggleBoothActive`, `regenerateShortCode`,
 `startNewService` (resets the daily item count through the
-`start_new_service` RPC, migration 0106) and `deleteBooth`. Deleting a booth cascades to its orders; the editor requires an
+`start_new_service` RPC, migration 0106) and `deleteBooth`. Deleting a booth cascades to its orders, and `deleteBooth` then calls `drainProofDeletions()` best-effort to remove their payment screenshots from Storage; the editor requires an
 explicit confirmation. `CloseBoothControl` uses a confirmation and three-second
 hold to close an existing booth, with a reversible undo; reopening is immediate.
 
