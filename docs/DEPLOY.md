@@ -17,6 +17,13 @@ in its own `qkit` schema.
   configured feature that just never fires rather than an error. Set all
   three in Vercel env before relying on the "Print failed" dashboard badge.
   See `.env.example` for what each one guards.
+- **cron**: `CRON_SECRET` guards `src/app/api/cron/proof-storage-drain/route.ts`,
+  the daily (`52 3 * * *`) drain of queued payment-screenshot deletions
+  declared in `vercel.json`. Vercel fires crons on Production only and sends
+  the secret itself; it fails closed (401) when unset. Set `CRON_SECRET` in
+  the Production env (crons fire there only) and also in Preview for manual
+  staging tests. On staging, call the
+  route by hand with `Authorization: Bearer $CRON_SECRET`.
 - **paykit callback**: `PAYKIT_CALLBACK_SECRET` (inbound,
   `src/app/api/paykit/payment-status/route.ts`) is the secret paykit presents
   when it reports a payment change. It must equal `callback_secret` on qkit's
