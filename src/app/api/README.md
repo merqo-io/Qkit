@@ -9,6 +9,7 @@ Route-handler API endpoints (as opposed to server actions, which live under `app
 - `merqo/`, bearer-token-authenticated endpoints the sibling Merqo product calls into: usage metrics, vendor status lookup, per-vendor activity detail, vendor push-provisioning and the entitlement push.
 - `printkit/` — bearer-token-authenticated endpoint the sibling printkit product calls into: print-job status callbacks. See its own README.
 - `paykit/` — bearer-token-authenticated endpoint the sibling paykit product calls into: payment-status callbacks. See its own README.
+- `cron/` — Vercel Cron endpoints guarded by `CRON_SECRET` (a daily drain of queued payment-screenshot deletions). See its own README.
 - `v1/` — qkit's own versioned public API (currently a `sales` export endpoint under `v1/sales/summary`; see its own README).
 
 ## Connectivity
