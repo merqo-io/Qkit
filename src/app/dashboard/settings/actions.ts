@@ -6,7 +6,7 @@ import {
   boardSettingsPatchSchema,
   type BoardSettingsPatch,
 } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 /**
  * Update the vendor's live-order-board preferences (vendors.board_settings).
@@ -17,16 +17,13 @@ export async function updateBoardSettings(
 ): Promise<ActionResult> {
   const parsed = boardSettingsPatchSchema.safeParse(input);
   if (!parsed.success)
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid settings",
-    };
+    return fail(parsed.error.issues[0]?.message ?? "Invalid settings");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not signed in" };
+  if (!user) return fail("Not signed in");
 
   const { error } = await supabase.rpc("patch_board_settings", {
     p_patch: parsed.data,
@@ -34,9 +31,9 @@ export async function updateBoardSettings(
 
   if (error) {
     console.error("updateBoardSettings failed", error.message);
-    return { success: false, error: "Could not save settings" };
+    return fail("Could not save settings");
   }
 
   revalidatePath("/dashboard", "layout");
-  return { success: true };
+  return ok();
 }

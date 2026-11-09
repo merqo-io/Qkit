@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { parseOrderRef } from "@/lib/schemas";
 import { recordOrderStatusEvent } from "@/lib/audit";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 /**
  * Self-checkout pickup kiosk action: flips a `ready` order straight to
@@ -22,17 +22,13 @@ export async function confirmCollection(
 ): Promise<ActionResult<{ status: "completed" }>> {
   const parsed = parseOrderRef(boothId, orderNumber, token);
   if (!parsed.ok)
-    return {
-      success: false,
-      error: parsed.field === "booth" ? "Invalid booth" : "Invalid order",
-    };
+    return fail(parsed.field === "booth" ? "Invalid booth" : "Invalid order");
 
   const supabase = await createServiceClient();
 
   const ip = clientIp(await headers());
   const allowed = await rateLimit(`collect:${boothId}:${ip}`, 20, 60);
-  if (!allowed)
-    return { success: false, error: "Too many attempts -- wait a moment." };
+  if (!allowed) return fail("Too many attempts -- wait a moment.");
 
   const { data: order } = await supabase
     .from("orders")
@@ -41,11 +37,9 @@ export async function confirmCollection(
     .eq("order_number", orderNumber)
     .eq("access_token", token)
     .maybeSingle();
-  if (!order) return { success: false, error: "Invalid order" };
-  if (order.status === "completed")
-    return { success: false, error: "Already collected." };
-  if (order.status !== "ready")
-    return { success: false, error: "Not ready yet." };
+  if (!order) return fail("Invalid order");
+  if (order.status === "completed") return fail("Already collected.");
+  if (order.status !== "ready") return fail("Not ready yet.");
 
   // A customer can acknowledge pickup, but only the vendor can confirm money.
   const { data: rows, error } = await supabase
@@ -56,10 +50,10 @@ export async function confirmCollection(
     .select("id");
   if (error) {
     console.error("confirmCollection failed", error.message);
-    return { success: false, error: "Could not complete order. Try again." };
+    return fail("Could not complete order. Try again.");
   }
   if (!rows || rows.length === 0)
-    return { success: false, error: "Order changed -- try scanning again." };
+    return fail("Order changed -- try scanning again.");
 
   await recordOrderStatusEvent({
     order_id: order.id,
@@ -68,5 +62,5 @@ export async function confirmCollection(
     actor: null,
   });
 
-  return { success: true, status: "completed" };
+  return ok({ status: "completed" });
 }

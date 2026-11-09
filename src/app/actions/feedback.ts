@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createServerClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { feedbackSchema, type FeedbackInput } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 /**
  * Submit in-product feedback (customer post-order or vendor). Public insert (RLS
@@ -16,10 +16,7 @@ export async function submitFeedback(
 ): Promise<ActionResult> {
   const parsed = feedbackSchema.safeParse(input);
   if (!parsed.success)
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid feedback",
-    };
+    return fail(parsed.error.issues[0]?.message ?? "Invalid feedback");
   const d = parsed.data;
 
   const supabase = await createServerClient();
@@ -27,8 +24,7 @@ export async function submitFeedback(
   // Throttle: 3 submissions / 5 min per IP.
   const ip = clientIp(await headers());
   const allowed = await rateLimit(`feedback:${ip}`, 3, 300);
-  if (!allowed)
-    return { success: false, error: "Thanks, you've already sent feedback." };
+  if (!allowed) return fail("Thanks, you've already sent feedback.");
 
   // Insert via a SECURITY DEFINER RPC: the feedback table has no public INSERT
   // policy (a public WITH CHECK(true) would let any JWT forge reviews). The
@@ -47,7 +43,7 @@ export async function submitFeedback(
   });
   if (error) {
     console.error("submitFeedback failed", error.message);
-    return { success: false, error: "Could not send feedback" };
+    return fail("Could not send feedback");
   }
-  return { success: true };
+  return ok();
 }

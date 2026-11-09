@@ -18,7 +18,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   returns no error for a missing object); any error bumps `attempts` and sets
   `last_error`, and rows at 5 attempts are no longer read but stay for manual
   inspection. Never throws, so callers run it best-effort after a delete.
-- `action-result.ts` — `ActionResult<T>` discriminated union
+- `action-result.ts` — `ActionResult<T>` discriminated union plus the `ok(data?)` and `fail(error)` constructors; build Server Action results with these, never `{ success }` literals (import them, a `"use server"` file cannot re-export them)
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
   emoji per `ALLERGEN_TAGS` value. Moved here 2026-09-01 (was

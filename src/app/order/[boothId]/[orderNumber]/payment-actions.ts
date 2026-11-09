@@ -9,7 +9,7 @@ import { createCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { isAbandonedPayment, paymentDeadline } from "@/lib/orders";
 import { finalizePaidOrder } from "./finalize-paid-order";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import type { PaymentStatus } from "@/lib/types";
 
 /**
@@ -237,28 +237,21 @@ export async function unclaimPayment(
 ): Promise<ActionResult> {
   const parsed = parseOrderRef(boothId, orderNumber, token);
   if (!parsed.ok)
-    return {
-      success: false,
-      error: parsed.field === "booth" ? "Invalid booth" : "Invalid order",
-    };
+    return fail(parsed.field === "booth" ? "Invalid booth" : "Invalid order");
 
   const supabase = await createServiceClient();
 
   const ip = clientIp(await headers());
   const allowed = await rateLimitStrict(`unclaim:${boothId}:${ip}`, 10, 60);
-  if (!allowed)
-    return { success: false, error: "Too many attempts. Wait a moment." };
+  if (!allowed) return fail("Too many attempts. Wait a moment.");
 
   const ctx = await loadCheckoutContext(supabase, boothId, orderNumber, token);
-  if (!ctx) return { success: false, error: "Invalid order" };
-  if (ctx.paymentStatus === "pending") return { success: true };
+  if (!ctx) return fail("Invalid order");
+  if (ctx.paymentStatus === "pending") return ok();
   if (ctx.paymentStatus === "confirmed")
-    return {
-      success: false,
-      error: "The stall already confirmed your payment.",
-    };
+    return fail("The stall already confirmed your payment.");
   if (ctx.paymentStatus === "not_required")
-    return { success: false, error: "This order doesn't take payment." };
+    return fail("This order doesn't take payment.");
 
   const transaction = await transactionIdForOrder({
     vendorId: ctx.vendorId,
@@ -271,21 +264,18 @@ export async function unclaimPayment(
       "unclaimPayment: paykit transaction lookup failed",
       transaction.error,
     );
-    return { success: false, error: "Could not undo. Try again." };
+    return fail("Could not undo. Try again.");
   }
 
   const unclaim = await unclaimCheckout(transaction.data);
   if (!unclaim.ok) {
     console.error("unclaimPayment: paykit unclaim failed", unclaim.error);
-    return { success: false, error: "Could not undo. Try again." };
+    return fail("Could not undo. Try again.");
   }
   if (unclaim.data.status === "confirmed")
-    return {
-      success: false,
-      error: "The stall already confirmed your payment.",
-    };
+    return fail("The stall already confirmed your payment.");
   if (unclaim.data.status !== "pending")
-    return { success: false, error: "Could not undo. Try again." };
+    return fail("Could not undo. Try again.");
 
   const { error } = await supabase
     .from("orders")
@@ -299,5 +289,5 @@ export async function unclaimPayment(
   if (error)
     console.error("unclaimPayment: local mirror update failed", error.message);
 
-  return { success: true };
+  return ok();
 }

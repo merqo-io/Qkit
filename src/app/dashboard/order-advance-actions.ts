@@ -1,5 +1,6 @@
 "use server";
 
+import { fail, ok } from "@/lib/action-result";
 import {
   orderStatusSchema,
   paymentStatusSchema,
@@ -31,17 +32,17 @@ export async function advanceOrder(
     (expectedStatus !== undefined &&
       !orderStatusSchema.safeParse(expectedStatus).success)
   )
-    return { success: false, error: "Invalid order" };
+    return fail("Invalid order");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order) return { success: false, error: "Order not found" };
+  if (!supabase || !order) return fail("Order not found");
 
   // A stale Mark Ready tap must never complete an order another device made ready.
   if (expectedStatus !== undefined && order.status !== expectedStatus)
-    return { success: false, error: "Order changed. Please refresh." };
+    return fail("Order changed. Please refresh.");
 
   const adv = ADVANCE[order.status];
-  if (!adv) return { success: false, error: "Order can't be advanced" };
+  if (!adv) return fail("Order can't be advanced");
 
   // Guard on the status we read: if a concurrent action (e.g. a cancel) moved
   // the order meanwhile, the UPDATE matches 0 rows instead of blindly advancing
@@ -56,8 +57,7 @@ export async function advanceOrder(
     console.error("advanceOrder failed", error.message);
     return failWithIncident("advanceOrder", orderId, "Failed to update order");
   }
-  if (!rows || rows.length === 0)
-    return { success: false, error: "Order changed. Please refresh." };
+  if (!rows || rows.length === 0) return fail("Order changed. Please refresh.");
 
   if (userId) {
     await recordOrderStatusEvent({
@@ -78,7 +78,7 @@ export async function advanceOrder(
   if (adv.next === "preparing" && order.order_number)
     await notifyPrintkit(order.booth_id, order.order_number);
 
-  return { success: true, status: adv.next };
+  return ok({ status: adv.next });
 }
 
 /**
@@ -94,19 +94,17 @@ export async function revertOrderAdvance(
   revertFrom: OrderStatus,
   prevPaymentStatus: PaymentStatus,
 ): Promise<StatusResult> {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
   if (
     !orderStatusSchema.safeParse(revertTo).success ||
     !orderStatusSchema.safeParse(revertFrom).success ||
     !paymentStatusSchema.safeParse(prevPaymentStatus).success
   )
-    return { success: false, error: "Not a valid undo" };
-  if (ADVANCE[revertTo]?.next !== revertFrom)
-    return { success: false, error: "Not a valid undo" };
+    return fail("Not a valid undo");
+  if (ADVANCE[revertTo]?.next !== revertFrom) return fail("Not a valid undo");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order) return { success: false, error: "Order not found" };
+  if (!supabase || !order) return fail("Order not found");
 
   const patch: {
     status: OrderStatus;
@@ -131,8 +129,7 @@ export async function revertOrderAdvance(
     console.error("revertOrderAdvance failed", error.message);
     return failWithIncident("revertOrderAdvance", orderId, "Failed to undo");
   }
-  if (!rows || rows.length === 0)
-    return { success: false, error: "Order changed. Please refresh." };
+  if (!rows || rows.length === 0) return fail("Order changed. Please refresh.");
 
   if (userId) {
     await recordOrderStatusEvent({
@@ -149,7 +146,7 @@ export async function revertOrderAdvance(
     });
   }
 
-  return { success: true, status: revertTo };
+  return ok({ status: revertTo });
 }
 
 /**
@@ -166,13 +163,12 @@ export async function revertOrderAdvance(
 export async function restoreAutoCompleted(
   orderId: string,
 ): Promise<StatusResult> {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order) return { success: false, error: "Order not found" };
+  if (!supabase || !order) return fail("Order not found");
   if (order.status !== "completed" || !order.auto_completed)
-    return { success: false, error: "This order can't be restored" };
+    return fail("This order can't be restored");
 
   const { data: rows, error } = await supabase
     .from("orders")
@@ -193,8 +189,7 @@ export async function restoreAutoCompleted(
       "Failed to restore order",
     );
   }
-  if (!rows || rows.length === 0)
-    return { success: false, error: "Order changed. Please refresh." };
+  if (!rows || rows.length === 0) return fail("Order changed. Please refresh.");
 
   if (userId) {
     await recordOrderStatusEvent({
@@ -211,5 +206,5 @@ export async function restoreAutoCompleted(
     });
   }
 
-  return { success: true, status: "ready" };
+  return ok({ status: "ready" });
 }
