@@ -6,7 +6,7 @@ import { confirmCheckout, unclaimCheckout } from "@/lib/paykit/client";
 import { transactionIdForOrder } from "@/lib/paykit/transaction-for-order";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { recordAudit, recordOrderStatusEvent } from "@/lib/audit";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
 import { failWithIncident, loadOwnOrder } from "./order-action-helpers";
 
@@ -24,19 +24,17 @@ export async function confirmPaymentAndStart(
 ): Promise<
   ActionResult<{ status: OrderStatus; prevPaymentStatus: PaymentStatus }>
 > {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order || !userId)
-    return { success: false, error: "Order not found" };
+  if (!supabase || !order || !userId) return fail("Order not found");
 
   if (
     order.status !== "pending" ||
     order.payment_status === "confirmed" ||
     order.payment_status === "not_required"
   )
-    return { success: false, error: "Order can't be advanced" };
+    return fail("Order can't be advanced");
 
   const prevPaymentStatus = order.payment_status;
 
@@ -110,9 +108,9 @@ export async function confirmPaymentAndStart(
     ) {
       if (order.order_number)
         await notifyPrintkit(order.booth_id, order.order_number);
-      return { success: true, status: current.status, prevPaymentStatus };
+      return ok({ status: current.status, prevPaymentStatus });
     }
-    return { success: false, error: "Order changed -- please refresh." };
+    return fail("Order changed -- please refresh.");
   }
 
   if (userId) {
@@ -132,7 +130,7 @@ export async function confirmPaymentAndStart(
 
   if (order.order_number)
     await notifyPrintkit(order.booth_id, order.order_number);
-  return { success: true, status: "preparing", prevPaymentStatus };
+  return ok({ status: "preparing", prevPaymentStatus });
 }
 
 /**
@@ -150,11 +148,10 @@ export async function revertPaymentAndStart(
   orderId: string,
   _prevPaymentStatus: PaymentStatus,
 ): Promise<ActionResult<{ status: OrderStatus }>> {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
 
   const { supabase, userId } = await loadOwnOrder(orderId);
-  if (!supabase) return { success: false, error: "Order not found" };
+  if (!supabase) return fail("Order not found");
 
   const { data: rows, error } = await supabase
     .from("orders")
@@ -171,7 +168,7 @@ export async function revertPaymentAndStart(
     );
   }
   if (!rows || rows.length === 0)
-    return { success: false, error: "Order changed -- please refresh." };
+    return fail("Order changed -- please refresh.");
 
   if (userId) {
     await recordOrderStatusEvent({
@@ -182,7 +179,7 @@ export async function revertPaymentAndStart(
     });
   }
 
-  return { success: true, status: "pending" };
+  return ok({ status: "pending" });
 }
 
 /**
@@ -207,22 +204,19 @@ export async function revertPaymentAndStart(
 export async function confirmOrderPayment(
   orderId: string,
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order || !userId)
-    return { success: false, error: "Order not found" };
+  if (!supabase || !order || !userId) return fail("Order not found");
 
   if (order.payment_status === "confirmed") {
     if (order.order_number)
       await notifyPrintkit(order.booth_id, order.order_number);
-    return { success: true };
+    return ok();
   }
   if (order.payment_status === "not_required")
-    return { success: false, error: "This order doesn't take payment" };
-  if (order.status === "cancelled")
-    return { success: false, error: "This order was cancelled" };
+    return fail("This order doesn't take payment");
+  if (order.status === "cancelled") return fail("This order was cancelled");
 
   const transaction = await transactionIdForOrder({
     vendorId: userId,
@@ -285,7 +279,7 @@ export async function confirmOrderPayment(
     detail: { from: order.payment_status, amount_cents: order.total_cents },
   });
 
-  return { success: true };
+  return ok();
 }
 
 /**
@@ -299,18 +293,15 @@ export async function confirmOrderPayment(
 export async function declinePaymentClaim(
   orderId: string,
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(orderId).success)
-    return { success: false, error: "Invalid order" };
+  if (!uuidSchema.safeParse(orderId).success) return fail("Invalid order");
 
   const { supabase, order, userId } = await loadOwnOrder(orderId);
-  if (!supabase || !order || !userId)
-    return { success: false, error: "Order not found" };
+  if (!supabase || !order || !userId) return fail("Order not found");
 
-  if (order.payment_status === "pending") return { success: true };
+  if (order.payment_status === "pending") return ok();
   if (order.payment_status !== "claimed")
-    return { success: false, error: "No payment claim to decline" };
-  if (order.status === "cancelled")
-    return { success: false, error: "This order was cancelled" };
+    return fail("No payment claim to decline");
+  if (order.status === "cancelled") return fail("This order was cancelled");
 
   const transaction = await transactionIdForOrder({
     vendorId: userId,
@@ -339,7 +330,7 @@ export async function declinePaymentClaim(
     );
   }
   if (unclaim.data.status === "confirmed")
-    return { success: false, error: "This payment was already confirmed" };
+    return fail("This payment was already confirmed");
   if (unclaim.data.status !== "pending")
     return failWithIncident(
       "declinePaymentClaim",
@@ -366,5 +357,5 @@ export async function declinePaymentClaim(
     detail: { from: "claimed", amount_cents: order.total_cents },
   });
 
-  return { success: true };
+  return ok();
 }

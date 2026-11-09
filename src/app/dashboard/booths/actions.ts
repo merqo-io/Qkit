@@ -24,7 +24,7 @@ import { setupKind, vendorPaymentSetup } from "@/lib/paykit/payment-setup";
 import { registerPrintLocation } from "@/lib/printkit/client";
 import { sweepUnsavedUploads } from "./sweep-unsaved-uploads";
 import { drainProofDeletions } from "@/lib/proof-storage-cleanup";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import type { Database, PaymentKind } from "@/lib/types";
 import { paymentMarker } from "@/lib/payment-marker";
 
@@ -137,8 +137,7 @@ async function upsertBoothRow(
       .eq("id", boothId)
       .select("id")
       .maybeSingle();
-    if (error || !updated)
-      return { success: false, error: "Could not save booth" };
+    if (error || !updated) return fail("Could not save booth");
 
     if (prev)
       await removeBoothImages(
@@ -146,7 +145,7 @@ async function upsertBoothRow(
         orphanedImagePaths(prev, row),
         "saveBooth",
       );
-    return { success: true, boothId: updated.id };
+    return ok({ boothId: updated.id });
   }
 
   const { data: inserted, error } = await supabase
@@ -161,9 +160,9 @@ async function upsertBoothRow(
       details: error?.details,
       hint: error?.hint,
     });
-    return { success: false, error: "Could not create booth" };
+    return fail("Could not create booth");
   }
-  return { success: true, boothId: inserted.id };
+  return ok({ boothId: inserted.id });
 }
 
 /**
@@ -213,14 +212,13 @@ type DeleteBoothResult = ActionResult;
  * booths. Never blocks the delete itself.
  */
 export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   // Read the referenced images (and the name, for the printkit deregister
   // call below) before the row is gone, so both can proceed after the delete.
@@ -234,8 +232,8 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
     .from("booths")
     .delete({ count: "exact" })
     .eq("id", boothId);
-  if (error) return { success: false, error: "Could not delete booth" };
-  if (!count) return { success: false, error: "Booth not found" };
+  if (error) return fail("Could not delete booth");
+  if (!count) return fail("Booth not found");
 
   if (booth) {
     await removeBoothImages(supabase, boothImagePaths(booth), "deleteBooth");
@@ -247,7 +245,7 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
   // The delete cascades to orders; a trigger queued their payment screenshots.
   // Drained here even when the booth read came back empty.
   await drainProofDeletions();
-  return { success: true };
+  return ok();
 }
 
 /**
@@ -258,23 +256,22 @@ export async function deleteBooth(boothId: string): Promise<DeleteBoothResult> {
 export async function regenerateShortCode(
   boothId: string,
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const { data: rows, error } = await supabase.rpc("regenerate_short_code", {
     p_booth_id: boothId,
   });
-  if (error) return { success: false, error: "Could not regenerate QR" };
-  if (!rows) return { success: false, error: "Booth not found" };
+  if (error) return fail("Could not regenerate QR");
+  if (!rows) return fail("Booth not found");
 
   revalidatePath(`/dashboard/booths/${boothId}/qr`);
-  return { success: true };
+  return ok();
 }
 
 /**
@@ -286,23 +283,22 @@ export async function regenerateShortCode(
 export async function startNewService(
   boothId: string,
 ): Promise<ActionResult<{ startedAt: string | null }>> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const { data: reset, error } = await supabase.rpc("start_new_service", {
     p_booth_id: boothId,
   });
   if (error) {
     console.error("startNewService rpc failed", error.message);
-    return { success: false, error: "Could not start a new service" };
+    return fail("Could not start a new service");
   }
-  if (!reset) return { success: false, error: "Booth not found" };
+  if (!reset) return fail("Booth not found");
 
   // The RPC stamped cap_reset_at with the same now() it logged; handing it
   // back lets the board rank orders from the new service before its refresh.
@@ -313,7 +309,7 @@ export async function startNewService(
     .maybeSingle();
 
   revalidatePath("/dashboard", "layout");
-  return { success: true, startedAt: booth?.cap_reset_at ?? null };
+  return ok({ startedAt: booth?.cap_reset_at ?? null });
 }
 
 // Bounds the client-supplied list of images a save uploaded. A booth form
@@ -398,13 +394,12 @@ async function paymentPatch(
 
 async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
   const parsed = boothFormSchema.safeParse(input);
-  if (!parsed.success)
-    return { success: false, error: "Invalid booth details" };
+  if (!parsed.success) return fail("Invalid booth details");
   const data = parsed.data;
 
   // Server-side entitlement enforcement (the UI also gates, but never trust it).
   const { user, entitlement } = await loadEntitlement();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   // Auto-close hours needs Starter or higher: strip it on free so a stored value can't
   // keep enforcing after a plan lapses.
@@ -425,7 +420,7 @@ async function persistBooth(input: BoothFormInput): Promise<SaveBoothResult> {
       },
       "saveBooth",
     );
-    if (capError) return { success: false, error: capError };
+    if (capError) return fail(capError);
   }
 
   const row = {
@@ -467,16 +462,15 @@ export async function saveMenuItems(
   boothId: string,
   items: MenuItemFormInput[],
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
   const parsed = menuItemsInputSchema.safeParse(items);
-  if (!parsed.success) return { success: false, error: "Invalid menu items" };
+  if (!parsed.success) return fail("Invalid menu items");
 
   const { user, entitlement } = await loadEntitlement();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const menuCapError = validateMenuCaps(parsed.data, entitlement);
-  if (menuCapError) return { success: false, error: menuCapError };
+  if (menuCapError) return fail(menuCapError);
 
   // Same stock-cap stripping rule saveBooth used to apply.
   const menu_items = entitlement.stockCaps
@@ -491,7 +485,7 @@ export async function saveMenuItems(
     .select("menu_items")
     .eq("id", boothId)
     .maybeSingle();
-  if (!prev) return { success: false, error: "Booth not found" };
+  if (!prev) return fail("Booth not found");
 
   const { data: updated, error } = await supabase
     .from("booths")
@@ -499,8 +493,7 @@ export async function saveMenuItems(
     .eq("id", boothId)
     .select("id")
     .maybeSingle();
-  if (error || !updated)
-    return { success: false, error: "Could not save menu" };
+  if (error || !updated) return fail("Could not save menu");
 
   await removeBoothImages(
     supabase,
@@ -508,7 +501,7 @@ export async function saveMenuItems(
     "saveMenuItems",
   );
   after(() => sweepUnsavedUploads(supabase, user));
-  return { success: true };
+  return ok();
 }
 
 /** Exclusive write path for `booths.menu_categories`, `saveBooth`'s row
@@ -518,13 +511,12 @@ export async function saveMenuCategories(
   boothId: string,
   categories: MenuCategory[],
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
   const parsed = menuCategoriesSchema.safeParse(categories);
-  if (!parsed.success) return { success: false, error: "Invalid categories" };
+  if (!parsed.success) return fail("Invalid categories");
 
   const { user } = await loadEntitlement();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const supabase = await createServerClient();
   const { data: updated, error } = await supabase
@@ -533,9 +525,8 @@ export async function saveMenuCategories(
     .eq("id", boothId)
     .select("id")
     .maybeSingle();
-  if (error || !updated)
-    return { success: false, error: "Could not save categories" };
-  return { success: true };
+  if (error || !updated) return fail("Could not save categories");
+  return ok();
 }
 
 /**
@@ -549,13 +540,12 @@ export async function toggleBoothActive(
   boothId: string,
   active: boolean,
 ): Promise<ActionResult> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
   if (!z.boolean().safeParse(active).success)
-    return { success: false, error: "Invalid active state" };
+    return fail("Invalid active state");
 
   const { user, entitlement } = await loadEntitlement();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const supabase = await createServerClient();
 
@@ -569,7 +559,7 @@ export async function toggleBoothActive(
       },
       "toggleBoothActive",
     );
-    if (capError) return { success: false, error: capError };
+    if (capError) return fail(capError);
   }
 
   // RLS (booths_vendor_all) scopes the update to this vendor's own booths.
@@ -579,9 +569,8 @@ export async function toggleBoothActive(
     .eq("id", boothId)
     .select("id")
     .maybeSingle();
-  if (error || !updated)
-    return { success: false, error: "Could not update booth" };
+  if (error || !updated) return fail("Could not update booth");
 
   revalidatePath("/dashboard", "layout");
-  return { success: true };
+  return ok();
 }

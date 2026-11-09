@@ -9,7 +9,7 @@ import { vendorHasCounterOps } from "@/lib/counter-ops";
 import { resolveOrderDisplay } from "@/lib/order-display";
 import { readyNotificationContent } from "@/lib/order-alerts";
 import { pushSubscriptionSchema } from "@/lib/push/subscription";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 // One customer rarely has more than a phone and a laptop on one order; the cap
 // keeps a scripted caller from piling rows onto an order it holds the token for.
@@ -30,12 +30,12 @@ export async function savePushSubscription(
   subscription: unknown,
 ): Promise<ActionResult> {
   if (!parseOrderRef(boothId, orderNumber, token).ok)
-    return { success: false, error: "Invalid order" };
+    return fail("Invalid order");
   const sub = pushSubscriptionSchema.safeParse(subscription);
-  if (!sub.success) return { success: false, error: FAILED };
+  if (!sub.success) return fail(FAILED);
 
   if (!(await rateLimit(`push-subscribe:${token}`, 10, 60)))
-    return { success: false, error: "Too many attempts. Wait a moment." };
+    return fail("Too many attempts. Wait a moment.");
 
   const supabase = await createServiceClient();
   const [{ data: order }, { data: booth }] = await Promise.all([
@@ -52,23 +52,22 @@ export async function savePushSubscription(
       .eq("id", boothId)
       .maybeSingle(),
   ]);
-  if (!order || !booth) return { success: false, error: "Invalid order" };
+  if (!order || !booth) return fail("Invalid order");
   // Ready alerts are a counter-ops feature; a customer just sees alerts as
   // unavailable.
   if (!(await vendorHasCounterOps(supabase, booth.vendor_id)))
-    return { success: false, error: FAILED };
+    return fail(FAILED);
   // Only an order still on its way to ready can use a ready alert.
-  if (isTerminal(order.status) || order.status === "ready")
-    return { success: false, error: FAILED };
+  if (isTerminal(order.status) || order.status === "ready") return fail(FAILED);
 
   const { data: existing, error: existingError } = await supabase
     .from("order_push_subscriptions")
     .select("endpoint")
     .eq("order_id", order.id);
-  if (existingError) return { success: false, error: FAILED };
+  if (existingError) return fail(FAILED);
   const known = (existing ?? []).some((r) => r.endpoint === sub.data.endpoint);
   if (!known && (existing ?? []).length >= MAX_SUBSCRIPTIONS_PER_ORDER)
-    return { success: false, error: FAILED };
+    return fail(FAILED);
 
   const display = await resolveOrderDisplay(
     supabase,
@@ -93,7 +92,7 @@ export async function savePushSubscription(
   );
   if (error) {
     console.error("savePushSubscription failed", error.message);
-    return { success: false, error: FAILED };
+    return fail(FAILED);
   }
-  return { success: true };
+  return ok();
 }
