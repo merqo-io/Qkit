@@ -18,7 +18,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   returns no error for a missing object); any error bumps `attempts` and sets
   `last_error`, and rows at 5 attempts are no longer read but stay for manual
   inspection. Never throws, so callers run it best-effort after a delete.
-- `action-result.ts` — `ActionResult<T>` discriminated union
+- `action-result.ts` — `ActionResult<T>` discriminated union plus the `ok(data?)` and `fail(error)` constructors; build Server Action results with these, never `{ success }` literals (import them, a `"use server"` file cannot re-export them)
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
   emoji per `ALLERGEN_TAGS` value. Moved here 2026-09-01 (was
@@ -406,6 +406,8 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   list plus uncapped totals; ends with a `Total items` row).
 - `sales-summary.test.ts` — tests the v1 mapping and CSV serialization
   (including cell-quoting of values containing commas/quotes/newlines).
+- `download.ts` — `downloadBlob(blob, filename)`: saves a Blob through a transient anchor; the one place that creates and revokes the object URL (CSV exports, QR poster PNG).
+- `download.test.ts` — tests the anchor click, filename and URL revoke.
 - `schemas.ts` — the Zod schema library for every form/action/JSONB boundary:
   `loginSchema`, `vendorSchema`, `menuItemFormSchema`/`menuItemSchema`,
   `optionGroupSchema`/`sanitizeOptionGroups`, `boothHoursSchema`/

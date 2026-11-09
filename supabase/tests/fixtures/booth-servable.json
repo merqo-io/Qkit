@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "name": "free serves only the oldest active booth",
+      "vendor_id": "00d12000-0000-0000-0000-000000000001",
+      "tier": "free",
+      "booths": [
+        {
+          "id": "00d12001-0000-0000-0000-000000000003",
+          "is_active": true,
+          "created_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "00d12001-0000-0000-0000-000000000001",
+          "is_active": true,
+          "created_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": "00d12001-0000-0000-0000-000000000002",
+          "is_active": false,
+          "created_at": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "00d12001-0000-0000-0000-000000000004",
+          "is_active": true,
+          "created_at": "2026-04-01T00:00:00Z"
+        }
+      ],
+      "expected": ["00d12001-0000-0000-0000-000000000001"]
+    },
+    {
+      "name": "free skips an inactive older booth",
+      "vendor_id": "00d12000-0000-0000-0000-000000000002",
+      "tier": "free",
+      "booths": [
+        {
+          "id": "00d12002-0000-0000-0000-000000000001",
+          "is_active": false,
+          "created_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": "00d12002-0000-0000-0000-000000000002",
+          "is_active": true,
+          "created_at": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "00d12002-0000-0000-0000-000000000003",
+          "is_active": true,
+          "created_at": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "expected": ["00d12002-0000-0000-0000-000000000002"]
+    },
+    {
+      "name": "starter is capped at one active booth",
+      "vendor_id": "00d12000-0000-0000-0000-000000000003",
+      "tier": "starter",
+      "booths": [
+        {
+          "id": "00d12003-0000-0000-0000-000000000001",
+          "is_active": true,
+          "created_at": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "00d12003-0000-0000-0000-000000000002",
+          "is_active": true,
+          "created_at": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "expected": ["00d12003-0000-0000-0000-000000000002"]
+    },
+    {
+      "name": "qkit serves every active booth and no inactive one",
+      "vendor_id": "00d12000-0000-0000-0000-000000000004",
+      "tier": "qkit",
+      "booths": [
+        {
+          "id": "00d12004-0000-0000-0000-000000000001",
+          "is_active": true,
+          "created_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": "00d12004-0000-0000-0000-000000000002",
+          "is_active": false,
+          "created_at": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "00d12004-0000-0000-0000-000000000003",
+          "is_active": true,
+          "created_at": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "expected": [
+        "00d12004-0000-0000-0000-000000000001",
+        "00d12004-0000-0000-0000-000000000003"
+      ]
+    },
+    {
+      "name": "a vendor with only inactive booths serves none",
+      "vendor_id": "00d12000-0000-0000-0000-000000000005",
+      "tier": "free",
+      "booths": [
+        {
+          "id": "00d12005-0000-0000-0000-000000000001",
+          "is_active": false,
+          "created_at": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "expected": []
+    }
+  ]
+}

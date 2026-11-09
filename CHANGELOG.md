@@ -8,11 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Data retention (X-26): a payment screenshot is now deleted when its order is deleted, and only then. Migration 0119 adds `qkit.proof_storage_deletions` and a trigger on `qkit.orders` that queues the `payment-proofs` object path, including on cascade deletes from booths, vendors and auth users. `drainProofDeletions()` removes the queued objects and `deleteBooth` runs it best-effort. Vendor or account deletion that happens outside qkit must drain the queue itself.
+- Data retention (X-26): a daily Vercel Cron (`52 3 * * *`) calls `GET /api/cron/proof-storage-drain`, guarded by `CRON_SECRET`, to run `drainProofDeletions()` so screenshot deletions queued by account or vendor cascades and manual deletes are no longer left in the queue. Vercel fires crons on Production only.
+- Data retention (X-26): a payment screenshot is now deleted when its order is deleted, and only then. Migration 0119 adds `qkit.proof_storage_deletions` and a trigger on `qkit.orders` that queues the `payment-proofs` object path, including on cascade deletes from booths, vendors and auth users. `drainProofDeletions()` removes the queued objects and `deleteBooth` runs it best-effort. Rows queued by vendor or account deletion outside qkit are drained by the daily cron below.
 - Data retention (X-26): migration 0118 adds a daily purge (`qkit.purge_order_idempotency_keys()`, pg_cron job `qkit-order-idempotency-purge`) that clears `orders.idempotency_key` 24 hours after the order is created, since the key only guards a double-tap while the order is being placed. The order freeze trigger allows only that one clearing, and only from the purge.
 
 ### Changed
 
+- Refactor (QK-04): Server Actions build results with the new `ok(data?)` and `fail(error)` constructors from `src/lib/action-result.ts` instead of hand-written `{ success }` literals. No behaviour change.
+- Admin overview (QK-02): every query is now a `head` count or carries a 30-day (orders 14-day) window or a limit, instead of reading whole tables. Active vendors and the activation funnel now cover the last 30 days, and a test fails if a page query loses its bound.
+- Refactor (QK-05, QK-06): one `downloadBlob` helper for CSV and PNG downloads, the shared `uuidSchema` at every raw uuid boundary, a parity test between `servableBoothIds` and SQL `booth_servable` over one JSON fixture, and `menu-item-row.tsx` split under the complexity limit.
 - Split the booth form, menu editor, settings form and order form into smaller files by responsibility, with no change in behaviour (K5). The size and complexity baseline block for these files is gone; three form components keep a complexity exemption.
 - Re-pinned `@merqo/ui` to v0.44.0 (commit `250a4edd5399809b3c182cd381ba310d12dec5a7`) with matching build permission. It carries the new legal text, so vendors re-accept the terms on next sign-in.
 - Split the order board, order card, walk-up dialog and order status poller into smaller files by responsibility, with no change in behaviour (K5).

@@ -6,7 +6,7 @@ import { notifyCustomer } from "@/lib/merqo/customer-notify";
 import { sendOrderReadyPush } from "@/lib/push/send";
 import { orderHasCounterOpsForAction } from "@/lib/counter-ops";
 import { recordOrderIncident } from "@/lib/ops-events";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, type ActionResult } from "@/lib/action-result";
 import type { OrderStatus } from "@/lib/types";
 
 // Vendor order-board mutations behind a validated server boundary. Authorization
@@ -33,7 +33,7 @@ export async function failWithIncident(
   error: string,
 ): Promise<{ success: false; error: string }> {
   await recordOrderIncident("action_error", orderId, action);
-  return { success: false, error };
+  return fail(error);
 }
 
 /** Load the current order (RLS-scoped to the caller's booths) for a gated vendor. */

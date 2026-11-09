@@ -6,13 +6,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServiceClient } from "@/lib/supabase/server";
-import { bannerFormSchema, type BannerFormInput } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/action-result";
+import {
+  bannerFormSchema,
+  uuidSchema,
+  type BannerFormInput,
+} from "@/lib/schemas";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { recordAudit } from "@/lib/audit";
 import { forgetPlatformSettings } from "@/lib/platform-settings";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 
-const resolveMessageSchema = z.object({ id: z.uuid() });
+const resolveMessageSchema = z.object({ id: uuidSchema });
 
 /** Mark a vendor's help request resolved once handled. Admin-only. */
 export async function resolveSupportMessage(
@@ -20,7 +24,7 @@ export async function resolveSupportMessage(
 ): Promise<ActionResult> {
   const { user } = await requireAdmin();
   const parsed = resolveMessageSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: "Invalid input" };
+  if (!parsed.success) return fail("Invalid input");
 
   const supabase = await createServiceClient();
   const merqoClient =
@@ -38,7 +42,7 @@ export async function resolveSupportMessage(
       "resolveSupportMessage failed",
       error?.message ?? "no row updated",
     );
-    return { success: false, error: "Could not resolve" };
+    return fail("Could not resolve");
   }
 
   await recordAudit({
@@ -49,7 +53,7 @@ export async function resolveSupportMessage(
   });
 
   revalidatePath("/admin");
-  return { success: true };
+  return ok();
 }
 
 /**
@@ -62,7 +66,7 @@ export async function setBanner(input: BannerFormInput): Promise<ActionResult> {
   const { user } = await requireAdmin();
 
   const parsed = bannerFormSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: "Invalid input" };
+  if (!parsed.success) return fail("Invalid input");
 
   const supabase = await createServiceClient();
   const { error } = await supabase
@@ -75,7 +79,7 @@ export async function setBanner(input: BannerFormInput): Promise<ActionResult> {
     .eq("id", 1);
   if (error) {
     console.error("setBanner failed", error.message);
-    return { success: false, error: "Could not update banner" };
+    return fail("Could not update banner");
   }
 
   await recordAudit({
@@ -89,5 +93,5 @@ export async function setBanner(input: BannerFormInput): Promise<ActionResult> {
 
   forgetPlatformSettings();
   revalidatePath("/admin");
-  return { success: true };
+  return ok();
 }

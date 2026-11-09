@@ -6,11 +6,7 @@ import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
-import {
-  activationFunnel,
-  summarizeEvents,
-  summarizeVendors,
-} from "@/lib/admin/stats";
+import { activationFunnel } from "@/lib/admin/stats";
 import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { pctChange } from "@/lib/stats";
 import { formatPrice, MS_PER_DAY } from "@/lib/utils";
@@ -41,6 +37,9 @@ const SUPPORT_CATEGORY_LABEL: Record<string, string> = {
 
 export const revalidate = 0;
 
+const ENTITLEMENT_SCAN_LIMIT = 1000;
+const HELP_REQUEST_LIMIT = 200;
+
 function humanizeDetail(detail: unknown): string {
   if (!detail || typeof detail !== "object") return "";
   return Object.entries(detail as Record<string, unknown>)
@@ -66,45 +65,59 @@ export default async function AdminPage() {
   const cutoff14d = new Date(now - 14 * MS_PER_DAY).toISOString();
   const cutoff30d = new Date(now - 30 * MS_PER_DAY).toISOString();
 
+  const nowIso = new Date(now).toISOString();
+  const countHead = { count: "exact", head: true } as const;
+
   const [
-    { data: vendorRows },
-    { data: boothRows },
-    { data: orderRows },
-    { data: eventRows },
+    { count: vendorTotal },
+    { count: signups7d },
+    { count: signupsPrior7d },
+    { count: activeBooths },
+    { count: landingClicks },
+    cohortRows,
+    cohortBoothRows,
+    orders,
     { data: auditRows },
     { data: platformSettingsRow },
     { data: entitlementRows },
     { data: messageRows },
   ] = await Promise.all([
+    supabase.from("vendors").select("id", countHead),
+    supabase
+      .from("vendors")
+      .select("id", countHead)
+      .gte("created_at", cutoff7d),
+    supabase
+      .from("vendors")
+      .select("id", countHead)
+      .gte("created_at", cutoff14d)
+      .lt("created_at", cutoff7d),
+    supabase.from("booths").select("id", countHead).eq("is_active", true),
+    supabase.from("events").select("id", countHead).eq("type", "landing_cta"),
     readAllRows((from, to) =>
       supabase
         .from("vendors")
-        .select("id, created_at")
-        .order("created_at", { ascending: false })
+        .select("id")
+        .gte("created_at", cutoff30d)
         .order("id")
         .range(from, to),
-    ).then((data) => ({ data })),
+    ),
     readAllRows((from, to) =>
       supabase
         .from("booths")
-        .select("id, name, vendor_id, is_active")
+        .select("id, name, vendor_id")
+        .gte("created_at", cutoff30d)
         .order("id")
         .range(from, to),
-    ).then((data) => ({ data })),
+    ),
     readAllRows((from, to) =>
       supabase
         .from("orders")
         .select("id, booth_id, status, total_cents, created_at")
+        .gte("created_at", cutoff14d)
         .order("id")
         .range(from, to),
-    ).then((data) => ({ data })),
-    readAllRows((from, to) =>
-      supabase
-        .from("events")
-        .select("type, created_at")
-        .order("id")
-        .range(from, to),
-    ).then((data) => ({ data })),
+    ),
     supabase
       .from("admin_audit")
       .select("id, admin_id, action, target_id, detail, created_at")
@@ -115,59 +128,40 @@ export default async function AdminPage() {
       .select("banner_enabled, banner_message")
       .eq("id", 1)
       .maybeSingle(),
-    readAllRows((from, to) =>
-      supabase
-        .from("vendor_entitlements")
-        .select(
-          "vendor_id, tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
-        )
-        .order("vendor_id")
-        .range(from, to),
-    ).then((data) => ({ data })),
-    readAllRows((from, to) =>
-      merqoClient
-        .schema("merqo")
-        .from("support_messages")
-        .select("id, user_id, category, body, created_at")
-        .eq("kit_slug", "qkit")
-        .eq("status", "open")
-        .order("created_at", { ascending: true })
-        .order("id")
-        .range(from, to),
-    ).then((data) => ({ data })),
+    supabase
+      .from("vendor_entitlements")
+      .select(
+        "vendor_id, tier, founder, stats_window, event_pass_starts_at, event_pass_ends_at, valid_until",
+      )
+      .or(`tier.neq.free,event_pass_ends_at.gt.${nowIso}`)
+      .limit(ENTITLEMENT_SCAN_LIMIT),
+    merqoClient
+      .schema("merqo")
+      .from("support_messages")
+      .select("id, user_id, category, body, created_at")
+      .eq("kit_slug", "qkit")
+      .eq("status", "open")
+      .order("created_at", { ascending: true })
+      .limit(HELP_REQUEST_LIMIT),
   ]);
 
   const stallNames = await vendorStallNames(
     merqoClient,
-    (vendorRows ?? []).map((v) => v.id),
+    (messageRows ?? []).map((m) => m.user_id),
   );
 
-  const entitlementByVendor = new Map(
-    (entitlementRows ?? []).map((r) => [
-      r.vendor_id,
-      resolveEntitlement(storedFromRow(r), now),
-    ]),
+  const paidVendorIds = new Set(
+    (entitlementRows ?? [])
+      .filter((r) => resolveEntitlement(storedFromRow(r), now).tier !== "free")
+      .map((r) => r.vendor_id),
   );
 
+  const orders30d = orders.filter((o) => o.created_at >= cutoff30d);
   // GMV is total customer spend flowing through booths (vendor sales, not
   // qkit's take); cancelled orders are excluded.
-  const gmv30d = (orderRows ?? [])
-    .filter((o) => o.created_at >= cutoff30d && o.status !== "cancelled")
+  const gmv30d = orders30d
+    .filter((o) => o.status !== "cancelled")
     .reduce((sum, o) => sum + o.total_cents, 0);
-
-  const vendors = (vendorRows ?? []).map((v) => {
-    const ent = entitlementByVendor.get(v.id);
-    return {
-      ...v,
-      name: stallNames.get(v.id) ?? "Unknown vendor",
-      paid: (ent?.tier ?? "free") !== "free",
-      passExpiresAt: ent?.eventPass?.running ? ent.eventPass.endsAt : null,
-    };
-  });
-  const bannerSettings = platformSettingsRow ?? DEFAULT_PLATFORM_SETTINGS;
-  const booths = boothRows ?? [];
-  const orders = orderRows ?? [];
-  const events = eventRows ?? [];
 
   // Stuck orders: non-terminal orders sitting past a same-day queue's normal
   // window. Only queried for the orders that could possibly qualify — a
@@ -182,16 +176,28 @@ export default async function AdminPage() {
         .from("order_status_events")
         .select("order_id, to_status, created_at")
         .in("order_id", ids)
+        .gte("created_at", cutoff14d)
         .order("id")
         .range(from, to),
     );
     statusEventRows.push(...events);
   }
-  const boothNameById = new Map(booths.map((b) => [b.id, b.name]));
-  const statusSince = statusSinceByOrder(
-    nonTerminalOrders,
-    statusEventRows ?? [],
+
+  const knownBooths = new Map(cohortBoothRows.map((b) => [b.id, b]));
+  const missingBoothIds = [...new Set(orders.map((o) => o.booth_id))].filter(
+    (id) => !knownBooths.has(id),
   );
+  for (let offset = 0; offset < missingBoothIds.length; offset += 100) {
+    const { data } = await supabase
+      .from("booths")
+      .select("id, name, vendor_id")
+      .in("id", missingBoothIds.slice(offset, offset + 100))
+      .limit(100);
+    for (const b of data ?? []) knownBooths.set(b.id, b);
+  }
+  const booths = [...knownBooths.values()];
+  const boothNameById = new Map(booths.map((b) => [b.id, b.name]));
+  const statusSince = statusSinceByOrder(nonTerminalOrders, statusEventRows);
   const stuckOrders = findStuckOrders(
     nonTerminalOrders.map((o) => ({
       id: o.id,
@@ -202,8 +208,10 @@ export default async function AdminPage() {
     now,
   );
 
-  const vstat = summarizeVendors(vendors, now);
-  const estat = summarizeEvents(events, now);
+  const bannerSettings = platformSettingsRow ?? DEFAULT_PLATFORM_SETTINGS;
+  const activeVendorIds = new Set(
+    orders30d.flatMap((o) => knownBooths.get(o.booth_id)?.vendor_id ?? []),
+  );
 
   // Open vendor help requests — the "reach out and help" inbox.
   const messages = (messageRows ?? []).map((m) => ({
@@ -211,12 +219,12 @@ export default async function AdminPage() {
     vendorName: stallNames.get(m.user_id) ?? "Unknown vendor",
   }));
   const funnel = activationFunnel(
-    vendors,
+    cohortRows.map((v) => ({ id: v.id, paid: paidVendorIds.has(v.id) })),
     booths,
-    orders.map((o) => o.booth_id),
+    orders30d.map((o) => o.booth_id),
   );
 
-  // Orders: 7d vs prior 7d (Δ) + a 14-day trend.
+  // Orders: 7d vs prior 7d (Δ).
   const inWindow = (t: string, gte: string, lt?: string) =>
     t >= gte && (lt === undefined || t < lt);
   const orders7d = orders.filter((o) =>
@@ -225,11 +233,6 @@ export default async function AdminPage() {
   const ordersPrior7d = orders.filter((o) =>
     inWindow(o.created_at, cutoff14d, cutoff7d),
   ).length;
-  const signupsPrior7d = vendors.filter((v) =>
-    inWindow(v.created_at, cutoff14d, cutoff7d),
-  ).length;
-
-  const landingClicks = estat.byType["landing_cta"] ?? 0;
 
   const auditEntries: AuditLogEntry[] = (auditRows ?? []).map((row) => ({
     id: row.id,
@@ -295,33 +298,33 @@ export default async function AdminPage() {
           featured
           delay={0}
         />
-        <Stat label="Active vendors" value={funnel.withOrder} delay={60} />
+        <Stat
+          label="Active vendors · 30d"
+          value={activeVendorIds.size}
+          delay={60}
+        />
         <Stat
           label="Orders · 7d"
           value={orders7d}
           delta={pctChange(orders7d, ordersPrior7d)}
           delay={120}
         />
-        <Stat label="Paid vendors" value={vstat.paid} delay={180} />
+        <Stat label="Paid vendors" value={paidVendorIds.size} delay={180} />
         <Stat
           label="Signups · 7d"
-          value={vstat.new7d}
-          delta={pctChange(vstat.new7d, signupsPrior7d)}
+          value={signups7d ?? 0}
+          delta={pctChange(signups7d ?? 0, signupsPrior7d ?? 0)}
           delay={240}
         />
-        <Stat label="Vendors" value={vstat.total} delay={300} />
-        <Stat
-          label="Active booths"
-          value={booths.filter((b) => b.is_active).length}
-          delay={360}
-        />
+        <Stat label="Vendors" value={vendorTotal ?? 0} delay={300} />
+        <Stat label="Active booths" value={activeBooths ?? 0} delay={360} />
         <Stat label="Stuck orders" value={stuckOrders.length} delay={420} />
       </div>
 
       <ActivationFunnelView funnel={funnel} />
 
       <p className="text-xs text-muted-foreground">
-        Funnel signals · {landingClicks} landing CTA clicks
+        Funnel signals · {landingClicks ?? 0} landing CTA clicks
       </p>
 
       <section className="space-y-3">

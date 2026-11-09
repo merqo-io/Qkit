@@ -8,7 +8,7 @@ import { boardSettingsSchema, parseOrderRef } from "@/lib/schemas";
 import { ordersAheadOf } from "@/lib/orders";
 import { estimateWaitSeconds, type StatsOrder } from "@/lib/stats";
 import { readKeysetRows } from "@/lib/supabase/read-keyset";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import type { OrderStatus } from "@/lib/types";
 
 // Active (non-terminal) statuses that occupy a spot in the live queue.
@@ -74,10 +74,7 @@ export async function confirmArrival(
 ): Promise<ActionResult> {
   const parsed = parseOrderRef(boothId, orderNumber, token);
   if (!parsed.ok)
-    return {
-      success: false,
-      error: parsed.field === "booth" ? "Invalid booth" : "Invalid order",
-    };
+    return fail(parsed.field === "booth" ? "Invalid booth" : "Invalid order");
 
   const supabase = await createServiceClient();
 
@@ -85,8 +82,7 @@ export async function confirmArrival(
   // sequential order numbers are easy to enumerate.
   const ip = clientIp(await headers());
   const allowed = await rateLimit(`arrival:${boothId}:${ip}`, 10, 60);
-  if (!allowed)
-    return { success: false, error: "Too many attempts. Wait a moment." };
+  if (!allowed) return fail("Too many attempts. Wait a moment.");
 
   // A booth can also land an order in 'pending' because it has no printer
   // connected (0086) — that's a vendor-accept gate, not an arrival gate, and
@@ -97,7 +93,7 @@ export async function confirmArrival(
     .eq("id", boothId)
     .maybeSingle();
   if (!booth?.requires_arrival_confirm)
-    return { success: false, error: "Could not start your order. Try again." };
+    return fail("Could not start your order. Try again.");
 
   const { data: rows, error } = await supabase
     .from("orders")
@@ -109,12 +105,9 @@ export async function confirmArrival(
     .select("id");
   if (error) {
     console.error("confirmArrival failed", error.message);
-    return {
-      success: false,
-      error: "Could not start your order. Try again.",
-    };
+    return fail("Could not start your order. Try again.");
   }
-  if (rows && rows.length > 0) return { success: true };
+  if (rows && rows.length > 0) return ok();
 
   // Re-read to distinguish a harmless double-tap (already preparing — the
   // vendor may have hit "Start now" first) from a genuine problem: any
@@ -128,8 +121,8 @@ export async function confirmArrival(
     .eq("access_token", token)
     .maybeSingle();
   if (cur && cur.status !== "pending" && cur.status !== "cancelled")
-    return { success: true };
-  return { success: false, error: "Could not start your order. Try again." };
+    return ok();
+  return fail("Could not start your order. Try again.");
 }
 
 export type WaitEstimate = {

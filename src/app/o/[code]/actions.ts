@@ -10,7 +10,7 @@ import {
   uuidSchema,
 } from "@/lib/schemas";
 import { logEvent } from "@/app/actions/events";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { notifyVendorTelegram } from "./notify";
 
 type Result = ActionResult<{
@@ -71,12 +71,11 @@ export async function placeOrder(
   holdSession?: string,
 ): Promise<Result> {
   if (!codeSchema.safeParse(code).success)
-    return { success: false, error: "This code expired. Please rescan." };
+    return fail("This code expired. Please rescan.");
   if (!uuidSchema.safeParse(idempotencyKey).success)
-    return { success: false, error: "Invalid request" };
+    return fail("Invalid request");
   const parsed = placeOrderSchema.safeParse(input);
-  if (!parsed.success)
-    return { success: false, error: "Invalid order details" };
+  if (!parsed.success) return fail("Invalid order details");
 
   const supabase = await createServerClient();
 
@@ -87,10 +86,7 @@ export async function placeOrder(
     (await rateLimitStrict(`order:${code}:${ip}:${sid}`, 8, 60)) &&
     (await rateLimitStrict(`order:${code}:${ip}`, 60, 60));
   if (!allowed)
-    return {
-      success: false,
-      error: "Too many orders too fast. Wait a moment and try again.",
-    };
+    return fail("Too many orders too fast. Wait a moment and try again.");
 
   // Blank ("" or whitespace-only, from a field left empty) is treated the same
   // as omitted — both skip the merqo.customers write. See placeOrderSchema's
@@ -115,7 +111,7 @@ export async function placeOrder(
     // limited — are normal outcomes, not bugs, so they'd only be log noise.
     if (message === GENERIC_FAILURE)
       console.error("placeOrder failed", error.message);
-    return { success: false, error: message };
+    return fail(message);
   }
   const out = z
     .object({
@@ -127,10 +123,7 @@ export async function placeOrder(
   if (!out.success) {
     // The RPC succeeded but returned an unexpected shape — a real bug worth a log.
     console.error("placeOrder: malformed RPC output");
-    return {
-      success: false,
-      error: "Could not place order. Please try again.",
-    };
+    return fail("Could not place order. Please try again.");
   }
   // Funnel: an order landed. Paired with booth_view (QR landing) to measure
   // scan→order conversion. logEvent is best-effort and never throws, so awaiting
@@ -142,10 +135,9 @@ export async function placeOrder(
     await notifyVendorTelegram(out.data.booth_id, out.data.order_number);
   }
 
-  return {
-    success: true,
+  return ok({
     orderNumber: out.data.order_number,
     boothId: out.data.booth_id,
     accessToken: out.data.access_token,
-  };
+  });
 }

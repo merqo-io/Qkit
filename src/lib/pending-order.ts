@@ -1,9 +1,9 @@
 import { z } from "zod";
-import type { PlaceOrderInput } from "@/lib/schemas";
+import { uuidSchema, type PlaceOrderInput } from "@/lib/schemas";
 
 const pendingOrderSchema = z
   .object({
-    key: z.uuid(),
+    key: uuidSchema,
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();

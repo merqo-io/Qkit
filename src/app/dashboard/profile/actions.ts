@@ -9,7 +9,7 @@ import {
   type ProfileNameInput,
   type SocialLinksInput,
 } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 /**
  * Update the vendor's stall name. Persisted in merqo.vendor_profile (shared
@@ -21,16 +21,13 @@ export async function updateStallName(
 ): Promise<ActionResult> {
   const parsed = profileNameSchema.safeParse(input);
   if (!parsed.success)
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid stall name",
-    };
+    return fail(parsed.error.issues[0]?.message ?? "Invalid stall name");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not signed in" };
+  if (!user) return fail("Not signed in");
 
   try {
     await patchVendorProfile(supabase, user.id, {
@@ -41,12 +38,12 @@ export async function updateStallName(
       "updateStallName failed",
       err instanceof Error ? err.message : err,
     );
-    return { success: false, error: "Could not save stall name" };
+    return fail("Could not save stall name");
   }
 
   // Refresh the layout so the header + account menu pick up the new name.
   revalidatePath("/dashboard", "layout");
-  return { success: true };
+  return ok();
 }
 
 /**
@@ -58,16 +55,13 @@ export async function updateSocialLinks(
 ): Promise<ActionResult> {
   const parsed = socialLinksSchema.safeParse(input);
   if (!parsed.success)
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid links",
-    };
+    return fail(parsed.error.issues[0]?.message ?? "Invalid links");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not signed in" };
+  if (!user) return fail("Not signed in");
 
   try {
     await patchVendorProfile(supabase, user.id, { socialLinks: parsed.data });
@@ -76,9 +70,9 @@ export async function updateSocialLinks(
       "updateSocialLinks failed",
       err instanceof Error ? err.message : err,
     );
-    return { success: false, error: "Could not save links" };
+    return fail("Could not save links");
   }
 
   revalidatePath("/dashboard", "layout");
-  return { success: true };
+  return ok();
 }

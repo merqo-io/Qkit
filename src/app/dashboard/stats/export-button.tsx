@@ -1,5 +1,6 @@
 "use client";
 
+import { downloadBlob } from "@/lib/download";
 import { Download } from "lucide-react";
 import { salesSummaryToCsv, toSalesSummaryV1 } from "@/lib/sales-summary";
 import type { StatsSummary } from "@/lib/stats";
@@ -30,12 +31,7 @@ export function ExportButton({
         type: "text/csv;charset=utf-8",
       },
     );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `qkit-sales-${range}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `qkit-sales-${range}.csv`);
   }
 
   return (

@@ -9,7 +9,7 @@ import {
 import { createCheckout, type CheckoutView } from "@/lib/paykit/client";
 import { notifyPrintkit } from "@/app/o/[code]/notify";
 import { paymentDeadline } from "@/lib/orders";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 /**
  * What the walk-up dialog needs to collect payment for an order it has just
@@ -111,13 +111,11 @@ export async function placeWalkupOrder(
   input: PlaceOrderInput,
   paid: boolean,
 ): Promise<Result> {
-  if (!uuidSchema.safeParse(boothId).success)
-    return { success: false, error: "Invalid booth" };
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
   if (!z.boolean().safeParse(paid).success)
-    return { success: false, error: "Invalid payment state" };
+    return fail("Invalid payment state");
   const parsed = placeOrderSchema.safeParse(input);
-  if (!parsed.success)
-    return { success: false, error: "Invalid order details" };
+  if (!parsed.success) return fail("Invalid order details");
 
   const supabase = await createServerClient();
 
@@ -131,7 +129,7 @@ export async function placeWalkupOrder(
     const message = messageFor(error.message);
     if (message === "Could not place order. Please try again.")
       console.error("placeWalkupOrder failed", error.message);
-    return { success: false, error: message };
+    return fail(message);
   }
 
   const out = z
@@ -139,20 +137,16 @@ export async function placeWalkupOrder(
     .safeParse(data);
   if (!out.success) {
     console.error("placeWalkupOrder: malformed RPC output");
-    return {
-      success: false,
-      error: "Could not place order. Please try again.",
-    };
+    return fail("Could not place order. Please try again.");
   }
 
   if (paid) await notifyPrintkit(boothId, out.data.order_number);
 
-  return {
-    success: true,
+  return ok({
     orderNumber: out.data.order_number,
     accessToken: out.data.access_token,
     payment: paid
       ? null
       : await pendingPayment(supabase, boothId, out.data.access_token),
-  };
+  });
 }

@@ -3,7 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import { vendorSchema, type VendorInput } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/action-result";
+import { fail, ok, type ActionResult } from "@/lib/action-result";
 
 type CreateVendorResult = ActionResult;
 
@@ -11,13 +11,13 @@ export async function createVendor(
   input: VendorInput,
 ): Promise<CreateVendorResult> {
   const parsed = vendorSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: "Invalid stall name" };
+  if (!parsed.success) return fail("Invalid stall name");
 
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  if (!user) return fail("Not authenticated");
 
   const { error } = await supabase.from("vendors").insert({ id: user.id });
 
@@ -29,7 +29,7 @@ export async function createVendor(
       details: error.details,
       hint: error.hint,
     });
-    return { success: false, error: "Could not create vendor" };
+    return fail("Could not create vendor");
   }
 
   // Seed the shared merqo profile with the chosen stall name — qkit.vendors
@@ -42,8 +42,8 @@ export async function createVendor(
       "createVendor: seeding merqo profile failed",
       err instanceof Error ? err.message : err,
     );
-    return { success: false, error: "Could not create vendor" };
+    return fail("Could not create vendor");
   }
 
-  return { success: true };
+  return ok();
 }

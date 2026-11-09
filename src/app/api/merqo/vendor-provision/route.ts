@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uuidSchema } from "@/lib/schemas";
 import { createServiceClient } from "@/lib/supabase/server";
 import { provisionBearerOk } from "@/lib/merqo/auth";
 import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
@@ -8,7 +9,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const revalidate = 0;
 
-const bodySchema = z.object({ user_id: z.uuid() });
+const bodySchema = z.object({ user_id: uuidSchema });
 
 export async function POST(request: Request) {
   if (!provisionBearerOk(request)) {

@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["sin1"],
+  "crons": [
+    { "path": "/api/cron/proof-storage-drain", "schedule": "52 3 * * *" }
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true,
