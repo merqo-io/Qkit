@@ -48,6 +48,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- CI: the "mutation (changed lib)" job now skips `src/lib/db-types/` like other type-only files, so a PR that only regenerates DB types no longer fails Stryker with "No tests were executed".
 - The "Live updates interrupted" banner no longer appears on a fresh `pnpm dev` dashboard: the realtime subscription now uses a unique channel per mount and ignores callbacks after cleanup, so React StrictMode's double mount ends connected.
 - CI order e2e: the seed vendor is on the qkit tier, so the TV display spec sees counter ops again. The free-plan booth-cap check in `signed-in-smoke` now runs as a dedicated free vendor created by the e2e helper.
 - The order board tests no longer fail when they run in the first minutes after SGT midnight; they now pin the clock to mid-day SGT.
