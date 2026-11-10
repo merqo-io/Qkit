@@ -4,7 +4,7 @@ import type { BoothHours, DayWindow } from "@/lib/hours";
 // Pure state transitions behind the working-hours editor. Kept out of the
 // component so the daily<->weekly conversions are unit-testable without a DOM.
 
-export const WEEKDAY_KEYS: WeekdayKey[] = [
+const WEEKDAY_KEYS: WeekdayKey[] = [
   "mon",
   "tue",
   "wed",

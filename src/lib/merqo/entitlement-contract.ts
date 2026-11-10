@@ -22,9 +22,3 @@ export const entitlementPayloadSchema = z
         : p.tier === "free" || p.tier === "paid",
     { message: "tier is not valid for this kit", path: ["tier"] },
   );
-
-export type EntitlementPayload = z.infer<typeof entitlementPayloadSchema>;
-export type EntitlementTier = EntitlementPayload["tier"];
-
-/** What a kit answers with on success. */
-export const entitlementResponseSchema = z.object({ ok: z.literal(true) });

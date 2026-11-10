@@ -12,7 +12,7 @@ import { isNil } from "@/lib/utils";
 
 // Shared with passwordChangeSchema below — Supabase Auth config owns the
 // real policy, this is just the client-side form floor matching it.
-export const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MIN_LENGTH = 8;
 
 export const loginSchema = z.object({
   email: z.email("Invalid email"),
@@ -41,9 +41,9 @@ const menuImageUrl = imageUrlString.nullable().optional();
 
 // Upper bound for any money field (cents). $10k — matches the admin pricing cap
 // and keeps totals well inside a signed INTEGER even at max quantity/line count.
-export const MAX_MONEY_CENTS = 10_000_00;
+const MAX_MONEY_CENTS = 10_000_00;
 // Cart line cap — mirrors the DB guard inside place_order (jsonb_array_length).
-export const MAX_CART_LINES = 50;
+const MAX_CART_LINES = 50;
 
 // EU's 14-allergen list (Reg 1169/2011) plus caffeine. Additive only — never
 // rename/remove a value, it's a raw string in saved menu_items JSONB.
@@ -66,7 +66,7 @@ export const ALLERGEN_TAGS = [
 ] as const;
 export type AllergenTag = (typeof ALLERGEN_TAGS)[number];
 
-export const optionChoiceSchema = z.object({
+const optionChoiceSchema = z.object({
   id: z.string(),
   label: z.string(),
   // Additive only — a selected choice adds cost, never reduces it. Bounded
@@ -95,7 +95,7 @@ export const optionChoiceSchema = z.object({
   code: z.string().trim().max(OPTION_CODE_MAX).optional(),
 });
 
-export const optionGroupSchema = z.object({
+const optionGroupSchema = z.object({
   id: z.string(),
   label: z.string(),
   // false/undefined = single-select; true = multi-select (checkbox).
@@ -126,7 +126,7 @@ export function sanitizeOptionGroups(
   return cleaned.length ? cleaned : undefined;
 }
 
-export const selectedOptionSchema = z.object({
+const selectedOptionSchema = z.object({
   group: z.string().min(1).max(100),
   choice: z.string().min(1).max(100),
 });
@@ -191,7 +191,7 @@ export const menuItemFormSchema = z.object({
 
 /** One ordered menu section (`booths.menu_categories`). Stable `id` so
  * renaming a section never requires rewriting every item that references it. */
-export const menuCategorySchema = z.object({
+const menuCategorySchema = z.object({
   id: z.string().min(1),
   label: z.string().trim().min(1).max(40),
 });
@@ -207,7 +207,7 @@ const dayWindowSchema = z.object({ open: hhmm, close: hhmm });
  * for read and write: tolerant in that an unparseable JSONB value falls back to
  * null via parseBoothHours, strict in that the editor must emit valid windows.
  */
-export const boothHoursSchema = z
+const boothHoursSchema = z
   .discriminatedUnion("mode", [
     z.object({ mode: z.literal("daily"), open: hhmm, close: hhmm }),
     z.object({
@@ -240,7 +240,7 @@ export const paymentStatusSchema = z.enum([
   "confirmed",
 ]);
 
-export const printStatusSchema = z.enum([
+const printStatusSchema = z.enum([
   "not_required",
   "queued",
   "sent",
@@ -261,7 +261,7 @@ export const orderNumberSchema = z.string().min(1).max(40);
 // enumerate other customers' orders.
 export const orderTokenSchema = uuidSchema;
 
-export type OrderRef = { boothId: string; orderNumber: string; token: string };
+type OrderRef = { boothId: string; orderNumber: string; token: string };
 export type ParseOrderRefResult =
   | { ok: true; ref: OrderRef }
   | { ok: false; field: "booth" | "orderNumber" | "token" };
@@ -536,8 +536,6 @@ export const boardSettingsPatchSchema = boardSettingsFields
 export type BoardSettingsPatch = z.infer<typeof boardSettingsPatchSchema>;
 
 export type ProfileNameInput = z.infer<typeof profileNameSchema>;
-export type DisplayNameInput = z.infer<typeof displayNameSchema>;
-export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 export type BoardSettingsInput = z.infer<typeof boardSettingsSchema>;
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -575,7 +573,7 @@ export function parseMenuCategories(data: unknown): MenuCategory[] {
   return parsed.success ? parsed.data : [];
 }
 
-export const orderItemSchema = z.object({
+const orderItemSchema = z.object({
   menuItemId: z.string(),
   name: z.string(),
   price_cents: z.number().int().nonnegative().optional(),

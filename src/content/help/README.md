@@ -6,7 +6,7 @@ The text of the vendor user guide, one typed module per article. Rendered by `sr
 
 ## Contents
 
-- `types.ts` — `HelpArticle`, `HelpBlock` (heading, paragraph, steps, bullets, note, tip, link), `HelpCategory` and the `HELP_CATEGORY_IDS` list.
+- `types.ts` — `HelpArticle`, `HelpBlock` (heading, paragraph, steps, bullets, note, tip, link), `HelpCategory` and the `HelpCategoryId` union.
 - `categories.ts` — the eight categories in display order.
 - `index.ts` — registers every article and exposes `publishedArticles`, `articlesInCategory`, `getPublishedArticle` (a draft returns `undefined`, so its page 404s) and `categoryFor`.
 - `<category>/<slug>.ts` — one article each, exporting `article`. Articles that are not written yet are `draft: true` with an empty body: hidden from the index and a 404 on their page.

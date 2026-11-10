@@ -8,7 +8,7 @@ const ENTITIES: Record<string, string> = {
 };
 
 /** Decodes the JSX/HTML entities a label can be written with in source. */
-export function decodeEntities(text: string): string {
+function decodeEntities(text: string): string {
   return text.replace(
     /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
     (whole, name: string) => {
@@ -42,7 +42,7 @@ function literalEnd(source: string, start: number): number {
  * comment no longer counts as visible UI text. Quoted strings end at a newline
  * because an apostrophe in JSX text would otherwise swallow the rest of the file.
  */
-export function stripComments(source: string): string {
+function stripComments(source: string): string {
   let out = "";
   let i = 0;
   while (i < source.length) {

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [".claude/**"],
+  "ignoreBinaries": ["ffmpeg", "ffprobe", "psql"],
+  "ignoreIssues": {
+    "public/sw.js": ["files"],
+    "src/lib/schemas.ts": ["duplicates"]
+  }
+}

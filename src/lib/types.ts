@@ -124,7 +124,7 @@ export type SocialLinks = {
 };
 
 // Mirrors ALLERGEN_TAGS in src/lib/schemas.ts.
-export type AllergenTag =
+type AllergenTag =
   | "dairy"
   | "nuts"
   | "gluten"
@@ -233,16 +233,9 @@ export interface Database {
 }
 
 export type Vendor = Database["qkit"]["Tables"]["vendors"]["Row"];
-export type Booth = Database["qkit"]["Tables"]["booths"]["Row"];
 export type Order = Database["qkit"]["Tables"]["orders"]["Row"];
 // The vendor board's shape of an order — access_token is the customer's own
 // status-page bearer secret, which the board never reads (least privilege).
 export type BoardOrder = Omit<Order, "access_token">;
 export type PlatformSettings =
   Database["qkit"]["Tables"]["platform_settings"]["Row"];
-export type Payment = Database["qkit"]["Tables"]["payments"]["Row"];
-export type Feedback = Database["qkit"]["Tables"]["feedback"]["Row"];
-export type Admin = Database["qkit"]["Tables"]["admins"]["Row"];
-export type AdminAudit = Database["qkit"]["Tables"]["admin_audit"]["Row"];
-export type OrderStatusEvent =
-  Database["qkit"]["Tables"]["order_status_events"]["Row"];

@@ -22,7 +22,7 @@ const RANGES: { value: string; label: string }[] = [
 // The shared SegmentedControl has no link-style option, so ranges outside the
 // plan render as upgrade links after the switchable ones inside one shared
 // track. RANGES runs short to long, so the locked ranges are always the tail.
-export function RangeControl({
+function RangeControl({
   range,
   allowedRanges,
   onChange,

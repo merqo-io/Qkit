@@ -36,7 +36,7 @@ export type TopItem = {
   profit_cents: number;
 };
 
-export type HourBucket = {
+type HourBucket = {
   // 0–23, SGT
   hour: number;
   orders: number;
@@ -45,7 +45,7 @@ export type HourBucket = {
 
 export type OptionCount = { group: string; choice: string; count: number };
 
-export type GrossMargin = {
+type GrossMargin = {
   revenue_cents: number;
   cost_cents: number;
   profit_cents: number;

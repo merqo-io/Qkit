@@ -1,15 +1,12 @@
-export const HELP_CATEGORY_IDS = [
-  "getting-started",
-  "running-a-service",
-  "menu-and-stock",
-  "payments",
-  "printing",
-  "customer-alerts",
-  "plans",
-  "troubleshooting",
-] as const;
-
-export type HelpCategoryId = (typeof HELP_CATEGORY_IDS)[number];
+export type HelpCategoryId =
+  | "getting-started"
+  | "running-a-service"
+  | "menu-and-stock"
+  | "payments"
+  | "printing"
+  | "customer-alerts"
+  | "plans"
+  | "troubleshooting";
 
 export type HelpBlock =
   | { type: "heading"; level: 2 | 3; text: string }
