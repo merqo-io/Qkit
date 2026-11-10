@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Troubleshooting",
   summary:
     "Quick fixes for sign-up, the live board, payments, booths that will not take orders, QR codes, photos and stats.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Check your email",
     "Create account",
@@ -162,7 +162,7 @@ export const article: HelpArticle = {
         "This code expired. Please rescan. The QR or short code was regenerated, so they need to scan the current one.",
         "This booth isn't taking orders right now. The booth is paused, over your plan limit, or outside its hours.",
         "Sorry, an item just sold out. Please adjust your order. An item ran out or was switched off while they were ordering.",
-        "This stall has served everything it had. The booth reached its Daily item limit. It starts again at midnight, or sooner when you tap Start new service on the board.",
+        "This stall has served everything it had. The booth reached its Daily item limit. It starts again at midnight, or sooner when you tap the New service button beside the booth on the board.",
         "That is more than this stall takes in one order. The order is over the booth's Max items per order. You can raise or clear the limit on the booth's edit page, and orders you key in yourself are not limited.",
         "Too many orders too fast. Wait a moment and try again. One phone can place about 8 orders a minute and one network about 60, so a shared wifi rarely hits it. It clears within a minute.",
       ],

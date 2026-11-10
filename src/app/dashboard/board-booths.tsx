@@ -32,6 +32,10 @@ export type BoothView = {
   // test fixture and call site, simply shows no cup counter.
   daily_cup_cap?: number | null;
   cups_today?: number;
+  // Any menu item has a per-item Sold-out limit (menu_items[].stock), which
+  // Start new service also resets. Derived server-side so the row does not
+  // carry the menu.
+  has_item_limits?: boolean;
 };
 
 export type BoothFilter = "all" | string;
@@ -96,20 +100,16 @@ export function BoothToggle({
 // booth with no cap, which is every booth by default.
 const CUP_WARN_FRACTION = 0.1;
 
-function CupCount({ cap, used }: { cap?: number | null; used?: number }) {
+function cupCount(
+  cap?: number | null,
+  used?: number,
+): { label: string; low: boolean } | null {
   if (isNil(cap)) return null;
   const served = used ?? 0;
-  const low = cap - served <= Math.ceil(cap * CUP_WARN_FRACTION);
-  return (
-    <span
-      className={cn(
-        "shrink-0 font-mono text-xs",
-        low ? "font-semibold text-status-aging" : "text-muted-foreground",
-      )}
-    >
-      {served}/{cap} items
-    </span>
-  );
+  return {
+    label: `${served}/${cap} items`,
+    low: cap - served <= Math.ceil(cap * CUP_WARN_FRACTION),
+  };
 }
 
 // One booth's row — shared between the solo inline case (a single-booth
@@ -135,6 +135,7 @@ export function BoothRow({
   active: boolean;
   onToggle: (checked: boolean) => void;
 }) {
+  const count = cupCount(b.daily_cup_cap, b.cups_today);
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
       {showDot && (
@@ -145,13 +146,16 @@ export function BoothRow({
         />
       )}
       <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
-      <CupCount cap={b.daily_cup_cap} used={b.cups_today} />
-      {/* Only a booth with a daily limit has a count to reset. */}
-      {b.daily_cup_cap !== null && b.daily_cup_cap !== undefined && (
+      {/* Only a booth with a daily limit or per-item Sold-out limits has
+          anything to reset. The pill sits right before the toggle and the
+          name truncates, so the control never shrinks or shifts the row. */}
+      {(count || b.has_item_limits) && (
         <StartServiceButton
           boothId={b.id}
           boothName={b.name}
           compact
+          countLabel={count?.label}
+          low={count?.low}
           onStarted={onServiceStarted}
         />
       )}

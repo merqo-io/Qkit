@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Menu and stock",
   summary:
     "Set up items, the daily item limit, basket holds and the per-order item limit.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Add item",
     "Add section",
@@ -115,7 +115,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "The count starts again from zero at midnight. The Sold-out limit on each item restarts at the same time.",
-        "Running a morning and an afternoon service? Tap Start new service to reset the counts yourself, for the daily item limit and every item's Sold-out limit. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
+        "Running a morning and an afternoon service? Tap Start new service to reset the counts yourself, for the daily item limit and every item's Sold-out limit. It sits under Limits, and as a labelled New service button beside the booth on the live board. Orders already placed are not changed.",
         "The daily item limit is available on the Starter and Pro plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],
     },

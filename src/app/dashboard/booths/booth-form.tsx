@@ -57,6 +57,8 @@ interface Props {
     hours: BoothHours;
     // Display-only; items are edited on the dedicated menu-manager page.
     menuItemCount: number;
+    // Any saved item has a Sold-out limit, which Start new service resets.
+    hasItemLimits?: boolean;
     // Whether this booth's stored marker says it takes payment.
     takes_payment: boolean;
     social_links: SocialLinks | null;
@@ -326,6 +328,7 @@ export function BoothForm({
             boothId={initial?.boothId}
             boothName={initial?.name}
             savedDailyCupCap={initial?.daily_cup_cap}
+            hasItemLimits={initial?.hasItemLimits}
           />
         </div>
 

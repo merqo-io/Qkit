@@ -157,7 +157,7 @@ export const article: HelpArticle = {
     {
       type: "steps",
       items: [
-        "Find the booth in the board's booth list and tap its small restart icon, or open the booth's edit page and tap Start new service under Limits.",
+        "Find the booth in the board's booth list and tap its New service button (it shows the day's count when the booth has a daily limit, and just the label when it only has Sold-out limits), or open the booth's edit page and tap Start new service under Limits.",
         "Check the booth name in the Start a new service? window, then confirm with Start new service.",
         "The item count goes back to 0, so the booth can take a full daily limit again. Orders already placed are not changed.",
       ],

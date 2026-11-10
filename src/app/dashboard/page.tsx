@@ -97,6 +97,9 @@ export default async function DashboardPage() {
     requires_arrival_confirm: b.requires_arrival_confirm,
     daily_cup_cap: b.daily_cup_cap,
     cups_today: cupsToday[b.id] ?? 0,
+    has_item_limits: parseMenuItems(b.menu_items).some(
+      (item) => typeof item.stock === "number",
+    ),
   }));
 
   let orders: BoardOrder[] = [];
