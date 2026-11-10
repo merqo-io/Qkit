@@ -52,6 +52,10 @@ export type DbFunctions = {
     Args: { p_booth_id: string };
     Returns: number | null;
   };
+  booth_limit_excluded_ids: {
+    Args: { p_menu: Json };
+    Returns: string[];
+  };
   booth_availability: {
     Args: { p_booth_id: string; p_session: string | null };
     Returns: Json;
