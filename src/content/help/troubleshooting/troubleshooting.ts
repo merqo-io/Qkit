@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Troubleshooting",
   summary:
     "Quick fixes for sign-up, the live board, payments, booths that will not take orders, QR codes, photos and stats.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-11",
   uiLabels: [
     "Check your email",
     "Create account",

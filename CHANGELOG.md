@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Re-reviewed the Getting started and Troubleshooting help articles against the shared sign-in and two-step verification screens. Their text is still accurate, so only the reviewed date moved.
+
 ### Added
 
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
