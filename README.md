@@ -43,15 +43,15 @@ Populate the template locally through your secret-management workflow. Never
 commit environment files. Public Supabase values are inlined at build time;
 rebuild after changing them.
 
-| Configuration                                                                 | Purpose                                           |
-| ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Browser-safe Supabase connection                  |
-| `SUPABASE_SECRET_KEY`                                                         | Server-only service-role access                   |
-| `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration  |
-| `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout         |
-| `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                     |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`          | Optional order-ready web push                     |
-| `CRON_SECRET`                                                                 | Bearer secret for the daily screenshot-drain cron |
+| Configuration                                                                 | Purpose                                                                      |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Browser-safe Supabase connection                                             |
+| `SUPABASE_SECRET_KEY`                                                         | Server-only service-role access                                              |
+| `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration                             |
+| `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout                                    |
+| `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                                                |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`          | Optional order-ready web push                                                |
+| `CRON_SECRET`                                                                 | Bearer secret for the daily screenshot-drain cron (500 when the drain fails) |
 
 See [.env.example](.env.example) for the full configuration contract and
 [deployment notes](docs/DEPLOY.md) for environment scoping. In particular,

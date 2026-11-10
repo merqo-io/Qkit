@@ -20,17 +20,18 @@ function cronAuthorized(request: Request): boolean {
 
 // Order deletions that happen outside qkit (account or vendor cascades, manual
 // deletes) queue screenshot paths that only deleteBooth drains. This sweeps the
-// rest. drainProofDeletions logs its own failures and leaves rows queued, so a
-// 200 means the sweep ran, not that the queue is empty.
+// rest. drainProofDeletions never throws and reports counts, so any failed
+// removal or queue error returns 500 and shows up in Vercel's cron logs.
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    await drainProofDeletions();
+    const result = await drainProofDeletions();
+    const healthy = result.ok && result.failed === 0;
+    return NextResponse.json(result, { status: healthy ? 200 : 500 });
   } catch (error) {
     console.error("proof storage drain cron failed", error);
     return NextResponse.json({ error: "Drain failed" }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }
