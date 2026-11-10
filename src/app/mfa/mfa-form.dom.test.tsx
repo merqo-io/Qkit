@@ -88,3 +88,95 @@ it("rejects a non-numeric code before calling Supabase", async () => {
   await user.click(screen.getByRole("button", { name: "Verify" }));
   expect(mocks.challengeAndVerify).not.toHaveBeenCalled();
 });
+
+const WRONG =
+  "That code did not work. Check the time on your phone and try again.";
+
+it("uses numeric one-time-code input attributes", () => {
+  render(<MfaForm verifiedFactorId="f1" staleFactorIds={[]} />);
+  const input = screen.getByLabelText("6-digit code");
+  expect(input).toHaveAttribute("inputmode", "numeric");
+  expect(input).toHaveAttribute("autocomplete", "one-time-code");
+});
+
+it("verifies a pasted code with spaces as six digits", async () => {
+  const user = userEvent.setup();
+  render(<MfaForm verifiedFactorId="f1" staleFactorIds={[]} />);
+  await user.click(screen.getByLabelText("6-digit code"));
+  await user.paste("123 456");
+  await user.click(screen.getByRole("button", { name: "Verify" }));
+  expect(mocks.challengeAndVerify).toHaveBeenCalledWith({
+    factorId: "f1",
+    code: "123456",
+  });
+});
+
+it("verifies by touch", async () => {
+  const user = userEvent.setup();
+  render(<MfaForm verifiedFactorId="f1" staleFactorIds={[]} />);
+  await user.type(screen.getByLabelText("6-digit code"), "123456");
+  await user.pointer({
+    keys: "[TouchA]",
+    target: screen.getByRole("button", { name: "Verify" }),
+  });
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/admin"));
+  expect(mocks.refresh).toHaveBeenCalled();
+});
+
+it("shows the same copy for a rate-limited verify, listed code or not", async () => {
+  const user = userEvent.setup();
+  mocks.challengeAndVerify.mockResolvedValue({
+    error: { code: "over_request_rate_limit", message: "Too many requests" },
+  });
+  const { unmount } = render(
+    <MfaForm verifiedFactorId="f1" staleFactorIds={[]} />,
+  );
+  await user.type(screen.getByLabelText("6-digit code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(WRONG);
+  unmount();
+
+  mocks.challengeAndVerify.mockResolvedValue({
+    error: { code: "some_unlisted_code", message: "rate limit exceeded" },
+  });
+  render(<MfaForm verifiedFactorId="f1" staleFactorIds={[]} />);
+  await user.type(screen.getByLabelText("6-digit code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(WRONG);
+  expect(mocks.replace).not.toHaveBeenCalled();
+});
+
+it("shows the setup copy when enrolment fails", async () => {
+  mocks.enroll.mockResolvedValue({ data: null, error: { message: "nope" } });
+  const user = userEvent.setup();
+  render(<MfaForm verifiedFactorId={null} staleFactorIds={[]} />);
+  await user.click(
+    screen.getByRole("button", { name: "Set up authenticator" }),
+  );
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not start setup. Try again.",
+  );
+});
+
+it("shows the setup copy when enrolment throws", async () => {
+  mocks.enroll.mockRejectedValue(new Error("network down"));
+  const user = userEvent.setup();
+  render(<MfaForm verifiedFactorId={null} staleFactorIds={["old"]} />);
+  await user.click(
+    screen.getByRole("button", { name: "Set up authenticator" }),
+  );
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not start setup. Try again.",
+  );
+});
+
+it("never navigates when verification throws", async () => {
+  mocks.challengeAndVerify.mockRejectedValue(new Error("network down"));
+  const user = userEvent.setup();
+  render(<MfaForm verifiedFactorId="f1" staleFactorIds={[]} />);
+  await user.type(screen.getByLabelText("6-digit code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(WRONG);
+  expect(mocks.replace).not.toHaveBeenCalled();
+  expect(mocks.refresh).not.toHaveBeenCalled();
+});
