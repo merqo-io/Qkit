@@ -31,6 +31,8 @@ gives the order its number anyway.
 - `page.dom.test.tsx` — RTL test rendering `PayPage` directly: the
   `notFound()` branches (invalid booth, missing token, null context, no host),
   each redirect, and the closed and unavailable notices.
+- `loading.tsx` — skeleton in the page's narrow column while `loadPreClaimContext` resolves. It sits here, not in `[boothId]/`, so it does not wrap the order status or pickup pages.
+- `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative skeleton.
 
 ## Connectivity
 

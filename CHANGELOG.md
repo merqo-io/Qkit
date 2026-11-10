@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
+- READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
+
 ## [0.5.0] - 2026-11-10
 
 ### Added

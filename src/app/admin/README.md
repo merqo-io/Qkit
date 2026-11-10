@@ -31,6 +31,9 @@ Internal admin dashboard, vendor management, activation stats, and support-reque
 
 Fleet queries read all API pages in stable order. An incomplete page fails the render instead of displaying partial totals or false stuck-order alerts. The recent audit log remains intentionally limited to 60 entries. Vendor profile names resolve in batches of eight concurrent RPCs, retaining input order and surfacing lookup failures.
 
+- `loading.tsx` — skeleton for every admin route below the layout (overview, vendors, feedback, vendor detail), all of which await queries. The layout's header and tabs render at once; this fills the content area.
+- `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative skeleton.
+
 ## Connectivity
 
 `layout.tsx` wraps every route below it (including `feedback/` and `vendors/`) and provides the shared attention-bell count; pages and server actions also invoke `requireAdmin()` before privileged work; `feedback/` and `vendors/` are sub-routes reusing `Stat`, `StatusChip`, `VendorManage`, and `ResolveMessageButton` from this folder rather than duplicating them. `page.tsx` is the overview dashboard, built from this folder's own components (`ActivationFunnelView`, `PricingSection`, `BannerForm`, `Stat`, `StuckOrdersSection`, the two resolve buttons) plus `AdminAuditLog` (its client wrapper over the shared `@merqo/ui` `AuditLogTable`) and a lazy import of `dashboard/stats/trend-chart`. `actions.ts` is called by `pricing-section.tsx`, `banner-form.tsx`, `vendor-manage.tsx`, `resolve-message-button.tsx`, `resolve-request-button.tsx`, and by `admin/vendors/[id]/page.tsx` (indirectly via `VendorManage`/`ResolveMessageButton`) — all client components trigger these server actions via `useTransition`, then `router.refresh()`.

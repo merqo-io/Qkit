@@ -84,6 +84,37 @@ unchanged from the staging baseline.
 
 ## Not done here
 
-- Loading skeletons (X-16) and folder READMEs (X-20) land in a follow-up PR.
+- Loading skeletons (X-16) and folder READMEs (X-20) landed in slice b, below.
 - The `templatecentral:standards` drift check and a bundle-size comparison were
   not possible from a builder session.
+
+## Slice b: loading skeletons and READMEs
+
+### Added
+
+- `loading.tsx` plus a `loading.dom.test.tsx` for `src/app/admin` (covers the
+  overview, vendors, feedback and vendor detail routes), `src/app/mfa`,
+  `src/app/onboarding`, `src/app/order/[boothId]/display` and
+  `src/app/order/[boothId]/pay`. Each is `role="status"` with `aria-busy`, an
+  sr-only "Loading" label, an `aria-hidden` pulsing skeleton and
+  `motion-reduce:animate-none`.
+- `display` and `pay` carry their own files because a `loading.tsx` in
+  `order/[boothId]/` would also wrap the order status, pickup and index
+  routes. `display` is a plain dark screen on purpose (venue TV). `admin`,
+  `display` and `pay` render no `<main>` (the admin layout has none, the
+  order layout supplies it); `mfa` and `onboarding` use `<main>` because
+  their pages do.
+- READMEs for `src/lib/db-types`, `src/app/legal/privacy`,
+  `src/app/legal/terms`, `src/app/dashboard/help/[slug]` and the eight
+  `src/content/help/<category>` folders, linked from their parents.
+
+### Routes judged to need no skeleton
+
+- `src/app/page.tsx`, `src/app/about/page.tsx`: marketing pages with a single
+  auth check; a skeleton would flash for a few milliseconds and shift
+  nothing.
+- `(auth)/login`, `(auth)/reset-password`: client forms that render at once.
+- `legal/*`: static documents rendered from `@merqo/ui`.
+- `order/[boothId]/page.tsx`: one lookup, then a redirect; a skeleton here
+  would also sit in front of the redirect target.
+- `order/[boothId]/pickup`: awaits `params` only.

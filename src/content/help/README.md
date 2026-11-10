@@ -10,6 +10,7 @@ The text of the vendor user guide, one typed module per article. Rendered by `sr
 - `categories.ts` — the eight categories in display order.
 - `index.ts` — registers every article and exposes `publishedArticles`, `articlesInCategory`, `getPublishedArticle` (a draft returns `undefined`, so its page 404s) and `categoryFor`.
 - `<category>/<slug>.ts` — one article each, exporting `article`. Articles that are not written yet are `draft: true` with an empty body: hidden from the index and a 404 on their page.
+- Category folders, each with its own README: [`getting-started`](getting-started/README.md), [`menu-and-stock`](menu-and-stock/README.md), [`running-a-service`](running-a-service/README.md), [`payments`](payments/README.md), [`customer-alerts`](customer-alerts/README.md), [`printing`](printing/README.md), [`plans`](plans/README.md), [`troubleshooting`](troubleshooting/README.md).
 - `source-text.ts` — turns source into what a user could see: strips comments and decodes JSX/HTML entities, for the drift test.
 - `stale.ts` — `staleHelpArticles` and `HELP_STALE_AFTER_DAYS` (90): published articles whose `reviewed` date is past the threshold, oldest first. Shown on the admin dashboard (`src/app/admin/help-freshness-section.tsx`).
 - `help-content.test.ts` — the drift test.
