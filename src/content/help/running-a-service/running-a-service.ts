@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Running a service",
   summary:
     "Work the live board, log walk-up orders, restart the count and show the TV screen.",
-  reviewed: "2026-11-03",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Live orders",
     "Incoming",
