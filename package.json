@@ -29,7 +29,7 @@
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
     "@hookform/resolvers": "5.2.2",
-    "@merqo/ui": "github:merqo-io/merqo-ui#c2c18963872f7d4b65a7ca6a656a126d1bc6bf62",
+    "@merqo/ui": "github:merqo-io/merqo-ui#d3632502c43364f66288d2b08b1f35aef2619c6c",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "2.107.0",
     "class-variance-authority": "^0.7.1",
