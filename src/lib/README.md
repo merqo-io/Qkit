@@ -479,7 +479,8 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   sample-met-but-no-usable-wait-data null case.
 - `stock.ts` — `parseRemaining`/`remainingFor`: parses the
   `booth_remaining_stock` JSONB RPC result into a typed per-item remaining-
-  count map (Postgres is authoritative; this just reports it to the cart UI).
+  count map (Postgres is authoritative and counts sales in the current service,
+  the same window as the daily item limit; this just reports it to the cart UI).
 - `stock.test.ts` — tests parsing of malformed/partial remaining-stock data.
 - `stuck-orders.ts` — `statusSinceByOrder(orders, events)`: maps each order to
   when it entered its CURRENT status — the latest matching

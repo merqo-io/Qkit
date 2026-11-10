@@ -50,7 +50,8 @@ notice.
   invalid boothId and a missing booth, and that a real booth's name/id/
   initial orders reach `QueueDisplay` as props.
 - `queue-display.tsx` — `QueueDisplay({ boothId, boothName, initialOrders })`
-  client component: polls `getBoothQueueDisplay` every 5s (`usePolling`,
+  client component: carries a faint `ScreenSizeControl` (`display` key) in the
+  header, brightening on hover or focus; polls `getBoothQueueDisplay` every 5s (`usePolling`,
   same 5s cadence as `../[orderNumber]/order-status-poller.tsx` — no
   realtime here either, same rationale). Diffs each poll against the
   previous status snapshot (seeded from `initialOrders` on mount, so

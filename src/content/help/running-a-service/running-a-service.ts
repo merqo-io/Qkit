@@ -189,5 +189,9 @@ export const article: HelpArticle = {
       type: "tip",
       text: "If nothing opens, your browser probably blocked the pop-up. Allow pop-ups for qkit, or use the code or link instead.",
     },
+    {
+      type: "paragraph",
+      text: "The Customer screen and the live board each have their own text size control, A- and A+, with a percentage button to reset. Each screen remembers its own size on that device, so you can leave browser zoom at 100%. On the Customer screen the control sits at the top right and is faint until you hover over it or tap it.",
+    },
   ],
 };
