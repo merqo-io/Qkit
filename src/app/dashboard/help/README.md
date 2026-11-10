@@ -7,7 +7,7 @@ The vendor user guide at `/dashboard/help`. It lives inside the dashboard, not o
 ## Contents
 
 - `page.tsx` — `HelpIndexPage()`: every category with its published articles (title and summary). A category with only drafts shows "Coming soon." rather than disappearing.
-- `[slug]/page.tsx` — `HelpArticlePage({ params })`: one article (async `params`). A draft or unknown slug calls `notFound()`. `generateStaticParams` pre-renders the published slugs.
+- `[slug]/page.tsx` ([README](%5Bslug%5D/README.md)) — `HelpArticlePage({ params })`: one article (async `params`). A draft or unknown slug calls `notFound()`. `generateStaticParams` pre-renders the published slugs.
 - `article-body.tsx` — `ArticleBody({ blocks })`: renders the `HelpBlock` union. Links starting with `/` use `next/link`; others open in a new tab.
 - `help.dom.test.tsx` — index and article rendering, the draft 404 and the static params.
 

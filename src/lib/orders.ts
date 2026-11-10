@@ -10,7 +10,7 @@ export const BOARD_ORDER_COLUMNS =
 
 // A finished order — off the active board, no further transitions. Single
 // source of truth for the "is this done" check that several views need.
-export const TERMINAL_STATUSES: OrderStatus[] = ["completed", "cancelled"];
+const TERMINAL_STATUSES: OrderStatus[] = ["completed", "cancelled"];
 
 export function isTerminal(status: OrderStatus): boolean {
   return TERMINAL_STATUSES.includes(status);

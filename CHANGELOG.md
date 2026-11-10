@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
+- READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
+
+## [0.5.0] - 2026-11-10
+
+### Added
+
 - Per-item "Counts toward booth limit" option (default on). Unticking it stores `excludeFromBoothLimit` on the menu item so the item is skipped by the booth's daily item limit: migration 0121 updates `booth_cups_today`, the `enforce_daily_cup_cap` trigger, `booth_availability` and `hold_cart`, and the basket (`addBlock`, `fitCart`) matches. The per-order limit and the item's own Sold-out limit still apply. Migration 0121 must be applied by hand.
 - Per-screen text size: the customer queue display and the kitchen board each get an A- / A+ control (75% to 200%, with reset) remembered separately on the device under `qkit:scale:display` and `qkit:scale:board`, so browser zoom can stay at 100% when one browser runs both screens. The scale is applied to the root font size while the screen is open.
 - Data retention (X-26): a daily Vercel Cron (`52 3 * * *`) calls `GET /api/cron/proof-storage-drain`, guarded by `CRON_SECRET`, to run `drainProofDeletions()` so screenshot deletions queued by account or vendor cascades and manual deletes are no longer left in the queue. Vercel fires crons on Production only.
@@ -16,6 +23,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The `/mfa` form and the wordmark now use `MfaForm` and `Wordmark` from `@merqo/ui`; the local files are thin adapters with the same exports. Supabase calls, the `/admin` redirect and the error copy are unchanged. Differences from the old form: pasted text is reduced to six digits and non-digits are stripped as typed; the input gains a placeholder, `name="code"`, `pattern="[0-9]*"` and `aria-invalid`/`aria-describedby`, and is disabled while pending; the button reads "Verifying" while pending and ignores duplicate taps; the error clears on edit; thrown errors are shown (as the wrong-code copy) instead of escaping; the form stays pending after success until the route changes; the QR renders only for `data:image/` sources. The wordmark shell always sets a text size, so the login and MFA pages pass `size` explicitly.
 - Start new service is now one labelled pill on the live board (`12/200 items · New service`, amber when low), shown for a booth with a daily limit or any per-item Sold-out limit (label only for the latter). The confirmation and toast say the daily count and Sold-out limits start again. The booth edit page shows it with a one-line explanation when either limit is set. Pairs with #319.
 - A per-item Sold-out limit now counts sales in the current service only, the same window as the daily item limit (since SGT midnight or the last Start new service), so the two limits work together and a limited drink no longer stays Sold out forever. Migration 0120 rewrites `qkit.booth_remaining_stock` to count the window from orders; apply it by hand to staging and prod. `booth_item_sold` and its triggers stay in place, unused for stock.
 - T37: realigned the hand-maintained DB types (`src/lib/db-types/*`, `src/lib/types.ts`) with the schema the migrations define, checked against `supabase gen types` from a local stack. Added the `cart_holds` and `rate_limits` tables, ten missing RPC signatures (`apply_order_stock_delta`, `booth_open`, `can_create_booth`, `order_item_quantities`, `purge_ops_events`, `sweep_stale_orders`, `vendor_effective_tier`, `vendor_entitled`, `vendor_has_free_caps`, `vendor_pass_running`), the `print_status` enum and the missing `booth_item_sold` and `feedback` foreign keys. `booth_service_starts.id` is now identity-only (`never` on insert/update), `orders` insert `order_number` is optional and `place_walkup_order.p_paid` is optional (defaults false). No runtime change.
@@ -79,6 +87,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - Local billing: the `vendors.plan` column, the `licenses`, `pricing` and `purchase_requests` tables, `set_license_label`, `payments.license_id`, the upgrade and downgrade request routes, the in-product upgrade buttons, paid event stats views and the admin grant, revoke and pricing actions. Existing `pro` vendors become founder qkit rows in the cache (migration 0115) until Merqo pushes their real subscription, and the latest unexpired license becomes their Event Pass window.
+- Dead code that knip reports: unused `export` keywords dropped, the unused `input-group` and `radio-group` UI components, `Toggle`, `sceneNames`, unused type aliases and several unused shadcn parts removed, and the unused `@eslint/eslintrc` and `@tailwindcss/typography` dev dependencies dropped. `knip.json` records the few justified exceptions. No behaviour change.
 
 ## [0.4.4] - 2026-11-02
 

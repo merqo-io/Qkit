@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const MAX_ORDER_LABELS = 100;
+const MAX_ORDER_LABELS = 100;
 // Matches printkit's label_batch item_options max.
 const MAX_OPTIONS_LENGTH = 240;
 const itemsSchema = z

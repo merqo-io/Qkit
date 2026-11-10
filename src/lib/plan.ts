@@ -35,7 +35,7 @@ export interface StoredEntitlement {
   validUntil: string | null;
 }
 
-export interface EventPassWindow {
+interface EventPassWindow {
   startsAt: string;
   endsAt: string;
   running: boolean;

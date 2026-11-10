@@ -200,11 +200,7 @@ export const SCENES = [
   },
 ];
 
-export const DEFAULT_SCENE = "tour";
-
-export function sceneNames() {
-  return SCENES.map((s) => s.name);
-}
+const DEFAULT_SCENE = "tour";
 
 export function findScene(name) {
   return SCENES.find((s) => s.name === name) ?? null;

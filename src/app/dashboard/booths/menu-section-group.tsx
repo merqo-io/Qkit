@@ -12,12 +12,12 @@ import type { MenuItemFormInput } from "@/lib/schemas";
 import { NO_SECTION_GROUP } from "./menu-order";
 import { GroupDropZone, SortableSectionGroup } from "./menu-sortables";
 
-export interface MenuGroupEntry {
+interface MenuGroupEntry {
   it: MenuItemFormInput;
   i: number;
 }
 
-export type RenderMenuItem = (
+type RenderMenuItem = (
   index: number,
   groupId: string,
   standalone: boolean,

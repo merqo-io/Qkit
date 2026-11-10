@@ -27,6 +27,8 @@ broken dashboard.
   `/login` if unauthenticated, to `/admin` if the user is an admin, to
   `/dashboard` if a vendor row already exists — otherwise renders
   `OnboardingForm`.
+- `loading.tsx` — centred-card skeleton shown while the page awaits `getVendor` and `isAdmin`.
+- `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative skeleton.
 
 ## Connectivity
 

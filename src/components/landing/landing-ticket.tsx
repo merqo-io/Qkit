@@ -7,9 +7,9 @@
 import { cn } from "@merqo/ui/primitives";
 import { Banknote, Clock } from "lucide-react";
 
-export type TicketOption = { group: string; choice: string };
+type TicketOption = { group: string; choice: string };
 
-export type TicketLine = {
+type TicketLine = {
   q: number;
   name: string;
   opt?: string;

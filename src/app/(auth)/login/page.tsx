@@ -122,7 +122,7 @@ function LoginForm() {
               aria-label="qkit home"
               className="inline-block transition-opacity hover:opacity-80"
             >
-              <Wordmark className="text-2xl" />
+              <Wordmark size="lg" />
             </Link>
             <h1 className="font-display mt-6 text-3xl font-semibold leading-tight">
               Check your email
@@ -173,7 +173,7 @@ function LoginForm() {
             aria-label="qkit home"
             className="inline-block transition-opacity hover:opacity-80"
           >
-            <Wordmark className="text-3xl" />
+            <Wordmark size="xl" />
           </Link>
           <p className="mt-1 text-sm text-muted-foreground">
             Run your booth. Watch orders land live.

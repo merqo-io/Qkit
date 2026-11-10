@@ -23,7 +23,7 @@ export default async function MfaPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-5">
       <div className="w-full max-w-md rounded-2xl border bg-card px-7 py-10 shadow-sm">
-        <Wordmark className="text-2xl" />
+        <Wordmark size="lg" />
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
           Two-step sign-in
         </h1>

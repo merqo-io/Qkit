@@ -41,5 +41,3 @@ export const pushSubscriptionSchema = z.object({
     auth: base64url(64),
   }),
 });
-
-export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;

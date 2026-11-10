@@ -21,9 +21,11 @@ inline mark used on the login page.
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
   link targets.
-- `wordmark.tsx` — `Wordmark({ className })`: the standalone "qkit" mark (no
-  link, no nav chrome) used by the login page's two panels, where the nav
-  shell itself doesn't apply.
+- `wordmark.tsx` — `Wordmark({ size?, className? })`: thin wrapper over
+  `@merqo/ui`'s `Wordmark` shell that supplies the "qkit" letters and the
+  `text-primary` accent on the q. Used by the login page's two panels (`lg`
+  and `xl`) and the MFA page (`lg`), where the nav shell doesn't apply.
+- `wordmark.test.tsx` — asserts the text, the accent class and the size class.
 - `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the landing hero's
   swipeable "live order board" carousel over `LANDING_BOARDS` — native
   scroll-snap plus pointer-drag and a 10s auto-advance timer (paused on

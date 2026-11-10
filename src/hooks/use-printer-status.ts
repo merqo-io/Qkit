@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type PrinterSummary = {
+type PrinterSummary = {
   displayName: string;
   state: "online" | "offline" | "not_set_up";
   hardwareVerified: boolean;

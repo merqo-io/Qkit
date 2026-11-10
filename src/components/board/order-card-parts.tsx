@@ -136,12 +136,12 @@ export type PendingUndo = {
 // received" plus the amount). On a narrow card, three across on a tablet, one
 // line of that overflowed the button, so these wrap and grow instead: a
 // minimum of the usual height, never a fixed one.
-export const PAYMENT_BUTTON =
+const PAYMENT_BUTTON =
   "h-auto min-h-12 w-full rounded-lg bg-status-payment-claimed py-2 text-left text-base leading-tight font-bold whitespace-normal text-white hover:bg-status-payment-claimed/90";
 
 // The amount owed, set off at the far end of a payment button. Absent for an
 // order with no prices, where there is nothing to check.
-export function AmountDue({ amount }: { amount: string | null }) {
+function AmountDue({ amount }: { amount: string | null }) {
   if (isNil(amount)) return null;
   return <span className="ml-auto pl-3 font-mono tabular-nums">{amount}</span>;
 }

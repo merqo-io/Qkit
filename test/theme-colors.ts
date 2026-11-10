@@ -7,7 +7,7 @@ export function parseOklch(value: string): Oklch {
 }
 
 /** CSS Color 4 OKLab conversion, followed by WCAG relative luminance. */
-export function luminance([lightness, chroma, hue]: Oklch): number {
+function luminance([lightness, chroma, hue]: Oklch): number {
   const angle = (hue * Math.PI) / 180;
   const a = chroma * Math.cos(angle);
   const b = chroma * Math.sin(angle);

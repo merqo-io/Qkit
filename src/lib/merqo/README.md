@@ -32,7 +32,7 @@ notifyRef)`/`notifyCustomer(vendorId, notifyRef, message)`/
   `notifyCustomer`/`notifyVendor` catch + log and never throw, same
   fail-closed philosophy as `fetchEarnConfig` in `earn-link.tsx`. All three
   share one `merqoFetch` helper for the bearer-auth/timeout mechanics.
-- `entitlement-contract.ts`, `entitlementPayloadSchema`, the verbatim wire contract for Merqo's entitlement push (kit, tier, founder, stats window, Event Pass window, expiry, `issued_at`), and `entitlementResponseSchema`.
+- `entitlement-contract.ts`, `entitlementPayloadSchema`, the verbatim wire contract for Merqo's entitlement push (kit, tier, founder, stats window, Event Pass window, expiry, `issued_at`).
 - `metrics.test.ts` — tests the metrics aggregation against synthetic
   vendor/booth/order/payment fixtures.
 - `metrics.ts` — `computeMerqoMetrics`: qkit's own business metrics

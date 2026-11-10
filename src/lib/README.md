@@ -501,7 +501,7 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   across all four non-terminal statuses plus sort order.
 - `supabase/` — the three Supabase client factories (browser/server/service-
   role) plus entitlement/user/vendor read helpers; see its own README.
-- `db-types/` — the `Database["qkit"]` shape split by table group, composed
+- `db-types/` ([README](db-types/README.md)) — the `Database["qkit"]` shape split by table group, composed
   back into `Database` in `types.ts`: `account-tables.ts` (vendors, admins,
   admin_audit, events, entitlements, payments, platform_settings, legal state,
   feedback), `order-tables.ts` (booths, orders, status events, push
@@ -524,9 +524,8 @@ boolean`, migration 0080 — orders, booth_item_sold —
   `check_rate_limit`, `place_order`, `place_walkup_order` (now with `p_paid`,
   migration 0061), `get_booth_for_order`, `regenerate_short_code`,
   `submit_feedback`, `apply_vendor_entitlement`, `gen_short_code`) plus derived
-  row-type aliases (`Vendor`, `Booth`, `Order`, `BoardOrder` = `Order` minus
-  `access_token`, `Payment`, `Feedback`, `Admin`,
-  `AdminAudit`). Must be kept in sync with `supabase/migrations/` by hand (or
+  row-type aliases (`Vendor`, `Order`, `BoardOrder` = `Order` minus
+  `access_token`, `PlatformSettings`). Must be kept in sync with `supabase/migrations/` by hand (or
   via `supabase gen types typescript`).
 - `tour-ids.ts` — `TOUR_IDS`/`TourId`/`tourIdSchema`: the allowlist for
   dashboard tourIds, kept in its own zero-React module rather than
