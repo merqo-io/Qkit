@@ -699,7 +699,9 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    expect(screen.getByText("185/200 items")).toHaveClass("text-status-aging");
+    expect(
+      screen.getByRole("button", { name: /start a new service for/i }),
+    ).toHaveClass("text-status-aging");
   });
 });
 
