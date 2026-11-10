@@ -120,7 +120,7 @@ export type OrderTables = {
     Insert: {
       id?: string;
       booth_id: string;
-      order_number: string | null;
+      order_number?: string | null;
       customer_name: string;
       items: Json;
       status?: OrderStatus;
@@ -180,7 +180,14 @@ export type OrderTables = {
     Row: { booth_id: string; menu_item_id: string; qty: number };
     Insert: { booth_id: string; menu_item_id: string; qty?: number };
     Update: { booth_id?: string; menu_item_id?: string; qty?: number };
-    Relationships: [];
+    Relationships: [
+      {
+        foreignKeyName: "booth_item_sold_booth_id_fkey";
+        columns: ["booth_id"];
+        referencedRelation: "booths";
+        referencedColumns: ["id"];
+      },
+    ];
   };
   order_status_events: {
     Row: {
@@ -272,12 +279,13 @@ export type OrderTables = {
       started_at: string;
     };
     Insert: {
-      id?: number;
+      // GENERATED ALWAYS AS IDENTITY: inserts and updates may not set it.
+      id?: never;
       booth_id: string;
       started_at?: string;
     };
     Update: {
-      id?: number;
+      id?: never;
       booth_id?: string;
       started_at?: string;
     };
@@ -324,5 +332,44 @@ export type OrderTables = {
         referencedColumns: ["id"];
       },
     ];
+  };
+  // Service-role only (migration 0096): short-lived reservations of cart stock.
+  cart_holds: {
+    Row: {
+      booth_id: string;
+      session_id: string;
+      items: Json;
+      qty: number;
+      expires_at: string;
+    };
+    Insert: {
+      booth_id: string;
+      session_id: string;
+      items: Json;
+      qty: number;
+      expires_at: string;
+    };
+    Update: {
+      booth_id?: string;
+      session_id?: string;
+      items?: Json;
+      qty?: number;
+      expires_at?: string;
+    };
+    Relationships: [
+      {
+        foreignKeyName: "cart_holds_booth_id_fkey";
+        columns: ["booth_id"];
+        referencedRelation: "booths";
+        referencedColumns: ["id"];
+      },
+    ];
+  };
+  // Fixed-window counters behind qkit.check_rate_limit (migration 0017).
+  rate_limits: {
+    Row: { key: string; window_start: string; count: number };
+    Insert: { key: string; window_start: string; count?: number };
+    Update: { key?: string; window_start?: string; count?: number };
+    Relationships: [];
   };
 };

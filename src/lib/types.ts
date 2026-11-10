@@ -221,6 +221,7 @@ export interface Database {
     Enums: {
       order_status: OrderStatus;
       payment_status: PaymentStatus;
+      print_status: PrintStatus;
     };
     CompositeTypes: {
       [_ in never]: never;
