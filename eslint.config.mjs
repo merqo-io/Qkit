@@ -1,6 +1,6 @@
 import next from "eslint-config-next";
 import sonarjs from "eslint-plugin-sonarjs";
-import { merqoEslintPreset } from "@merqo/ui/eslint";
+import { merqoEslintPreset, merqoNoLocalCopies } from "@merqo/ui/eslint";
 
 // Reuse Next's plugin instance to avoid duplicate registration.
 const typescriptEslintPlugin = next.find((c) => c.name === "next/typescript")
@@ -70,6 +70,30 @@ const eslintConfig = [
     },
   },
   ...merqoEslintPreset({ sonarjsPlugin, tsPlugin: typescriptEslintPlugin }),
+  ...merqoNoLocalCopies({
+    // Each entry is a thin wrapper that binds qkit config to the shared piece
+    // (or adds qkit-only behaviour), so importing it is intentional.
+    allow: [
+      // Bind the qkit schema, env keys and cookie domain to the shared clients.
+      "lib/supabase/client",
+      "lib/supabase/server",
+      "lib/supabase/middleware",
+      // Binds the qkit check_rate_limit RPC store and the trusted IP headers.
+      "lib/rate-limit",
+      // Keeps the ok/fail builders, which the shared package does not ship.
+      "lib/action-result",
+      // Binds the qkit cache client and merqo secret; adds the page guard.
+      "lib/legal-gate",
+      // Adds the qkit toast on top of the shared hook.
+      "hooks/use-async-action",
+      // Supplies qkit's tour steps and seen-marker to the shared tours.
+      "components/tour/dashboard-tour",
+      // Binds the qkit plan route and upgrade-click logging.
+      "components/widgets/pro-lock",
+      // Mints the qkit order-scoped connect token before rendering the shared button.
+      "app/order/[boothId]/[orderNumber]/telegram-connect",
+    ],
+  }),
   {
     // Synthetic test identities and random fixture IDs are not credentials.
     files: ["**/*.test.{ts,tsx}", "**/test/**", "e2e/**"],

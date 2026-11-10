@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
-import { THEME_PROVIDER_PROPS } from "@/lib/theme-props";
+import { themeProps } from "@merqo/ui/next";
 import { Providers } from "@/components/layout/providers";
 import { ServiceWorkerRegistrar } from "@/components/layout/service-worker-registrar";
 import { MaintenanceBanner } from "@/components/layout/maintenance-banner";
@@ -11,7 +11,7 @@ import {
   platformSettings,
 } from "@/lib/platform-settings";
 import { createServerClient } from "@/lib/supabase/server";
-import { BRAND_KHAKI } from "@/lib/brand-icon";
+import { BRAND_KHAKI } from "@/lib/brand";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -87,7 +87,7 @@ export default async function RootLayout({
           enabled={banner.banner_enabled}
           message={banner.banner_message}
         />
-        <ThemeProvider {...THEME_PROVIDER_PROPS} nonce={nonce}>
+        <ThemeProvider {...themeProps} nonce={nonce}>
           <Providers>{children}</Providers>
         </ThemeProvider>
       </body>

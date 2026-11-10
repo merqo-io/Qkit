@@ -1,60 +1,58 @@
+import {
+  clientIp as sharedClientIp,
+  rateLimit as sharedRateLimit,
+  rateLimitStrict as sharedRateLimitStrict,
+  type RateLimitStore,
+} from "@merqo/ui/kit-api";
 import { createServiceClient } from "@/lib/supabase/server";
 
-/**
- * Resolve a best-effort client IP from request headers. On Vercel the platform
- * sets and overwrites `x-vercel-forwarded-for` and `x-real-ip`, so those are
- * trusted first. The left side of `x-forwarded-for` is client-supplied (a
- * caller can send any value and the edge only appends to it), so the fallback
- * uses its LAST hop, the one the proxy added. Else the literal "unknown". Still
- * a coarse fairness key for the flood guard, not an authz signal.
- */
+// On Vercel the platform sets and overwrites x-vercel-forwarded-for and
+// x-real-ip, so those come first. The left side of x-forwarded-for is
+// client-supplied, so the shared helper reads its last hop, the one the proxy
+// added. Still a coarse fairness key for the flood guard, not an authz signal.
+const TRUSTED_IP_HEADERS = [
+  "x-vercel-forwarded-for",
+  "x-real-ip",
+  "x-forwarded-for",
+];
+
+// The "unknown" fallback is acceptable: on Vercel the platform overwrites the
+// forwarded headers, so they are never malformed there. Off Vercel, malformed
+// headers share one bucket, the same exposure as when the headers are missing.
 export function clientIp(hdrs: Headers): string {
-  const vercel = hdrs.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
-  if (vercel) return vercel;
-  const real = hdrs.get("x-real-ip")?.trim();
-  if (real) return real;
-  const hops = (hdrs.get("x-forwarded-for") ?? "")
-    .split(",")
-    .map((hop) => hop.trim())
-    .filter(Boolean);
-  return hops.at(-1) ?? "unknown";
+  return (
+    sharedClientIp(hdrs, { trustedHeaders: TRUSTED_IP_HEADERS }) ?? "unknown"
+  );
 }
 
-async function checkBucket(
-  key: string,
-  limit: number,
-  windowSeconds: number,
-): Promise<boolean | null> {
-  try {
+// The service-only DB limiter. A thrown error is how the shared helpers learn
+// the store is degraded; the message stays generic because buckets can contain
+// order tokens and RPC diagnostics must never echo them.
+const store: RateLimitStore = {
+  async hit(key, limit, windowSeconds) {
     const supabase = await createServiceClient();
     const { data: allowed, error } = await supabase.rpc("check_rate_limit", {
       p_key: key,
       p_limit: limit,
       p_window_seconds: windowSeconds,
     });
-    if (!error) return allowed !== false;
-  } catch {
-    // Reported by the caller as a degraded limiter.
-  }
-  return null;
-}
+    if (error) throw new Error("check_rate_limit failed");
+    return allowed !== false;
+  },
+};
 
 /**
- * Server-side fixed-window check via the service-only DB limiter. Returns
- * true when the call is allowed. Fails OPEN — any limiter error (infra hiccup)
- * yields `true` so a real customer is never blocked by a degraded limiter. The
- * limiter is defence against floods, not a correctness gate.
+ * Server-side fixed-window check. Returns true when the call is allowed. Fails
+ * OPEN: any limiter error (infra hiccup) yields `true` so a real customer is
+ * never blocked by a degraded limiter. The limiter is defence against floods,
+ * not a correctness gate.
  */
-export async function rateLimit(
+export function rateLimit(
   key: string,
   limit: number,
   windowSeconds: number,
 ): Promise<boolean> {
-  const allowed = await checkBucket(key, limit, windowSeconds);
-  if (allowed !== null) return allowed;
-  // Buckets can contain order tokens; RPC diagnostics must never echo them.
-  console.error("rateLimit degraded (failing open)");
-  return true;
+  return sharedRateLimit(store, key, limit, windowSeconds);
 }
 
 /**
@@ -62,13 +60,10 @@ export async function rateLimit(
  * paths that create orders or reach paykit, where an attacker who can degrade
  * the store must not get an unlimited window.
  */
-export async function rateLimitStrict(
+export function rateLimitStrict(
   key: string,
   limit: number,
   windowSeconds: number,
 ): Promise<boolean> {
-  const allowed = await checkBucket(key, limit, windowSeconds);
-  if (allowed !== null) return allowed;
-  console.error("rateLimit degraded (failing closed)");
-  return false;
+  return sharedRateLimitStrict(store, key, limit, windowSeconds);
 }
