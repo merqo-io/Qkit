@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { logEvent } from "@/app/actions/events";
 
 interface Props {

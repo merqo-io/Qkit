@@ -11,14 +11,15 @@ import {
 import { Ticket } from "@/components/widgets/ticket";
 import { Paginated } from "@/components/widgets/paginated";
 import { SegmentedControl } from "@merqo/ui";
-import { Input } from "@/components/ui/input";
 import {
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
+
 import type { BoardOrder } from "@/lib/types";
 
 interface Booth {

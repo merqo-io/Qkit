@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { parseMenuItems } from "@/lib/schemas";

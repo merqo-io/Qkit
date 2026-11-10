@@ -3,10 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { Button, Label, Switch, Textarea } from "@merqo/ui/primitives";
+
 import type { PlatformSettingsConfig } from "@/lib/platform-settings";
 import { setBanner } from "./actions";
 

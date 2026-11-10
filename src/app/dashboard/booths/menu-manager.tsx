@@ -12,7 +12,8 @@ import {
   InfoTooltip,
   PendingImageUploadError,
 } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";

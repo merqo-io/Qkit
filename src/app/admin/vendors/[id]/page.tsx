@@ -1,3 +1,4 @@
+import { cn } from "@merqo/ui/primitives";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { notFound } from "next/navigation";
 import { Check, Circle } from "lucide-react";
@@ -10,7 +11,8 @@ import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { TIER_LABEL, resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { buildVendorHealth, passHoursLeft } from "@/lib/admin/vendor-health";
-import { cn, formatPrice, MS_PER_DAY } from "@/lib/utils";
+import { formatPrice, MS_PER_DAY } from "@/lib/utils";
+
 import { Stat } from "../../stat";
 import { StatusChip } from "../../vendor-status";
 import { ResolveMessageButton } from "../../resolve-message-button";

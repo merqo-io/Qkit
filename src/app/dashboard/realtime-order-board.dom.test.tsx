@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@merqo/ui/primitives";
+
 import { toggleBoothActive } from "./booths/actions";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";

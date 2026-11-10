@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import {
   Bell,
   BellRing,
@@ -9,7 +10,7 @@ import {
   ShoppingBag,
   WifiOff,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { isNotifySupported } from "@/lib/order-alerts";
 import { staleNotice } from "./order-status-copy";
 import {

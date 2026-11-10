@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { MenuItemCard } from "@/components/order/menu-item-card";
 import { ItemCustomizer } from "@/components/order/item-customizer";
 import { Ticket } from "@/components/widgets/ticket";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { placeOrderSchema } from "@/lib/schemas";
 import { count, formatPrice, orderHasPricing } from "@/lib/utils";
 import { cartKey, cartTotal } from "@/lib/cart";

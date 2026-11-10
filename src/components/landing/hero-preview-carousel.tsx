@@ -6,11 +6,11 @@
 // click-drag; a 10s timer auto-advances but pauses while the visitor interacts.
 // Decorative only (aria-hidden). Reduced-motion: no auto-advance, no smooth.
 
+import { cn } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LandingBoard } from "@/components/landing/landing-board";
 import { LANDING_BOARDS } from "@/components/landing/landing-boards";
 import { nearestIndex } from "@/lib/carousel";
-import { cn } from "@/lib/utils";
 
 const ROTATE_MS = 10_000;
 

@@ -4,20 +4,18 @@ import { useState } from "react";
 import QRCode from "react-qr-code";
 import { Copy, ExternalLink, Tv } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
+  Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@merqo/ui/primitives";
 
 type Booth = { id: string; name: string };
 

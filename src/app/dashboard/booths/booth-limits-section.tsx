@@ -1,8 +1,8 @@
 "use client";
 
 import { Gauge } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, Input } from "@merqo/ui/primitives";
+
 import { Section } from "@/components/widgets/ticket-section";
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { Entitlement } from "@/lib/plan";

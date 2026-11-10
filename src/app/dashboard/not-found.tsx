@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
 
 /** Branded 404 for the vendor dashboard tree — a stale bookmark or mistyped
  * URL here isn't a customer holding a QR code, so it must not tell a vendor

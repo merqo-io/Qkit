@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { ConfirmDialog } from "@merqo/ui";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@merqo/ui/primitives";
+
 import { usePrinterStatus } from "@/hooks/use-printer-status";
 import { PrinterStatus } from "./printer-status";
 import { SettingRow } from "./setting-row";

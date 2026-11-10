@@ -1,8 +1,8 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin", label: "Overview" },

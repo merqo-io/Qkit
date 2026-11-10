@@ -4,7 +4,7 @@
 // shape: no server actions, no state. The carousel root (not this component)
 // carries aria-hidden since these are decorative.
 
-import { cn } from "@/lib/utils";
+import { cn } from "@merqo/ui/primitives";
 import { Banknote, Clock } from "lucide-react";
 
 export type TicketOption = { group: string; choice: string };

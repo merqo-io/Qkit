@@ -1,8 +1,9 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { useEffect, useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { splitTrailingDigit } from "@/lib/orders";
 import { usePolling } from "@/hooks/use-polling";
 import { playReadyChime, unlockAudio } from "@/lib/order-alerts";

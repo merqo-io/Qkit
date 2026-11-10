@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
 import { LoadErrorBanner } from "./board-sections";
 

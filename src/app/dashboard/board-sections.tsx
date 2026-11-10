@@ -1,7 +1,8 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+
 import type { BoardOrder } from "@/lib/types";
 
 // Which of the two board sections a phone-width screen is showing.

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Plus, Settings as SettingsIcon, Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
+  cn,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+} from "@merqo/ui/primitives";
+
 import { BoothToggle, type BoothView } from "./board-booths";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 

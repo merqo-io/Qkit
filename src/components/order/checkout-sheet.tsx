@@ -2,9 +2,8 @@
 
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { DataCollectionNotice } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button, Input, Label } from "@merqo/ui/primitives";
+
 import {
   Sheet,
   SheetClose,

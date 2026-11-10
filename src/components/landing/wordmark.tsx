@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@merqo/ui/primitives";
 
 export function Wordmark({ className }: { className?: string }) {
   return (

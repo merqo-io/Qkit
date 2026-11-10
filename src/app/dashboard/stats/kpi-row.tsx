@@ -1,4 +1,6 @@
-import { cn, formatPrice } from "@/lib/utils";
+import { cn } from "@merqo/ui/primitives";
+import { formatPrice } from "@/lib/utils";
+
 import type { StatsSummary } from "@/lib/stats";
 import { StatCard, DeltaPill } from "@merqo/ui";
 import { StatBreakdownTile, type BreakdownRow } from "./stat-breakdown";

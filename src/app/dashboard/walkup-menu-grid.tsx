@@ -1,7 +1,8 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { cartKey } from "@/lib/cart";
 import type { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";

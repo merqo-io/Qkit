@@ -18,7 +18,8 @@ vi.mock("./booths/actions", () => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@merqo/ui/primitives";
+
 import { StartServiceButton } from "./start-service-button";
 
 beforeEach(() => {
