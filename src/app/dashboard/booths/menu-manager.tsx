@@ -37,6 +37,9 @@ interface Props {
   boothId: string;
   boothName: string;
   entitlement: Entitlement;
+  // True when the booth has a daily item limit, which is what makes the
+  // per-item "Counts toward booth limit" tick meaningful.
+  hasBoothLimit?: boolean;
   initialItems: MenuItemFormInput[];
   initialCategories?: MenuCategory[];
   // Set when this menu save follows a booth's first-ever creation (booth-form's
@@ -77,6 +80,7 @@ export function MenuManager({
   boothId,
   boothName,
   entitlement,
+  hasBoothLimit = false,
   initialItems,
   initialCategories = [],
   isNewBooth = false,
@@ -322,6 +326,7 @@ export function MenuManager({
         items={items}
         onChange={setItems}
         entitlement={entitlement}
+        hasBoothLimit={hasBoothLimit}
         categories={categories}
         onCategoriesChange={setCategories}
       />

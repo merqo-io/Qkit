@@ -45,10 +45,13 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   `holdsApply`, `addBlock` + `addBlockMessage` (why one more of an item cannot
   go in: the item's stock, the booth's daily total, or the per-order limit,
   each told apart from "held in another basket"), and `fitCart` (cuts a basket
-  to what is available, trimming from the end). Display and courtesy only;
+  to what is available, trimming from the end). Items flagged
+  `excludeFromBoothLimit` (collected by `boothLimitExcludedIds`) are passed to
+  `addBlock`/`fitCart` and skip the booth's daily total, while the per-order
+  limit and the item's own stock still apply. Display and courtesy only;
   `place_order` and the cap triggers are the real limits.
 - `availability.test.ts` — tests parsing, each block reason and its order of
-  precedence, the messages, and trimming.
+  precedence, the messages, trimming and items excluded from the booth limit.
 - `cart-storage.ts` — `saveCart`/`loadCart`/`clearCart`: persists the
   in-progress customer cart to `sessionStorage` (keyed `qkit:cart:{boothId}`)
   as compact `ReorderLine`s, validated on read via `isValidLine`; best-effort

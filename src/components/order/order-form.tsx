@@ -20,6 +20,7 @@ import { remainingFor, type Remaining } from "@/lib/stock";
 import {
   addBlock,
   addBlockMessage,
+  boothLimitExcludedIds,
   fitCart,
   type Availability,
 } from "@/lib/availability";
@@ -174,6 +175,11 @@ export function OrderForm({
     !closed,
   );
 
+  const boothLimitExcluded = useMemo(
+    () => boothLimitExcludedIds(menuItems),
+    [menuItems],
+  );
+
   // Anonymous holds cannot deny purchases; only sold stock and order limits can.
   const availability = useMemo<Availability>(
     () => ({
@@ -194,7 +200,11 @@ export function OrderForm({
 
   // Remove items only when actual stock or a vendor's order limit has changed.
   useEffect(() => {
-    const fitted = fitCart(Array.from(cart.values()), availability);
+    const fitted = fitCart(
+      Array.from(cart.values()),
+      availability,
+      boothLimitExcluded,
+    );
     if (fitted.trimmed === 0) return;
     setCart(
       new Map(
@@ -204,11 +214,16 @@ export function OrderForm({
     toast.error(
       `${count(fitted.trimmed, "item")} no longer available, removed from your order`,
     );
-  }, [availability, cart, setCart]);
+  }, [availability, boothLimitExcluded, cart, setCart]);
 
   /** Block (and explain) when one more would exceed stock or a booth limit. */
   function blockedByStock(menuItemId: string): boolean {
-    const block = addBlock(cartItems, menuItemId, availability);
+    const block = addBlock(
+      cartItems,
+      menuItemId,
+      availability,
+      boothLimitExcluded,
+    );
     if (!block) return false;
     toast.error(addBlockMessage(block));
     return true;

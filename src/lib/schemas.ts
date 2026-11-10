@@ -182,6 +182,8 @@ export const menuItemFormSchema = z.object({
   available: z.boolean(),
   // Optional sold-out cap (Pro). null/absent = unlimited.
   stock: z.number().int().nonnegative().max(1_000_000).nullable().optional(),
+  // true = this item does not use up the booth's daily limit. Absent counts.
+  excludeFromBoothLimit: z.boolean().optional(),
   // Only fixed/inherent allergens that no customization changes — see
   // optionChoiceSchema's allergens for anything that varies by choice.
   allergens: z.array(z.enum(ALLERGEN_TAGS)).optional(),
@@ -563,6 +565,7 @@ export const menuItemSchema = z.object({
   option_groups: z.array(optionGroupSchema).optional(),
   category: z.string().nullable().optional(),
   stock: z.number().int().nonnegative().nullable().optional(),
+  excludeFromBoothLimit: z.boolean().optional(),
   allergens: z.array(z.enum(ALLERGEN_TAGS)).optional(),
 });
 

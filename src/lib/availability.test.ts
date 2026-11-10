@@ -3,6 +3,7 @@ import {
   NO_LIMITS,
   addBlock,
   addBlockMessage,
+  boothLimitExcludedIds,
   fitCart,
   hasLimits,
   holdsApply,
@@ -218,5 +219,76 @@ describe("fitCart", () => {
     const out = fitCart([line("kopi", 1)], avail({ left: 0 }));
     expect(out.items).toEqual([]);
     expect(out.trimmed).toBe(1);
+  });
+});
+
+describe("items excluded from the booth limit", () => {
+  const excluded = new Set(["special"]);
+
+  it("lets an excluded item be added when the booth is sold out", () => {
+    const a = avail({ left: 0 });
+    expect(addBlock([], "special", a, excluded)).toBeNull();
+    expect(addBlock([], "kopi", a, excluded)).toEqual({
+      kind: "booth_sold_out",
+    });
+  });
+
+  it("does not count excluded items against the booth total", () => {
+    const a = avail({ left: 2 });
+    const cart = [line("special", 5), line("kopi", 1)];
+    expect(addBlock(cart, "kopi", a, excluded)).toBeNull();
+    expect(addBlock([...cart, line("kopi", 1)], "kopi", a, excluded)).toEqual({
+      kind: "booth_left",
+      left: 2,
+    });
+  });
+
+  it("still applies the per-order limit and the item's own stock", () => {
+    const a = avail({ left: 0, maxPerOrder: 2, remaining: { special: 1 } });
+    expect(addBlock([line("special", 1)], "special", a, excluded)).toEqual({
+      kind: "item_left",
+      left: 1,
+    });
+    const b = avail({ left: 0, maxPerOrder: 2 });
+    expect(addBlock([line("special", 2)], "special", b, excluded)).toEqual({
+      kind: "order_limit",
+      max: 2,
+    });
+  });
+
+  it("keeps excluded lines out of the booth budget in fitCart", () => {
+    const out = fitCart(
+      [line("special", 3), line("kopi", 2), line("teh", 2)],
+      avail({ left: 3 }),
+      excluded,
+    );
+    expect(out.items).toEqual([
+      line("special", 3),
+      line("kopi", 2),
+      line("teh", 1),
+    ]);
+    expect(out.trimmed).toBe(1);
+  });
+
+  it("trims excluded lines to the per-order limit and their own stock", () => {
+    const out = fitCart(
+      [line("special", 4), line("kopi", 1)],
+      avail({ left: 0, maxPerOrder: 3, remaining: { special: 2 } }),
+      excluded,
+    );
+    expect(out.items).toEqual([line("special", 2)]);
+    expect(out.trimmed).toBe(3);
+  });
+});
+
+describe("boothLimitExcludedIds", () => {
+  it("collects only items explicitly flagged true", () => {
+    expect(
+      boothLimitExcludedIds([
+        { id: "a", excludeFromBoothLimit: true },
+        { id: "b", excludeFromBoothLimit: false },
+        { id: "c" },
+      ]),
+    ).toEqual(new Set(["a"]));
   });
 });

@@ -68,6 +68,7 @@ interface Props {
   standalone: boolean;
   vendorId: string;
   entitlement: Entitlement;
+  hasBoothLimit?: boolean;
   categories: MenuCategory[];
   atItemCap: boolean;
   isOpen: boolean;
@@ -84,6 +85,7 @@ export function MenuItemRow({
   standalone,
   vendorId,
   entitlement,
+  hasBoothLimit = false,
   categories,
   atItemCap,
   isOpen,
@@ -197,6 +199,12 @@ export function MenuItemRow({
             index={index}
             categories={categories}
             stockCaps={entitlement.stockCaps}
+            hasBoothLimit={hasBoothLimit}
+            onCountsTowardLimit={(counts) =>
+              update(index, {
+                excludeFromBoothLimit: counts ? undefined : true,
+              })
+            }
             onPrice={(cents) => setPrice(index, cents)}
             onCost={(cents) => setCost(index, cents)}
             onStock={(raw) => setStock(index, raw)}

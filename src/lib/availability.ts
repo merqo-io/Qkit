@@ -30,6 +30,17 @@ export const NO_LIMITS: Availability = {
   maxPerOrder: null,
 };
 
+const NO_EXCLUDED: ReadonlySet<string> = new Set();
+
+/** Ids of menu items that do not use up the booth's daily total. */
+export function boothLimitExcludedIds(
+  menu: ReadonlyArray<{ id: string; excludeFromBoothLimit?: boolean }>,
+): Set<string> {
+  return new Set(
+    menu.filter((m) => m.excludeFromBoothLimit === true).map((m) => m.id),
+  );
+}
+
 const wholeNumber = z.number().int().nonnegative();
 
 const availabilityShape = z.object({
@@ -115,9 +126,16 @@ export function addBlock(
   items: CartItem[],
   menuItemId: string,
   a: Availability,
+  excluded: ReadonlySet<string> = NO_EXCLUDED,
 ): AddBlock | null {
   const total = quantityOf(items);
-  const stock = itemBlock(items, menuItemId, a) ?? boothBlock(total, a);
+  const countedTotal = items.reduce(
+    (n, it) => (excluded.has(it.menuItemId) ? n : n + it.quantity),
+    0,
+  );
+  const stock =
+    itemBlock(items, menuItemId, a) ??
+    (excluded.has(menuItemId) ? null : boothBlock(countedTotal, a));
   if (stock) return stock;
   if (a.maxPerOrder !== null && total >= a.maxPerOrder)
     return { kind: "order_limit", max: a.maxPerOrder };
@@ -154,8 +172,10 @@ export function addBlockMessage(block: AddBlock): string {
 export function fitCart(
   items: CartItem[],
   a: Availability,
+  excluded: ReadonlySet<string> = NO_EXCLUDED,
 ): { items: CartItem[]; trimmed: number } {
-  let budget = Math.min(a.left ?? Infinity, a.maxPerOrder ?? Infinity);
+  let budget = a.maxPerOrder ?? Infinity;
+  let boothBudget = a.left ?? Infinity;
   const usedByItem = new Map<string, number>();
   const kept: CartItem[] = [];
   let trimmed = 0;
@@ -164,11 +184,16 @@ export function fitCart(
     const used = usedByItem.get(it.menuItemId) ?? 0;
     const left = remainingFor(a.remaining, it.menuItemId);
     const room = left === null ? Infinity : Math.max(0, left - used);
-    const take = Math.max(0, Math.min(it.quantity, room, budget));
+    const counts = !excluded.has(it.menuItemId);
+    const take = Math.max(
+      0,
+      Math.min(it.quantity, room, budget, counts ? boothBudget : Infinity),
+    );
     trimmed += it.quantity - take;
     if (take === 0) continue;
     usedByItem.set(it.menuItemId, used + take);
     budget -= take;
+    if (counts) boothBudget -= take;
     kept.push(take === it.quantity ? it : { ...it, quantity: take });
   }
 
