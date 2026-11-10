@@ -9,6 +9,7 @@ import {
 } from "@merqo/ui/primitives";
 
 import { BoothToggle, type BoothView } from "./board-booths";
+import { ScreenSizeControl } from "@/components/widgets/screen-size-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 
 const HEADER_BUTTON = "rounded-full";
@@ -167,6 +168,7 @@ export function BoardHeader({
           </TooltipTrigger>
           <TooltipContent>Board settings</TooltipContent>
         </Tooltip>
+        <ScreenSizeControl screen="board" />
         <ActiveCountPill idle={idle} count={visibleCount} />
       </div>
     </div>

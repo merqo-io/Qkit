@@ -112,6 +112,13 @@ refreshCups }`: keeps the board's per-booth "N/cap items" count current by
   Its behaviour is covered from the outside, in
   `dashboard/booths/printing-section.dom.test.tsx`, since what matters is
   what a vendor sees on the booth page rather than the hook's own shape.
+- `use-screen-scale.ts` — `useScreenScale("display" | "board")`: per-screen text
+  size (steps 0.75 to 2) kept in localStorage under `qkit:scale:display` /
+  `qkit:scale:board`, validated on read with a fallback to 1, read after mount so
+  hydration matches. Applies the scale to the root font size while mounted and
+  restores it on unmount, because Tailwind's rem sizes resolve against the root.
+- `use-screen-scale.dom.test.tsx` — default, step and clamp, reset, persistence,
+  bad stored values, restore on unmount, key independence and blocked storage.
 
 ## Connectivity
 
