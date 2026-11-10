@@ -10,6 +10,7 @@ Cross-cutting project-management docs — roadmap, audit findings, and the conso
 
 ## Contents
 
+- [2026-10-24-fresh-eyes-sweep.md](2026-10-24-fresh-eyes-sweep.md) — close-out sweep slice a: knip dead-code removal, CHANGELOG 0.5.0 stamp, kept exceptions and follow-ups.
 - [2026-10-26-ncs-event-readiness.md](2026-10-26-ncs-event-readiness.md) — November 6 NCS test sequence, confirmed numbering/retry findings, unresolved incident hypotheses and the owner-operated 200-cup/Ops-lead rehearsal checklist.
 - [ai-harness-reference.md](ai-harness-reference.md) — full AI Harness text (hooks, permissions, git hooks) moved out of `AGENTS.md`; the short summary stays there.
 - [templatecentral-adoption-log.md](templatecentral-adoption-log.md) — dated templateCentral review and migration decisions, through the 7.2.2 review (strict `&&` chain, deps gate, Node floor) including deliberate non-adoptions, moved out of `AGENTS.md`.

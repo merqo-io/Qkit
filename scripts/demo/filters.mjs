@@ -4,17 +4,17 @@
 
 import { wrapCaption } from "./scenes.mjs";
 
-export const CANVAS_W = 1080;
-export const CANVAS_H = 1920;
-export const FPS = 30;
-export const BG = "0x181410"; // Market Ochre dark, the pillarbox backdrop
+const CANVAS_W = 1080;
+const CANVAS_H = 1920;
+const FPS = 30;
+const BG = "0x181410"; // Market Ochre dark, the pillarbox backdrop
 const PANEL_BORDER = "0x3a3128";
 
-export const HOOK = { fontsize: 62, maxChars: 24, y: 64, lineHeight: 78 };
-export const STEP = { fontsize: 52, maxChars: 28, y: 1540, lineHeight: 74 };
+const HOOK = { fontsize: 62, maxChars: 24, y: 64, lineHeight: 78 };
+const STEP = { fontsize: 52, maxChars: 28, y: 1540, lineHeight: 74 };
 // Consecutive steps share an exact boundary and between() is inclusive on both
 // ends, so without a gap the boundary frame would draw two captions at once.
-export const CAPTION_GAP_S = 0.15;
+const CAPTION_GAP_S = 0.15;
 
 // Two phones side by side in a portrait frame: 2 x (panel + border) + gap +
 // side margins = 1080.
@@ -96,7 +96,7 @@ export function captionItems(meta, durS) {
 }
 
 /** One drawtext filter; `textPath` is an already-written UTF-8 file. */
-export function drawtext(item, textPath, fontPath) {
+function drawtext(item, textPath, fontPath) {
   return (
     `drawtext=fontfile='${fontPath}':textfile='${ffEscapePath(textPath)}':` +
     `expansion=none:fontsize=${item.fontsize}:fontcolor=white:box=1:` +
@@ -211,8 +211,8 @@ export function buildVideoGraph({
 
 // The app's real "order ready" chime (src/lib/order-alerts.ts): a major triad
 // rising, played twice, replicated so the demo's ding matches the product.
-export const CHIME_NOTES = [784, 1047, 1319, 784, 1047, 1319];
-export const CHIME_SPACING_MS = 200;
+const CHIME_NOTES = [784, 1047, 1319, 784, 1047, 1319];
+const CHIME_SPACING_MS = 200;
 
 /**
  * Audio graph ending in `[a]`: silence the length of the video, the chime at

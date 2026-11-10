@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-10
+
 ### Added
 
 - Per-item "Counts toward booth limit" option (default on). Unticking it stores `excludeFromBoothLimit` on the menu item so the item is skipped by the booth's daily item limit: migration 0121 updates `booth_cups_today`, the `enforce_daily_cup_cap` trigger, `booth_availability` and `hold_cart`, and the basket (`addBlock`, `fitCart`) matches. The per-order limit and the item's own Sold-out limit still apply. Migration 0121 must be applied by hand.
@@ -80,6 +82,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - Local billing: the `vendors.plan` column, the `licenses`, `pricing` and `purchase_requests` tables, `set_license_label`, `payments.license_id`, the upgrade and downgrade request routes, the in-product upgrade buttons, paid event stats views and the admin grant, revoke and pricing actions. Existing `pro` vendors become founder qkit rows in the cache (migration 0115) until Merqo pushes their real subscription, and the latest unexpired license becomes their Event Pass window.
+- Dead code that knip reports: unused `export` keywords dropped, the unused `input-group` and `radio-group` UI components, `Toggle`, `sceneNames`, unused type aliases and several unused shadcn parts removed, and the unused `@eslint/eslintrc` and `@tailwindcss/typography` dev dependencies dropped. `knip.json` records the few justified exceptions. No behaviour change.
 
 ## [0.4.4] - 2026-11-02
 

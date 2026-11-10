@@ -6,7 +6,7 @@ import {
   type VendorStatus,
 } from "@/lib/admin/vendor-health";
 
-export type VendorActivityMetric = { label: string; value: string };
+type VendorActivityMetric = { label: string; value: string };
 
 export type VendorActivity = {
   active: boolean;

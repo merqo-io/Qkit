@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 // The seeded "Kopitiam Cart" booth (supabase/seed/coffee-cart.sql) and its
 // fixed test-only short code. Keep in sync with the seed.
 export const BOOTH = "c0ffee01-0000-4000-8000-000000000001";
-export const CODE = "e2eKopitiam01";
+const CODE = "e2eKopitiam01";
 
 /**
  * Places an order on the seeded booth as a customer named `name`, pays on
