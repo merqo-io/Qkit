@@ -231,6 +231,19 @@ export type AccountTables = {
       message?: string | null;
       created_at?: string;
     };
-    Relationships: [];
+    Relationships: [
+      {
+        foreignKeyName: "feedback_booth_id_fkey";
+        columns: ["booth_id"];
+        referencedRelation: "booths";
+        referencedColumns: ["id"];
+      },
+      {
+        foreignKeyName: "feedback_vendor_id_fkey";
+        columns: ["vendor_id"];
+        referencedRelation: "vendors";
+        referencedColumns: ["id"];
+      },
+    ];
   };
 };

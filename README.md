@@ -84,7 +84,9 @@ pnpm exec supabase test db
 ```
 
 Schema changes belong in a new migration, with the TypeScript DB contract in
-`src/lib/types.ts` kept consistent. Historical migrations are required to rebuild
+`src/lib/types.ts` (and the split files in `src/lib/db-types/`) kept consistent;
+compare against `supabase gen types typescript --local --schema qkit` output after
+applying the migrations to a local stack. Historical migrations are required to rebuild
 the schema and must not be deleted merely because a later migration replaces a
 function.
 

@@ -102,7 +102,7 @@ export type DbFunctions = {
       p_booth_id: string;
       p_customer_name: string;
       p_items: Json;
-      p_paid: boolean;
+      p_paid?: boolean;
       p_customer_phone?: string;
     };
     Returns: Json;
@@ -124,5 +124,45 @@ export type DbFunctions = {
       p_message?: string;
     };
     Returns: undefined;
+  };
+  apply_order_stock_delta: {
+    Args: { p_booth_id: string; p_items: Json; p_sign: number };
+    Returns: undefined;
+  };
+  booth_open: {
+    Args: { p_hours: Json; p_now: string };
+    Returns: boolean;
+  };
+  can_create_booth: {
+    Args: { p_vendor: string };
+    Returns: boolean;
+  };
+  order_item_quantities: {
+    Args: { p_items: Json };
+    Returns: { menu_item_id: string; qty: number }[];
+  };
+  purge_ops_events: {
+    Args: Record<string, never>;
+    Returns: undefined;
+  };
+  sweep_stale_orders: {
+    Args: Record<string, never>;
+    Returns: undefined;
+  };
+  vendor_effective_tier: {
+    Args: { p_vendor: string };
+    Returns: string;
+  };
+  vendor_entitled: {
+    Args: { p_vendor: string };
+    Returns: boolean;
+  };
+  vendor_has_free_caps: {
+    Args: { p_vendor: string };
+    Returns: boolean;
+  };
+  vendor_pass_running: {
+    Args: { p_vendor: string };
+    Returns: boolean;
   };
 };
