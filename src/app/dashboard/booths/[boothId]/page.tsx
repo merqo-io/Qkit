@@ -48,7 +48,9 @@ export default async function EditBoothPage({ params }: Props) {
 
   if (!booth) notFound();
 
-  const menuItemCount = parseMenuItems(booth.menu_items).length;
+  const menuItems = parseMenuItems(booth.menu_items);
+  const menuItemCount = menuItems.length;
+  const hasItemLimits = menuItems.some((i) => typeof i.stock === "number");
 
   const [paymentSetup, bookingStatus] = await Promise.all([
     vendorPaymentSetup(vendor.id),
@@ -74,6 +76,7 @@ export default async function EditBoothPage({ params }: Props) {
           is_active: booth.is_active,
           hours: parseBoothHours(booth.hours),
           menuItemCount,
+          hasItemLimits,
           takes_payment: takesPayment,
           social_links: booth.social_links
             ? parseSocialLinks(booth.social_links)

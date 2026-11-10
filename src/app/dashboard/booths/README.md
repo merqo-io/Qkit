@@ -123,7 +123,7 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
 - `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard.
   `use-booth-save.ts` owns `useBoothSave` (Zod parse, image commit,
   `saveBooth`) and `useBoothDelete`. `booth-limits-section.tsx` renders the
-  Limits card (daily item limit, per-order limit, Start new service) and
+  Limits card (daily item limit, per-order limit, Start new service with a one-line explainer, shown when a daily or per-item Sold-out limit is saved) and
   `booth-danger-zone.tsx` the delete confirmation.
 - `menu-editor.tsx` holds the section and item layout and drag-and-drop.
   `use-menu-mutations.ts` owns every item and category edit (add, remove with

@@ -115,7 +115,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "The count starts again from zero at midnight.",
-        "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
+        "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and as a labelled New service button beside the booth on the live board. It also starts any per-item Sold-out limits again. Orders already placed are not changed.",
         "The daily item limit is available on the Starter and Pro plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],
     },

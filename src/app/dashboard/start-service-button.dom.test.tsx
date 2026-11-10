@@ -49,7 +49,9 @@ describe("StartServiceButton", () => {
       screen.getByRole("button", { name: "Start a new service for Kopi Cart" }),
     );
     expect(
-      screen.getByText(/The item count for Kopi Cart goes back to 0/),
+      screen.getByText(
+        /daily item count goes back to 0 and any per-item Sold-out limits start again/,
+      ),
     ).toBeInTheDocument();
 
     await userEvent.click(
@@ -57,7 +59,7 @@ describe("StartServiceButton", () => {
     );
     expect(startNewService).toHaveBeenCalledWith("b-1");
     expect(successToast).toHaveBeenCalledWith(
-      "New service started. Kopi Cart is back to 0 items.",
+      "New service started. Kopi Cart count and Sold-out limits start again.",
     );
     expect(refresh).toHaveBeenCalled();
   });
@@ -122,6 +124,50 @@ describe("StartServiceButton", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not start a new service. Try again.",
     );
+  });
+
+  it("shows the count and the label together in the board pill", () => {
+    render(
+      <StartServiceButton
+        boothId="b-1"
+        boothName="Kopi Cart"
+        compact
+        countLabel="12/200 items"
+      />,
+      { wrapper: TooltipProvider },
+    );
+    const pill = screen.getByRole("button", {
+      name: "Start a new service for Kopi Cart",
+    });
+    expect(pill).toHaveTextContent("12/200 items");
+    expect(pill).toHaveTextContent("New service");
+    expect(pill).not.toHaveClass("text-status-aging");
+  });
+
+  it("turns the pill amber when the count is low", () => {
+    render(
+      <StartServiceButton
+        boothId="b-1"
+        boothName="Kopi Cart"
+        compact
+        countLabel="195/200 items"
+        low
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByRole("button", { name: "Start a new service for Kopi Cart" }),
+    ).toHaveClass("text-status-aging");
+  });
+
+  it("shows only the label when there is no count", () => {
+    render(<StartServiceButton boothId="b-1" boothName="Kopi Cart" compact />, {
+      wrapper: TooltipProvider,
+    });
+    const pill = screen.getByRole("button", {
+      name: "Start a new service for Kopi Cart",
+    });
+    expect(pill).toHaveTextContent(/^New service$/);
   });
 
   it("shows a labelled button outside the board", () => {
