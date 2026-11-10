@@ -5,7 +5,7 @@ export const article: HelpArticle = {
   category: "customer-alerts",
   title: "Customer alerts",
   summary: "What customers see at each stage and how ready alerts reach them.",
-  reviewed: "2026-11-03",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Alert me when it's ready",
     "Notify customers on Telegram when their order is ready",

@@ -74,6 +74,11 @@ tooltip, children })`: thin local wrapper around `@merqo/ui`'s `Section`,
 - `zoomable-image.tsx` — `ZoomableImage({ src, alt, sizes })`: a menu photo
   that opens fullscreen in a `Dialog` on tap, with a corner expand-icon
   affordance.
+- `screen-size-control.tsx` — `ScreenSizeControl({ screen, className })`: the
+  A- / percent-reset / A+ group (40px targets) driving `useScreenScale` for the
+  queue display or the kitchen board.
+- `screen-size-control.dom.test.tsx` — step, reset, disabled-at-default and
+  per-screen storage key.
 
 ## Parent
 
