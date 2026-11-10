@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LandingNav } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
 
 export function Nav({ authed }: { authed: boolean }) {
   return (

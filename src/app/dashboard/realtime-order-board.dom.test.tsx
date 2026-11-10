@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RealtimeOrderBoard } from "./realtime-order-board";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@merqo/ui/primitives";
+
 import { toggleBoothActive } from "./booths/actions";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder } from "./walkup-actions";
@@ -698,7 +699,9 @@ describe("RealtimeOrderBoard cup cap counter", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    expect(screen.getByText("185/200 items")).toHaveClass("text-status-aging");
+    expect(
+      screen.getByRole("button", { name: /start a new service for/i }),
+    ).toHaveClass("text-status-aging");
   });
 });
 

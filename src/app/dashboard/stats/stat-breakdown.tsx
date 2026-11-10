@@ -1,8 +1,9 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { WIDE_ON_PHONE } from "./tile-layout";
 import {
   Popover,

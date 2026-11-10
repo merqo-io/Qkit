@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button, cn, Textarea } from "@merqo/ui/primitives";
+
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from "@/lib/utils";
+
 import { submitFeedback } from "@/app/actions/feedback";
 
 interface Props {

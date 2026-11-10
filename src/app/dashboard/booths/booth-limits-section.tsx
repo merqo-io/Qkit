@@ -1,8 +1,8 @@
 "use client";
 
 import { Gauge } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, Input } from "@merqo/ui/primitives";
+
 import { Section } from "@/components/widgets/ticket-section";
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { Entitlement } from "@/lib/plan";
@@ -103,6 +103,7 @@ interface Props {
   boothId?: string;
   boothName?: string;
   savedDailyCupCap?: number | null;
+  hasItemLimits?: boolean;
 }
 
 export function BoothLimitsSection({
@@ -114,6 +115,7 @@ export function BoothLimitsSection({
   boothId,
   boothName,
   savedDailyCupCap,
+  hasItemLimits,
 }: Props) {
   return (
     <Section
@@ -139,12 +141,16 @@ export function BoothLimitsSection({
         />
       )}
 
-      {/* Keyed on the saved limit, not the field: a limit typed but not
-          yet saved has no count behind it to reset. */}
+      {/* Keyed on the saved limits, not the field: a limit typed but not
+          yet saved has nothing behind it to reset. */}
       {boothId &&
-        savedDailyCupCap !== null &&
-        savedDailyCupCap !== undefined && (
-          <div className="flex justify-end">
+        ((savedDailyCupCap !== null && savedDailyCupCap !== undefined) ||
+          hasItemLimits) && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+              Resets today&apos;s count and Sold-out limits. Also resets at
+              midnight.
+            </p>
             <StartServiceButton boothId={boothId} boothName={boothName ?? ""} />
           </div>
         )}

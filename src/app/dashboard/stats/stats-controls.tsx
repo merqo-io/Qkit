@@ -10,7 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
 
 const RANGES: { value: string; label: string }[] = [
   { value: "24h", label: "24h" },

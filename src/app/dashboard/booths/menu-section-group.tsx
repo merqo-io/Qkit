@@ -6,9 +6,8 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Button, cn, Input } from "@merqo/ui/primitives";
+
 import type { MenuItemFormInput } from "@/lib/schemas";
 import { NO_SECTION_GROUP } from "./menu-order";
 import { GroupDropZone, SortableSectionGroup } from "./menu-sortables";

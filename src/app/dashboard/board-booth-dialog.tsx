@@ -1,10 +1,11 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+} from "@merqo/ui/primitives";
+
 import { BoothRow, type BoothView } from "./board-booths";
 
 /**

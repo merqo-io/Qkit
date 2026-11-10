@@ -14,11 +14,8 @@ import {
   ClipboardList,
   ArrowRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Button, Checkbox, Input, Label, Switch } from "@merqo/ui/primitives";
+
 import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";
@@ -60,6 +57,8 @@ interface Props {
     hours: BoothHours;
     // Display-only; items are edited on the dedicated menu-manager page.
     menuItemCount: number;
+    // Any saved item has a Sold-out limit, which Start new service resets.
+    hasItemLimits?: boolean;
     // Whether this booth's stored marker says it takes payment.
     takes_payment: boolean;
     social_links: SocialLinks | null;
@@ -329,6 +328,7 @@ export function BoothForm({
             boothId={initial?.boothId}
             boothName={initial?.name}
             savedDailyCupCap={initial?.daily_cup_cap}
+            hasItemLimits={initial?.hasItemLimits}
           />
         </div>
 

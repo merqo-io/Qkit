@@ -12,7 +12,8 @@ import {
   InfoTooltip,
   PendingImageUploadError,
 } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";
@@ -36,6 +37,9 @@ interface Props {
   boothId: string;
   boothName: string;
   entitlement: Entitlement;
+  // True when the booth has a daily item limit, which is what makes the
+  // per-item "Counts toward booth limit" tick meaningful.
+  hasBoothLimit?: boolean;
   initialItems: MenuItemFormInput[];
   initialCategories?: MenuCategory[];
   // Set when this menu save follows a booth's first-ever creation (booth-form's
@@ -76,6 +80,7 @@ export function MenuManager({
   boothId,
   boothName,
   entitlement,
+  hasBoothLimit = false,
   initialItems,
   initialCategories = [],
   isNewBooth = false,
@@ -321,6 +326,7 @@ export function MenuManager({
         items={items}
         onChange={setItems}
         entitlement={entitlement}
+        hasBoothLimit={hasBoothLimit}
         categories={categories}
         onCategoriesChange={setCategories}
       />

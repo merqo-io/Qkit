@@ -4,8 +4,8 @@ import { useState, useSyncExternalStore } from "react";
 import type { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Button, cn, Switch } from "@merqo/ui/primitives";
+
 import { Section } from "@/components/widgets/ticket-section";
 import { Hint } from "@/components/widgets/hint";
 import { useAsyncAction } from "@/hooks/use-async-action";
@@ -15,7 +15,7 @@ import {
   requestNotifyPermission,
   unlockAudio,
 } from "@/lib/order-alerts";
-import { cn } from "@/lib/utils";
+
 import { updateBoardSettings } from "./actions";
 
 /**

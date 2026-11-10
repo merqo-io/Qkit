@@ -1,15 +1,17 @@
 "use client";
 
 import { InfoTooltip, MoneyInput } from "@merqo/ui";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
+  Checkbox,
+  Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
+
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory } from "@/lib/types";
@@ -33,9 +35,11 @@ export function MenuItemPricingFields({
   index,
   categories,
   stockCaps,
+  hasBoothLimit = false,
   onPrice,
   onCost,
   onStock,
+  onCountsTowardLimit = () => {},
   onCategory,
 }: {
   item: MenuItemFormInput;
@@ -44,10 +48,13 @@ export function MenuItemPricingFields({
   categories: MenuCategory[];
   // Whether the vendor's plan includes sold-out limits.
   stockCaps: boolean;
+  // Whether the booth has a daily item limit; without one the tick is moot.
+  hasBoothLimit?: boolean;
   onPrice: (cents: number | undefined) => void;
   onCost: (cents: number | undefined) => void;
   // The raw text typed into the sold-out limit, parsed by the editor.
   onStock: (raw: string) => void;
+  onCountsTowardLimit?: (counts: boolean) => void;
   onCategory: (category: string | null) => void;
 }) {
   return (
@@ -161,6 +168,26 @@ export function MenuItemPricingFields({
             </SelectContent>
           </Select>
         </div>
+      )}
+      {stockCaps && hasBoothLimit && (
+        <label
+          htmlFor={`menu-item-${index}-counts`}
+          className="flex min-h-11 basis-full cursor-pointer items-start gap-2 text-sm"
+        >
+          <Checkbox
+            id={`menu-item-${index}-counts`}
+            className="mt-0.5"
+            checked={item.excludeFromBoothLimit !== true}
+            onCheckedChange={(checked) => onCountsTowardLimit(checked === true)}
+          />
+          <span className="flex flex-col">
+            <span className="font-medium">Counts toward booth limit</span>
+            <span className="text-xs text-muted-foreground">
+              Untick for items that should not use up the booth&apos;s daily
+              limit.
+            </span>
+          </span>
+        </label>
       )}
     </div>
   );

@@ -305,6 +305,50 @@ describe("MenuEditor availability toggle", () => {
   });
 });
 
+function HostWithLimit({
+  hasBoothLimit,
+  stockCaps = true,
+}: {
+  hasBoothLimit: boolean;
+  stockCaps?: boolean;
+}) {
+  const [items, setItems] = useState<MenuItemFormInput[]>([ITEM]);
+  return (
+    <MenuEditor
+      vendorId="v1"
+      items={items}
+      onChange={setItems}
+      entitlement={{ ...ENTITLEMENT, stockCaps }}
+      hasBoothLimit={hasBoothLimit}
+    />
+  );
+}
+
+describe("MenuEditor counts toward booth limit", () => {
+  it("is ticked by default and unticks into the excluded flag", async () => {
+    const user = userEvent.setup();
+    render(<HostWithLimit hasBoothLimit />);
+    const box = screen.getByRole("checkbox", {
+      name: /Counts toward booth limit/,
+    });
+    expect(box).toBeChecked();
+    await user.click(box);
+    expect(box).not.toBeChecked();
+    await user.click(box);
+    expect(box).toBeChecked();
+  });
+
+  it("is hidden when the booth has no daily limit", () => {
+    render(<HostWithLimit hasBoothLimit={false} />);
+    expect(screen.queryByText("Counts toward booth limit")).toBeNull();
+  });
+
+  it("is hidden without the stock caps entitlement", () => {
+    render(<HostWithLimit hasBoothLimit stockCaps={false} />);
+    expect(screen.queryByText("Counts toward booth limit")).toBeNull();
+  });
+});
+
 describe("MenuEditor field labels", () => {
   it("names each money and stock field by its visible label", () => {
     render(<Host />);

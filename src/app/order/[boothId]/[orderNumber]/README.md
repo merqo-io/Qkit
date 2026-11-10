@@ -44,7 +44,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   server component, same shape as `EarnLink`): mints a single-order-scoped
   connect token from merqo (`mintCustomerConnectToken`,
   `@/lib/merqo/customer-notify`, `notify_ref` `` `qkit:${orderId}` ``) and
-  renders the deep-link button plus a one-line disclosure preview — merqo's
+  renders the shared `CustomerTelegramConnect` (`@merqo/ui`) deep-link button plus a one-line disclosure preview — merqo's
   own connect flow holds the actual consent copy, this never restates or
   diverges from it — or `null` on any mint failure (a merqo outage must
   never break this page, same fail-closed rule as `EarnLink`).

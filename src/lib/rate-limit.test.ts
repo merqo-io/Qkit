@@ -97,7 +97,8 @@ describe("rateLimit", () => {
 
     expect(await rateLimit("private-token", 8, 60)).toBe(true);
     expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
-      "rateLimit degraded (failing open)",
+      "rateLimit unavailable",
+      "Error",
     );
   });
 
@@ -107,7 +108,8 @@ describe("rateLimit", () => {
 
     expect(await rateLimit("private-token", 8, 60)).toBe(true);
     expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
-      "rateLimit degraded (failing open)",
+      "rateLimit unavailable",
+      "Error",
     );
   });
 
@@ -118,7 +120,8 @@ describe("rateLimit", () => {
     expect(await rateLimit("order:test", 8, 60)).toBe(true);
     expect(rpc).not.toHaveBeenCalled();
     expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
-      "rateLimit degraded (failing open)",
+      "rateLimit unavailable",
+      "Error",
     );
   });
 });
@@ -162,7 +165,8 @@ describe("rateLimitStrict", () => {
 
     expect(await rateLimitStrict("private-token", 8, 60)).toBe(false);
     expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
-      "rateLimit degraded (failing closed)",
+      "rateLimit unavailable",
+      "Error",
     );
   });
 
@@ -172,7 +176,8 @@ describe("rateLimitStrict", () => {
 
     expect(await rateLimitStrict("private-token", 8, 60)).toBe(false);
     expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
-      "rateLimit degraded (failing closed)",
+      "rateLimit unavailable",
+      "Error",
     );
   });
 

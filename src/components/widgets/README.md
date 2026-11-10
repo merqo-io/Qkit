@@ -36,7 +36,7 @@ alwaysShowCount })`: client-side pager over pre-rendered rows —
   page) lays out only the rows, not the pager controls.
 - `pro-lock.tsx` — `ProLock({ feature, label })`: an inline upgrade nudge
   linking to `/dashboard/plan`, logging an `upgrade_cta` event tagged with
-  the specific gated `feature` for funnel analysis.
+  the specific gated `feature` for funnel analysis. A wrapper over the shared `ProLock` from `@merqo/ui`, which owns the pill and its touch target.
 - `site-footer.test.tsx` — wordmark, tagline, copyright, About, Terms and
   Privacy links; sign-in link only with `showSignIn`.
 - `site-footer.tsx` — `SiteFooter({ showSignIn })`: `@merqo/ui`'s family
@@ -74,6 +74,11 @@ tooltip, children })`: thin local wrapper around `@merqo/ui`'s `Section`,
 - `zoomable-image.tsx` — `ZoomableImage({ src, alt, sizes })`: a menu photo
   that opens fullscreen in a `Dialog` on tap, with a corner expand-icon
   affordance.
+- `screen-size-control.tsx` — `ScreenSizeControl({ screen, className })`: the
+  A- / percent-reset / A+ group (40px targets) driving `useScreenScale` for the
+  queue display or the kitchen board.
+- `screen-size-control.dom.test.tsx` — step, reset, disabled-at-default and
+  per-screen storage key.
 
 ## Parent
 

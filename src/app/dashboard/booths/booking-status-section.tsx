@@ -1,7 +1,7 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input, Label } from "@merqo/ui/primitives";
+
 import { formatPrice } from "@/lib/utils";
 import type { BookingStatus } from "@/lib/paykit/client";
 

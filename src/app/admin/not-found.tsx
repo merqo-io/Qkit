@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
 
 /** Branded 404 for the Merqo-team admin console — see
  * dashboard/not-found.tsx for why this can't reuse the root's

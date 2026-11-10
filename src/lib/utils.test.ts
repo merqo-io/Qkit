@@ -1,6 +1,6 @@
+import { cn } from "@merqo/ui/primitives";
 import { describe, expect, it } from "vitest";
 import {
-  cn,
   count,
   formatOptions,
   formatPrice,

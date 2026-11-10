@@ -1,10 +1,12 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { useEffect, useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { splitTrailingDigit } from "@/lib/orders";
 import { usePolling } from "@/hooks/use-polling";
+import { ScreenSizeControl } from "@/components/widgets/screen-size-control";
 import { playReadyChime, unlockAudio } from "@/lib/order-alerts";
 import { getBoothQueueDisplay, type QueueDisplayOrder } from "./actions";
 import type { OrderStatus } from "@/lib/types";
@@ -127,19 +129,25 @@ export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">
           {boothName}
         </h1>
-        {!soundEnabled && (
-          <button
-            type="button"
-            onClick={() => {
-              unlockAudio();
-              setSoundEnabled(true);
-            }}
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground"
-          >
-            <Volume2 className="size-4" />
-            Enable sound
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          <ScreenSizeControl
+            screen="display"
+            className="opacity-20 transition-opacity focus-within:opacity-100 hover:opacity-100"
+          />
+          {!soundEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                unlockAudio();
+                setSoundEnabled(true);
+              }}
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground"
+            >
+              <Volume2 className="size-4" />
+              Enable sound
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="perforation my-6 shrink-0" />

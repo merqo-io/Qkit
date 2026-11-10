@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@merqo/ui/primitives";
+
 import { ALLERGEN_TAGS, type AllergenTag } from "@/lib/schemas";
 import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
 

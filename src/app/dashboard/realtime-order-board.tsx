@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { useState } from "react";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useCupsToday } from "@/hooks/use-cups-today";
@@ -43,7 +44,7 @@ import {
 } from "./use-board-lifecycle";
 import { useBoardNumbering } from "./use-board-numbering";
 import { useNewOrderAlerts } from "./use-new-order-alerts";
-import { cn } from "@/lib/utils";
+
 import type { BoardOrder, BoardSettings } from "@/lib/types";
 
 interface Props {

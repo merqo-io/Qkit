@@ -17,7 +17,10 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   Only a Storage call without an error counts as done (Storage already
   returns no error for a missing object); any error bumps `attempts` and sets
   `last_error`, and rows at 5 attempts are no longer read but stay for manual
-  inspection. Never throws, so callers run it best-effort after a delete.
+  inspection. Never throws and returns `DrainResult` `{ removed, failed, ok }`
+  (`ok` is false on a queue read or clear error or a caught exception); the
+  cron route turns `failed > 0` or `!ok` into a 500, while `deleteBooth` runs it
+  best-effort and ignores the result.
 - `action-result.ts` — `ActionResult<T>` discriminated union plus the `ok(data?)` and `fail(error)` constructors; build Server Action results with these, never `{ success }` literals (import them, a `"use server"` file cannot re-export them)
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an
@@ -27,9 +30,13 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   icon set — a shared `lib/` module rather than a dashboard-scoped one
   reaching across into `components/`. Rendering-only, no schema/data-model
   change.
-- `brand-icon.tsx` — `brandIcon(size)` React element plus `BRAND_KHAKI`/
-  `BRAND_OAT` color constants; renders the "Q" app mark for `ImageResponse`-
+- `brand.tsx` — `qkitBrandIcon(size)` binds the "Q" mark and `BRAND_KHAKI`/
+  `BRAND_OAT` colours to the shared `brandIcon` for the `ImageResponse`-
   generated favicon/manifest/apple-touch icons.
+- `nonce-prefixes.ts` — `NONCE_PREFIXES`: the shared default nonce prefixes
+  plus the public pages (`/`, `/about`, `/legal`, `/offers`, `/order-history`),
+  `/onboarding`, `/o` and `/order`, so the nonce CSP still covers every route;
+  `e2e/csp.spec.ts` guards this. The proxy matcher regex is also now escaped correctly (`\\.`), so paths like `/foosvg` are no longer skipped.
 - `carousel.ts` — `nearestIndex(scrollLeft, boardWidth, count)`: clamped
   nearest-board-index calculation for a horizontally-scrolling carousel.
 - `carousel.test.ts` — tests clamping and the non-positive-width edge case.
@@ -38,10 +45,13 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   `holdsApply`, `addBlock` + `addBlockMessage` (why one more of an item cannot
   go in: the item's stock, the booth's daily total, or the per-order limit,
   each told apart from "held in another basket"), and `fitCart` (cuts a basket
-  to what is available, trimming from the end). Display and courtesy only;
+  to what is available, trimming from the end). Items flagged
+  `excludeFromBoothLimit` (collected by `boothLimitExcludedIds`) are passed to
+  `addBlock`/`fitCart` and skip the booth's daily total, while the per-order
+  limit and the item's own stock still apply. Display and courtesy only;
   `place_order` and the cap triggers are the real limits.
 - `availability.test.ts` — tests parsing, each block reason and its order of
-  precedence, the messages, and trimming.
+  precedence, the messages, trimming and items excluded from the booth limit.
 - `cart-storage.ts` — `saveCart`/`loadCart`/`clearCart`: persists the
   in-progress customer cart to `sessionStorage` (keyed `qkit:cart:{boothId}`)
   as compact `ReorderLine`s, validated on read via `isValidLine`; best-effort
@@ -472,7 +482,8 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   sample-met-but-no-usable-wait-data null case.
 - `stock.ts` — `parseRemaining`/`remainingFor`: parses the
   `booth_remaining_stock` JSONB RPC result into a typed per-item remaining-
-  count map (Postgres is authoritative; this just reports it to the cart UI).
+  count map (Postgres is authoritative and counts sales in the current service,
+  the same window as the daily item limit; this just reports it to the cart UI).
 - `stock.test.ts` — tests parsing of malformed/partial remaining-stock data.
 - `stuck-orders.ts` — `statusSinceByOrder(orders, events)`: maps each order to
   when it entered its CURRENT status — the latest matching
@@ -547,7 +558,7 @@ boolean`, migration 0080 — orders, booth_item_sold —
   hydration-safe.
 - `tz.test.ts` — tests hour/weekday extraction, each display formatter
   against fixed ISO instants, and `sgtStartOfDayIso`'s day-boundary rollover.
-- `utils.ts` — `cn` (clsx + tailwind-merge), shared form style constants
+- `utils.ts` — shared form style constants and formatters (`cn` comes from `@merqo/ui/primitives`)
   (`FORM_LABEL_CLASS`, `FORM_ERROR_CLASS`), `MS_PER_HOUR`/`MS_PER_DAY`,
   `formatPrice`, `centsToDollarString`, `parseDollarsToCents` (keystroke-level
   validation for money inputs), `orderHasPricing`, `count` (pluralized noun),
@@ -614,8 +625,8 @@ Menu CSV records preserve quoted LF, CRLF, and CR newlines on export/import.
 Option statistics key group and choice as a tuple so different pairs cannot collide.
 Restored carts recompute current option surcharges, including options on unpriced items.
 
-`security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.
+The CSP source lists and the root layout theme props come from `@merqo/ui/security` and `@merqo/ui/next`.
 
-`security-headers.ts` also allows the Vercel toolbar origin (`vercel.live`) outside production.
+The shared policy also allows the Vercel toolbar origin (`vercel.live`) outside production.
 
 `utils.ts` also exports `isNil(value)`, the type guard for `null` or `undefined` used wherever the code checks a nullable column.

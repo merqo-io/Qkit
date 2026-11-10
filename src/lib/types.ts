@@ -188,6 +188,9 @@ export type MenuItem = {
   // Optional sold-out cap (Pro). null/absent = unlimited. Remaining is computed
   // live from non-cancelled orders (see booth_remaining_stock) — not decremented.
   stock?: number | null;
+  // true = does not use up the booth's daily limit (booths.daily_cup_cap).
+  // Absent or false counts, so existing menus are unchanged.
+  excludeFromBoothLimit?: boolean;
   // Only fixed/inherent allergens that no customization changes — see
   // OptionChoice.allergens for anything that varies by choice.
   allergens?: AllergenTag[];
@@ -221,6 +224,7 @@ export interface Database {
     Enums: {
       order_status: OrderStatus;
       payment_status: PaymentStatus;
+      print_status: PrintStatus;
     };
     CompositeTypes: {
       [_ in never]: never;

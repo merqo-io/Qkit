@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { TermsAcceptanceCheckbox } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { acceptLegalTerms } from "./actions";
 
 export function AcceptForm({ next }: { next: string }) {

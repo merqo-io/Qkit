@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Plus, Settings as SettingsIcon, Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
+  cn,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+} from "@merqo/ui/primitives";
+
 import { BoothToggle, type BoothView } from "./board-booths";
+import { ScreenSizeControl } from "@/components/widgets/screen-size-control";
 import { CustomerScreenButton } from "./customer-screen-dialog";
 
 const HEADER_BUTTON = "rounded-full";
@@ -166,6 +168,7 @@ export function BoardHeader({
           </TooltipTrigger>
           <TooltipContent>Board settings</TooltipContent>
         </Tooltip>
+        <ScreenSizeControl screen="board" />
         <ActiveCountPill idle={idle} count={visibleCount} />
       </div>
     </div>

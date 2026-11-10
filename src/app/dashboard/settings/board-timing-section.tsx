@@ -1,9 +1,8 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button, Input, Label } from "@merqo/ui/primitives";
+
 import { Section } from "@/components/widgets/ticket-section";
 import { InfoTooltip } from "@merqo/ui";
 import { FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@/lib/utils";

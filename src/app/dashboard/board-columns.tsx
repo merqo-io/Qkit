@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import type { BoardOrder, PaymentStatus } from "@/lib/types";
 import {
   BATCH_BUTTON,

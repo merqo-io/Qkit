@@ -7,7 +7,7 @@ pickup status.
 ## Stack
 
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
-React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.44.0)
+React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.44.1)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
 
 The shared UI dependency is pinned to a reviewed immutable Git commit. Its
@@ -43,15 +43,15 @@ Populate the template locally through your secret-management workflow. Never
 commit environment files. Public Supabase values are inlined at build time;
 rebuild after changing them.
 
-| Configuration                                                                 | Purpose                                           |
-| ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Browser-safe Supabase connection                  |
-| `SUPABASE_SECRET_KEY`                                                         | Server-only service-role access                   |
-| `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration  |
-| `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout         |
-| `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                     |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`          | Optional order-ready web push                     |
-| `CRON_SECRET`                                                                 | Bearer secret for the daily screenshot-drain cron |
+| Configuration                                                                 | Purpose                                                                      |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Browser-safe Supabase connection                                             |
+| `SUPABASE_SECRET_KEY`                                                         | Server-only service-role access                                              |
+| `MERQO_BASE_URL`, `MERQO_CUSTOMER_SECRET`                                     | Shared legal acceptance and Telegram integration                             |
+| `NEXT_PUBLIC_PAYKIT_URL`, `PAYKIT_KIT_SECRET`, `PAYKIT_CALLBACK_SECRET`       | Vendor payment configuration and checkout                                    |
+| `NEXT_PUBLIC_PRINTKIT_URL`, `PRINTKIT_KIT_SECRET`, `PRINTKIT_CALLBACK_SECRET` | Optional printing integration                                                |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`          | Optional order-ready web push                                                |
+| `CRON_SECRET`                                                                 | Bearer secret for the daily screenshot-drain cron (500 when the drain fails) |
 
 See [.env.example](.env.example) for the full configuration contract and
 [deployment notes](docs/DEPLOY.md) for environment scoping. In particular,
@@ -84,7 +84,9 @@ pnpm exec supabase test db
 ```
 
 Schema changes belong in a new migration, with the TypeScript DB contract in
-`src/lib/types.ts` kept consistent. Historical migrations are required to rebuild
+`src/lib/types.ts` (and the split files in `src/lib/db-types/`) kept consistent;
+compare against `supabase gen types typescript --local --schema qkit` output after
+applying the migrations to a local stack. Historical migrations are required to rebuild
 the schema and must not be deleted merely because a later migration replaces a
 function.
 
@@ -191,7 +193,7 @@ cup counters run with bounded concurrency and cannot fail the board.
 
 ## Lint
 
-`eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand-icon.tsx` and `src/app/global-error.tsx`.
+`eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and turns on `merqoNoLocalCopies()` (the `allow` list names the thin wrappers that bind qkit config) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand.tsx` and `src/app/global-error.tsx`.
 
 Staging printing rehearsal: [candidate QA and release prerequisites](docs/meta/2026-10-27-staging-print-qa.md).
 

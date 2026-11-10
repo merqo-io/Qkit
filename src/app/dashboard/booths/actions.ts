@@ -472,10 +472,17 @@ export async function saveMenuItems(
   const menuCapError = validateMenuCaps(parsed.data, entitlement);
   if (menuCapError) return fail(menuCapError);
 
-  // Same stock-cap stripping rule saveBooth used to apply.
+  // Same stock-cap stripping rule saveBooth used to apply. The booth-limit
+  // opt-out goes with it: it only matters on a plan that can set a daily limit.
   const menu_items = entitlement.stockCaps
     ? parsed.data
-    : parsed.data.map(({ stock: _stock, ...rest }) => rest);
+    : parsed.data.map(
+        ({
+          stock: _stock,
+          excludeFromBoothLimit: _excludeFromBoothLimit,
+          ...rest
+        }) => rest,
+      );
 
   const supabase = await createServerClient();
 

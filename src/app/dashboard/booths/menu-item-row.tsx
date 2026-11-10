@@ -10,14 +10,15 @@ import {
   EyeOff,
   MoreVertical,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, cn, Input } from "@merqo/ui/primitives";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+
 import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { MediaImage } from "@/components/widgets/media-image";
 import { uploadQkitImage } from "@/lib/image-upload-adapter";
@@ -26,7 +27,7 @@ import { MenuItemPricingFields } from "./menu-item-fields";
 import { SortableItemCard } from "./menu-sortables";
 import type { MenuMutations } from "./use-menu-mutations";
 import type { Entitlement } from "@/lib/plan";
-import { cn } from "@/lib/utils";
+
 import type { MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory, OptionGroup } from "@/lib/types";
 import { MenuItemAllergens } from "./menu-item-allergens";
@@ -67,6 +68,7 @@ interface Props {
   standalone: boolean;
   vendorId: string;
   entitlement: Entitlement;
+  hasBoothLimit?: boolean;
   categories: MenuCategory[];
   atItemCap: boolean;
   isOpen: boolean;
@@ -83,6 +85,7 @@ export function MenuItemRow({
   standalone,
   vendorId,
   entitlement,
+  hasBoothLimit = false,
   categories,
   atItemCap,
   isOpen,
@@ -196,6 +199,12 @@ export function MenuItemRow({
             index={index}
             categories={categories}
             stockCaps={entitlement.stockCaps}
+            hasBoothLimit={hasBoothLimit}
+            onCountsTowardLimit={(counts) =>
+              update(index, {
+                excludeFromBoothLimit: counts ? undefined : true,
+              })
+            }
             onPrice={(cents) => setPrice(index, cents)}
             onCost={(cents) => setCost(index, cents)}
             onStock={(raw) => setStock(index, raw)}

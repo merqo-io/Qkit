@@ -1,3 +1,4 @@
+import { cn } from "@merqo/ui/primitives";
 import { notFound, redirect } from "next/navigation";
 import { requestOrigin } from "@/lib/request-origin";
 import Link from "next/link";
@@ -11,12 +12,12 @@ import {
 } from "@/lib/merqo/vendor-profile";
 import { Ticket } from "@/components/widgets/ticket";
 import {
-  cn,
   formatOptions,
   formatPrice,
   orderHasPricing,
   EYEBROW_CLASS,
 } from "@/lib/utils";
+
 import {
   orderBoothIdSchema,
   orderNumberSchema,

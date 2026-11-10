@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { BRAND_KHAKI, BRAND_OAT } from "@/lib/brand-icon";
+import { BRAND_KHAKI, BRAND_OAT } from "@/lib/brand";
 
 // `display: standalone` is what makes the app installable, and iOS only enables
 // Web Notifications for a PWA added to the home screen in standalone mode.

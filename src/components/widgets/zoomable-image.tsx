@@ -7,7 +7,8 @@ import {
   DialogClose,
   DialogContent,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@merqo/ui/primitives";
+
 import { MediaImage } from "@/components/widgets/media-image";
 
 interface Props {

@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Running a service",
   summary:
     "Work the live board, log walk-up orders, restart the count and show the TV screen.",
-  reviewed: "2026-11-03",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Live orders",
     "Incoming",
@@ -157,7 +157,7 @@ export const article: HelpArticle = {
     {
       type: "steps",
       items: [
-        "Find the booth in the board's booth list and tap its small restart icon, or open the booth's edit page and tap Start new service under Limits.",
+        "Find the booth in the board's booth list and tap its New service button (it shows the day's count when the booth has a daily limit, and just the label when it only has Sold-out limits), or open the booth's edit page and tap Start new service under Limits.",
         "Check the booth name in the Start a new service? window, then confirm with Start new service.",
         "The item count goes back to 0, so the booth can take a full daily limit again. Orders already placed are not changed.",
       ],
@@ -188,6 +188,10 @@ export const article: HelpArticle = {
     {
       type: "tip",
       text: "If nothing opens, your browser probably blocked the pop-up. Allow pop-ups for qkit, or use the code or link instead.",
+    },
+    {
+      type: "paragraph",
+      text: "The Customer screen and the live board each have their own text size control, A- and A+, with a percentage button to reset. Each screen remembers its own size on that device, so you can leave browser zoom at 100%. On the Customer screen the control sits at the top right and is faint until you hover over it or tap it.",
     },
   ],
 };

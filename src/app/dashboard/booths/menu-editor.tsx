@@ -18,8 +18,8 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { Plus, GripVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Button, Label } from "@merqo/ui/primitives";
+
 import { ProLock } from "@/components/widgets/pro-lock";
 import { MenuItemRow } from "./menu-item-row";
 import { MenuNoSectionGroup, MenuSectionGroup } from "./menu-section-group";
@@ -41,6 +41,7 @@ interface Props {
   items: MenuItemFormInput[];
   onChange: (items: MenuItemFormInput[]) => void;
   entitlement: Entitlement;
+  hasBoothLimit?: boolean;
   categories?: MenuCategory[];
   onCategoriesChange?: (categories: MenuCategory[]) => void;
 }
@@ -50,6 +51,7 @@ export function MenuEditor({
   items,
   onChange,
   entitlement,
+  hasBoothLimit = false,
   categories = [],
   onCategoriesChange = () => {},
 }: Props) {
@@ -193,6 +195,7 @@ export function MenuEditor({
         standalone={standalone}
         vendorId={vendorId}
         entitlement={entitlement}
+        hasBoothLimit={hasBoothLimit}
         categories={categories}
         atItemCap={atItemCap}
         isOpen={expanded.has(item.id)}

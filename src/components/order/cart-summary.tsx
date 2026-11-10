@@ -1,9 +1,11 @@
 "use client";
 
 import { ChevronDown, Minus, Plus, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, cn } from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
-import { cn, count, formatOptions, formatPrice } from "@/lib/utils";
+import { count, formatOptions, formatPrice } from "@/lib/utils";
+
 import type { useCart } from "@/hooks/use-cart";
 
 interface Props {

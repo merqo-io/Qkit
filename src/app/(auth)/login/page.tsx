@@ -6,9 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button, Input, Label } from "@merqo/ui/primitives";
+
 import { ElevatedCard } from "@merqo/ui";
 import { Wordmark } from "@/components/landing/wordmark";
 import { createClient } from "@/lib/supabase/client";

@@ -207,7 +207,7 @@ jobs:
           # exists, and it exits 1 with "No tests were executed".
           CHANGED=$(git diff --name-only --diff-filter=d "origin/$GITHUB_BASE_REF...HEAD")
           FILES=$(printf '%s\n' "$CHANGED" | awk '
-            /^src\/lib\/.*\.ts$/ && !/\.test\.ts$|\/types\.ts$|\/action-result\.ts$/ {
+            /^src\/lib\/.*\.ts$/ && !/\.test\.ts$|\/types\.ts$|\/action-result\.ts$|\/db-types\// {
               printf "%s%s", separator, $0
               separator = ","
             }')

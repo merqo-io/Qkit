@@ -20,7 +20,7 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
   // RLS scopes this to the vendor's own booths; a foreign id returns null.
   const { data: booth } = await supabase
     .from("booths")
-    .select("id, name, menu_items, menu_categories")
+    .select("id, name, menu_items, menu_categories, daily_cup_cap")
     .eq("id", boothId)
     .maybeSingle();
 
@@ -36,6 +36,7 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
     option_groups: m.option_groups,
     available: m.available,
     stock: m.stock,
+    excludeFromBoothLimit: m.excludeFromBoothLimit,
     category: m.category,
   }));
   const categories = parseMenuCategories(booth.menu_categories);
@@ -46,6 +47,9 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
       boothId={booth.id}
       boothName={booth.name}
       entitlement={entitlement}
+      hasBoothLimit={
+        booth.daily_cup_cap !== null && booth.daily_cup_cap !== undefined
+      }
       initialItems={items}
       initialCategories={categories}
       isNewBooth={isNewParam === "1"}

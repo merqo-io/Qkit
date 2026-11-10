@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Power, PowerOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, cn } from "@merqo/ui/primitives";
+
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { toggleBoothActive } from "./actions";
-import { cn } from "@/lib/utils";
 
 const HOLD_MS = 3000;
 // Long enough for a vendor to notice and undo a close mid-service, short

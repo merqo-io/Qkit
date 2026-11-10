@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button, Checkbox } from "@merqo/ui/primitives";
+
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { Entitlement } from "@/lib/plan";
 import type { WeekdayKey } from "@/lib/tz";

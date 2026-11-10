@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Menu and stock",
   summary:
     "Set up items, the daily item limit, basket holds and the per-order item limit.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Add item",
     "Add section",
@@ -86,7 +86,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Hide it by turning off the Available switch on the item. Customers do not see it until you turn it back on. Use this when you have run out for the day.",
-        "Give it a Sold-out limit. Once that many are sold, customers see Sold out on the item and cannot add it. Leave the limit blank for unlimited.",
+        "Give it a Sold-out limit. Once that many are sold in the current service, customers see Sold out on the item and cannot add it. The count starts again at midnight and when you tap Start new service. Leave the limit blank for unlimited.",
       ],
     },
     {
@@ -114,8 +114,9 @@ export const article: HelpArticle = {
     {
       type: "bullets",
       items: [
-        "The count starts again from zero at midnight.",
-        "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
+        "The count starts again from zero at midnight. The Sold-out limit on each item restarts at the same time.",
+        "Some items should not use up the limit, such as a drink you can always pour. On the menu, untick Counts toward booth limit for that item. It then never counts toward the daily limit and can still be ordered when the booth is full. Its own Sold-out limit and the per-order limit still apply. The tick shows once the booth has a daily item limit. If you change the tick during a service, today's count changes straight away, including items already sold, and the board count catches up on the next order or a refresh.",
+        "Running a morning and an afternoon service? Tap Start new service to reset the counts yourself, for the daily item limit and every item's Sold-out limit. It sits under Limits, and as a labelled New service button beside the booth on the live board. Orders already placed are not changed.",
         "The daily item limit is available on the Starter and Pro plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],
     },

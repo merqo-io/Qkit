@@ -5,12 +5,13 @@ import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
 import { Copy, Pencil, QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
 import { CustomerScreenButton } from "../customer-screen-dialog";
 
