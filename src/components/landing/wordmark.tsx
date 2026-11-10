@@ -1,12 +1,13 @@
-import { cn } from "@merqo/ui/primitives";
+import { Wordmark as SharedWordmark, type WordmarkProps } from "@merqo/ui";
 
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark({
+  size,
+  className,
+}: Pick<WordmarkProps, "size" | "className">) {
   return (
-    <span
-      className={cn("font-display font-semibold tracking-tight", className)}
-    >
+    <SharedWordmark size={size} className={className}>
       <span className="text-primary">q</span>
       kit
-    </span>
+    </SharedWordmark>
   );
 }

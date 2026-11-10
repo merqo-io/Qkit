@@ -26,3 +26,5 @@ Imports `loginSchema`/`LoginInput` from `src/lib/schemas.ts`, the browser Supaba
 ## Parent
 
 [(auth)](../README.md)
+
+The two `Wordmark` uses pass `size="lg"` and `size="xl"` so the shared wordmark shell keeps the previous text sizes.
