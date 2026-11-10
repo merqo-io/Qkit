@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, Check, ListChecks, QrCode, ScanLine } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { Nav } from "@/components/landing/nav";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";

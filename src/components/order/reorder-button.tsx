@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { stashReorder } from "@/lib/reorder-handoff";
 import type { ReorderLine } from "@/lib/reorder";
 

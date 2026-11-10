@@ -2,7 +2,7 @@
 
 import { Children, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
 
 interface Props {
   children: React.ReactNode;

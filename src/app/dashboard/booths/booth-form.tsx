@@ -14,11 +14,8 @@ import {
   ClipboardList,
   ArrowRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Button, Checkbox, Input, Label, Switch } from "@merqo/ui/primitives";
+
 import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";

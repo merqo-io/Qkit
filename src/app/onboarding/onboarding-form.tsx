@@ -5,9 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button, Input, Label } from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
 import { vendorSchema, type VendorInput } from "@/lib/schemas";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";

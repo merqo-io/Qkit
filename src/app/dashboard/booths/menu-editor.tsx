@@ -18,8 +18,8 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { Plus, GripVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Button, Label } from "@merqo/ui/primitives";
+
 import { ProLock } from "@/components/widgets/pro-lock";
 import { MenuItemRow } from "./menu-item-row";
 import { MenuNoSectionGroup, MenuSectionGroup } from "./menu-section-group";

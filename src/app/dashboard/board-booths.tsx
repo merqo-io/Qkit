@@ -1,14 +1,17 @@
 "use client";
 
 import { Pause, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
+  cn,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@merqo/ui/primitives";
+
 import { boothDotTitle } from "@/lib/booth/color";
-import { cn, isNil } from "@/lib/utils";
+import { isNil } from "@/lib/utils";
+
 import { StartServiceButton } from "./start-service-button";
 
 export type BoothView = {

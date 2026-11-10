@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button, Input, Label } from "@merqo/ui/primitives";
+
 import { createClient } from "@/lib/supabase/client";
 import { Ticket } from "@/components/widgets/ticket";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";

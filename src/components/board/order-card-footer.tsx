@@ -1,8 +1,10 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { AlertTriangle, Banknote, Clock, Printer } from "lucide-react";
 import { OrderStatusBadge } from "@/components/board/order-status-badge";
-import { cn, isNil } from "@/lib/utils";
+import { isNil } from "@/lib/utils";
+
 import {
   ageLabel,
   elapsedMinutes,

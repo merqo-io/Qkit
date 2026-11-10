@@ -8,9 +8,9 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Button,
+  Checkbox,
   Dialog,
   DialogClose,
   DialogContent,
@@ -19,9 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  Input,
+  Label,
+} from "@merqo/ui/primitives";
+
 import { OPTION_CODE_MAX, suggestOptionCode } from "@/lib/ticket";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ProLock } from "@/components/widgets/pro-lock";

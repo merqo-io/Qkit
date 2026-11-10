@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { Hint } from "@/components/widgets/hint";
 import { advanceOrder, revertOrderAdvance } from "./order-advance-actions";
 import type { BoardOrder, PaymentStatus } from "@/lib/types";

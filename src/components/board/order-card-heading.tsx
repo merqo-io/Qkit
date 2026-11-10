@@ -1,7 +1,8 @@
 "use client";
 
 import { Zap } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@merqo/ui/primitives";
+
 import { OrderStatusBadge } from "@/components/board/order-status-badge";
 import { boothDotTitle } from "@/lib/booth/color";
 import { splitTrailingDigit } from "@/lib/orders";

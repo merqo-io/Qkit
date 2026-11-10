@@ -6,7 +6,8 @@ import Link from "next/link";
 import QRCode from "react-qr-code";
 import { Download, Printer } from "lucide-react";
 import { BackButton } from "@merqo/ui";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
 import { orderPath } from "@/lib/booth/code";
 import { RegenerateButton } from "./regenerate-button";

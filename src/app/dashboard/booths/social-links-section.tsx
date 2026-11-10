@@ -1,6 +1,7 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@merqo/ui/primitives";
+
 import { SocialLinksFields } from "@merqo/ui";
 import type { SocialLinks } from "@/lib/types";
 

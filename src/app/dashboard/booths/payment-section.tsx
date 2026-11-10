@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@merqo/ui/primitives";
+
 import { SettingRow } from "./setting-row";
 import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 

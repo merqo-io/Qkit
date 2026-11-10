@@ -1,9 +1,11 @@
 "use client";
 
+import { cn } from "@merqo/ui/primitives";
 import { useState, type MouseEvent, memo, useMemo } from "react";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
-import { cn, formatPrice, orderHasPricing } from "@/lib/utils";
+import { formatPrice, orderHasPricing } from "@/lib/utils";
+
 import { isTerminal, type AgeTone } from "@/lib/orders";
 import { ticketAttention, type OptionCodes } from "@/lib/ticket";
 import { useNow } from "@/hooks/use-now";

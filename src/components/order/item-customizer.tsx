@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, cn } from "@merqo/ui/primitives";
+
 import {
   Sheet,
   SheetContent,
@@ -12,7 +13,8 @@ import {
 } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MediaImage } from "@/components/widgets/media-image";
-import { cn, formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
+
 import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
 import type { MenuItem, SelectedOption } from "@/lib/types";
 

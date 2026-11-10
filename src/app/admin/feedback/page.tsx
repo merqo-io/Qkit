@@ -1,10 +1,12 @@
+import { cn } from "@merqo/ui/primitives";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Star } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { vendorStallNames } from "@/lib/admin/vendor-names";
-import { cn, EYEBROW_CLASS } from "@/lib/utils";
+import { EYEBROW_CLASS } from "@/lib/utils";
+
 import { npsBreakdown } from "@/lib/nps";
 import { summarizeReviews, type ReviewRow } from "@/lib/reviews";
 import { Paginated } from "@/components/widgets/paginated";

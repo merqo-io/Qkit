@@ -2,21 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
+
 import { ItemCustomizer } from "@/components/order/item-customizer";
 import { cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";

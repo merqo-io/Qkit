@@ -1,10 +1,12 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, cn } from "@merqo/ui/primitives";
+
 import { ZoomableImage } from "@/components/widgets/zoomable-image";
 import { AllergenBadges } from "@/components/order/allergen-badges";
-import { cn, formatPrice, menuItemActionLabel } from "@/lib/utils";
+import { formatPrice, menuItemActionLabel } from "@/lib/utils";
+
 import type { MenuItem } from "@/lib/types";
 
 // What the item card says under the price when the item's stock is finite.

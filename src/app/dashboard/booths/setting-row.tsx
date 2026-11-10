@@ -1,4 +1,5 @@
-import { Label } from "@/components/ui/label";
+import { Label } from "@merqo/ui/primitives";
+
 import { Hint } from "@/components/widgets/hint";
 
 /**

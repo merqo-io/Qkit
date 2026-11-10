@@ -5,7 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { OrderCard } from "./order-card";
 import { buildOptionCodes } from "@/lib/ticket";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@merqo/ui/primitives";
+
 import { sgtClock, shortDateTime } from "@/lib/tz";
 import type { BoardOrder } from "@/lib/types";
 

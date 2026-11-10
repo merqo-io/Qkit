@@ -2,7 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import QRCode from "react-qr-code";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { formatPrice, EYEBROW_CLASS } from "@/lib/utils";
 import type { CheckoutView } from "@/lib/paykit/client";
 

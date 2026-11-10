@@ -550,7 +550,7 @@ boolean`, migration 0080 — orders, booth_item_sold —
   hydration-safe.
 - `tz.test.ts` — tests hour/weekday extraction, each display formatter
   against fixed ISO instants, and `sgtStartOfDayIso`'s day-boundary rollover.
-- `utils.ts` — `cn` (clsx + tailwind-merge), shared form style constants
+- `utils.ts` — shared form style constants and formatters (`cn` comes from `@merqo/ui/primitives`)
   (`FORM_LABEL_CLASS`, `FORM_ERROR_CLASS`), `MS_PER_HOUR`/`MS_PER_DAY`,
   `formatPrice`, `centsToDollarString`, `parseDollarsToCents` (keystroke-level
   validation for money inputs), `orderHasPricing`, `count` (pluralized noun),

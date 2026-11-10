@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
 
 /** Branded 404 — reached e.g. when a customer opens a stale/mistyped order URL. */
 export default function NotFound() {

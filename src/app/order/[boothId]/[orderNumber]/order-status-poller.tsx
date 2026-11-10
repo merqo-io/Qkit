@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@merqo/ui/primitives";
+
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { toast } from "sonner";
 import { usePolling } from "@/hooks/use-polling";

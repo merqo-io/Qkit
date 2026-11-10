@@ -1,15 +1,16 @@
 "use client";
 
 import { InfoTooltip, MoneyInput } from "@merqo/ui";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
+  Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
+
 import { ProLock } from "@/components/widgets/pro-lock";
 import type { MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory } from "@/lib/types";

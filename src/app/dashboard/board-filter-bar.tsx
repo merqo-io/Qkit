@@ -4,7 +4,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@merqo/ui/primitives";
+
 import { SegmentedControl } from "@merqo/ui";
 import { boothDotTitle } from "@/lib/booth/color";
 import type { AgeSortOrder } from "@/lib/orders";

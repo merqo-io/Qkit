@@ -3,7 +3,8 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { DollarSign, Lock, Package, Timer } from "lucide-react";
 import type { SeriesPoint, StatsSummary, WaitPoint } from "@/lib/stats";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@merqo/ui/primitives";
+
 import { Ticket } from "@/components/widgets/ticket";
 import { hourLabel, rangeCaption, waitClock } from "./chart-format";
 import { KpiRow, StatTile } from "./kpi-row";
