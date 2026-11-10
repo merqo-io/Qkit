@@ -128,6 +128,8 @@ notice.
   `null`) keeping the last good state instead of clearing the screen,
   each column's own render cap plus its "+N more" line, and that a
   fresh tile keeps its server position rather than moving to the front.
+- `loading.tsx` — deliberately plain dark screen with one pulsing bar while the service-client queries run; this is a venue TV, so no shaped skeleton. It sits here, not in `[boothId]/`, so it does not wrap the order status or pickup pages.
+- `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative bar.
 
 ## Connectivity
 

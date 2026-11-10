@@ -8,12 +8,12 @@ it and, on `accept/`, records the vendor's acceptance with merqo.
 
 ## Contents
 
-- `terms/page.tsx` — `TermsPage`, a one-line Server Component rendering
+- `terms/page.tsx` ([README](terms/README.md)) — `TermsPage`, a one-line Server Component rendering
   `@merqo/ui`'s `<LegalDocument doc="terms" kit="qkit" />` (the component
   brings its own `mx-auto max-w-3xl` prose container, so there's no local
   layout). The `kit` prop scopes the rendered Annex to qkit's own schedule
   only, not every sibling kit's.
-- `privacy/page.tsx` — `PrivacyPage`, the same for `<LegalDocument doc="privacy" />`.
+- `privacy/page.tsx` ([README](privacy/README.md)) — `PrivacyPage`, the same for `<LegalDocument doc="privacy" />`.
 - `accept/page.tsx` — `LegalAcceptPage`. The interstitial
   `requireCurrentLegalAcceptance` (`@/lib/legal-gate`) redirects a signed-in
   vendor to when their accepted terms/privacy versions are behind

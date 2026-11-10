@@ -20,6 +20,8 @@ password alone.
 - `mfa-form.dom.test.tsx` — verify, wrong code, enrol-then-verify, bad and
   pasted input, touch tap, input attributes, rate-limit copy, enrol failure and
   throw, and a verify throw that must not navigate.
+- `loading.tsx` — centred-card skeleton shown while the page awaits the MFA and admin checks.
+- `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative skeleton.
 
 ## Connectivity
 
