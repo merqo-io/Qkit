@@ -8,7 +8,7 @@ insert into auth.users (id, instance_id, aud, role, email) values
 insert into qkit.vendors(id) values ('31000000-0000-0000-0000-000000000001');
 
 insert into qkit.booths (id, vendor_id, name, is_active, daily_cup_cap, max_items_per_order, menu_items) values
- ('31000000-0000-0000-0000-0000000000b1','31000000-0000-0000-0000-000000000001','Limit Cart',true,5,6,
+ ('31000000-0000-0000-0000-0000000000b1','31000000-0000-0000-0000-000000000001','Limit Cart',true,5,null,
   '[{"id":"m1","name":"Kopi","price_cents":100},
     {"id":"m2","name":"Special","price_cents":300,"excludeFromBoothLimit":true},
     {"id":"m3","name":"Tea","price_cents":100,"excludeFromBoothLimit":false}]'::jsonb);
@@ -17,6 +17,9 @@ insert into qkit.orders (booth_id, order_number, customer_name, items, total_cen
 values ('31000000-0000-0000-0000-0000000000b1', 'L-001', 'Cust',
         '[{"menuItemId":"m1","name":"Kopi","quantity":5},
           {"menuItemId":"m2","name":"Special","quantity":3}]'::jsonb, 1400, 'qr');
+
+update qkit.booths set max_items_per_order = 6
+where id = '31000000-0000-0000-0000-0000000000b1';
 
 select is(qkit.booth_cups_today('31000000-0000-0000-0000-0000000000b1'), 5,
   'excluded items stay out of the booth count');
