@@ -12,9 +12,9 @@ answered.
 
 ## Contents
 
-- `client.ts` — `createClient()`: browser Supabase client
-  (`createBrowserClient` from `@supabase/ssr`), scoped to the `qkit` schema,
-  built from `publicEnv` (client-safe). Used by client components (e.g.
+- `client.ts` — `createClient()`: thin wrapper over
+  `createSupabaseBrowserClient` from `@merqo/ui/supabase`, scoped to the `qkit`
+  schema, built from `publicEnv` (client-safe). Used by client components (e.g.
   `useRealtimeOrders`).
 - `get-entitlement.ts` — `loadEntitlement()` (React `cache`-memoized):
   resolves the current user's vendor row and effective `Entitlement` in one
@@ -46,12 +46,14 @@ answered.
   vendor's email through the legal gate, propagates its `/legal/accept`
   redirect, and never consults the gate before the `/onboarding` redirect.
 - `middleware.ts` — `updateSession(request)`, called from `src/proxy.ts`:
-  refreshes the Supabase session cookie via `createServerClient` from
-  `@supabase/ssr`, but only resolves `auth.getUser()` (and redirects
+  a thin wrapper over `updateSupabaseSession` from
+  `@merqo/ui/supabase/middleware` that binds the qkit schema, env and cookie
+  domain. It refreshes the Supabase session cookie, but only resolves `auth.getUser()` (and redirects
   unauthenticated requests to `/login`) for `isProtectedPath` routes
   (`/dashboard`, `/onboarding`, `/admin`) — the anonymous, hot customer-
   ordering funnel (`/o`, `/order`) skips the auth round-trip entirely.
-- `server.ts`: `createServerClient()`: cookie-backed server Supabase client
+- `server.ts`: thin wrapper over `@merqo/ui/supabase/server`.
+  `createServerClient()`: cookie-backed server Supabase client
   (Server Components/Actions) built from `publicEnv`, with a `setAll` that
   swallows the read-only-cookie-store error in Server Component contexts (the
   middleware owns session refresh instead). `createServiceClient()`: the

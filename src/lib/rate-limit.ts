@@ -16,6 +16,9 @@ const TRUSTED_IP_HEADERS = [
   "x-forwarded-for",
 ];
 
+// The "unknown" fallback is acceptable: on Vercel the platform overwrites the
+// forwarded headers, so they are never malformed there. Off Vercel, malformed
+// headers share one bucket, the same exposure as when the headers are missing.
 export function clientIp(hdrs: Headers): string {
   return (
     sharedClientIp(hdrs, { trustedHeaders: TRUSTED_IP_HEADERS }) ?? "unknown"
