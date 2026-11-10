@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A per-item Sold-out limit now counts sales in the current service only, the same window as the daily item limit (since SGT midnight or the last Start new service), so the two limits work together and a limited drink no longer stays Sold out forever. Migration 0120 rewrites `qkit.booth_remaining_stock` to count the window from orders; apply it by hand to staging and prod. `booth_item_sold` and its triggers stay in place, unused for stock.
 - Kb2: turned on `merqoNoLocalCopies()` and moved qkit onto the shared `@merqo/ui` pieces. Deleted `lib/brand-icon.tsx`, `lib/theme-props.ts` and `lib/security-headers.ts` in favour of the shared `brandIcon`, `themeProps` and security headers (new `lib/brand.tsx` keeps the qkit mark and colours). The Supabase clients, rate limiter, legal gate, Telegram connect and plan lock are now thin wrappers over shared code, listed in the lint `allow` list with reasons.
 - `src/proxy.ts` now uses the shared `createProxy` and `needsNonce`: the nonce CSP still covers every route it did before (the shared defaults plus the public pages, `/onboarding`, `/o` and `/order`), with no script `unsafe-inline`. The proxy matcher regex is also now escaped correctly (`\\.`), so paths like `/foosvg` are no longer skipped. The shared `clientIp` ignores a malformed forwarded header (falling back to `unknown`) and the rate-limit failure log line is now generic.
 

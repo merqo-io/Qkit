@@ -1,6 +1,8 @@
 /**
  * Sold-out / stock-cap helpers. The authoritative remaining counts are computed
- * in Postgres (booth_remaining_stock) and re-enforced inside place_order; this
+ * in Postgres (booth_remaining_stock, which counts sales in the current service:
+ * since SGT midnight or the last "Start new service", like the daily item limit)
+ * and re-enforced inside place_order; this
  * module parses that result and reports the per-item remaining the order page
  * uses to cap the cart.
  *

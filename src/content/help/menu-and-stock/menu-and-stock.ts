@@ -86,7 +86,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Hide it by turning off the Available switch on the item. Customers do not see it until you turn it back on. Use this when you have run out for the day.",
-        "Give it a Sold-out limit. Once that many are sold, customers see Sold out on the item and cannot add it. Leave the limit blank for unlimited.",
+        "Give it a Sold-out limit. Once that many are sold in the current service, customers see Sold out on the item and cannot add it. The count starts again at midnight and when you tap Start new service. Leave the limit blank for unlimited.",
       ],
     },
     {
@@ -114,8 +114,8 @@ export const article: HelpArticle = {
     {
       type: "bullets",
       items: [
-        "The count starts again from zero at midnight.",
-        "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
+        "The count starts again from zero at midnight. The Sold-out limit on each item restarts at the same time.",
+        "Running a morning and an afternoon service? Tap Start new service to reset the counts yourself, for the daily item limit and every item's Sold-out limit. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
         "The daily item limit is available on the Starter and Pro plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],
     },
