@@ -6,8 +6,8 @@ Daily Vercel Cron sweep of `qkit.proof_storage_deletions`, the queue of payment-
 
 ## Contents
 
-- `route.ts` — `GET(request)`. Requires `Authorization: Bearer $CRON_SECRET` (constant-time compare, fails closed with 401 when `CRON_SECRET` is unset) and then calls `drainProofDeletions()` once. 200 `{ok:true}`; 401; 500 `{error}` if the drain throws. The drain logs its own failures and leaves rows queued, so 200 means the sweep ran, not that the queue is empty.
-- `route.test.ts` — missing header, wrong secret, no Bearer prefix, unset secret, success, and a rejecting drain.
+- `route.ts` — `GET(request)`. Requires `Authorization: Bearer $CRON_SECRET` (constant-time compare, fails closed with 401 when `CRON_SECRET` is unset) and then calls `drainProofDeletions()` once. The drain never throws and returns `{removed, failed, ok}`. 200 with that body when `ok` and `failed === 0`; 500 with that body when a removal failed or a queue read or clear errored; 401; 500 `{error}` as a defensive path if the drain throws. A 200 can still leave rows queued beyond the 100-row batch.
+- `route.test.ts` — missing header, wrong secret, no Bearer prefix, unset secret, a clean result, failed removals, a not-ok result, and a rejecting drain.
 
 ## Limits
 

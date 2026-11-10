@@ -19,7 +19,7 @@ function call(authorization?: string) {
 describe("GET /api/cron/proof-storage-drain", () => {
   beforeEach(() => {
     drainMock.mockReset();
-    drainMock.mockResolvedValue(undefined);
+    drainMock.mockResolvedValue({ removed: 0, failed: 0, ok: true });
     vi.stubEnv("CRON_SECRET", SECRET);
   });
   afterEach(() => {
@@ -52,11 +52,26 @@ describe("GET /api/cron/proof-storage-drain", () => {
     expect(drainMock).not.toHaveBeenCalled();
   });
 
-  it("drains once and returns ok on a valid secret", async () => {
+  it("drains once and returns the result on a clean drain", async () => {
+    drainMock.mockResolvedValue({ removed: 3, failed: 0, ok: true });
     const res = await call(`Bearer ${SECRET}`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json()).toEqual({ removed: 3, failed: 0, ok: true });
     expect(drainMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 500 with the result when any removal failed", async () => {
+    drainMock.mockResolvedValue({ removed: 1, failed: 2, ok: true });
+    const res = await call(`Bearer ${SECRET}`);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ removed: 1, failed: 2, ok: true });
+  });
+
+  it("returns 500 with the result when the drain is not ok", async () => {
+    drainMock.mockResolvedValue({ removed: 0, failed: 0, ok: false });
+    const res = await call(`Bearer ${SECRET}`);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ removed: 0, failed: 0, ok: false });
   });
 
   it("returns 500 when the drain rejects", async () => {
