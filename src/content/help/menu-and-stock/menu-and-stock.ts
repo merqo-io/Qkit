@@ -115,7 +115,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "The count starts again from zero at midnight.",
-        "Some items should not use up the limit, such as a drink you can always pour. On the menu, untick Counts toward booth limit for that item. It then never counts toward the daily limit and can still be ordered when the booth is full. Its own Sold-out limit and the per-order limit still apply. The tick shows once the booth has a daily item limit.",
+        "Some items should not use up the limit, such as a drink you can always pour. On the menu, untick Counts toward booth limit for that item. It then never counts toward the daily limit and can still be ordered when the booth is full. Its own Sold-out limit and the per-order limit still apply. The tick shows once the booth has a daily item limit. If you change the tick during a service, today's count changes straight away, including items already sold, and the board count catches up on the next order or a refresh.",
         "Running a morning and an afternoon service? Tap Start new service to reset the count yourself. It sits under Limits, and next to the booth on the live board. Orders already placed are not changed.",
         "The daily item limit is available on the Starter and Pro plans and during an Event Pass. If you already set one and your plan has since changed, it keeps working. You can see it and remove it, but not change it.",
       ],

@@ -27,6 +27,7 @@ AS $$
          CASE WHEN jsonb_typeof(p_menu) = 'array' THEN p_menu ELSE '[]'::jsonb END
        ) AS mi
   WHERE jsonb_typeof(mi) = 'object'
+    AND mi->>'id' IS NOT NULL
     AND mi->'excludeFromBoothLimit' = 'true'::jsonb;
 $$;
 
