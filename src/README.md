@@ -21,4 +21,4 @@ The Next.js application source.
 
 [qkit](../README.md)
 
-`proxy.ts` sets the nonce CSP and, off production, `X-Robots-Tag: noindex`; see `lib/security-headers.ts`.
+`proxy.ts` sets the nonce CSP and, off production, `X-Robots-Tag: noindex`; it is built with the shared `createProxy`, and `lib/nonce-prefixes.ts` lists the routes that get a per-request nonce.

@@ -23,6 +23,9 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-anon-key",
     },
     testTimeout: 30000,
+    // @merqo/ui's next and auth entries import extensionless `next/server`,
+    // which Node's ESM loader rejects; inlining lets Vite resolve it.
+    server: { deps: { inline: [/@merqo\/ui/] } },
     setupFiles: ["./test/setup.ts"],
     include: [
       "test/**/*.{test,spec}.{ts,tsx}",

@@ -58,12 +58,35 @@ describe("proxy nonce CSP", () => {
     expect(csp(response)).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 
-  it("gives the landing page a nonce too, since every page renders per request", async () => {
+  it.each([
+    "/dashboard/booths",
+    "/admin",
+    "/login",
+    "/onboarding",
+    "/o/ABC",
+    "/order/b1/12",
+  ])("gives the per-request route %s a nonce", async (path) => {
     signedIn();
-    const response = await proxy(new NextRequest("https://qkit.merqo.io/"));
+    const response = await proxy(
+      new NextRequest(`https://qkit.merqo.io${path}`),
+    );
 
     expect(csp(response)).toMatch(/script-src 'self' 'nonce-/);
   });
+
+  it.each(["/", "/about", "/legal/privacy", "/order-history", "/offers"])(
+    "keeps the static policy on %s",
+    async (path) => {
+      signedIn();
+      const response = await proxy(
+        new NextRequest(`https://qkit.merqo.io${path}`),
+      );
+
+      expect(csp(response)).not.toContain("'nonce-");
+      expect(csp(response)).toMatch(/script-src 'self' 'unsafe-inline'/);
+      expect(response.headers.get("x-middleware-request-x-nonce")).toBeNull();
+    },
+  );
 
   it("forwards the same nonce to the app as x-nonce", async () => {
     signedIn();
@@ -120,8 +143,13 @@ describe("proxy Supabase origins", () => {
 
   it("lets the browser reach the configured Supabase project", async () => {
     signedIn();
+    // The proxy binds the URL at module load so Next can inline it.
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
-    const response = await proxy(new NextRequest("https://qkit.merqo.io/"));
+    vi.resetModules();
+    const { proxy: freshProxy } = await import("./proxy");
+    const response = await freshProxy(
+      new NextRequest("https://qkit.merqo.io/"),
+    );
 
     expect(csp(response)).toContain("http://127.0.0.1:54321");
     expect(csp(response)).toContain("ws://127.0.0.1:54321");

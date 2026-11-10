@@ -14,6 +14,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Kb2: turned on `merqoNoLocalCopies()` and moved qkit onto the shared `@merqo/ui` pieces. Deleted `lib/brand-icon.tsx`, `lib/theme-props.ts` and `lib/security-headers.ts` in favour of the shared `brandIcon`, `themeProps` and security headers (new `lib/brand.tsx` keeps the qkit mark and colours). The Supabase clients, rate limiter, legal gate, Telegram connect and plan lock are now thin wrappers over shared code, listed in the lint `allow` list with reasons.
+- `src/proxy.ts` now uses the shared `createProxy` and `needsNonce`: only per-request routes (the shared defaults plus `/onboarding`, `/o` and `/order`) get a nonce CSP, and the landing, about and legal pages get the static policy. The shared `clientIp` ignores a malformed forwarded header (falling back to `unknown`) and the rate-limit failure log line is now generic.
+
 - Moved `@merqo/ui` to v0.44.1 and replaced the local `button`, `checkbox`, `dialog`, `input`, `label`, `select`, `switch`, `tabs`, `textarea` and `tooltip` primitives, and `cn`, with the shared `@merqo/ui/primitives` entry. Coarse pointers now get 44px controls from the shared `Button` and `Input`. `alert-dialog`, `dropdown-menu`, `input-group`, `popover`, `radio-group`, `sheet`, `toggle` and `toggle-group` stay local because the shared entry does not export them. Dropped the `clsx` and `tailwind-merge` dependencies.
 - `drainProofDeletions()` now returns `{ removed, failed, ok }` (still never throws), and `GET /api/cron/proof-storage-drain` returns 500 with that body when a removal failed or a queue read or clear errored, so a failing drain shows up in the cron logs instead of always answering 200.
 - Refactor (QK-04): Server Actions build results with the new `ok(data?)` and `fail(error)` constructors from `src/lib/action-result.ts` instead of hand-written `{ success }` literals. No behaviour change.

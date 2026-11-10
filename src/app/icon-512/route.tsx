@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
-import { brandIcon } from "@/lib/brand-icon";
+import { qkitBrandIcon } from "@/lib/brand";
 
 export function GET() {
-  return new ImageResponse(brandIcon(512), { width: 512, height: 512 });
+  return new ImageResponse(qkitBrandIcon(512), { width: 512, height: 512 });
 }

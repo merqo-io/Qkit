@@ -36,7 +36,7 @@ alwaysShowCount })`: client-side pager over pre-rendered rows —
   page) lays out only the rows, not the pager controls.
 - `pro-lock.tsx` — `ProLock({ feature, label })`: an inline upgrade nudge
   linking to `/dashboard/plan`, logging an `upgrade_cta` event tagged with
-  the specific gated `feature` for funnel analysis.
+  the specific gated `feature` for funnel analysis. A wrapper over the shared `ProLock` from `@merqo/ui`, which owns the pill and its touch target.
 - `site-footer.test.tsx` — wordmark, tagline, copyright, About, Terms and
   Privacy links; sign-in link only with `showSignIn`.
 - `site-footer.tsx` — `SiteFooter({ showSignIn })`: `@merqo/ui`'s family

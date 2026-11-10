@@ -30,9 +30,11 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   icon set — a shared `lib/` module rather than a dashboard-scoped one
   reaching across into `components/`. Rendering-only, no schema/data-model
   change.
-- `brand-icon.tsx` — `brandIcon(size)` React element plus `BRAND_KHAKI`/
-  `BRAND_OAT` color constants; renders the "Q" app mark for `ImageResponse`-
+- `brand.tsx` — `qkitBrandIcon(size)` binds the "Q" mark and `BRAND_KHAKI`/
+  `BRAND_OAT` colours to the shared `brandIcon` for the `ImageResponse`-
   generated favicon/manifest/apple-touch icons.
+- `nonce-prefixes.ts` — `NONCE_PREFIXES`: the shared default nonce prefixes
+  plus `/onboarding`, `/o` and `/order`; every other route gets the static CSP.
 - `carousel.ts` — `nearestIndex(scrollLeft, boardWidth, count)`: clamped
   nearest-board-index calculation for a horizontally-scrolling carousel.
 - `carousel.test.ts` — tests clamping and the non-positive-width edge case.
@@ -617,8 +619,8 @@ Menu CSV records preserve quoted LF, CRLF, and CR newlines on export/import.
 Option statistics key group and choice as a tuple so different pairs cannot collide.
 Restored carts recompute current option surcharges, including options on unpriced items.
 
-`security-headers.ts` holds the CSP source lists (Supabase, Google avatars, the configured project origin); `theme-props.ts` is shared by the root layout.
+The CSP source lists and the root layout theme props come from `@merqo/ui/security` and `@merqo/ui/next`.
 
-`security-headers.ts` also allows the Vercel toolbar origin (`vercel.live`) outside production.
+The shared policy also allows the Vercel toolbar origin (`vercel.live`) outside production.
 
 `utils.ts` also exports `isNil(value)`, the type guard for `null` or `undefined` used wherever the code checks a nullable column.
