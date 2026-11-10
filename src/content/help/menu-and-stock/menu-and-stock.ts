@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Menu and stock",
   summary:
     "Set up items, the daily item limit, basket holds and the per-order item limit.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-10",
   uiLabels: [
     "Add item",
     "Add section",
