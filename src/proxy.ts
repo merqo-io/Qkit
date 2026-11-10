@@ -3,7 +3,7 @@ import { NONCE_PREFIXES } from "@/lib/nonce-prefixes";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // next.config.ts cannot import the ESM-only @merqo/ui, so the CSP (nonce on
-// per-request routes via needsNonce, static elsewhere) is set here. The env
+// the NONCE_PREFIXES routes, static elsewhere) is set here. The env
 // reference stays literal so Next inlines it.
 export const proxy = createProxy({
   updateSession,

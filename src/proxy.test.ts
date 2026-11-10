@@ -75,16 +75,18 @@ describe("proxy nonce CSP", () => {
   });
 
   it.each(["/", "/about", "/legal/privacy", "/order-history", "/offers"])(
-    "keeps the static policy on %s",
+    "gives the public page %s a nonce and no script unsafe-inline",
     async (path) => {
       signedIn();
       const response = await proxy(
         new NextRequest(`https://qkit.merqo.io${path}`),
       );
 
-      expect(csp(response)).not.toContain("'nonce-");
-      expect(csp(response)).toMatch(/script-src 'self' 'unsafe-inline'/);
-      expect(response.headers.get("x-middleware-request-x-nonce")).toBeNull();
+      expect(csp(response)).toMatch(/script-src 'self' 'nonce-/);
+      expect(csp(response)).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+      expect(
+        response.headers.get("x-middleware-request-x-nonce"),
+      ).not.toBeNull();
     },
   );
 

@@ -34,8 +34,9 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   `BRAND_OAT` colours to the shared `brandIcon` for the `ImageResponse`-
   generated favicon/manifest/apple-touch icons.
 - `nonce-prefixes.ts` — `NONCE_PREFIXES`: the shared default nonce prefixes
-  plus `/onboarding`, `/o` and `/order`; every other route gets the static CSP.
-  This is deliberate: public routes (`/`, `/about`, `/legal/*` other than `/legal/accept`, `/offers`, `/order-history`) now get the static CSP, `script-src 'self' 'unsafe-inline'`, and no longer get the per-request nonce with `strict-dynamic`. This matches the shared `needsNonce` scope and keeps those pages cacheable. The proxy matcher regex is also now escaped correctly (`\\.`), so paths like `/foosvg` are no longer skipped.
+  plus the public pages (`/`, `/about`, `/legal`, `/offers`, `/order-history`),
+  `/onboarding`, `/o` and `/order`, so the nonce CSP still covers every route;
+  `e2e/csp.spec.ts` guards this. The proxy matcher regex is also now escaped correctly (`\\.`), so paths like `/foosvg` are no longer skipped.
 - `carousel.ts` — `nearestIndex(scrollLeft, boardWidth, count)`: clamped
   nearest-board-index calculation for a horizontally-scrolling carousel.
 - `carousel.test.ts` — tests clamping and the non-positive-width edge case.
