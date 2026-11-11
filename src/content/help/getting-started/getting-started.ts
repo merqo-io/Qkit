@@ -5,7 +5,7 @@ export const article: HelpArticle = {
   category: "getting-started",
   title: "Getting started",
   summary: "Build your first booth, print the QR and take your first order.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-11",
   uiLabels: [
     "Create account",
     "Continue with Google",
