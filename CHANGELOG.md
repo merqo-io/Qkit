@@ -6,10 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Re-reviewed the Getting started and Troubleshooting help articles against the shared sign-in and two-step verification screens. Their text is still accurate, so only the reviewed date moved.
+
 ### Added
 
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
 - READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
+
+## [0.5.1] - 2026-11-11
+
+### Changed
+
+- Moved `@merqo/ui` to v0.44.2, which rewords the terms, privacy policy, pilot agreement and About text so charging and incorporation are conditional and Merqo is described as a personal software project. The terms and privacy versions move to 2026-11-10, so signed-in vendors are asked to accept again.
 
 ## [0.5.0] - 2026-11-10
 
