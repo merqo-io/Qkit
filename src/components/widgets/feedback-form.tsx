@@ -93,7 +93,7 @@ export function FeedbackForm({
             onValueChange={(v) => v && setScore(Number(v))}
             spacing={1}
             aria-label="Recommend score, 0 to 10"
-            className="grid grid-cols-11"
+            className="grid grid-cols-6 sm:grid-cols-11"
           >
             {Array.from({ length: 11 }, (_, n) => (
               <ToggleGroupItem
@@ -101,9 +101,7 @@ export function FeedbackForm({
                 value={String(n)}
                 aria-label={`${n}`}
                 className={cn(
-                  // Eleven columns cannot each be 44px wide on a phone, so the
-                  // shared toggle's coarse-pointer min width is dropped here.
-                  "flex aspect-square items-center justify-center pointer-coarse:min-w-0 rounded-md border border-border text-sm font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5",
+                  "flex aspect-square items-center justify-center rounded-md border border-border text-sm font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5",
                   "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
                 )}
               >

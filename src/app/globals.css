@@ -488,6 +488,12 @@ body:has([data-selection-bar]) [data-tour="tour-replay"] {
   display: none;
 }
 
+/* The kit keeps a darker sheet scrim than the shared default so the sheet
+   reads as modal over busy menus. */
+[data-slot="sheet-overlay"] {
+  background-color: rgb(0 0 0 / 0.5);
+}
+
 /* Tour: inline "example" preview shown inside a driver.js popover's
    description via innerHTML (see src/components/tour-steps.ts). */
 .tour-example {

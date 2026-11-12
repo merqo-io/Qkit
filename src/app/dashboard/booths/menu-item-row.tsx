@@ -173,7 +173,10 @@ export function MenuItemRow({
                     <MoreVertical className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto"
+                >
                   <DropdownMenuItem
                     disabled={atItemCap}
                     onSelect={() => duplicateItem(index)}

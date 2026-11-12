@@ -173,7 +173,10 @@ export function TicketMenu({
           <MoreHorizontal className="size-5" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
+      <DropdownMenuContent
+        align="end"
+        className="min-w-44 max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto"
+      >
         {onBump && (
           <DropdownMenuItem onSelect={onBump} className="py-2.5">
             <Zap className="size-4" aria-hidden="true" />

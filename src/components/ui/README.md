@@ -12,8 +12,9 @@ Add a primitive to `@merqo/ui` rather than copying it here;
 
 No source files. The shared toggles and the sheet close button grow to 44px
 under a coarse pointer, so layouts that hold them must tolerate that height
-(the 0 to 10 score row in `feedback-form.tsx` drops the 44px minimum width,
-since eleven columns cannot fit on a phone).
+(the 0 to 10 score row in `feedback-form.tsx` wraps to two rows below `sm`
+instead of shrinking them). The sheet scrim is black at 50% through a
+`[data-slot="sheet-overlay"]` rule in `globals.css`.
 
 ## Connectivity
 
