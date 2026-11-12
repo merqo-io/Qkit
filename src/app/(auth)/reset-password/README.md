@@ -13,6 +13,8 @@ Password-reset page reached from a Supabase recovery-email link — lets a vendo
 
 Reached after `/auth/callback` exchanges the Supabase recovery-link code for a session and forwards here (see `src/app/auth/`). `reset-password-form.tsx` talks directly to Supabase Auth via `createClient()` (`@/lib/supabase/client`) rather than a server action — password update is a client-side Supabase Auth call. On success it redirects into `/dashboard`.
 
+`reset-password-form.tsx` takes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` from `@merqo/ui`.
+
 ## Parent
 
 [(auth)](../README.md)

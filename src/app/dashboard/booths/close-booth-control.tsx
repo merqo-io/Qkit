@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Power, PowerOff } from "lucide-react";
-import { Button, cn } from "@merqo/ui/primitives";
-
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,7 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Button,
+  cn,
+} from "@merqo/ui/primitives";
+
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { toggleBoothActive } from "./actions";
 

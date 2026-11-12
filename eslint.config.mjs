@@ -92,6 +92,10 @@ const eslintConfig = [
       "components/widgets/pro-lock",
       // Mints the qkit order-scoped connect token before rendering the shared button.
       "app/order/[boothId]/[orderNumber]/telegram-connect",
+      // Renders inside the admin shell with its own copy; the shared 404 is a full-screen card.
+      "app/admin/not-found",
+      // Renders inside the dashboard shell with its own copy; the shared 404 is a full-screen card.
+      "app/dashboard/not-found",
     ],
   }),
   {

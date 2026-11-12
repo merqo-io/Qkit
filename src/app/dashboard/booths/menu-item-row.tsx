@@ -10,14 +10,15 @@ import {
   EyeOff,
   MoreVertical,
 } from "lucide-react";
-import { Button, cn, Input } from "@merqo/ui/primitives";
-
 import {
+  Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Input,
+} from "@merqo/ui/primitives";
 
 import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { MediaImage } from "@/components/widgets/media-image";

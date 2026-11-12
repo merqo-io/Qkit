@@ -80,6 +80,8 @@ tooltip, children })`: thin local wrapper around `@merqo/ui`'s `Section`,
 - `screen-size-control.dom.test.tsx` — step, reset, disabled-at-default and
   per-screen storage key.
 
+`feedback-form.tsx` uses the shared `ToggleGroup` from `@merqo/ui/primitives`; its 0 to 10 score items drop the 44px coarse-pointer minimum width so eleven columns still fit a phone.
+
 ## Parent
 
 [components](../README.md)

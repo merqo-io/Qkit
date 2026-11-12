@@ -101,6 +101,8 @@ imports the Recharts-based children) and `ReviewsCard`. Shared
 formatting (`chart-format.ts`) is imported by nearly every chart/tile in this
 folder so range labels and wait/hour formatting can't drift between them.
 
+`stat-breakdown.tsx` uses the shared `Popover` from `@merqo/ui/primitives`.
+
 ## Parent
 
 [dashboard](../README.md)

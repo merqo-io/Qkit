@@ -3,9 +3,13 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
-import { Button, cn, Textarea } from "@merqo/ui/primitives";
-
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Button,
+  cn,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@merqo/ui/primitives";
 
 import { submitFeedback } from "@/app/actions/feedback";
 
@@ -97,7 +101,9 @@ export function FeedbackForm({
                 value={String(n)}
                 aria-label={`${n}`}
                 className={cn(
-                  "flex aspect-square items-center justify-center rounded-md border border-border text-sm font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5",
+                  // Eleven columns cannot each be 44px wide on a phone, so the
+                  // shared toggle's coarse-pointer min width is dropped here.
+                  "flex aspect-square items-center justify-center pointer-coarse:min-w-0 rounded-md border border-border text-sm font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5",
                   "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
                 )}
               >

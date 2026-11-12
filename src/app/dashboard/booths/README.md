@@ -133,3 +133,5 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
   `menu-item-allergens.tsx` is its collapsible allergen section and
   `menu-item-row.tsx` renders one item card and `menu-section-group.tsx` the
   named sections and the "No section" group.
+
+The confirm dialogs in `booth-danger-zone.tsx` and `close-booth-control.tsx`, the row menu in `menu-item-row.tsx` and the toggle groups in `option-groups-editor.tsx` use the `AlertDialog*`, `DropdownMenu*` and `ToggleGroup*` primitives from `@merqo/ui/primitives`.

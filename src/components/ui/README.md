@@ -2,34 +2,22 @@
 
 ## Purpose
 
-Primitives that qkit keeps locally. The shared set (`Badge`, `Button`, `Card`,
-`Checkbox`, `Dialog`, `Input`, `Label`, `Select`, `Switch`, `Tabs`, `Textarea`,
-`Tooltip` and `cn`) comes from `@merqo/ui/primitives` and is imported from
-there, not from this folder. The files below stay local because
-`@merqo/ui/primitives` does not export them yet.
+Nothing is kept locally any more. Every primitive qkit uses, including
+`AlertDialog*`, `DropdownMenu*`, `Popover`, `Sheet*`, `Toggle` and
+`ToggleGroup`, comes from `@merqo/ui/primitives` and is imported from there.
+Add a primitive to `@merqo/ui` rather than copying it here;
+`merqoNoLocalCopies` flags local copies.
 
 ## Contents
 
-- `alert-dialog.tsx` — `AlertDialog*` family (Radix `AlertDialog` wrapped),
-  used by `OrderCard`'s cancel-order confirmation.
-- `dropdown-menu.tsx` — `DropdownMenu`/`DropdownMenuTrigger`/
-  `DropdownMenuContent`/`DropdownMenuItem` (Radix wrapped).
-- `popover.tsx` — `Popover`/`PopoverContent`/`PopoverAnchor`,
-  used by `stat-breakdown.tsx`'s hover/tap breakdown tile.
-- `sheet.tsx` — side-panel `Sheet` family (Radix `Dialog` under the hood),
-  used by `ItemCustomizer`.
-- `toggle-group.tsx` — Radix `ToggleGroup` wrapper. Customized: adds a
-  `spacing` prop (numeric gap between items, default 0 = fused/bordered
-  segmented-control look) not present in stock shadcn, propagated through
-  context to each `ToggleGroupItem`.
-- `toggle.tsx` — `toggleVariants` (`cva` default/outline variants,
-  default/sm/lg sizes) that `toggle-group.tsx` builds on.
+No source files. The shared toggles and the sheet close button grow to 44px
+under a coarse pointer, so layouts that hold them must tolerate that height
+(the 0 to 10 score row in `feedback-form.tsx` drops the 44px minimum width,
+since eleven columns cannot fit on a phone).
 
 ## Connectivity
 
-Everything under `src/components/` and `src/app/` composes these primitives and
-the shared `@merqo/ui/primitives` set. `toggle.tsx` exports `toggleVariants`,
-imported by `toggle-group.tsx`. `alert-dialog.tsx` takes `buttonVariants` from
+Everything under `src/components/` and `src/app/` imports its primitives from
 `@merqo/ui/primitives`.
 
 ## Parent

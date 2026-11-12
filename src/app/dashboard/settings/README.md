@@ -170,6 +170,8 @@ sound / fires notifications, `daily_order_number_reset` feeds
 (`realtime-order-board.tsx` in `src/app/dashboard`) — `null` (the field left
 blank here) disables the sweep entirely for that vendor.
 
+`settings-form.tsx` and `board-timing-section.tsx` take `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` from `@merqo/ui`, and the sound picker uses the shared `ToggleGroup` from `@merqo/ui/primitives`.
+
 ## Parent
 
 [dashboard](../README.md)

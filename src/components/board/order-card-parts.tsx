@@ -21,14 +21,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@merqo/ui/primitives";
-
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@merqo/ui/primitives";
+
 import { parseOrderItems } from "@/lib/schemas";
 import { formatPrice, isNil } from "@/lib/utils";
 import { ADVANCE, isTerminal, needsPaymentReview } from "@/lib/orders";
