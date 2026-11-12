@@ -174,6 +174,8 @@ expectedAmountCents })`: `"use client"`, dynamically imported
   the photo: there is no OCR, no worker and no Tesseract here any more. Both
   hints only inform the vendor's own check and never confirm a payment.
 
+`order-card-parts.tsx` builds the ticket menu from the shared `DropdownMenu*` primitives in `@merqo/ui/primitives`; the menu is capped to the available height and scrolls.
+
 ## Parent
 
 [components](../README.md)

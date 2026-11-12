@@ -27,6 +27,8 @@ preserves both possible saved images until refresh resolves the result.
 Other profile writes show a field-specific transport message and retain input
 for retry.
 
+`profile-form.tsx` takes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` from `@merqo/ui`.
+
 ## Parent
 
 [dashboard](../README.md)

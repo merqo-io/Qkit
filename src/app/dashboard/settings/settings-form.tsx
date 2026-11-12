@@ -4,15 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Hourglass, Volume2 } from "lucide-react";
-import { Button, cn, Input, Label, Switch } from "@merqo/ui/primitives";
+import {
+  Button,
+  cn,
+  Input,
+  Label,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@merqo/ui/primitives";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Section } from "@/components/widgets/ticket-section";
-import { InfoTooltip, TwoColumnSections } from "@merqo/ui";
+import {
+  InfoTooltip,
+  TwoColumnSections,
+  FORM_ERROR_CLASS,
+  FORM_LABEL_CLASS,
+} from "@merqo/ui";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { boardSettingsSchema } from "@/lib/schemas";
 import { playSound, unlockAudio } from "@/lib/order-alerts";
-import { FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@/lib/utils";
 
 import type { BoardSettings, SoundId } from "@/lib/types";
 import { updateBoardSettings } from "./actions";

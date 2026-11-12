@@ -530,6 +530,21 @@ describe("OrderCard", () => {
   });
 });
 
+describe("OrderCard more menu", () => {
+  it("scrolls inside the viewport instead of running off a short screen", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={makeOrder({ status: "preparing" })} />, {
+      wrapper: TooltipProvider,
+    });
+    await openMore(user);
+    const menu = screen.getByRole("menu");
+    expect(menu).toHaveClass("overflow-y-auto");
+    expect(menu.className).toContain(
+      "max-h-(--radix-dropdown-menu-content-available-height)",
+    );
+  });
+});
+
 describe("OrderCard — batch select", () => {
   it("renders no selection checkbox when not selectable", () => {
     render(<OrderCard order={makeOrder({ status: "preparing" })} />, {

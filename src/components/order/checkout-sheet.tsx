@@ -2,9 +2,10 @@
 
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { DataCollectionNotice } from "@merqo/ui";
-import { Button, Input, Label } from "@merqo/ui/primitives";
-
 import {
+  Button,
+  Input,
+  Label,
   Sheet,
   SheetClose,
   SheetContent,
@@ -12,7 +13,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@merqo/ui/primitives";
+
 import { formatOptions, formatPrice } from "@/lib/utils";
 import type { useCart } from "@/hooks/use-cart";
 

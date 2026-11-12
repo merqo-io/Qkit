@@ -156,6 +156,8 @@ that same route's `ExpiredCode` fallback when the short code doesn't resolve.
 (`@/components/order/reorder-button.tsx`) and the status page's "Order again" link
 are what stash the reorder handoff `OrderForm` reads on mount.
 
+`checkout-sheet.tsx` and `item-customizer.tsx` use the shared `Sheet*` and `ToggleGroup*` primitives from `@merqo/ui/primitives`; on coarse pointers the sheet close button and toggles reach 44px.
+
 ## Parent
 
 [components](../README.md)
