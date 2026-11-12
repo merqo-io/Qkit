@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Button, cn } from "@merqo/ui/primitives";
-
 import {
+  Button,
+  cn,
   Sheet,
   SheetContent,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@merqo/ui/primitives";
+
 import { MediaImage } from "@/components/widgets/media-image";
 import { formatPrice } from "@/lib/utils";
 

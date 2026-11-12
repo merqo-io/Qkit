@@ -10,14 +10,15 @@ import {
   EyeOff,
   MoreVertical,
 } from "lucide-react";
-import { Button, cn, Input } from "@merqo/ui/primitives";
-
 import {
+  Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Input,
+} from "@merqo/ui/primitives";
 
 import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { MediaImage } from "@/components/widgets/media-image";
@@ -172,7 +173,10 @@ export function MenuItemRow({
                     <MoreVertical className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto"
+                >
                   <DropdownMenuItem
                     disabled={atItemCap}
                     onSelect={() => duplicateItem(index)}

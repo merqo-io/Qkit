@@ -21,10 +21,11 @@ import {
   DialogTrigger,
   Input,
   Label,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "@merqo/ui/primitives";
 
 import { OPTION_CODE_MAX, suggestOptionCode } from "@/lib/ticket";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ProLock } from "@/components/widgets/pro-lock";
 import { canHaveOptionGroups, type Entitlement } from "@/lib/plan";
 import { ALLERGEN_TAGS, type AllergenTag } from "@/lib/schemas";

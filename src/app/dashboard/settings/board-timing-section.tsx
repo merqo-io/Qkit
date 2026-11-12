@@ -4,8 +4,7 @@ import { Clock } from "lucide-react";
 import { Button, Input, Label } from "@merqo/ui/primitives";
 
 import { Section } from "@/components/widgets/ticket-section";
-import { InfoTooltip } from "@merqo/ui";
-import { FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@/lib/utils";
+import { InfoTooltip, FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@merqo/ui";
 
 interface Props {
   agingMin: string;

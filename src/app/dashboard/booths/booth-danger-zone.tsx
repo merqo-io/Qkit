@@ -1,8 +1,6 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { Button } from "@merqo/ui/primitives";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Button,
+} from "@merqo/ui/primitives";
 
 interface Props {
   boothName: string;

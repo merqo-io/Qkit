@@ -3,9 +3,13 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
-import { Button, cn, Textarea } from "@merqo/ui/primitives";
-
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Button,
+  cn,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@merqo/ui/primitives";
 
 import { submitFeedback } from "@/app/actions/feedback";
 
@@ -89,7 +93,7 @@ export function FeedbackForm({
             onValueChange={(v) => v && setScore(Number(v))}
             spacing={1}
             aria-label="Recommend score, 0 to 10"
-            className="grid grid-cols-11"
+            className="grid grid-cols-6 sm:grid-cols-11"
           >
             {Array.from({ length: 11 }, (_, n) => (
               <ToggleGroupItem

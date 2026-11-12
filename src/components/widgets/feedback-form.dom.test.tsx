@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 const { submit, error } = vi.hoisted(() => ({
@@ -144,5 +145,33 @@ describe("feedback submission", () => {
     );
     send();
     await screen.findByText(/Thanks for the feedback/);
+  });
+});
+
+describe("NPS score row", () => {
+  it("offers all eleven scores and selects one by touch", async () => {
+    const user = userEvent.setup();
+    render(<FeedbackForm source="vendor" metric="nps" />);
+    expect(screen.getAllByRole("radio")).toHaveLength(11);
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("radio", { name: "7" }),
+    });
+    send();
+    await waitFor(() =>
+      expect(submit).toHaveBeenCalledWith(expect.objectContaining({ nps: 7 })),
+    );
+  });
+  it("wraps on narrow screens and keeps the 44px touch size", () => {
+    render(<FeedbackForm source="vendor" metric="nps" />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0].parentElement).toHaveClass(
+      "grid-cols-6",
+      "sm:grid-cols-11",
+    );
+    for (const r of radios) {
+      expect(r).toHaveClass("pointer-coarse:h-11", "pointer-coarse:min-w-11");
+      expect(r.className).not.toContain("pointer-coarse:min-w-0");
+    }
   });
 });

@@ -6,7 +6,13 @@ import { toast } from "sonner";
 import { Store, IdCard, KeyRound, UserRound, Share2 } from "lucide-react";
 import { Button, Input, Label } from "@merqo/ui/primitives";
 
-import { ImageUploader, SocialLinksFields, TwoColumnSections } from "@merqo/ui";
+import {
+  ImageUploader,
+  SocialLinksFields,
+  TwoColumnSections,
+  FORM_ERROR_CLASS,
+  FORM_LABEL_CLASS,
+} from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";
 import {
@@ -22,7 +28,6 @@ import {
   passwordChangeSchema,
   socialLinksSchema,
 } from "@/lib/schemas";
-import { FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@/lib/utils";
 import type { SocialLinks } from "@/lib/types";
 import { updateStallName, updateSocialLinks } from "./actions";
 

@@ -7,7 +7,7 @@ pickup status.
 ## Stack
 
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
-React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.44.2)
+React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.45.1)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
 
 The shared UI dependency is pinned to a reviewed immutable Git commit. Its
@@ -193,7 +193,7 @@ cup counters run with bounded concurrency and cannot fail the board.
 
 ## Lint
 
-`eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and turns on `merqoNoLocalCopies()` (the `allow` list names the thin wrappers that bind qkit config) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand.tsx` and `src/app/global-error.tsx`.
+`eslint.config.mjs` consumes the shared `@merqo/ui/eslint` preset (comment and directive hygiene, size and complexity limits, no colour literals or em dashes in `src`) and turns on `merqoNoLocalCopies()` (the `allow` list names the thin wrappers that bind qkit config, plus the admin and dashboard `not-found` pages that render inside a layout shell) and keeps the local temporal-dead-zone `no-use-before-define` rule. `eslint.config.test.ts` asserts the key rules stay at `error`. The baseline blocks in the config list the files that exceed the size or complexity limits; the split-long-files task shrinks them. Colour literals are allowed only in `src/lib/brand.tsx` and `src/app/global-error.tsx`.
 
 Staging printing rehearsal: [candidate QA and release prerequisites](docs/meta/2026-10-27-staging-print-qa.md).
 
