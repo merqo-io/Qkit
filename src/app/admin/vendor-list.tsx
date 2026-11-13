@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Ticket } from "lucide-react";
+import { EmptyState } from "@merqo/ui";
 import { Paginated } from "@/components/widgets/paginated";
 import { StatusChip } from "./vendor-status";
 import type { VendorStatus } from "@/lib/admin/vendor-health";
@@ -36,11 +37,7 @@ function Cell({ label, value }: { label: string; value: string }) {
  */
 export function VendorList({ vendors }: { vendors: VendorListItem[] }) {
   if (vendors.length === 0) {
-    return (
-      <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-        No vendors yet.
-      </p>
-    );
+    return <EmptyState size="compact" title="No vendors yet." />;
   }
 
   return (

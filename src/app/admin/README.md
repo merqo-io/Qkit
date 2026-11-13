@@ -24,7 +24,7 @@ Internal admin dashboard, vendor management, activation stats, and support-reque
 - `help-freshness-section.tsx` — `HelpFreshnessSection({ now, articles? })`. Lists vendor help articles not reviewed for over 90 days (slug, title, age), oldest first, or one line saying none are stale. Reads the in-repo help registry, no database.
 - `help-freshness-section.dom.test.tsx` — covers the stale list helper, a stale row and the none-stale line.
 - `stuck-orders-section.dom.test.tsx` — RTL/jsdom coverage: renders nothing for an empty list, renders count/booth name/status/elapsed text for a stuck order, and falls back to "Unknown booth" for an unmatched `booth_id`.
-- `vendor-list.tsx` — `VendorList({ vendors: VendorListItem[] })`. Renders the paginated (`Paginated`, page size 15) vendor triage list, one row per vendor linking to `/admin/vendors/[id]`, showing a `StatusChip`, plan, active-pass hours-left, 7d orders, booth count, and last-order date.
+- `vendor-list.tsx` — `VendorList({ vendors: VendorListItem[] })`. Renders the paginated (`Paginated`, page size 15) vendor triage list, one row per vendor linking to `/admin/vendors/[id]`, showing a `StatusChip`, plan, active-pass hours-left, 7d orders, booth count, and last-order date. An empty list renders `@merqo/ui`'s `EmptyState` (`size="compact"`) with "No vendors yet."
 - `vendor-status.tsx` — `StatusChip({ status: VendorStatus })`. Colour-coded badge for `attention | expiring | stuck | quiet | new | healthy`, driven by `@/lib/admin/vendor-health`.
 - `feedback/` — sub-route: admin view of submitted vendor/customer feedback (NPS + CSAT).
 - `vendors/` — sub-route: vendor list + per-vendor (`[id]`) management pages.
