@@ -2,7 +2,7 @@ import { cn } from "@merqo/ui/primitives";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { notFound } from "next/navigation";
 import { Check, Circle } from "lucide-react";
-import { BackButton } from "@merqo/ui";
+import { BackButton, EmptyState } from "@merqo/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
@@ -209,9 +209,7 @@ export default async function AdminVendorDetailPage({
           Help requests
         </h2>
         {(messages ?? []).length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            No messages from this vendor.
-          </p>
+          <EmptyState size="compact" title="No messages from this vendor." />
         ) : (
           <div className="space-y-2">
             {(messages ?? []).map((m) => (

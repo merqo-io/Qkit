@@ -24,6 +24,9 @@ Since `v0.32.3`, `Section` title tooltips and default-mode `InfoTooltip`s open
 on a tap as well as on hover and keyboard focus, and every info icon takes taps
 through a 44px touch area on touch devices. That area comes from `@merqo/ui`
 itself, not from this app's CSS. A long tooltip wraps inside the viewport.
+Empty-list messages (no vendors, no menu items, no help requests and similar)
+render the shared `EmptyState` from `@merqo/ui` at `size="compact"` instead of
+hand-written dashed boxes.
 
 qkit uses Supabase, **not** templateCentral's better-auth/Drizzle data layer.
 Database authorization is enforced through RLS and SQL privileges. Service-role
