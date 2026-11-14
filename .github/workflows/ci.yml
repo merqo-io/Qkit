@@ -63,7 +63,8 @@ jobs:
 
   e2e:
     name: e2e (public smoke)
-    runs-on: ubuntu-latest
+    # Playwright must support the runner image before this pin can be lifted.
+    runs-on: ubuntu-24.04
     env:
       # Boots the app with dummy Supabase values; no live database is needed.
       E2E_PROD: "1"
@@ -89,7 +90,8 @@ jobs:
 
   e2e-order:
     name: e2e (order lifecycle)
-    runs-on: ubuntu-latest
+    # Playwright must support the runner image before this pin can be lifted.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1

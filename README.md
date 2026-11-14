@@ -154,6 +154,7 @@ and gitleaks when installed. README and comment-hygiene reminders are advisory.
 Pre-push runs the harness integrity check and project checks/tests. Never bypass
 hooks to make a failing change pass. CI also runs build, security and database
 checks; inspect `.github/workflows/` for the actual job conditions.
+The two e2e jobs run on `ubuntu-24.04` because Playwright must support the runner image.
 
 ## Repository guide
 
