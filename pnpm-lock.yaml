@@ -39,7 +39,7 @@ importers:
         version: 5.2.2(react-hook-form@7.77.0(react@19.2.7))
       '@merqo/ui':
         specifier: github:merqo-io/merqo-ui#5ebd889cc7234238b8c643d15ccbb2f5c3f7feec
-        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5ebd889cc7234238b8c643d15ccbb2f5c3f7feec(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.60.0)(@supabase/ssr@0.10.3(@supabase/supabase-js@2.107.0))(@supabase/supabase-js@2.107.0)(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next-themes@0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(radix-ui@1.4.3(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sonner@1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)
+        version: https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5ebd889cc7234238b8c643d15ccbb2f5c3f7feec(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.61.1)(@supabase/ssr@0.10.3(@supabase/supabase-js@2.107.0))(@supabase/supabase-js@2.107.0)(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next-themes@0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.61.1)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(radix-ui@1.4.3(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sonner@1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)
       '@supabase/ssr':
         specifier: ^0.10.3
         version: 0.10.3(@supabase/supabase-js@2.107.0)
@@ -54,7 +54,7 @@ importers:
         version: 0.468.0(react@19.2.7)
       next:
         specifier: 16.4.2
-        version: 16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.61.1)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-themes:
         specifier: 0.4.6
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -90,8 +90,8 @@ importers:
         specifier: 4.8.1
         version: 4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
       '@playwright/test':
-        specifier: ^1.60.0
-        version: 1.60.0
+        specifier: 1.61.1
+        version: 1.61.1
       '@stryker-mutator/core':
         specifier: ^9.6.1
         version: 9.6.1(@types/node@24.13.2)(supports-color@7.2.0)
@@ -1115,8 +1115,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@playwright/test@1.60.0':
-    resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
+  '@playwright/test@1.61.1':
+    resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4116,13 +4116,13 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
-  playwright-core@1.60.0:
-    resolution: {integrity: sha512-9bW6zvX/m0lEbgTKJ6YppOKx8H3VOPBMOCFh2irXFOT4BbHgrx5hPjwJYLT40Lu+4qtD36qKc/Hn56StUW57IA==}
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.60.0:
-    resolution: {integrity: sha512-hheHdokM8cdqCb0lcE3s+zT4t4W+vvjpGxsZlDnikarzx8tSzMebh3UiFtgqwFwnTnjYQcsyMF8ei2mCO/tpeA==}
+  playwright@1.61.1:
+    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -5701,7 +5701,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5ebd889cc7234238b8c643d15ccbb2f5c3f7feec(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.60.0)(@supabase/ssr@0.10.3(@supabase/supabase-js@2.107.0))(@supabase/supabase-js@2.107.0)(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next-themes@0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(radix-ui@1.4.3(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sonner@1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)':
+  '@merqo/ui@https://codeload.github.com/merqo-io/merqo-ui/tar.gz/5ebd889cc7234238b8c643d15ccbb2f5c3f7feec(@eslint-community/eslint-plugin-eslint-comments@4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(@playwright/test@1.61.1)(@supabase/ssr@0.10.3(@supabase/supabase-js@2.107.0))(@supabase/supabase-js@2.107.0)(@types/react@19.2.17)(eslint-plugin-sonarjs@4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0)))(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(next-themes@0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.61.1)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(radix-ui@1.4.3(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sonner@1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(supports-color@7.2.0)(tailwindcss@4.3.0)(zod@4.6.6)':
     dependencies:
       '@icons-pack/react-simple-icons': 13.13.0(react@19.2.7)
       class-variance-authority: 0.7.1
@@ -5720,12 +5720,12 @@ snapshots:
       tailwindcss: 4.3.0
     optionalDependencies:
       '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
-      '@playwright/test': 1.60.0
+      '@playwright/test': 1.61.1
       '@supabase/ssr': 0.10.3(@supabase/supabase-js@2.107.0)
       '@supabase/supabase-js': 2.107.0
       eslint: 9.39.4(jiti@2.7.0)(supports-color@7.2.0)
       eslint-plugin-sonarjs: 4.2.2(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))
-      next: 16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next: 16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.61.1)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       zod: 4.6.6
     transitivePeerDependencies:
       - '@types/react'
@@ -5788,9 +5788,9 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@playwright/test@1.60.0':
+  '@playwright/test@1.61.1':
     dependencies:
-      playwright: 1.60.0
+      playwright: 1.61.1
 
   '@radix-ui/number@1.1.1': {}
 
@@ -8993,7 +8993,7 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.60.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  next@16.4.2(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.61.1)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@next/env': 16.4.2
       '@swc/helpers': 0.5.23
@@ -9012,7 +9012,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.4.2
       '@next/swc-win32-arm64-msvc': 16.4.2
       '@next/swc-win32-x64-msvc': 16.4.2
-      '@playwright/test': 1.60.0
+      '@playwright/test': 1.61.1
       sharp: 0.35.5(@types/node@24.13.2)
     transitivePeerDependencies:
       - '@babel/core'
@@ -9146,11 +9146,11 @@ snapshots:
 
   picomatch@4.0.7: {}
 
-  playwright-core@1.60.0: {}
+  playwright-core@1.61.1: {}
 
-  playwright@1.60.0:
+  playwright@1.61.1:
     dependencies:
-      playwright-core: 1.60.0
+      playwright-core: 1.61.1
     optionalDependencies:
       fsevents: 2.3.2
 
