@@ -16,5 +16,10 @@ describe("FaqRows", () => {
     );
     expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(2);
     expect(container.textContent).not.toContain("—");
+    expect(
+      container
+        .querySelector("summary")
+        ?.classList.contains("[&::-webkit-details-marker]:hidden"),
+    ).toBe(true);
   });
 });

@@ -35,7 +35,7 @@ const FAQ: FaqRow[] = [
   },
   {
     q: "Can I take PayNow?",
-    a: "Yes. The customer pays in their banking app and marks the order as paid. The ticket then says to check the payment, and it only counts as paid once you confirm it. The money goes to your own account and qkit never holds it. Online card payment is not available yet.",
+    a: "Yes. The customer pays in their banking app and marks the order as paid. The ticket then says to check the payment, and it only counts as paid once you confirm it. The money goes to your own account and qkit never holds it. Online card payment is not available.",
   },
 ];
 

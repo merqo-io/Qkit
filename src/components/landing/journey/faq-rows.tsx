@@ -10,7 +10,7 @@ export function FaqRows({ rows }: { rows: readonly FaqRow[] }) {
           data-faq-row
           className="group border-b border-border"
         >
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 font-semibold outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+          <summary className="flex min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden items-center justify-between gap-3 py-3 font-semibold outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
             <span>{row.q}</span>
             <span
               aria-hidden

@@ -49,8 +49,9 @@ export function progressToStep(progress: number, steps: number): number {
 /**
  * Scroll position as a play head: returns a step from 0 to `steps` that
  * rises as the element scrolls into view and falls back when scrolled up.
- * Until it has measured, and whenever the visitor prefers reduced motion, it
- * returns `steps` so the finished state is what shows.
+ * Server render, no-JS, a section already on screen at mount, and reduced
+ * motion all show `steps`, the finished state. Only a section below the
+ * viewport at mount drops to its measured step before the visitor reaches it.
  */
 export function useScrollPlay(
   ref: RefObject<HTMLElement | null>,
@@ -74,6 +75,10 @@ export function useScrollPlay(
         ),
       );
     };
+    // A section already on screen keeps its finished state until the visitor
+    // scrolls, so nothing visible snaps back to step 0 after hydration.
+    const first = ref.current?.getBoundingClientRect();
+    if (first && first.top >= window.innerHeight) measure();
     const schedule = () => {
       if (queued) return;
       queued = true;
@@ -81,7 +86,6 @@ export function useScrollPlay(
     };
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    measure();
     return () => {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);

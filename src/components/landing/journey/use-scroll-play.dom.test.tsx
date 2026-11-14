@@ -86,6 +86,23 @@ describe("useScrollPlay", () => {
     expect(probe).toHaveTextContent("0");
   });
 
+  it("keeps the finished step when the section is already on screen at mount", () => {
+    mockMatchMedia(false);
+    top = 300;
+    render(<Probe />);
+    const probe = screen.getByTestId("probe");
+    expect(probe).toHaveTextContent("4");
+    scrollTo(2000);
+    expect(probe).toHaveTextContent("0");
+  });
+
+  it("drops to the measured step at mount when the section is below the viewport", () => {
+    mockMatchMedia(false);
+    top = 1500;
+    render(<Probe />);
+    expect(screen.getByTestId("probe")).toHaveTextContent("0");
+  });
+
   it("shows the finished step and ignores scroll under reduced motion", () => {
     mockMatchMedia(true);
     render(<Probe />);

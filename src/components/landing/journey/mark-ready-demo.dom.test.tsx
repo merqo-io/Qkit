@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MarkReadyDemo } from "./mark-ready-demo";
 import { OrderWatch } from "./order-watch";
@@ -57,6 +57,21 @@ describe("MarkReadyDemo", () => {
     expect(screen.getByText("1 active")).toBeVisible();
   });
 
+  it("keeps keyboard focus through every transition", async () => {
+    mockMatchMedia(false);
+    const user = userEvent.setup();
+    render(<MarkReadyDemo />);
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(
+      screen.getByRole("button", { name: "Mark Picked Up" }),
+    ).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("button", { name: "Play again" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("button", { name: "Mark Ready" })).toHaveFocus();
+  });
+
   it("stays operable under reduced motion", async () => {
     mockMatchMedia(true);
     const user = userEvent.setup();
@@ -66,6 +81,67 @@ describe("MarkReadyDemo", () => {
       target: screen.getByRole("button", { name: "Mark Ready" }),
     });
     expect(screen.getByText("READY")).toBeVisible();
+  });
+});
+
+describe("MarkReadyDemo motion", () => {
+  const animate = vi.fn();
+  let observed: (() => void) | undefined;
+
+  beforeEach(() => {
+    animate.mockClear();
+    observed = undefined;
+    Object.defineProperty(Element.prototype, "animate", {
+      configurable: true,
+      value: animate,
+    });
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          observed = () =>
+            cb(
+              [{ isIntersecting: true } as IntersectionObserverEntry],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, "animate");
+  });
+
+  it("animates the stamp once and never under reduced motion", async () => {
+    mockMatchMedia(true);
+    const user = userEvent.setup();
+    const { unmount } = render(<MarkReadyDemo />);
+    observed?.();
+    await user.keyboard("{Tab}{Enter}");
+    expect(screen.getByText("READY")).toBeVisible();
+    expect(animate).not.toHaveBeenCalled();
+    unmount();
+
+    mockMatchMedia(false);
+    render(<MarkReadyDemo />);
+    await user.keyboard("{Tab}{Enter}");
+    expect(animate).toHaveBeenCalledTimes(1);
+  });
+
+  it("prints the ticket when it first scrolls into view, and again after play again", async () => {
+    mockMatchMedia(false);
+    const user = userEvent.setup();
+    render(<MarkReadyDemo />);
+    expect(animate).not.toHaveBeenCalled();
+    observed?.();
+    expect(animate).toHaveBeenCalledTimes(1);
+    await user.keyboard("{Tab}{Enter}{Enter}{Enter}");
+    // stamp once, then the reprint after the ticket remounts
+    observed?.();
+    expect(animate).toHaveBeenCalledTimes(3);
   });
 });
 

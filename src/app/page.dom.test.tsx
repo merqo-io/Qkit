@@ -68,7 +68,7 @@ describe("public landing page", () => {
     expect(
       screen.getByText(/Yes\. The customer pays in their banking app/),
     ).toHaveTextContent(
-      /qkit never holds it\. Online card payment is not available yet/,
+      /qkit never holds it\. Online card payment is not available\.$/,
     );
     expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
   });

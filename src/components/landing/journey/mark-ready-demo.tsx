@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@merqo/ui/primitives";
 
@@ -55,38 +55,48 @@ export function MarkReadyDemo() {
   const reduced = usePrefersReducedMotion();
   const ticketRef = useRef<HTMLDivElement>(null);
   const stampRef = useRef<HTMLSpanElement>(null);
-  const printedOnView = useRef(false);
+  const advanceRef = useRef<HTMLButtonElement>(null);
+  const againRef = useRef<HTMLButtonElement>(null);
+  const focusPending = useRef(false);
+  const ticketShown = stage < 2;
 
-  const print = useCallback(() => {
-    if (!reduced) animate(ticketRef.current, PRINT_FRAMES, 550);
-  }, [reduced]);
-
+  // One print path: each time the ticket mounts (first load, and again after
+  // Play again) it prints once when it is at least half in view.
   useEffect(() => {
     const el = ticketRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!ticketShown || reduced || !el) return;
+    if (typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (printedOnView.current) return;
-        if (entries.some((e) => e.isIntersecting)) {
-          printedOnView.current = true;
-          print();
-          io.disconnect();
-        }
+        if (!entries.some((e) => e.isIntersecting)) return;
+        animate(el, PRINT_FRAMES, 550);
+        io.disconnect();
       },
       { threshold: 0.5 },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [print]);
+  }, [ticketShown, reduced]);
 
   useEffect(() => {
     if (stage === 1 && !reduced) animate(stampRef.current, STAMP_FRAMES, 280);
   }, [stage, reduced]);
 
-  const advance = () => setStage((s) => (s === 0 ? 1 : 2));
+  // The ticket subtree unmounts after the last stage and remounts on reset,
+  // so focus is handed to the control that replaces the one just pressed.
+  useEffect(() => {
+    if (!focusPending.current) return;
+    focusPending.current = false;
+    (stage === 2 ? againRef : advanceRef).current?.focus();
+  }, [stage]);
+
+  const advance = () => {
+    if (stage === 1) focusPending.current = true;
+    setStage((s) => (s === 0 ? 1 : 2));
+  };
   const again = () => {
+    focusPending.current = true;
     setStage(0);
-    requestAnimationFrame(print);
   };
 
   return (
@@ -149,7 +159,11 @@ export function MarkReadyDemo() {
                   <div className="pl-[22px] text-xs text-muted-foreground">
                     Iced
                   </div>
-                  <PressButton className="mt-3" onClick={advance}>
+                  <PressButton
+                    ref={advanceRef}
+                    className="mt-3"
+                    onClick={advance}
+                  >
                     {stage === 0 ? "Mark Ready" : "Mark Picked Up"}
                   </PressButton>
                 </Ticket>
@@ -159,6 +173,7 @@ export function MarkReadyDemo() {
                 All caught up.
                 <br />
                 <button
+                  ref={againRef}
                   type="button"
                   onClick={again}
                   className="mt-2 min-h-11 px-2 font-sans text-sm font-semibold text-foreground underline underline-offset-[3px] hover:no-underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
