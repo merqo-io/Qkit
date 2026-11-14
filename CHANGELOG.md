@@ -20,6 +20,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
 - READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
 
+### Fixed
+
+- CI e2e jobs install browsers again: `@playwright/test` is pinned to 1.61.1, which supports the Ubuntu 26.04 runner image.
+
 ## [0.5.1] - 2026-11-11
 
 ### Changed
