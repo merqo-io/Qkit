@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button, Checkbox, Input, Label, Switch } from "@merqo/ui/primitives";
 
-import { ImageUploader, resizeToWebp } from "@merqo/ui";
+import { EmptyState, ImageUploader, resizeToWebp } from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";
 import { uploadQkitImage } from "@/lib/image-upload-adapter";
@@ -357,9 +357,10 @@ export function BoothForm({
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
               </Link>
             ) : (
-              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                Save this booth to start building its menu.
-              </p>
+              <EmptyState
+                size="compact"
+                title="Save this booth to start building its menu."
+              />
             )}
           </Section>
 

@@ -18,6 +18,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { Plus, GripVertical } from "lucide-react";
+import { EmptyState } from "@merqo/ui";
 import { Button, Label } from "@merqo/ui/primitives";
 
 import { ProLock } from "@/components/widgets/pro-lock";
@@ -246,10 +247,10 @@ export function MenuEditor({
       </div>
 
       {items.length === 0 && (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-          No items yet. Add one, price is optional (leave blank for a queue-only
-          booth).
-        </p>
+        <EmptyState
+          size="compact"
+          title="No items yet. Add one, price is optional (leave blank for a queue-only booth)."
+        />
       )}
 
       <DndContext

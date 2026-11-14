@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { EmptyState } from "@merqo/ui";
 import { HELP_CATEGORIES, articlesInCategory } from "@/content/help";
 
 export const metadata: Metadata = {
@@ -41,9 +42,7 @@ export default function HelpIndexPage() {
                 </p>
               </div>
               {articles.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                  Coming soon.
-                </p>
+                <EmptyState size="compact" title="Coming soon." />
               ) : (
                 <ul className="space-y-2">
                   {articles.map((article) => (
