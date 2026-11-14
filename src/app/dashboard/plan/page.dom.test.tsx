@@ -70,6 +70,14 @@ describe("PlanPage", () => {
     expect(highlighted).not.toHaveTextContent("Starter");
   });
 
+  it("shows the pilot notice above the ladder", async () => {
+    requireEntitledVendor.mockResolvedValue(entitlement("free"));
+    render(await PlanPage());
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Merqo is free during the pilot.",
+    );
+  });
+
   it("marks the vendor's current tier and keeps the Starter identity copy", async () => {
     requireEntitledVendor.mockResolvedValue(entitlement("starter"));
     const { container } = render(await PlanPage());
