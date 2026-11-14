@@ -7,7 +7,7 @@ pickup status.
 ## Stack
 
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
-React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.45.1)
+React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.46.0)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
 
 The shared UI dependency is pinned to a reviewed immutable Git commit. Its
@@ -154,6 +154,7 @@ and gitleaks when installed. README and comment-hygiene reminders are advisory.
 Pre-push runs the harness integrity check and project checks/tests. Never bypass
 hooks to make a failing change pass. CI also runs build, security and database
 checks; inspect `.github/workflows/` for the actual job conditions.
+The two e2e jobs run on `ubuntu-24.04` because Playwright must support the runner image.
 
 ## Repository guide
 

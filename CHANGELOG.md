@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Bumped `@merqo/ui` to v0.46.0: the plan page price ladder now shows a notice that Merqo is free during the pilot.
+- The two e2e CI jobs run on `ubuntu-24.04` instead of `ubuntu-latest`, because Playwright does not support chromium on the ubuntu-26.04 image that `ubuntu-latest` now resolves to.
 - Moved `@merqo/ui` to v0.45.1 (the commit tagged v0.45.1; v0.45.0 does not build on a clean install).
 - The root `error.tsx`, `not-found.tsx` and `global-error.tsx` now render the shared `ErrorPage`, `NotFound` and `GlobalError`, with every visible string passed in unchanged. `error.tsx` now also shows a "Reference: <digest>" line when Next supplies a digest, and its "Try again" button is full width. The nested `admin` and `dashboard` 404 pages stay local because they render inside a layout shell, and are allowed in `merqoNoLocalCopies`.
 - Removed the local `alert-dialog`, `dropdown-menu`, `popover`, `sheet`, `toggle` and `toggle-group` primitives in favour of `@merqo/ui/primitives`. Toggles and the sheet close button are now 44px on touch screens, the sheet scrim stays at the kit's previous strength (black at 50%), the 0 to 10 score row in the feedback form wraps to two rows on narrow screens so every score stays 44px on touch, and the ticket and menu-item menus scroll when taller than the screen.
@@ -19,6 +21,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
 - READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
+
+### Fixed
+
+- CI e2e jobs install browsers again: `@playwright/test` is pinned to 1.61.1, which supports the Ubuntu 26.04 runner image.
 
 ## [0.5.1] - 2026-11-11
 
