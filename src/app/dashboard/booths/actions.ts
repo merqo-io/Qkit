@@ -97,14 +97,14 @@ function validateMenuCaps(
     entitlement.maxMenuItems !== null &&
     menuItems.length > entitlement.maxMenuItems
   )
-    return `Your plan allows up to ${entitlement.maxMenuItems} menu items. Remove some or upgrade.`;
+    return `Your plan allows up to ${entitlement.maxMenuItems} menu items. Remove some to add more.`;
 
   const maxGroups = entitlement.maxOptionGroupsPerItem;
   if (
     maxGroups !== null &&
     menuItems.some((it) => (it.option_groups?.length ?? 0) > maxGroups)
   )
-    return `Your plan allows up to ${maxGroups} customization groups per item. Upgrade for more.`;
+    return `Your plan allows up to ${maxGroups} customization groups per item.`;
 
   return null;
 }
@@ -194,7 +194,7 @@ async function checkActiveBoothCap(
   const { count, error } = await q;
   if (error) console.error(`${context} active-cap count failed`, error.message);
   if ((count ?? 0) >= maxBooths)
-    return `Your plan serves ${maxBooths} open booth at a time. Pause another booth first, or upgrade.`;
+    return `Your plan serves ${maxBooths} open booth at a time. Pause another booth first.`;
   return null;
 }
 

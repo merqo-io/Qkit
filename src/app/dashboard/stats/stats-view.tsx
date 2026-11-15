@@ -240,7 +240,8 @@ export function StatsView({
               className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.04] px-4 py-5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
             >
               <Lock className="size-4" />
-              Upgrade for trends, busy-times heatmap, profit margins and more
+              Trends, the busy-times heatmap and profit margins are not on your
+              plan.
             </Link>
           </Stagger>
         </div>

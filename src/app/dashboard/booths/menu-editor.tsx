@@ -314,7 +314,7 @@ export function MenuEditor({
         (atItemCap ? (
           <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-border py-2.5 text-xs text-muted-foreground">
             <span>Reached your {entitlement.maxMenuItems}-item limit.</span>
-            <ProLock feature="menu_items" label="Upgrade" />
+            <ProLock feature="menu_items" label="See plans" />
           </div>
         ) : (
           <Button
