@@ -66,9 +66,27 @@ describe("public landing page", () => {
   it("says PayNow checkout exists and that qkit does not hold the money", async () => {
     render(await LandingPage());
     expect(
-      screen.getByText(/Yes, by PayNow\. The money goes straight to your own/),
-    ).toBeInTheDocument();
+      screen.getByText(/Yes\. The customer pays in their banking app/),
+    ).toHaveTextContent(
+      /qkit never holds it\. Online card payment is not available\.$/,
+    );
     expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
+  });
+  it("follows one order as a journey with exactly three FAQ rows", async () => {
+    const { container } = render(await LandingPage());
+    expect(
+      screen.getByRole("heading", {
+        name: "Follow one order from the queue to the counter.",
+      }),
+    ).toBeInTheDocument();
+    expect(container.querySelector("#how")).toBeInTheDocument();
+    expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(3);
+    expect(
+      screen.getByText("Says paid. Check the payment"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Up and running in three steps/)).toBeNull();
+    expect(screen.queryByText("What qkit does")).toBeNull();
+    expect(screen.queryByText("No hardware")).toBeNull();
   });
   it("shows the pilot badge and keeps open signup", async () => {
     render(await LandingPage());
