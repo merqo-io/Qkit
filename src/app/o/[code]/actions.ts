@@ -27,7 +27,7 @@ const GENERIC_FAILURE = "Could not place order. Please try again.";
 function messageFor(raw: string): string {
   if (raw.includes("ORDER_EXPIRED")) return "This code expired. Please rescan.";
   if (raw.includes("ORDER_UNSERVABLE"))
-    return "This booth isn't taking orders right now";
+    return "This booth isn't taking orders right now.";
   if (raw.includes("ORDER_SOLD_OUT") || raw.includes("ORDER_ITEM_UNAVAILABLE"))
     return "Sorry, an item just sold out. Please adjust your order.";
   if (raw.includes("ORDER_CAP_REACHED"))

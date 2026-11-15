@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Pause, Play } from "lucide-react";
 import {
   Button,
@@ -36,9 +37,32 @@ export type BoothView = {
   // Start new service also resets. Derived server-side so the row does not
   // carry the menu.
   has_item_limits?: boolean;
+  // Active but beyond the plan's serve limit, so customers cannot order.
+  over_limit?: boolean;
 };
 
 export type BoothFilter = "all" | string;
+
+function toggleLook(boothName: string, active: boolean, notServing: boolean) {
+  if (notServing)
+    return {
+      label: "Not serving",
+      ariaLabel: `${boothName} is over your plan's limit and not taking orders. Tap to pause.`,
+      className: "border-status-aging/40 text-status-aging",
+    };
+  if (active)
+    return {
+      label: "Open",
+      ariaLabel: `${boothName} is open. Tap to pause.`,
+      className:
+        "border-success/40 bg-success/10 text-success hover:bg-success/15 hover:text-success",
+    };
+  return {
+    label: "Paused",
+    ariaLabel: `${boothName} is paused. Tap to resume.`,
+    className: "text-muted-foreground",
+  };
+}
 
 // One booth's open/paused toggle — a single button, not a two-segment
 // control: this is fundamentally one binary action (pause it / resume it),
@@ -53,42 +77,50 @@ export function BoothToggle({
   active,
   onChange,
   boothName,
+  overLimit = false,
 }: {
   active: boolean;
   onChange: (next: boolean) => void;
   boothName: string;
+  overLimit?: boolean;
 }) {
+  const notServing = active && overLimit;
+  const look = toggleLook(boothName, active, notServing);
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onChange(!active)}
-          aria-label={
-            active
-              ? `${boothName} is open. Tap to pause.`
-              : `${boothName} is paused. Tap to resume.`
-          }
-          className={cn(
-            "h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-xs font-semibold",
-            active
-              ? "border-success/40 bg-success/10 text-success hover:bg-success/15 hover:text-success"
-              : "text-muted-foreground",
-          )}
+    <>
+      {notServing && (
+        <Link
+          href="/dashboard/booths"
+          className="shrink-0 text-xs font-semibold text-status-aging underline underline-offset-2"
         >
-          {active ? (
-            <Pause className="size-3.5" />
-          ) : (
-            <Play className="size-3.5" />
-          )}
-          {active ? "Open" : "Paused"}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {active ? "Pause taking orders" : "Resume taking orders"}
-      </TooltipContent>
-    </Tooltip>
+          Over plan limit
+        </Link>
+      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onChange(!active)}
+            aria-label={look.ariaLabel}
+            className={cn(
+              "h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-xs font-semibold",
+              look.className,
+            )}
+          >
+            {active ? (
+              <Pause className="size-3.5" />
+            ) : (
+              <Play className="size-3.5" />
+            )}
+            {look.label}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {active ? "Pause taking orders" : "Resume taking orders"}
+        </TooltipContent>
+      </Tooltip>
+    </>
   );
 }
 
@@ -168,7 +200,12 @@ export function BoothRow({
           (outside hours)
         </span>
       )}
-      <BoothToggle active={active} onChange={onToggle} boothName={b.name} />
+      <BoothToggle
+        active={active}
+        onChange={onToggle}
+        boothName={b.name}
+        overLimit={b.over_limit}
+      />
     </div>
   );
 }

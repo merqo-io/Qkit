@@ -56,6 +56,7 @@ beforeEach(() => {
       id: "vendor-a",
       board_settings: { daily_order_number_reset: false },
     },
+    entitlement: { maxBooths: null },
   });
   for (const key of Object.keys(fixtures)) delete fixtures[key];
   rpc.mockResolvedValue({ data: 3, error: null });
@@ -182,6 +183,30 @@ describe("dashboard initial load", () => {
       }),
     );
   });
+  it("flags an active booth beyond the plan's serve limit", async () => {
+    gate.mockResolvedValueOnce({
+      vendor: {
+        id: "vendor-a",
+        board_settings: { daily_order_number_reset: false },
+      },
+      entitlement: { maxBooths: 1 },
+    });
+    fixtures.booths = {
+      data: [
+        { ...booths[0], created_at: "2026-01-01T00:00:00Z" },
+        { ...booths[0], id: "c", created_at: "2026-02-01T00:00:00Z" },
+      ],
+    };
+    render(await DashboardPage());
+    expect(board).toHaveBeenCalledWith(
+      expect.objectContaining({
+        booths: [
+          expect.objectContaining({ id: "a", over_limit: false }),
+          expect.objectContaining({ id: "c", over_limit: true }),
+        ],
+      }),
+    );
+  });
   it("loads booths and active orders beyond a two-row API cap", async () => {
     fixtures.booths = { data: [...booths, { ...booths[1], id: "c" }] };
     const orders = ["first", "second", "third"].map((id) => ({
@@ -296,6 +321,7 @@ describe("dashboard initial load", () => {
         id: "vendor-a",
         board_settings: { daily_order_number_reset: true },
       },
+      entitlement: { maxBooths: null },
     });
     fixtures.booths = { data: booths };
     fixtures.baselines = {
@@ -324,6 +350,7 @@ describe("dashboard initial load", () => {
           id: "vendor-a",
           board_settings: { daily_order_number_reset: true },
         },
+        entitlement: { maxBooths: null },
       });
       fixtures.booths = { data: booths };
       fixtures.baselines = error
@@ -347,6 +374,7 @@ describe("dashboard initial load", () => {
         id: "vendor-a",
         board_settings: { daily_order_number_reset: true },
       },
+      entitlement: { maxBooths: null },
     });
     render(await DashboardPage());
     expect(serviceClient).toHaveBeenCalledTimes(1);
@@ -357,6 +385,7 @@ describe("dashboard initial load", () => {
         id: "vendor-a",
         board_settings: { daily_order_number_reset: true },
       },
+      entitlement: { maxBooths: null },
     });
     fixtures.booths = { data: booths };
     fixtures.booth_service_starts = { data: [] };
@@ -381,6 +410,7 @@ describe("dashboard initial load", () => {
         id: "vendor-a",
         board_settings: { daily_order_number_reset: true },
       },
+      entitlement: { maxBooths: null },
     });
     fixtures.booths = { data: booths };
     fixtures.serviceLog = {
@@ -399,6 +429,7 @@ describe("dashboard initial load", () => {
         id: "vendor-a",
         board_settings: { daily_order_number_reset: true },
       },
+      entitlement: { maxBooths: null },
     });
     render(await DashboardPage());
     expect(from).not.toHaveBeenCalledWith("orders");
