@@ -249,7 +249,7 @@ describe("StatsView", () => {
     ).toBeInTheDocument();
   });
 
-  it("free: no tabs, but keeps the highlights + upgrade CTA", () => {
+  it("free: no tabs, but keeps the highlights + plan link", () => {
     render(
       <StatsView
         summary={summary({
@@ -274,7 +274,7 @@ describe("StatsView", () => {
     expect(screen.getByText("today")).toBeInTheDocument();
     expect(screen.getByText("Best seller")).toBeInTheDocument();
     expect(screen.getByText("Avg wait")).toBeInTheDocument();
-    expect(screen.getByText(/upgrade/i)).toBeInTheDocument();
+    expect(screen.getByText(/not on your plan/i)).toBeInTheDocument();
   });
 
   it("shows the all-time totals as captions under Revenue and Orders", () => {
