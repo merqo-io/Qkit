@@ -35,6 +35,8 @@ import { OrderStatusPoller } from "./order-status-poller";
 import { EarnLink } from "./earn-link";
 import { TelegramConnect } from "./telegram-connect";
 import { SocialLinksRow } from "@/components/widgets/social-links-row";
+import { PoweredByMerqo } from "@/components/order/powered-by-merqo";
+import { showPoweredByMerqo } from "@/lib/powered-by";
 
 // showPay is false for most orders (queue-only booths, or once payment is a
 // moot point), so PayPanel shouldn't ship in every order-status page's JS.
@@ -308,9 +310,12 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   // Vendor-level default links, so a booth without its own override still
   // shows the vendor's. Small extra query (not embeddable via Promise.all
   // above — it depends on booth.vendor_id) but this page isn't a hot path.
-  const vendorProfile = booth?.vendor_id
-    ? await loadVendorProfile(supabase, booth.vendor_id)
-    : null;
+  const [vendorProfile, poweredBy] = booth?.vendor_id
+    ? await Promise.all([
+        loadVendorProfile(supabase, booth.vendor_id),
+        showPoweredByMerqo(booth.vendor_id),
+      ])
+    : [null, false];
   const socialLinks = resolveSocialLinks(
     booth?.social_links ? parseSocialLinks(booth.social_links) : null,
     parseSocialLinks(vendorProfile?.social_links ?? null),
@@ -498,6 +503,7 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
           {items.length > 0 ? "Order something else" : "Order again"}
         </Link>
       </div>
+      {poweredBy && <PoweredByMerqo />}
     </div>
   );
 }

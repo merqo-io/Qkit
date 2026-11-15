@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Troubleshooting",
   summary:
     "Quick fixes for sign-up, the live board, payments, booths that will not take orders, QR codes, photos and stats.",
-  reviewed: "2026-11-11",
+  reviewed: "2026-11-16",
   uiLabels: [
     "Check your email",
     "Create account",
@@ -203,10 +203,14 @@ export const article: HelpArticle = {
       ],
     },
 
-    { type: "heading", level: 2, text: "My stats only show the last 24 hours" },
+    {
+      type: "heading",
+      level: 2,
+      text: "My stats only show today and yesterday",
+    },
     {
       type: "paragraph",
-      text: "The 7, 30 and 90 day ranges are part of the Pro plan and a running Event Pass. Free and Starter accounts see the 24 hour view.",
+      text: "The 7, 30 and 90 day ranges are part of the Pro plan and a running Event Pass. Free and Starter accounts see today and yesterday, and the Completed orders page follows the same window. Older orders are kept.",
     },
   ],
 };

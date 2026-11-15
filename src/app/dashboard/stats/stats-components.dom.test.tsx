@@ -270,8 +270,8 @@ describe("StatsView", () => {
       />,
     );
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
-    // 24h range collapses to the friendlier "today" caption.
-    expect(screen.getByText("today")).toBeInTheDocument();
+    // 24h range reads "today and yesterday".
+    expect(screen.getByText("today and yesterday")).toBeInTheDocument();
     expect(screen.getByText("Best seller")).toBeInTheDocument();
     expect(screen.getByText("Avg wait")).toBeInTheDocument();
     expect(screen.getByText(/not on your plan/i)).toBeInTheDocument();

@@ -6,7 +6,7 @@ The "Troubleshooting" user-guide article: quick fixes for sign-up, the live boar
 
 ## Contents
 
-- `troubleshooting.ts` — exports `article` (`HelpArticle`, category `troubleshooting`): title, summary, `reviewed` date, the `uiLabels` the body quotes (including customer-facing messages), the `covers` source files and the `body` blocks.
+- `troubleshooting.ts` — exports `article` (`HelpArticle`, category `troubleshooting`): title, summary, `reviewed` date, the `uiLabels` the body quotes (including customer-facing messages), the `covers` source files and the `body` blocks (the stats entry describes the today-and-yesterday window).
 
 ## Conventions
 

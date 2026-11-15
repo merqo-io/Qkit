@@ -171,6 +171,9 @@ are what stash the reorder handoff `OrderForm` reads on mount.
 - `cart-summary.tsx`: the collapsible "Your order" ticket.
 - `checkout-sheet.tsx`: the bottom sheet with the order summary, name and
   phone fields and the Place order button.
+- `powered-by-merqo.tsx`: the small "Powered by Merqo" link to merqo.io shown
+  on the customer pages for Free vendors.
+- `powered-by-merqo.dom.test.tsx`: tests the link target.
 - `use-order-submission.ts`: the place-order flow with its one network retry,
   the saved pending attempt that lets a lost response be recovered, and the
   recent-orders write and redirect.

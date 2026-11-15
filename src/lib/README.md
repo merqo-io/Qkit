@@ -61,6 +61,13 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   their own held items as someone else's.
 - `cart-storage.test.ts` — tests save/load/clear round-tripping and malformed
   or missing storage.
+- `powered-by.ts` — `showPoweredByMerqo(vendorId)` and
+  `showPoweredByMerqoForBooth(boothId)`: server-only service-client reads that
+  say whether the customer pages show the "Powered by Merqo" line. True only
+  for Free with no running Event Pass; a vendor with no entitlement row counts
+  as Free; any read error hides the line.
+- `powered-by.test.ts` — tests Free, no row, Starter, Pro, a running pass, a
+  failed or thrown read, and the booth lookup.
 - `pending-order.ts` — per-booth session replay key and canonical SHA-256 payload
   digest for recovering uncertain orders after reload, without plaintext customer
   details. Storage access failures are distinguished from corrupt metadata so
@@ -455,7 +462,10 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   above, including the payment-config cross-field rules (xor of UEN/mobile,
   pointer requiring a link or QR) and the tolerant vs. strict read/write
   boundary distinction.
-- `stats.ts` — `computeStats(orders, topN)`: the core stats/margin engine —
+- `stats.ts` — `rangeStartMs(range, nowMs, floorMs)`/`RANGE_DAYS`: the start of a
+  stats window (`"24h"` is 00:00 SGT yesterday, so Free and Starter see today
+  and yesterday; longer ranges roll back whole days; never before the floor).
+  `computeStats(orders, topN)`: the core stats/margin engine —
   revenue, AOV, cancellation/refund/fulfilment rates, per-item revenue/cost/
   profit aggregation (`topItems`, capped at 50, plus uncapped `itemTotals`),
   hourly and day×hour (SGT) buckets,
@@ -474,7 +484,7 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   minutes plus the usable-wait count/`minSample` instead of multiplying by orders-ahead —
   a vendor-facing "here's what's live right now" label for the Settings
   page, not part of any customer-facing wait calculation).
-- `stats.test.ts` — tests bucketing, margin computation, refund detection,
+- `stats.test.ts` — tests `rangeStartMs` boundaries, bucketing, margin computation, refund detection,
   fulfilment-rate math, the trend/wait series against synthetic orders,
   `estimateWaitSeconds`'s fallback (used below the sample size, ignored once
   real data meets it, null when neither is available), and
@@ -552,11 +562,12 @@ boolean`, migration 0080 — orders, booth_item_sold —
   `sgtClock`/`sgtWeekdayTime`/`shortDateTime`, and `sgtStartOfDayIso` (the UTC
   instant for SGT midnight of a given moment — the query boundary for
   "today" in SGT, e.g. the daily order-number reset baseline and the
-  completed-orders page's default "Today" filter) — always formats/computes
+  completed-orders page's default "Today" filter) and `sgtYesterdayStartIso`
+  (00:00 SGT the day before, the start of the Free and Starter history window) — always formats/computes
   in `Asia/Singapore`, never server UTC or the browser's tz, to stay
   hydration-safe.
 - `tz.test.ts` — tests hour/weekday extraction, each display formatter
-  against fixed ISO instants, and `sgtStartOfDayIso`'s day-boundary rollover.
+  against fixed ISO instants, `sgtStartOfDayIso`'s day-boundary rollover and `sgtYesterdayStartIso`.
 - `utils.ts` — formatters (`cn` comes from `@merqo/ui/primitives`; the form
   classes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` come from `@merqo/ui`),
   `MS_PER_HOUR`/`MS_PER_DAY`,

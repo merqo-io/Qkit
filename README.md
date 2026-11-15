@@ -95,21 +95,21 @@ function.
 
 ## Main routes
 
-| Route                                          | Audience           | Purpose                                              |
-| ---------------------------------------------- | ------------------ | ---------------------------------------------------- |
-| `/login`                                       | Vendor             | Sign-in and registration; `/register` redirects here |
-| `/onboarding`                                  | Signed-in vendor   | Initial vendor setup                                 |
-| `/dashboard`                                   | Vendor             | Realtime order board and walk-up orders              |
-| `/dashboard/booths`                            | Vendor             | Booth, menu, payment and printing configuration      |
-| `/dashboard/stats`                             | Vendor             | Sales, service and review statistics                 |
-| `/o/[code]`                                    | Customer           | Current short-QR menu and ordering entry point       |
-| `/order/[boothId]`                             | Customer           | Legacy entry-point handling                          |
-| `/order/[boothId]/pay?t=…`                     | Customer           | Token-authorized payment submission                  |
-| `/order/[boothId]/[orderNumber]?t=…`           | Customer           | Token-authorized order tracking                      |
-| `/order/[boothId]/display`                     | Public display     | Queue display                                        |
-| `/order/[boothId]/pickup`                      | Pickup kiosk       | Collection scanner                                   |
-| `/admin`                                       | qkit administrator | Vendor and platform administration                   |
-| `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                |
+| Route                                          | Audience           | Purpose                                                                      |
+| ---------------------------------------------- | ------------------ | ---------------------------------------------------------------------------- |
+| `/login`                                       | Vendor             | Sign-in and registration; `/register` redirects here                         |
+| `/onboarding`                                  | Signed-in vendor   | Initial vendor setup                                                         |
+| `/dashboard`                                   | Vendor             | Realtime order board and walk-up orders                                      |
+| `/dashboard/booths`                            | Vendor             | Booth, menu, payment and printing configuration                              |
+| `/dashboard/stats`                             | Vendor             | Sales, service and review statistics (Free and Starter: today and yesterday) |
+| `/o/[code]`                                    | Customer           | Current short-QR menu and ordering entry point                               |
+| `/order/[boothId]`                             | Customer           | Legacy entry-point handling                                                  |
+| `/order/[boothId]/pay?t=…`                     | Customer           | Token-authorized payment submission                                          |
+| `/order/[boothId]/[orderNumber]?t=…`           | Customer           | Token-authorized order tracking                                              |
+| `/order/[boothId]/display`                     | Public display     | Queue display                                                                |
+| `/order/[boothId]/pickup`                      | Pickup kiosk       | Collection scanner                                                           |
+| `/admin`                                       | qkit administrator | Vendor and platform administration                                           |
+| `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                                        |
 
 ## Payments and notifications
 

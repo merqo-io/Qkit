@@ -4,7 +4,7 @@
 
 Vendor-facing sales analytics: revenue/orders/AOV, trend, margin, busy-hours,
 top items, service speed, and customer reviews, gated by the entitlement
-(24h only unless the cached stats window is 90d; a vendor on an Event Pass alone
+(today and yesterday by Singapore date unless the cached stats window is 90d; a vendor on an Event Pass alone
 gets every range but nothing from before the pass started).
 
 The live review list keeps its explicit 500-row recent limit.
@@ -16,7 +16,7 @@ The live review list keeps its explicit 500-row recent limit.
   computed "Peak <day> <hour>" caption; no chart library.
 - `chart-format.ts` — shared formatting helpers: `RANGE_LABEL` (chart eyebrow
   text per range key), `rangeCaption(range)` (KPI-strip caption, e.g.
-  `"24h"` → `"today"`, `"event"` → `"this event"`), `hourLabel(h, {long})`
+  `"24h"` → `"today and yesterday"`, `"event"` → `"this event"`), `hourLabel(h, {long})`
   (`"9a"`/`"9am"`), `fmtWait(seconds)` (compact `"4.2m"`/`"45s"` for axes),
   `waitClock(seconds)` (readable `"4m 12s"` for KPI cards).
 - `chart-format.test.ts` — unit tests for `hourLabel` and `fmtWait` edge

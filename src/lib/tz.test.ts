@@ -8,6 +8,7 @@ import {
   sgtClock,
   sgtWeekdayTime,
   sgtStartOfDayIso,
+  sgtYesterdayStartIso,
 } from "./tz";
 
 // SGT is UTC+8, no DST. 2026-06-12 is a Friday.
@@ -98,5 +99,13 @@ describe("tz (Asia/Singapore)", () => {
         "2026-06-11T16:00:00.000Z",
       );
     });
+  });
+});
+
+describe("sgtYesterdayStartIso", () => {
+  it("is midnight SGT the day before today (16:00Z two days back)", () => {
+    expect(sgtYesterdayStartIso(new Date("2026-06-12T05:00:00Z"))).toBe(
+      "2026-06-10T16:00:00.000Z",
+    );
   });
 });
