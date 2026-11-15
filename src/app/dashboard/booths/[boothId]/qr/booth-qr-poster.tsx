@@ -24,6 +24,7 @@ interface Props {
   boothId: string;
   name: string;
   isActive: boolean;
+  overLimit: boolean;
   code: string;
 }
 
@@ -38,7 +39,13 @@ function slugify(value: string): string {
   );
 }
 
-export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
+export function BoothQrPoster({
+  boothId,
+  name,
+  isActive,
+  overLimit,
+  code,
+}: Props) {
   const qrRef = useRef<HTMLDivElement>(null);
   // origin is only known on the client. useSyncExternalStore returns the server
   // snapshot (null) during hydration, then the client snapshot — SSR-safe with
@@ -127,6 +134,16 @@ export function BoothQrPoster({ boothId, name, isActive, code }: Props) {
           <p className="mt-5 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground print:hidden">
             This booth is paused, customers can&apos;t order yet. Resume it from
             the booth editor before printing.
+          </p>
+        )}
+
+        {overLimit && (
+          <p
+            role="alert"
+            className="mt-5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-muted-foreground print:hidden"
+          >
+            This booth is over your plan&apos;s limit, so customers can&apos;t
+            order from it yet. Pause another booth or upgrade first.
           </p>
         )}
       </Ticket>

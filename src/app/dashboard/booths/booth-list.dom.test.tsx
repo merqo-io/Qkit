@@ -58,6 +58,19 @@ describe("BoothList", () => {
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
+  it("explains an over-limit booth in visible text, not a title tooltip", () => {
+    render(<BoothList booths={[{ ...BOOTH, paused: true }]} />);
+    expect(
+      screen.getByText(/Customers can't order from this booth/),
+    ).toBeVisible();
+    expect(screen.getByText("Over plan limit")).not.toHaveAttribute("title");
+  });
+
+  it("shows no over-limit explanation for a booth that serves", () => {
+    render(<BoothList booths={[BOOTH]} />);
+    expect(screen.queryByText(/Customers can't order/)).toBeNull();
+  });
+
   it("explains clipboard failure without an unhandled rejection", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,

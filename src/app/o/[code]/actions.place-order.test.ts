@@ -303,7 +303,7 @@ describe("placeOrder", () => {
   it.each([
     [
       "ORDER_UNSERVABLE: booth not serving",
-      "This booth isn't taking orders right now",
+      "This booth isn't taking orders right now.",
     ],
     [
       "ORDER_SOLD_OUT: m1",

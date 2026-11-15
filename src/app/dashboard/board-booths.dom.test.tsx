@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 import { TooltipProvider } from "@merqo/ui/primitives";
 
-import { BoothRow, type BoothView } from "./board-booths";
+import { BoothRow, BoothToggle, type BoothView } from "./board-booths";
 
 const base: BoothView = {
   id: "b-1",
@@ -79,5 +79,41 @@ describe("BoothRow start-service pill", () => {
       "b-1",
       "2026-10-11T04:00:00.000Z",
     );
+  });
+});
+
+describe("BoothToggle over plan limit", () => {
+  const toggle = (overLimit: boolean, active = true) =>
+    render(
+      <BoothToggle
+        active={active}
+        onChange={vi.fn()}
+        boothName="Kopi Cart"
+        overLimit={overLimit}
+      />,
+      { wrapper: TooltipProvider },
+    );
+
+  it("does not read as open and links to the booths page", () => {
+    toggle(true);
+    expect(
+      screen.getByRole("link", { name: "Over plan limit" }),
+    ).toHaveAttribute("href", "/dashboard/booths");
+    expect(
+      screen.getByRole("button", { name: /over your plan's limit/ }),
+    ).toHaveTextContent("Not serving");
+    expect(screen.queryByText("Open")).toBeNull();
+  });
+
+  it("reads as open when within the limit", () => {
+    toggle(false);
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("reads as paused, not over the limit, once the vendor pauses it", () => {
+    toggle(true, false);
+    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });

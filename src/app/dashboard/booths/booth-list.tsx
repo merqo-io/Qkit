@@ -27,6 +27,9 @@ interface BoothRow {
   shortCode: string;
 }
 
+const OVER_LIMIT_EXPLANATION =
+  "Customers can't order from this booth. Your plan serves 1 live booth at a time: pause another booth to switch, or upgrade to keep all live.";
+
 /**
  * Status pill text + color for a booth. "Paused" is the vendor's own switch,
  * the word the board uses for it; a booth the plan will not serve is named
@@ -97,16 +100,16 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
                 </p>
                 <span
                   className={`mt-1 inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold ${status.className}`}
-                  title={
-                    booth.paused
-                      ? "Open, but not taking orders: your plan serves one live booth at a time"
-                      : undefined
-                  }
                 >
                   <span className="size-1.5 rounded-full bg-current" />
                   {status.label}
                 </span>
               </div>
+              {booth.paused && (
+                <p className="text-xs text-muted-foreground">
+                  {OVER_LIMIT_EXPLANATION}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 {booth.itemCount} item{booth.itemCount === 1 ? "" : "s"}
               </p>

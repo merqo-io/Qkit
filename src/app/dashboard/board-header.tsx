@@ -35,6 +35,7 @@ function BoothHeaderControl({
         active={boothIsActive(selectedBooth)}
         onChange={(checked) => onToggle(selectedBooth, checked)}
         boothName={selectedBooth.name}
+        overLimit={selectedBooth.over_limit}
       />
     );
   }

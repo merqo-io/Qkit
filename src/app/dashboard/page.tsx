@@ -2,6 +2,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { parseBoothHours, parseMenuItems } from "@/lib/schemas";
 import { buildOptionCodes, type OptionCodes } from "@/lib/ticket";
+import { servableBoothIds, isBoothPaused } from "@/lib/booth/access";
 import { isBoothOpen } from "@/lib/hours";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
 import { readAllRows } from "@/lib/supabase/read-all";
@@ -46,14 +47,14 @@ async function loadCupsToday(
 export default async function DashboardPage() {
   // Reuse the entitlement cache the layout already primed (same React.cache),
   // so this doesn't add a second vendor-row round-trip via getVendor.
-  const { vendor } = await requireEntitledVendor();
+  const { vendor, entitlement } = await requireEntitledVendor();
 
   const supabase = await createServerClient();
 
   const boothQuery = supabase
     .from("booths")
     .select(
-      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm, cap_reset_at",
+      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm, cap_reset_at, created_at",
     )
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: true })
@@ -85,6 +86,7 @@ export default async function DashboardPage() {
     if (Object.keys(codes).length > 0) optionCodes[b.id] = codes;
   }
 
+  const servable = servableBoothIds(booths ?? [], entitlement);
   const boothViews = (booths ?? []).map((b) => ({
     id: b.id,
     name: b.name,
@@ -93,6 +95,7 @@ export default async function DashboardPage() {
       { is_active: b.is_active, hours: parseBoothHours(b.hours) },
       nowIso,
     ),
+    over_limit: isBoothPaused(b, servable),
     walkup_default: b.walkup_default,
     requires_arrival_confirm: b.requires_arrival_confirm,
     daily_cup_cap: b.daily_cup_cap,

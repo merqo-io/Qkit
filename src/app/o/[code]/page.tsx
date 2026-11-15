@@ -142,7 +142,7 @@ export default async function OrderEntryPage({ params }: Props) {
       "They have served everything they had. You can still browse the menu below.";
   } else if (!booth.servable) {
     closedTitle = "Not taking orders";
-    closedDetail = "This booth isn't accepting orders right now.";
+    closedDetail = "This booth isn't taking orders right now.";
   }
   const socialLinks = parseSocialLinks(booth.social_links);
   const paysInPerson = await loadPaysInPerson(booth.booth_id);
