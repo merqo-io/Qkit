@@ -24,20 +24,20 @@ const CATALOG: PlanCatalog = {
       slug: "starter",
       kind: "tier",
       name: "Starter",
-      monthly_cents: 900,
-      annual_cents: 9000,
-      kits: ["qkit"],
+      monthly_cents: 1490,
+      annual_cents: 14900,
+      kits: ["qkit", "paykit"],
     },
     {
       slug: "qkit",
       kind: "kit",
-      name: "qkit",
-      monthly_cents: 1600,
-      annual_cents: 16000,
-      kits: ["qkit"],
+      name: "Pro",
+      monthly_cents: 1990,
+      annual_cents: 19900,
+      kits: ["qkit", "printkit", "paykit"],
     },
   ],
-  event_pass: { per_cup_cents: 15, min_cents: 1000, cap_cents: 5000, days: 3 },
+  event_pass: { per_cup_cents: 15, min_cents: 1400, cap_cents: 2800, days: 2 },
 };
 
 function entitlement(tier: Tier, over: Partial<Entitlement> = {}) {
@@ -58,14 +58,14 @@ describe("PlanPage", () => {
     );
   });
 
-  it("renders the ladder with qkit highlighted and live prices", async () => {
+  it("renders the ladder with Pro highlighted and live prices", async () => {
     requireEntitledVendor.mockResolvedValue(entitlement("free"));
     const { container } = render(await PlanPage());
 
-    expect(screen.getByText("S$16")).toBeInTheDocument();
-    expect(screen.getByText("S$9")).toBeInTheDocument();
+    expect(screen.getByText("S$19.90")).toBeInTheDocument();
+    expect(screen.getByText("S$14.90")).toBeInTheDocument();
     const highlighted = container.querySelector("li[aria-current='true']");
-    expect(highlighted).toHaveTextContent("qkit");
+    expect(highlighted).toHaveTextContent("Pro");
     expect(highlighted).toHaveTextContent("Recommended");
     expect(highlighted).not.toHaveTextContent("Starter");
   });

@@ -63,7 +63,8 @@ export default async function BoothsPage() {
               data-tour="new-booth"
             >
               <Link href="/dashboard/plan">
-                <Sparkles className="size-4" /> Upgrade to add booths
+                <Sparkles className="size-4" /> Your plan includes {limit}{" "}
+                {limit === 1 ? "booth" : "booths"}
               </Link>
             </Button>
           )

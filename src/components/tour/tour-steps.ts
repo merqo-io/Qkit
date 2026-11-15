@@ -94,8 +94,8 @@ export function ordersTourSteps(isMobile: boolean): TourStep[] {
 }
 
 // Anchored only on "New booth" — the sole always-present element regardless
-// of plan tier (a Free vendor at their booth cap sees "Upgrade to add
-// booths" instead, which carries the same anchor) or booth count (an empty
+// of plan tier (a Free vendor at their booth cap sees "Your plan
+// includes 1 booth" instead, which carries the same anchor) or booth count (an empty
 // list still renders it). Booth cards themselves aren't spotlighted: a
 // brand-new vendor — this tour's actual audience — has none yet, and
 // driver.js has no target to fall back to for a step whose element isn't in
