@@ -319,7 +319,7 @@ describe("saveBooth entitlement enforcement", () => {
     expect(res).toEqual({
       success: false,
       error:
-        "Your plan serves 1 open booth at a time. Pause another booth first, or upgrade.",
+        "Your plan serves 1 open booth at a time. Pause another booth first.",
     });
     expect(h.insertSpy).not.toHaveBeenCalled();
     expect(h.updateSpy).not.toHaveBeenCalled();
@@ -375,7 +375,7 @@ describe("saveMenuItems", () => {
 
     expect(res).toEqual({
       success: false,
-      error: "Your plan allows up to 6 menu items. Remove some or upgrade.",
+      error: "Your plan allows up to 6 menu items. Remove some to add more.",
     });
     expect(h.updateSpy).not.toHaveBeenCalled();
   });
@@ -390,8 +390,7 @@ describe("saveMenuItems", () => {
 
     expect(res).toEqual({
       success: false,
-      error:
-        "Your plan allows up to 3 customization groups per item. Upgrade for more.",
+      error: "Your plan allows up to 3 customization groups per item.",
     });
     expect(h.updateSpy).not.toHaveBeenCalled();
   });
@@ -821,7 +820,7 @@ describe("toggleBoothActive", () => {
     expect(res).toEqual({
       success: false,
       error:
-        "Your plan serves 1 open booth at a time. Pause another booth first, or upgrade.",
+        "Your plan serves 1 open booth at a time. Pause another booth first.",
     });
     expect(h.updateSpy).not.toHaveBeenCalled();
   });

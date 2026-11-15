@@ -5,7 +5,7 @@ export const article: HelpArticle = {
   category: "plans",
   title: "Plans",
   summary: "What Free, Starter and Pro include and what Over plan limit means.",
-  reviewed: "2026-11-05",
+  reviewed: "2026-11-16",
   uiLabels: ["Event pass", "Over plan limit", "New booth"],
   covers: [
     "src/lib/plan.ts",
@@ -40,17 +40,17 @@ export const article: HelpArticle = {
     },
     {
       type: "note",
-      text: "Plans are bought and changed in your Merqo account, not in qkit. The Plan page shows your current plan and the plan ladder with live prices. Nothing in this guide quotes a price.",
+      text: "Plans are managed in your Merqo account, not in qkit. The Plan page shows your current plan and what each plan includes.",
     },
 
     { type: "heading", level: 2, text: "Where you meet a limit" },
     {
       type: "bullets",
       items: [
-        "Menu items: on Free, Add item is replaced by an upgrade prompt once you have 6 items.",
+        "Menu items: on Free, Add item is replaced by a lock that links to the Plan page once you have 6 items.",
         "Option groups: on Free, an item can carry 3 groups of choices such as size or toppings.",
         "Opening hours: Free shows a locked card instead of the hours editor. You open and pause by hand. Starter and Pro can set hours so ordering stops automatically.",
-        "Sold-out limit and Daily item limit: locked on Free, with an upgrade prompt in place of the field.",
+        "Sold-out limit and Daily item limit: locked on Free, with a lock that links to the Plan page in place of the field.",
         "Stats: Free and Starter show the last 24 hours. Pro adds 7, 30 and 90 day views.",
       ],
     },
@@ -66,7 +66,7 @@ export const article: HelpArticle = {
         "An Over plan limit booth still exists and you can edit it, but customers cannot order from it.",
         "This is different from Paused, which is the switch you turn yourself. Paused booths come back when you open them.",
         "Moving to the Pro plan or starting an Event Pass serves every active booth again. Nothing is deleted or reset.",
-        "On Free, New booth is replaced by Upgrade to add booths once you already have a booth, counting any that are over the limit.",
+        "On Free, New booth is replaced by Your plan includes 1 booth, a button that links to the Plan page, once you already have a booth, counting any that are over the limit.",
       ],
     },
     {

@@ -185,7 +185,7 @@ describe("MenuManager save", () => {
   it("shows a toast and does not navigate when the save fails", async () => {
     saveMenuItems.mockResolvedValue({
       success: false,
-      error: "Your plan allows up to 6 menu items. Remove some or upgrade.",
+      error: "Your plan allows up to 6 menu items. Remove some to add more.",
     });
     const user = userEvent.setup();
     render(
@@ -201,7 +201,7 @@ describe("MenuManager save", () => {
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith(
-        "Your plan allows up to 6 menu items. Remove some or upgrade.",
+        "Your plan allows up to 6 menu items. Remove some to add more.",
       ),
     );
     expect(routerReplace).not.toHaveBeenCalled();
