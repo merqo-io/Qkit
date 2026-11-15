@@ -56,8 +56,8 @@ export function WorkingHoursEditor({
       <div className="space-y-2">
         <ProLock feature="auto_close_hours" label="Starter" />
         <p className="text-xs text-muted-foreground">
-          Schedule open/close times so orders stop automatically, no need to
-          pause the booth by hand. Upgrade to set hours.
+          Scheduled hours are not on your plan. They stop orders automatically,
+          so there is no need to pause the booth by hand.
         </p>
       </div>
     );

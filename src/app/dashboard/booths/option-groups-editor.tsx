@@ -294,7 +294,7 @@ export function OptionGroupsEditor({
           <span>
             {entitlement.maxOptionGroupsPerItem}-group limit per item.
           </span>
-          <ProLock feature="option_groups" label="Upgrade" />
+          <ProLock feature="option_groups" label="See plans" />
         </div>
       ) : (
         <Button
