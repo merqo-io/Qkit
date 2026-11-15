@@ -32,7 +32,7 @@ function Stepper({ qty }: { qty: number }) {
 }
 
 /**
- * Step 1: the customer's order builds on a phone as the section scrolls past,
+ * Step 1: the customer's order builds on a phone as the stage scrolls past,
  * and rewinds when the visitor scrolls back up. Scroll position is the play
  * head, so nothing is hidden waiting to appear; with reduced motion the
  * finished order is shown.
@@ -45,7 +45,7 @@ export function OrderWatch() {
 
   return (
     <JourneyStep
-      stepRef={ref}
+      stageRef={ref}
       label="Step 1 · Watch"
       heading="Ada orders while she is still in the queue."
       say="She scans the QR at your stall. No app, no sign-up. Scroll and her order builds itself."

@@ -27,17 +27,19 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 /**
- * How far through a section the viewport has travelled, 0 to 1. Starts when
- * the section's top reaches 90% of the viewport and ends when three quarters
- * of its height plus 30% of the viewport have passed.
+ * How far through its play band an element has travelled, 0 to 1. Starts when
+ * a third of the element is visible at the bottom of the viewport and ends
+ * halfway between "just fully visible" and "top at the viewport top", so the
+ * last step lands while the whole element is still on screen. Measure the
+ * element that shows the result, not a section whose copy sits above it.
  */
 export function scrollProgress(
   rect: { top: number; height: number },
   viewportHeight: number,
 ): number {
-  const p =
-    (viewportHeight * 0.9 - rect.top) /
-    (rect.height * 0.75 + viewportHeight * 0.3);
+  const start = viewportHeight - rect.height / 3;
+  const end = Math.max(viewportHeight - rect.height, 0) / 2;
+  const p = (start - rect.top) / Math.max(start - end, 1);
   return Math.max(0, Math.min(1, p));
 }
 
@@ -49,9 +51,11 @@ export function progressToStep(progress: number, steps: number): number {
 /**
  * Scroll position as a play head: returns a step from 0 to `steps` that
  * rises as the element scrolls into view and falls back when scrolled up.
- * Server render, no-JS, a section already on screen at mount, and reduced
- * motion all show `steps`, the finished state. Only a section below the
- * viewport at mount drops to its measured step before the visitor reaches it.
+ * Server render, no-JS, an element meaningfully on screen at mount (a third
+ * visible or more), and reduced motion all show `steps`, the finished state.
+ * An element held that way keeps it until it has fully left the bottom of the
+ * viewport. An element below the viewport or peeking in by less than a third
+ * at mount drops to its measured step at once and plays on scroll.
  */
 export function useScrollPlay(
   ref: RefObject<HTMLElement | null>,
@@ -64,21 +68,24 @@ export function useScrollPlay(
     if (reduced) return;
     let queued = false;
     let frame = 0;
+    let held = false;
     const measure = () => {
       queued = false;
       const el = ref.current;
       if (!el) return;
-      setStep(
-        progressToStep(
-          scrollProgress(el.getBoundingClientRect(), window.innerHeight),
-          steps,
-        ),
-      );
+      const rect = el.getBoundingClientRect();
+      if (held && rect.top < window.innerHeight) return;
+      held = false;
+      setStep(progressToStep(scrollProgress(rect, window.innerHeight), steps));
     };
-    // A section already on screen keeps its finished state until the visitor
-    // scrolls, so nothing visible snaps back to step 0 after hydration.
+    // An element meaningfully on screen at mount keeps its finished state,
+    // even through later scrolls and resizes, until it leaves below the
+    // viewport, so nothing visible snaps back after hydration. One that is
+    // barely peeking in (no progress yet) takes its measured step at once, so
+    // it shows the start of the play instead of a blank finished overlay.
     const first = ref.current?.getBoundingClientRect();
-    if (first && first.top >= window.innerHeight) measure();
+    if (first && scrollProgress(first, window.innerHeight) > 0) held = true;
+    else measure();
     const schedule = () => {
       if (queued) return;
       queued = true;
