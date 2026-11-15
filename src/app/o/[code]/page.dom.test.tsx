@@ -164,6 +164,30 @@ describe("public QR entry", () => {
       );
     },
   );
+  it("tells the customer a non-servable booth is not taking orders, without naming the plan", async () => {
+    rpc
+      .mockReset()
+      .mockResolvedValueOnce({
+        data: { ...booth, servable: false },
+        error: null,
+      })
+      .mockResolvedValue({
+        data: {
+          remaining: {},
+          held: {},
+          left: null,
+          left_held: 0,
+          max_per_order: null,
+        },
+        error: null,
+      });
+    render(await entry());
+    expect(screen.getByText("Not taking orders")).toBeInTheDocument();
+    expect(
+      screen.getByText("This booth isn't taking orders right now."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/plan/i)).not.toBeInTheDocument();
+  });
   it("restores stock held by other baskets before deciding the booth is sold out", async () => {
     rpc
       .mockReset()

@@ -26,6 +26,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A booth over the plan's live-booth limit is now unmistakable to the vendor. The booths list shows a visible explanation under the "Over plan limit" badge instead of a hover-only tooltip, the booth QR page warns on screen (never on the printed poster) that customers cannot order yet, and the board's booth toggle reads "Not serving" with an "Over plan limit" link to the booths page instead of "Open". The booths list and QR page say how many live booths the plan serves at a time and to pause another booth to switch. The customer card and the order error now use the same line, "This booth isn't taking orders right now."
 - CI e2e jobs install browsers again: `@playwright/test` is pinned to 1.61.1, which supports the Ubuntu 26.04 runner image.
 
 ## [0.5.1] - 2026-11-11

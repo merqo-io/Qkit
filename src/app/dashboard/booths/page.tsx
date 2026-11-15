@@ -89,7 +89,7 @@ export default async function BoothsPage() {
           </p>
         </Ticket>
       ) : (
-        <BoothList booths={rows} />
+        <BoothList booths={rows} maxBooths={entitlement.maxBooths} />
       )}
     </div>
   );
