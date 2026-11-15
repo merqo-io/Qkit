@@ -51,11 +51,11 @@ export function progressToStep(progress: number, steps: number): number {
 /**
  * Scroll position as a play head: returns a step from 0 to `steps` that
  * rises as the element scrolls into view and falls back when scrolled up.
- * Server render, no-JS, an element meaningfully on screen at mount (a third
- * visible or more), and reduced motion all show `steps`, the finished state.
- * An element held that way keeps it until it has fully left the bottom of the
- * viewport. An element below the viewport or peeking in by less than a third
- * at mount drops to its measured step at once and plays on scroll.
+ * With JS and no reduced-motion preference the measured step always applies:
+ * once at mount, then on every scroll and resize, so what is shown matches
+ * the scroll position wherever the page loads. Server render, no-JS and
+ * reduced motion show `steps`, the finished state; the mount measurement
+ * replaces it right after hydration.
  */
 export function useScrollPlay(
   ref: RefObject<HTMLElement | null>,
@@ -68,24 +68,14 @@ export function useScrollPlay(
     if (reduced) return;
     let queued = false;
     let frame = 0;
-    let held = false;
     const measure = () => {
       queued = false;
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      if (held && rect.top < window.innerHeight) return;
-      held = false;
       setStep(progressToStep(scrollProgress(rect, window.innerHeight), steps));
     };
-    // An element meaningfully on screen at mount keeps its finished state,
-    // even through later scrolls and resizes, until it leaves below the
-    // viewport, so nothing visible snaps back after hydration. One that is
-    // barely peeking in (no progress yet) takes its measured step at once, so
-    // it shows the start of the play instead of a blank finished overlay.
-    const first = ref.current?.getBoundingClientRect();
-    if (first && scrollProgress(first, window.innerHeight) > 0) held = true;
-    else measure();
+    measure();
     const schedule = () => {
       if (queued) return;
       queued = true;

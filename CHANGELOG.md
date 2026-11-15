@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing journey: the scroll play always follows the scroll position. A stage a third or more visible at load used to hold its finished state, so on a common desktop the order demo stayed on "ORDER PLACED" and never played. It now takes its measured step right after hydration; server render, no-JS and reduced motion still show the finished state.
 - Landing journey: on phones the order in step 1 now starts building only once the phone frame is a third in view and finishes while it is fully on screen (it used to start while the frame was still scrolling in). A frame already visible at load stays finished instead of emptying on the first scroll or resize. The Mark Ready helper text reserves room for its longest line, so the ticket no longer jumps down when it is pressed.
 
 ### Changed

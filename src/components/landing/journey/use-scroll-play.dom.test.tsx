@@ -113,27 +113,27 @@ describe("useScrollPlay", () => {
     expect(probe).toHaveTextContent("0");
   });
 
-  it("keeps the finished step when the section is already on screen at mount", () => {
+  it("a stage half visible at mount takes its measured step and plays on scroll", () => {
     mockMatchMedia(false);
-    top = 300;
+    vi.stubGlobal("innerHeight", 950);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({ top, height: 400 }) as DOMRect,
+    );
+    top = 764;
     render(<Probe />);
     const probe = screen.getByTestId("probe");
-    expect(probe).toHaveTextContent("4");
-    scrollTo(2000);
     expect(probe).toHaveTextContent("0");
-  });
-
-  it("keeps an element finished through small scrolls when meaningfully on screen at mount", () => {
-    mockMatchMedia(false);
-    top = 600;
-    render(<Probe />);
-    const probe = screen.getByTestId("probe");
+    let last = 0;
+    for (const t of [700, 600, 500, 400]) {
+      scrollTo(t);
+      const now = Number(probe.textContent);
+      expect(now).toBeGreaterThanOrEqual(last);
+      last = now;
+    }
+    expect(last).toBeGreaterThan(0);
+    scrollTo(275);
     expect(probe).toHaveTextContent("4");
-    scrollTo(500);
-    expect(probe).toHaveTextContent("4");
-    scrollTo(1500);
-    expect(probe).toHaveTextContent("0");
-    scrollTo(900);
+    scrollTo(764);
     expect(probe).toHaveTextContent("0");
   });
 
