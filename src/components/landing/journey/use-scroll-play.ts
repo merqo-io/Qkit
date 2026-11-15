@@ -51,11 +51,11 @@ export function progressToStep(progress: number, steps: number): number {
 /**
  * Scroll position as a play head: returns a step from 0 to `steps` that
  * rises as the element scrolls into view and falls back when scrolled up.
- * Server render, no-JS, an element already on screen at mount, and reduced
- * motion all show `steps`, the finished state. An element on screen at mount
- * keeps it until it has fully left the bottom of the viewport; only an
- * element below the viewport at mount drops to its measured step before the
- * visitor reaches it.
+ * Server render, no-JS, an element meaningfully on screen at mount (a third
+ * visible or more), and reduced motion all show `steps`, the finished state.
+ * An element held that way keeps it until it has fully left the bottom of the
+ * viewport. An element below the viewport or peeking in by less than a third
+ * at mount drops to its measured step at once and plays on scroll.
  */
 export function useScrollPlay(
   ref: RefObject<HTMLElement | null>,
@@ -78,12 +78,14 @@ export function useScrollPlay(
       held = false;
       setStep(progressToStep(scrollProgress(rect, window.innerHeight), steps));
     };
-    // An element already on screen keeps its finished state, even through
-    // later scrolls and resizes, until it leaves below the viewport, so nothing
-    // visible snaps back to step 0 after hydration.
+    // An element meaningfully on screen at mount keeps its finished state,
+    // even through later scrolls and resizes, until it leaves below the
+    // viewport, so nothing visible snaps back after hydration. One that is
+    // barely peeking in (no progress yet) takes its measured step at once, so
+    // it shows the start of the play instead of a blank finished overlay.
     const first = ref.current?.getBoundingClientRect();
-    if (first && first.top >= window.innerHeight) measure();
-    else held = true;
+    if (first && scrollProgress(first, window.innerHeight) > 0) held = true;
+    else measure();
     const schedule = () => {
       if (queued) return;
       queued = true;

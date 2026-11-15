@@ -123,18 +123,28 @@ describe("useScrollPlay", () => {
     expect(probe).toHaveTextContent("0");
   });
 
-  it("keeps a partly visible element finished through small scrolls after mount", () => {
+  it("keeps an element finished through small scrolls when meaningfully on screen at mount", () => {
     mockMatchMedia(false);
-    top = 950;
+    top = 600;
     render(<Probe />);
     const probe = screen.getByTestId("probe");
     expect(probe).toHaveTextContent("4");
-    scrollTo(940);
+    scrollTo(500);
     expect(probe).toHaveTextContent("4");
     scrollTo(1500);
     expect(probe).toHaveTextContent("0");
     scrollTo(900);
     expect(probe).toHaveTextContent("0");
+  });
+
+  it("drops to step 0 at mount when less than a third peeks in, then plays on scroll", () => {
+    mockMatchMedia(false);
+    top = 950;
+    render(<Probe />);
+    const probe = screen.getByTestId("probe");
+    expect(probe).toHaveTextContent("0");
+    scrollTo(-2000);
+    expect(probe).toHaveTextContent("4");
   });
 
   it("drops to the measured step at mount when the section is below the viewport", () => {
