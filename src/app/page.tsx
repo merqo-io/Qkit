@@ -99,12 +99,16 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <Journey id="how" title="Follow one order from the queue to the counter.">
+      <Journey
+        id="how"
+        className="max-w-6xl"
+        title="Follow one order from the queue to the counter."
+      >
         <OrderWatch />
         <MarkReadyDemo />
       </Journey>
 
-      <section id="faq" className="mx-auto max-w-5xl scroll-mt-20 px-5 pb-16">
+      <section id="faq" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16">
         <ClosingCall
           heading="That is the whole product. Want it at your stall?"
           line={PRICING_LINE}
