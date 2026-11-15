@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Landing journey: on phones the order in step 1 now starts building only once the phone frame is a third in view and finishes while it is fully on screen (it used to start while the frame was still scrolling in). A frame already visible at load stays finished instead of emptying on the first scroll or resize. The Mark Ready helper text reserves room for its longest line, so the ticket no longer jumps down when it is pressed.
+
 ### Changed
 
 - The landing page below the hero is now one journey instead of a trust strip and two three-card grids: the customer's order builds on a phone as the page scrolls (and rewinds on scroll up), then the visitor presses Mark Ready on the vendor ticket and the customer's phone reacts. It ends in the pricing line, the sign-up button and three FAQ rows. The hover lift and glow on the old cards are gone. With reduced motion the finished states show and Mark Ready still works.

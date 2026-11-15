@@ -35,20 +35,17 @@ export function JourneyStep({
   say,
   extra,
   stage,
-  stepRef,
+  stageRef,
 }: {
   label: string;
   heading: ReactNode;
   say: ReactNode;
   extra?: ReactNode;
   stage: ReactNode;
-  stepRef?: Ref<HTMLDivElement>;
+  stageRef?: Ref<HTMLDivElement>;
 }) {
   return (
-    <div
-      ref={stepRef}
-      className="mt-10 grid items-center gap-8 border-t-[1.5px] border-dashed border-border pt-10 md:grid-cols-[5fr_7fr] md:gap-10 md:py-14"
-    >
+    <div className="mt-10 grid items-center gap-8 border-t-[1.5px] border-dashed border-border pt-10 md:grid-cols-[5fr_7fr] md:gap-10 md:py-14">
       <div className="min-w-0">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.1em] text-primary">
           {label}
@@ -59,7 +56,10 @@ export function JourneyStep({
         <p className="mt-3 max-w-[36ch] text-muted-foreground">{say}</p>
         {extra}
       </div>
-      <div className="flex min-w-0 flex-wrap items-start justify-center gap-4">
+      <div
+        ref={stageRef}
+        className="flex min-w-0 flex-wrap items-start justify-center gap-4"
+      >
         {stage}
       </div>
     </div>

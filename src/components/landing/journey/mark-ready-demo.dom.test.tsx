@@ -27,6 +27,22 @@ describe("MarkReadyDemo", () => {
     expect(screen.getByText("Preparing your order")).toBeVisible();
   });
 
+  it("reserves the height of the longest caption so the ticket cannot shift", () => {
+    mockMatchMedia(false);
+    const { container } = render(<MarkReadyDemo />);
+    const live = container.querySelector('[aria-live="polite"]');
+    expect(live).toHaveTextContent("Tap Mark Ready on the ticket.");
+    expect(live).toHaveClass("col-start-1", "row-start-1");
+    const sizers = Array.from(
+      live?.parentElement?.querySelectorAll('p[aria-hidden="true"]') ?? [],
+    );
+    expect(sizers).toHaveLength(3);
+    sizers.forEach((p) => {
+      expect(p).toHaveClass("invisible", "col-start-1", "row-start-1");
+    });
+    expect(live?.parentElement).toHaveClass("grid");
+  });
+
   it("stamps the ticket and updates the phone when pressed by touch", async () => {
     mockMatchMedia(false);
     const user = userEvent.setup();

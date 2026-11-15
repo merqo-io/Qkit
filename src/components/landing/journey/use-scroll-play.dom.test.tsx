@@ -61,6 +61,33 @@ describe("progress helpers", () => {
     expect(scrollProgress({ top: 5000, height: 800 }, 1000)).toBe(0);
     expect(scrollProgress({ top: -5000, height: 800 }, 1000)).toBe(1);
   });
+  it("on a phone, waits until a third of the stage is visible", () => {
+    const vh = 812;
+    const h = 432;
+    expect(scrollProgress({ top: vh, height: h }, vh)).toBe(0);
+    expect(scrollProgress({ top: vh - h / 3 + 1, height: h }, vh)).toBe(0);
+    expect(
+      scrollProgress({ top: vh - h / 3 - 40, height: h }, vh),
+    ).toBeGreaterThan(0);
+  });
+  it("on a phone, finishes while the whole stage is still on screen", () => {
+    const vh = 812;
+    const h = 432;
+    expect(scrollProgress({ top: vh - h, height: h }, vh)).toBeLessThan(1);
+    expect(scrollProgress({ top: (vh - h) / 2, height: h }, vh)).toBe(1);
+    expect(scrollProgress({ top: 0, height: h }, vh)).toBe(1);
+  });
+  it("on a tall desktop, plays across the same band", () => {
+    const vh = 1000;
+    const h = 432;
+    expect(scrollProgress({ top: vh - h / 3, height: h }, vh)).toBe(0);
+    expect(scrollProgress({ top: vh - h, height: h }, vh)).toBeLessThan(1);
+    expect(scrollProgress({ top: (vh - h) / 2, height: h }, vh)).toBe(1);
+  });
+  it("stays finishable when the stage is taller than the viewport", () => {
+    expect(scrollProgress({ top: 0, height: 900 }, 600)).toBe(1);
+    expect(scrollProgress({ top: 500, height: 900 }, 600)).toBeLessThan(1);
+  });
   it("splits progress into bands that end at the last step", () => {
     expect(progressToStep(0, 4)).toBe(0);
     expect(progressToStep(0.25, 4)).toBe(1);
@@ -93,6 +120,20 @@ describe("useScrollPlay", () => {
     const probe = screen.getByTestId("probe");
     expect(probe).toHaveTextContent("4");
     scrollTo(2000);
+    expect(probe).toHaveTextContent("0");
+  });
+
+  it("keeps a partly visible element finished through small scrolls after mount", () => {
+    mockMatchMedia(false);
+    top = 950;
+    render(<Probe />);
+    const probe = screen.getByTestId("probe");
+    expect(probe).toHaveTextContent("4");
+    scrollTo(940);
+    expect(probe).toHaveTextContent("4");
+    scrollTo(1500);
+    expect(probe).toHaveTextContent("0");
+    scrollTo(900);
     expect(probe).toHaveTextContent("0");
   });
 
