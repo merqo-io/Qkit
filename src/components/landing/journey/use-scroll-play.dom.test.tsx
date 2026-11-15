@@ -61,6 +61,33 @@ describe("progress helpers", () => {
     expect(scrollProgress({ top: 5000, height: 800 }, 1000)).toBe(0);
     expect(scrollProgress({ top: -5000, height: 800 }, 1000)).toBe(1);
   });
+  it("on a phone, waits until a third of the stage is visible", () => {
+    const vh = 812;
+    const h = 432;
+    expect(scrollProgress({ top: vh, height: h }, vh)).toBe(0);
+    expect(scrollProgress({ top: vh - h / 3 + 1, height: h }, vh)).toBe(0);
+    expect(
+      scrollProgress({ top: vh - h / 3 - 40, height: h }, vh),
+    ).toBeGreaterThan(0);
+  });
+  it("on a phone, finishes while the whole stage is still on screen", () => {
+    const vh = 812;
+    const h = 432;
+    expect(scrollProgress({ top: vh - h, height: h }, vh)).toBeLessThan(1);
+    expect(scrollProgress({ top: (vh - h) / 2, height: h }, vh)).toBe(1);
+    expect(scrollProgress({ top: 0, height: h }, vh)).toBe(1);
+  });
+  it("on a tall desktop, plays across the same band", () => {
+    const vh = 1000;
+    const h = 432;
+    expect(scrollProgress({ top: vh - h / 3, height: h }, vh)).toBe(0);
+    expect(scrollProgress({ top: vh - h, height: h }, vh)).toBeLessThan(1);
+    expect(scrollProgress({ top: (vh - h) / 2, height: h }, vh)).toBe(1);
+  });
+  it("stays finishable when the stage is taller than the viewport", () => {
+    expect(scrollProgress({ top: 0, height: 900 }, 600)).toBe(1);
+    expect(scrollProgress({ top: 500, height: 900 }, 600)).toBeLessThan(1);
+  });
   it("splits progress into bands that end at the last step", () => {
     expect(progressToStep(0, 4)).toBe(0);
     expect(progressToStep(0.25, 4)).toBe(1);
@@ -86,14 +113,38 @@ describe("useScrollPlay", () => {
     expect(probe).toHaveTextContent("0");
   });
 
-  it("keeps the finished step when the section is already on screen at mount", () => {
+  it("a stage half visible at mount takes its measured step and plays on scroll", () => {
     mockMatchMedia(false);
-    top = 300;
+    vi.stubGlobal("innerHeight", 950);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({ top, height: 400 }) as DOMRect,
+    );
+    top = 764;
     render(<Probe />);
     const probe = screen.getByTestId("probe");
-    expect(probe).toHaveTextContent("4");
-    scrollTo(2000);
     expect(probe).toHaveTextContent("0");
+    let last = 0;
+    for (const t of [700, 600, 500, 400]) {
+      scrollTo(t);
+      const now = Number(probe.textContent);
+      expect(now).toBeGreaterThanOrEqual(last);
+      last = now;
+    }
+    expect(last).toBeGreaterThan(0);
+    scrollTo(275);
+    expect(probe).toHaveTextContent("4");
+    scrollTo(764);
+    expect(probe).toHaveTextContent("0");
+  });
+
+  it("drops to step 0 at mount when less than a third peeks in, then plays on scroll", () => {
+    mockMatchMedia(false);
+    top = 950;
+    render(<Probe />);
+    const probe = screen.getByTestId("probe");
+    expect(probe).toHaveTextContent("0");
+    scrollTo(-2000);
+    expect(probe).toHaveTextContent("4");
   });
 
   it("drops to the measured step at mount when the section is below the viewport", () => {

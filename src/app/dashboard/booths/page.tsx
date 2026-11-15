@@ -40,6 +40,7 @@ export default async function BoothsPage() {
 
   const canCreate = canAddBooth(entitlement, rows.length);
   const pausedCount = rows.filter((r) => r.paused).length;
+  const limit = entitlement.maxBooths ?? 0;
 
   return (
     <div>
@@ -71,12 +72,21 @@ export default async function BoothsPage() {
 
       {pausedCount > 0 && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
-          <span className="text-muted-foreground">
-            Your plan serves <strong>1 live booth</strong> at a time, so{" "}
-            {pausedCount} booth{pausedCount === 1 ? " is" : "s are"} paused for
-            customers. Keep all your booths live at once on the qkit plan or
-            with an Event Pass.
-          </span>
+          <div className="text-muted-foreground">
+            <p className="font-semibold text-foreground">
+              Over your plan&apos;s booth limit
+            </p>
+            <p>
+              Your plan serves{" "}
+              <strong>
+                {limit} live {limit === 1 ? "booth" : "booths"}
+              </strong>{" "}
+              at a time, so {pausedCount} booth
+              {pausedCount === 1 ? " is" : "s are"} paused for customers. Pause
+              another booth to switch which one is live. Pro and the Event Pass
+              serve all your booths at once.
+            </p>
+          </div>
           <ProLock feature="multi_booth_active" label="Keep all live" />
         </div>
       )}

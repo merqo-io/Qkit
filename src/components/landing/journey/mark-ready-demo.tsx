@@ -105,12 +105,20 @@ export function MarkReadyDemo() {
       heading="It prints onto your board. You tap once."
       say="This is the real ticket layout your stall sees. Go on, mark it ready."
       extra={
-        <p
-          aria-live="polite"
-          className="mt-4 min-h-[3em] max-w-[34ch] font-semibold"
-        >
-          {CAPTION[stage]}
-        </p>
+        <div className="mt-4 grid max-w-[34ch] font-semibold">
+          <p aria-live="polite" className="col-start-1 row-start-1">
+            {CAPTION[stage]}
+          </p>
+          {CAPTION.map((text) => (
+            <p
+              key={text}
+              aria-hidden
+              className="invisible col-start-1 row-start-1"
+            >
+              {text}
+            </p>
+          ))}
+        </div>
       }
       stage={
         <>

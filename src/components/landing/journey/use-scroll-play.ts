@@ -27,17 +27,19 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 /**
- * How far through a section the viewport has travelled, 0 to 1. Starts when
- * the section's top reaches 90% of the viewport and ends when three quarters
- * of its height plus 30% of the viewport have passed.
+ * How far through its play band an element has travelled, 0 to 1. Starts when
+ * a third of the element is visible at the bottom of the viewport and ends
+ * halfway between "just fully visible" and "top at the viewport top", so the
+ * last step lands while the whole element is still on screen. Measure the
+ * element that shows the result, not a section whose copy sits above it.
  */
 export function scrollProgress(
   rect: { top: number; height: number },
   viewportHeight: number,
 ): number {
-  const p =
-    (viewportHeight * 0.9 - rect.top) /
-    (rect.height * 0.75 + viewportHeight * 0.3);
+  const start = viewportHeight - rect.height / 3;
+  const end = Math.max(viewportHeight - rect.height, 0) / 2;
+  const p = (start - rect.top) / Math.max(start - end, 1);
   return Math.max(0, Math.min(1, p));
 }
 
@@ -49,9 +51,11 @@ export function progressToStep(progress: number, steps: number): number {
 /**
  * Scroll position as a play head: returns a step from 0 to `steps` that
  * rises as the element scrolls into view and falls back when scrolled up.
- * Server render, no-JS, a section already on screen at mount, and reduced
- * motion all show `steps`, the finished state. Only a section below the
- * viewport at mount drops to its measured step before the visitor reaches it.
+ * With JS and no reduced-motion preference the measured step always applies:
+ * once at mount, then on every scroll and resize, so what is shown matches
+ * the scroll position wherever the page loads. Server render, no-JS and
+ * reduced motion show `steps`, the finished state; the mount measurement
+ * replaces it right after hydration.
  */
 export function useScrollPlay(
   ref: RefObject<HTMLElement | null>,
@@ -68,17 +72,10 @@ export function useScrollPlay(
       queued = false;
       const el = ref.current;
       if (!el) return;
-      setStep(
-        progressToStep(
-          scrollProgress(el.getBoundingClientRect(), window.innerHeight),
-          steps,
-        ),
-      );
+      const rect = el.getBoundingClientRect();
+      setStep(progressToStep(scrollProgress(rect, window.innerHeight), steps));
     };
-    // A section already on screen keeps its finished state until the visitor
-    // scrolls, so nothing visible snaps back to step 0 after hydration.
-    const first = ref.current?.getBoundingClientRect();
-    if (first && first.top >= window.innerHeight) measure();
+    measure();
     const schedule = () => {
       if (queued) return;
       queued = true;
