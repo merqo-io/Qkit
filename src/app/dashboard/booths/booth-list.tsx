@@ -27,8 +27,10 @@ interface BoothRow {
   shortCode: string;
 }
 
-const OVER_LIMIT_EXPLANATION =
-  "Customers can't order from this booth. Your plan serves 1 live booth at a time: pause another booth to switch, or upgrade to keep all live.";
+function overLimitExplanation(maxBooths: number | null) {
+  const n = maxBooths ?? 0;
+  return `Customers can't order from this booth. Your plan serves ${n} live ${n === 1 ? "booth" : "booths"} at a time. Pause another booth to switch.`;
+}
 
 /**
  * Status pill text + color for a booth. "Paused" is the vendor's own switch,
@@ -59,7 +61,13 @@ function IconTip({
   );
 }
 
-export function BoothList({ booths }: { booths: BoothRow[] }) {
+export function BoothList({
+  booths,
+  maxBooths,
+}: {
+  booths: BoothRow[];
+  maxBooths: number | null;
+}) {
   async function copyLink(shortCode: string) {
     const url = `${window.location.origin}/o/${shortCode}`;
     try {
@@ -107,7 +115,7 @@ export function BoothList({ booths }: { booths: BoothRow[] }) {
               </div>
               {booth.paused && (
                 <p className="text-xs text-muted-foreground">
-                  {OVER_LIMIT_EXPLANATION}
+                  {overLimitExplanation(maxBooths)}
                 </p>
               )}
               <p className="text-sm text-muted-foreground">

@@ -25,6 +25,7 @@ interface Props {
   name: string;
   isActive: boolean;
   overLimit: boolean;
+  maxBooths: number | null;
   code: string;
 }
 
@@ -44,6 +45,7 @@ export function BoothQrPoster({
   name,
   isActive,
   overLimit,
+  maxBooths,
   code,
 }: Props) {
   const qrRef = useRef<HTMLDivElement>(null);
@@ -143,7 +145,9 @@ export function BoothQrPoster({
             className="mt-5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-muted-foreground print:hidden"
           >
             This booth is over your plan&apos;s limit, so customers can&apos;t
-            order from it yet. Pause another booth or upgrade first.
+            order from it yet. Your plan serves {maxBooths ?? 0} live{" "}
+            {maxBooths === 1 ? "booth" : "booths"} at a time. Pause another
+            booth to switch.
           </p>
         )}
       </Ticket>

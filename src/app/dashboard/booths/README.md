@@ -12,7 +12,8 @@ free-plan total-booth cap under concurrent writes.
   `CustomerScreenButton` (`../customer-screen-dialog.tsx`, `iconOnly` here), so
   both open the queue display the same way. The card's icon-only buttons name
   themselves in a hover tooltip. A booth beyond the plan's serve limit shows a
-  visible "Over plan limit" explanation under its badge.
+  visible "Over plan limit" explanation under its badge, with the live-booth
+  count taken from the `maxBooths` prop (the plan's limit).
 - `new/page.tsx` renders `BoothForm` after the plan gate. `?mode=event`
   seeds walk-up mode for a new booth.
 - `[boothId]/page.tsx` loads an owned booth, what the vendor has on file in

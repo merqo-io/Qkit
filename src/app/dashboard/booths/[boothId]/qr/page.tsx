@@ -34,6 +34,7 @@ export default async function BoothQrPage({ params }: Props) {
       name={booth.name}
       isActive={booth.is_active}
       overLimit={overLimit}
+      maxBooths={entitlement.maxBooths}
       code={booth.short_code}
     />
   );

@@ -13,6 +13,7 @@ const props = {
   name: "Kopi Cart",
   isActive: true,
   overLimit: false,
+  maxBooths: 1,
   code: "abc123",
 };
 
@@ -22,6 +23,8 @@ describe("BoothQrPoster", () => {
     const warning = screen.getByRole("alert");
     expect(warning).toHaveTextContent(/over your plan's limit/);
     expect(warning).toHaveClass("print:hidden");
+    expect(warning).toHaveTextContent(/serves 1 live booth at a time/);
+    expect(warning).not.toHaveTextContent(/upgrade/i);
   });
 
   it("shows no warning for a booth that serves", () => {

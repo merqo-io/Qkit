@@ -54,20 +54,30 @@ describe("BoothList", () => {
     ["Paused", { is_active: false, paused: false }],
     ["Over plan limit", { is_active: true, paused: true }],
   ])("labels a booth %s", (label, state) => {
-    render(<BoothList booths={[{ ...BOOTH, ...state }]} />);
+    render(<BoothList maxBooths={1} booths={[{ ...BOOTH, ...state }]} />);
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
   it("explains an over-limit booth in visible text, not a title tooltip", () => {
-    render(<BoothList booths={[{ ...BOOTH, paused: true }]} />);
+    render(<BoothList maxBooths={1} booths={[{ ...BOOTH, paused: true }]} />);
     expect(
       screen.getByText(/Customers can't order from this booth/),
     ).toBeVisible();
     expect(screen.getByText("Over plan limit")).not.toHaveAttribute("title");
   });
 
+  it("derives the booth count in the explanation from the plan", () => {
+    const { rerender } = render(
+      <BoothList maxBooths={1} booths={[{ ...BOOTH, paused: true }]} />,
+    );
+    expect(screen.getByText(/serves 1 live booth at a time/)).toBeVisible();
+    rerender(<BoothList maxBooths={3} booths={[{ ...BOOTH, paused: true }]} />);
+    expect(screen.getByText(/serves 3 live booths at a time/)).toBeVisible();
+    expect(screen.queryByText(/upgrade/i)).toBeNull();
+  });
+
   it("shows no over-limit explanation for a booth that serves", () => {
-    render(<BoothList booths={[BOOTH]} />);
+    render(<BoothList maxBooths={1} booths={[BOOTH]} />);
     expect(screen.queryByText(/Customers can't order/)).toBeNull();
   });
 
@@ -76,7 +86,7 @@ describe("BoothList", () => {
       configurable: true,
       value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
     });
-    render(<BoothList booths={[BOOTH]} />);
+    render(<BoothList maxBooths={1} booths={[BOOTH]} />);
     fireEvent.click(screen.getByRole("button", { name: "Copy order link" }));
     await waitFor(() =>
       expect(errorToast).toHaveBeenCalledWith(
@@ -87,7 +97,10 @@ describe("BoothList", () => {
   it("opens the same Customer screen dialog as the board, for this booth", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     render(
-      <BoothList booths={[BOOTH, { ...BOOTH, id: "b2", name: "Tea Cart" }]} />,
+      <BoothList
+        maxBooths={1}
+        booths={[BOOTH, { ...BOOTH, id: "b2", name: "Tea Cart" }]}
+      />,
     );
 
     const [first] = screen.getAllByRole("button", { name: "Customer screen" });
@@ -110,7 +123,7 @@ describe("BoothList", () => {
 
   it("shows the Customer screen button as an icon, named on hover", async () => {
     const user = userEvent.setup();
-    render(<BoothList booths={[BOOTH]} />);
+    render(<BoothList maxBooths={1} booths={[BOOTH]} />);
     const button = screen.getByRole("button", { name: "Customer screen" });
     expect(button).not.toHaveTextContent("Customer screen");
 
@@ -124,7 +137,7 @@ describe("BoothList", () => {
     "names the %s icon on hover",
     async (label) => {
       const user = userEvent.setup();
-      render(<BoothList booths={[BOOTH]} />);
+      render(<BoothList maxBooths={1} booths={[BOOTH]} />);
       await user.hover(
         screen.getByRole(/QR/.test(label) ? "link" : "button", { name: label }),
       );
@@ -133,7 +146,7 @@ describe("BoothList", () => {
   );
 
   it("no longer links straight to the display page", () => {
-    render(<BoothList booths={[BOOTH]} />);
+    render(<BoothList maxBooths={1} booths={[BOOTH]} />);
     expect(
       screen.queryByRole("link", { name: /customer queue display/i }),
     ).not.toBeInTheDocument();
