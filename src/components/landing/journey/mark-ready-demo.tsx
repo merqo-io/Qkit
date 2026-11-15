@@ -6,10 +6,12 @@ import { cn } from "@merqo/ui/primitives";
 
 import { Ticket } from "@/components/widgets/ticket";
 
-import { JourneyStep } from "./journey";
-import { PhoneFrame } from "./phone-frame";
-import { PressButton } from "./press-button";
-import { usePrefersReducedMotion } from "./use-scroll-play";
+import {
+  JourneyStep,
+  PhoneFrame,
+  PressButton,
+  usePrefersReducedMotion,
+} from "@merqo/ui";
 
 type Stage = 0 | 1 | 2;
 

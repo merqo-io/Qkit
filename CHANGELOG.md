@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Moved `@merqo/ui` to v0.47.0 and removed the local `Journey`, `JourneyStep`, `PhoneFrame`, `PressButton`, `FaqRows`, `ClosingCall` and `useScrollPlay` copies; the landing uses the shared exports. The phone frame corners are 24px instead of 30px. The pin also rounds `ElevatedCard` to `rounded-2xl` with `shadow-md` and gives `Faq`, `Section` and `PricingLadder` surfaces `rounded-lg`.
 - The landing page below the hero is now one journey instead of a trust strip and two three-card grids: the customer's order builds on a phone as the page scrolls (and rewinds on scroll up), then the visitor presses Mark Ready on the vendor ticket and the customer's phone reacts. It ends in the pricing line, the sign-up button and three FAQ rows. The hover lift and glow on the old cards are gone. With reduced motion the finished states show and Mark Ready still works.
 - Bumped `@merqo/ui` to v0.46.0: the plan page price ladder now shows a notice that Merqo is free during the pilot.
 - The two e2e CI jobs run on `ubuntu-24.04` instead of `ubuntu-latest`, because Playwright does not support chromium on the ubuntu-26.04 image that `ubuntu-latest` now resolves to.

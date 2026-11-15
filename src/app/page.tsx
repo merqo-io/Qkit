@@ -6,10 +6,13 @@ import { Nav } from "@/components/landing/nav";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
-import { BackToTop } from "@merqo/ui";
-import { ClosingCall } from "@/components/landing/journey/closing-call";
-import { FaqRows, type FaqRow } from "@/components/landing/journey/faq-rows";
-import { Journey } from "@/components/landing/journey/journey";
+import {
+  BackToTop,
+  ClosingCall,
+  FaqRows,
+  Journey,
+  type FaqRow,
+} from "@merqo/ui";
 import { MarkReadyDemo } from "@/components/landing/journey/mark-ready-demo";
 import { OrderWatch } from "@/components/landing/journey/order-watch";
 import { createServerClient } from "@/lib/supabase/server";

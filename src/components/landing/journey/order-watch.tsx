@@ -4,9 +4,7 @@ import { useRef } from "react";
 
 import { cn } from "@merqo/ui/primitives";
 
-import { JourneyStep } from "./journey";
-import { PhoneFrame } from "./phone-frame";
-import { useScrollPlay } from "./use-scroll-play";
+import { JourneyStep, PhoneFrame, useScrollPlay } from "@merqo/ui";
 
 export const ORDER_WATCH_STEPS = 4;
 
