@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Live orders header: a booth the plan does not serve no longer counts as open, so a Free vendor with two active booths sees "1/2 open" instead of "2/2 open". The booth list banner for booths over the plan limit now reads "Over your plan's booth limit", says to pause another booth to switch which is live, and names Pro (not "the qkit plan") alongside the Event Pass.
 - Landing journey: on phones the order in step 1 now starts building only once the phone frame is a third in view and finishes while it is fully on screen (it used to start while the frame was still scrolling in). A frame already visible at load stays finished instead of emptying on the first scroll or resize. The Mark Ready helper text reserves room for its longest line, so the ticket no longer jumps down when it is pressed.
 
 ### Changed

@@ -46,6 +46,8 @@ export function useBoothActive(booths: BoothView[]) {
       }
     })();
   }
-  const activeBoothCount = booths.filter(boothIsActive).length;
+  const activeBoothCount = booths.filter(
+    (b) => boothIsActive(b) && !b.over_limit,
+  ).length;
   return { boothIsActive, setBoothActive, activeBoothCount };
 }

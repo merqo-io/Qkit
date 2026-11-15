@@ -759,6 +759,30 @@ describe("RealtimeOrderBoard booth active toggle", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not count an over-limit booth as open", () => {
+    const booths = [
+      { id: "b1", name: "Kopi Corner", is_active: true, open: true },
+      {
+        id: "b2",
+        name: "Ice Cream Cart",
+        is_active: true,
+        open: true,
+        over_limit: true,
+      },
+    ];
+    render(
+      <RealtimeOrderBoard
+        booths={booths}
+        initialOrders={[]}
+        boardSettings={DEFAULT_BOARD_SETTINGS}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    expect(
+      screen.getByRole("button", { name: "Booth status, 1 of 2 open" }),
+    ).toBeInTheDocument();
+  });
+
   it("stays reachable for a paused booth with no active orders", async () => {
     // visibleBooths (the filter dropdown's source) drops an inactive booth
     // with nothing in flight — the dialog's list must not, or there'd be no
