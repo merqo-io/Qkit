@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing journey: on short phone screens (for example iPhone Safari with its toolbars) the pinned step 1 no longer slides under the site header. The phone frame and spacing shrink to the space under the header, and on screens too short even for that the step is not pinned and shows the finished order.
 - Landing journey: step 1 now pins under the nav while scrolling builds the order, holds the placed order briefly, then releases (reduced motion shows the finished order with no pin). Step 2 no longer resizes the board card when you tap Mark Ready, Mark Picked Up or Play again. The journey and the closing section are as wide as the hero.
 - Landing journey: the scroll play always follows the scroll position. A stage a third or more visible at load used to hold its finished state, so on a common desktop the order demo stayed on "ORDER PLACED" and never played. It now takes its measured step right after hydration; server render, no-JS and reduced motion still show the finished state.
 - Live orders header: a booth the plan does not serve no longer counts as open, so a Free vendor with two active booths sees "1/2 open" instead of "2/2 open". The booth list banner for booths over the plan limit now reads "Over your plan's booth limit", says to pause another booth to switch which is live, and names Pro (not "the qkit plan") alongside the Event Pass.
