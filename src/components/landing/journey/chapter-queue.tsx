@@ -3,8 +3,7 @@ import { cn } from "@merqo/ui/primitives";
 import { splitTrailingDigit } from "@/lib/orders";
 
 import { Caption } from "./caption";
-import { JourneyStep } from "./journey";
-import { PhoneFrame } from "./phone-frame";
+import { JourneyStep, PhoneFrame } from "@merqo/ui";
 import { ORDER_NUMBER, PHONE_STATUS, type Phase } from "./try-it-state";
 
 const CAPTION = [

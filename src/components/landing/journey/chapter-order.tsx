@@ -5,8 +5,7 @@ import { ArrowDown } from "lucide-react";
 
 import { cn } from "@merqo/ui/primitives";
 
-import { JourneyStep } from "./journey";
-import { PhoneFrame } from "./phone-frame";
+import { JourneyStep, PhoneFrame } from "@merqo/ui";
 import {
   MAX_KOPI,
   ORDER_NUMBER,
