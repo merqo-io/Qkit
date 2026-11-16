@@ -43,6 +43,42 @@ describe("MarkReadyDemo", () => {
     expect(live?.parentElement).toHaveClass("grid");
   });
 
+  it("keeps one reachable action per stage and hides the ticket reserve in the last", async () => {
+    mockMatchMedia(false);
+    const user = userEvent.setup();
+    const { container } = render(<MarkReadyDemo />);
+    const actions = () =>
+      screen
+        .getAllByRole("button")
+        .map((b) => b.textContent)
+        .sort();
+    expect(actions()).toEqual(["Mark Ready"]);
+    await user.keyboard("{Tab}{Enter}");
+    expect(actions()).toEqual(["Mark Picked Up"]);
+    await user.keyboard("{Enter}");
+    expect(actions()).toEqual(["Play again"]);
+    const reserve = container.querySelector("[inert]");
+    expect(reserve).toHaveAttribute("aria-hidden", "true");
+    expect(reserve).toHaveClass("invisible", "col-start-1", "row-start-1");
+    expect(
+      screen.queryByRole("button", { name: "Mark Picked Up" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Play again" }));
+    expect(container.querySelector("[inert]")).toBeNull();
+    expect(actions()).toEqual(["Mark Ready"]);
+  });
+
+  it("stacks the ticket and the caught-up state in one cell so the card never resizes", async () => {
+    mockMatchMedia(false);
+    const user = userEvent.setup();
+    render(<MarkReadyDemo />);
+    await user.keyboard("{Tab}{Enter}{Enter}");
+    const caught = screen.getByText("All caught up.");
+    expect(caught).toHaveClass("col-start-1", "row-start-1");
+    expect(caught.parentElement).toHaveClass("grid");
+    expect(caught.parentElement?.querySelector("[inert]")).not.toBeNull();
+  });
+
   it("stamps the ticket and updates the phone when pressed by touch", async () => {
     mockMatchMedia(false);
     const user = userEvent.setup();

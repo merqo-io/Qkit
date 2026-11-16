@@ -131,8 +131,16 @@ export function MarkReadyDemo() {
                 {stage === 2 ? "0 active" : "1 active"}
               </span>
             </div>
-            {stage < 2 ? (
-              <div ref={ticketRef}>
+            <div className="grid">
+              <div
+                ref={ticketRef}
+                aria-hidden={ticketShown ? undefined : true}
+                inert={!ticketShown}
+                className={cn(
+                  "col-start-1 row-start-1",
+                  !ticketShown && "invisible",
+                )}
+              >
                 <Ticket
                   shadow="none"
                   radius="xl"
@@ -176,20 +184,20 @@ export function MarkReadyDemo() {
                   </PressButton>
                 </Ticket>
               </div>
-            ) : (
-              <div className="rounded-lg border-[1.5px] border-dashed border-border px-2 py-6 text-center font-mono text-[13px] text-muted-foreground">
-                All caught up.
-                <br />
-                <button
-                  ref={againRef}
-                  type="button"
-                  onClick={again}
-                  className="mt-2 min-h-11 px-2 font-sans text-sm font-semibold text-foreground underline underline-offset-[3px] hover:no-underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  Play again
-                </button>
-              </div>
-            )}
+              {ticketShown ? null : (
+                <div className="col-start-1 row-start-1 flex flex-col items-center justify-center rounded-lg border-[1.5px] border-dashed border-border px-2 text-center font-mono text-[13px] text-muted-foreground">
+                  All caught up.
+                  <button
+                    ref={againRef}
+                    type="button"
+                    onClick={again}
+                    className="mt-2 min-h-11 px-2 font-sans text-sm font-semibold text-foreground underline underline-offset-[3px] hover:no-underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    Play again
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <PhoneFrame
             label="Ada's phone"
