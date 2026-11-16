@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react";
 
-import { pinnedProgress } from "./pinned-progress";
+import { pinFits, pinnedProgress } from "./pinned-progress";
 import { progressToStep, usePrefersReducedMotion } from "./use-scroll-play";
 
 /**
@@ -17,8 +17,23 @@ import { progressToStep, usePrefersReducedMotion } from "./use-scroll-play";
  */
 export const PIN_NAV_OFFSET_PX = 80;
 
-const PIN_TOP_CSS = (panelHeight: number) =>
-  `min(5rem, calc(100svh - ${panelHeight}px))`;
+const PIN_TOP_CSS = "5rem";
+
+/**
+ * The shortest the screen can be (toolbars showing), in px. `innerHeight` grows
+ * as a phone toolbar retracts during a scroll, which would flip the pin on and
+ * off mid-gesture; a probe sized in `svh` does not move. Falls back to
+ * `innerHeight` where the probe measures nothing (no layout).
+ */
+function smallViewportHeight(): number {
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;visibility:hidden;pointer-events:none;height:100svh";
+  document.body.appendChild(probe);
+  const h = probe.offsetHeight;
+  probe.remove();
+  return h > 0 ? h : window.innerHeight;
+}
 
 /**
  * Runs a spacer resize with the browser's scroll anchoring off for the
@@ -54,8 +69,12 @@ function withoutAnchoring(resize: () => void) {
  * position when it sits above the viewport so nothing on screen moves. A
  * takeover at the very top of the track cuts the spacer to about zero, which
  * is fine: nothing on screen moves and no dead scroll remains.
- * Reduced motion has no pin and no scroll play, and reports step 0. Server
- * render and no-JS report the finished step.
+ * The pin top is a fixed 5rem. A panel that cannot fit between that and the
+ * bottom of the shortest viewport (under about 530px of height for chapter 1,
+ * after its own tightening) is not pinned at all: it reports the finished step
+ * and no spacer, as pinning it would hide its heading under the nav or its
+ * controls below the fold. Reduced motion has no pin and no scroll play, and
+ * reports step 0. Server render and no-JS report the finished step.
  */
 export function usePinnedPlay(
   steps: number,
@@ -72,6 +91,7 @@ export function usePinnedPlay(
   const spacer = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [step, setStep] = useState(steps);
+  const [fits, setFits] = useState(true);
   const shortened = useRef(false);
 
   useLayoutEffect(() => {
@@ -114,13 +134,24 @@ export function usePinnedPlay(
       const t = track.current;
       const p = panel.current;
       const s = spacer.current;
-      if (!t || !p || !s) return;
-      if (shortened.current) restoreSpacer(s);
+      if (!t || !p) return;
       const panelHeight = p.offsetHeight;
-      const top = PIN_TOP_CSS(panelHeight);
-      if (top !== lastTop) {
-        p.style.top = top;
-        lastTop = top;
+      const canPin = pinFits({
+        panelHeight,
+        viewportHeight: smallViewportHeight(),
+        pinTop: PIN_NAV_OFFSET_PX,
+      });
+      setFits(canPin);
+      if (!canPin) {
+        shortened.current = false;
+        setStep(steps);
+        return;
+      }
+      if (!s) return;
+      if (shortened.current) restoreSpacer(s);
+      if (PIN_TOP_CSS !== lastTop) {
+        p.style.top = PIN_TOP_CSS;
+        lastTop = PIN_TOP_CSS;
       }
       if (shortened.current) {
         setStep(steps);
@@ -158,7 +189,8 @@ export function usePinnedPlay(
     };
   }, [reduced, driven, steps]);
 
-  return reduced
-    ? { track, panel, spacer, step: 0, pinned: false }
-    : { track, panel, spacer, step, pinned: true };
+  if (reduced) return { track, panel, spacer, step: 0, pinned: false };
+  return fits
+    ? { track, panel, spacer, step, pinned: true }
+    : { track, panel, spacer, step: steps, pinned: false };
 }

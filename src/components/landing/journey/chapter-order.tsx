@@ -26,6 +26,17 @@ export const ORDER_WATCH_STEPS = 4;
 // reduced motion, so they never see dead scroll.
 const PIN_TRACK_CLASS = "h-[200svh] motion-reduce:hidden";
 
+// A phone narrower than 768px and shorter than 760px cannot hold the whole
+// panel (caption, phone, ticks) between the nav and the fold, so the spacing
+// tightens and the phone frame shrinks to the space left. The rest of the
+// panel is about 270px; the 264px floor still holds every menu row and the
+// Place order bar. Below that the hook stops pinning instead.
+const PANEL_FIT =
+  "[@media(max-height:760px)]:max-md:[&>div]:gap-4 [@media(max-height:760px)]:max-md:[&>div]:pt-2 [@media(max-height:760px)]:max-md:[&>div>div:last-child]:gap-2";
+const PHONE_FIT =
+  "[@media(max-height:760px)]:max-md:h-[clamp(264px,calc(100svh-270px),400px)]";
+const ROW_FIT = "[@media(max-height:760px)]:max-md:py-2";
+
 const TICKS = ["Menu", "Add", "Cart", "Placed"] as const;
 
 const STEP_BUTTON =
@@ -94,6 +105,7 @@ export function ChapterOrder({
         className={cn(
           "[&>div]:mt-0 [&>div]:border-t-0",
           pinned && "sticky motion-reduce:static",
+          PANEL_FIT,
         )}
       >
         <JourneyStep
@@ -102,7 +114,10 @@ export function ChapterOrder({
           say="This is what Ada sees after scanning your QR. Scroll to watch her order, or tap + and place your own."
           stage={
             <>
-              <PhoneFrame label="Customer menu on a phone">
+              <PhoneFrame
+                label="Customer menu on a phone"
+                className={PHONE_FIT}
+              >
                 <div
                   inert={view.placed}
                   aria-hidden={view.placed ? true : undefined}
@@ -149,7 +164,10 @@ export function ChapterOrder({
                   {["Teh", "Milo"].map((item) => (
                     <div
                       key={item}
-                      className="flex items-center justify-between border-b border-border py-4 text-sm font-medium text-muted-foreground"
+                      className={cn(
+                        "flex items-center justify-between border-b border-border py-4 text-sm font-medium text-muted-foreground",
+                        ROW_FIT,
+                      )}
                     >
                       <span>{item}</span>
                       <span className="font-mono">0</span>

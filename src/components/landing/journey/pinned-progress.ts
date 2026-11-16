@@ -17,3 +17,20 @@ export function pinnedProgress(m: {
   const p = (m.pinTop - m.trackTop) / distance;
   return Math.max(0, Math.min(1, p));
 }
+
+/**
+ * Whether a panel can be pinned at `pinTop` without any of it running past the
+ * bottom of the viewport. Pinning a panel taller than the space under the nav
+ * would hide its start behind the nav or its controls below the fold, so the
+ * caller shows the finished state unpinned instead. An unmeasured panel or
+ * viewport counts as fitting: there is nothing to prove it does not.
+ */
+export function pinFits(m: {
+  panelHeight: number;
+  viewportHeight: number;
+  pinTop: number;
+}): boolean {
+  const measured = m.panelHeight > 0 && m.viewportHeight > 0;
+  if (!measured) return true;
+  return m.panelHeight <= m.viewportHeight - m.pinTop;
+}

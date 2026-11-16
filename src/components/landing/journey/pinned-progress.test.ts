@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pinnedProgress } from "./pinned-progress";
+import { pinFits, pinnedProgress } from "./pinned-progress";
 import { progressToStep } from "./use-scroll-play";
 
 const base = { trackHeight: 1000, panelHeight: 400, pinTop: 80 };
@@ -48,5 +48,34 @@ describe("pinnedProgress", () => {
     expect(at(0.6)).toBe(3);
     expect(at(0.8)).toBe(4);
     expect(at(1)).toBe(4);
+  });
+});
+
+describe("pinFits", () => {
+  it("fits when the panel ends at or above the viewport bottom", () => {
+    expect(pinFits({ panelHeight: 584, viewportHeight: 664, pinTop: 80 })).toBe(
+      true,
+    );
+    expect(pinFits({ panelHeight: 640, viewportHeight: 755, pinTop: 80 })).toBe(
+      true,
+    );
+  });
+
+  it("does not fit when any of the panel would run below the fold", () => {
+    expect(pinFits({ panelHeight: 585, viewportHeight: 664, pinTop: 80 })).toBe(
+      false,
+    );
+    expect(pinFits({ panelHeight: 448, viewportHeight: 520, pinTop: 80 })).toBe(
+      false,
+    );
+  });
+
+  it("treats an unmeasured panel or viewport as fitting", () => {
+    expect(pinFits({ panelHeight: 0, viewportHeight: 664, pinTop: 80 })).toBe(
+      true,
+    );
+    expect(pinFits({ panelHeight: 500, viewportHeight: 0, pinTop: 80 })).toBe(
+      true,
+    );
   });
 });
