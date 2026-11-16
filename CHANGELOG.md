@@ -15,6 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Bumped `@merqo/ui` to v0.49.0 (from v0.46.0): tighter corners on Faq, Section and pricing surfaces, `ElevatedCard` takes its radius and shadow from the standard tokens, and the footer is compact on phones.
 - Signed-in copy no longer tells vendors to upgrade. The Booths header button for a vendor at their booth limit now reads "Your plan includes 1 booth" (it was "Upgrade to add booths"), the locked working-hours card says "Scheduled hours are not on your plan." and the Plans help article describes the lock that links to the Plan page and drops its price sentence. The menu item and option group locks are labelled "See plans" (was "Upgrade"), the limit errors for menu items, option groups and open booths no longer say to upgrade, and the locked stats card reads "Trends, the busy-times heatmap and profit margins are not on your plan." (was "Upgrade for trends, busy-times heatmap, profit margins and more"). The plan page test fixtures now use the live Pro catalog.
 - The landing page below the hero is now one journey instead of a trust strip and two three-card grids: the customer's order builds on a phone as the page scrolls (and rewinds on scroll up), then the visitor presses Mark Ready on the vendor ticket and the customer's phone reacts. It ends in the pricing line, the sign-up button and three FAQ rows. The hover lift and glow on the old cards are gone. With reduced motion the finished states show and Mark Ready still works.
 - Bumped `@merqo/ui` to v0.46.0: the plan page price ladder now shows a notice that Merqo is free during the pilot.
@@ -29,6 +30,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `/auth/confirm` and `/auth/confirm/verify`: an own-domain landing for emailed auth links (password reset, signup, invite, magic link, email change). The page only shows a Continue button, so email scanners cannot use up the token; the button's POST verifies it and signs in (recovery goes to `/reset-password`). A bad or expired link lands on `/login?error=link`, which now says "That link is invalid or has expired. Request a new one." The existing `/auth/callback` is unchanged.
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
 - READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
 
