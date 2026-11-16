@@ -86,6 +86,17 @@ describe("tryItReducer", () => {
     );
   });
 
+  it("replays from an empty menu at every stage and keeps scroll play off", () => {
+    const empty = { taken: true, qty: 0, stage: "menu" };
+    expect(run("replay")).toEqual(empty);
+    expect(run("add", "replay")).toEqual(empty);
+    expect(run("add", "place", "replay")).toEqual(empty);
+    expect(run("add", "place", "ready", "replay")).toEqual(empty);
+    expect(run("add", "place", "ready", "pickedUp", "replay")).toEqual(empty);
+    expect(phaseOf(run("replay"))).toBe("none");
+    expect(announcement(run("replay"))).toBe("");
+  });
+
   it("announces only once the order has moved", () => {
     expect(announcement(INITIAL_STATE)).toBe("");
     expect(announcement(run("add"))).toBe("");

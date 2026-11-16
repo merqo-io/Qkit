@@ -127,7 +127,7 @@ export default async function LandingPage() {
 
       <section
         id="how"
-        className="mt-10 scroll-mt-20 bg-foreground py-16 text-background sm:py-20"
+        className="mt-10 scroll-mt-20 bg-foreground py-16 text-background sm:py-20 dark:bg-card dark:text-foreground"
       >
         <div className="mx-auto max-w-6xl px-5">
           <p className="font-mono text-xs uppercase tracking-[0.12em] opacity-70">
@@ -140,7 +140,7 @@ export default async function LandingPage() {
             {PAIN.map((line, i) => (
               <li
                 key={line}
-                className={`border-t border-background/30 py-3.5 ${
+                className={`border-t border-background/30 dark:border-foreground/30 py-3.5 ${
                   i === PAIN.length - 1 ? "border-b" : ""
                 }`}
               >

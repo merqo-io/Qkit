@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 import { ArrowDown } from "lucide-react";
 
 import { cn } from "@merqo/ui/primitives";
@@ -86,6 +86,20 @@ export function ChapterOrder({
   const view = phoneView(state, s);
   const on = [true, view.qty > 0, view.bar > 0, view.placed];
 
+  const addButton = useRef<HTMLButtonElement>(null);
+  const replayed = useRef(false);
+
+  useEffect(() => {
+    if (view.placed || !replayed.current) return;
+    replayed.current = false;
+    addButton.current?.focus();
+  }, [view.placed]);
+
+  const replay = () => {
+    replayed.current = true;
+    dispatch({ type: "replay" });
+  };
+
   const place = () => {
     if (!state.taken) {
       for (let i = 0; i < view.bar; i++) dispatch({ type: "add" });
@@ -147,6 +161,7 @@ export function ChapterOrder({
                       </button>
                       <span className="min-w-5 text-center">{view.qty}</span>
                       <button
+                        ref={addButton}
                         type="button"
                         aria-label="Add one kopi"
                         aria-disabled={state.taken && state.qty >= MAX_KOPI}
@@ -192,7 +207,7 @@ export function ChapterOrder({
                   </div>
                 </div>
                 {view.placed ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card p-4 text-center">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card p-4 text-center [@media(max-height:760px)]:max-md:gap-1 [@media(max-height:760px)]:max-md:p-2">
                     <span className="font-mono text-xs text-muted-foreground">
                       ORDER PLACED
                     </span>
@@ -210,6 +225,13 @@ export function ChapterOrder({
                         </>
                       ) : null}
                     </p>
+                    <button
+                      type="button"
+                      onClick={replay}
+                      className="mt-1 inline-flex min-h-11 items-center rounded-lg border-[1.5px] border-border px-4 text-[13px] font-semibold transition-colors active:bg-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      Order again
+                    </button>
                   </div>
                 ) : null}
               </PhoneFrame>
