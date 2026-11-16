@@ -17,7 +17,8 @@ messages, and the kit-to-merqo notify calls.
 - `customer-notify.test.ts` — tests the request body/header shape for
   all three calls and the fail-closed/never-throw behavior on non-2xx,
   timeout, and network-error cases.
-- `customer-notify.ts` — `mintCustomerConnectToken(vendorId, kitSlug,
+- `customer-notify.ts` — `merqoAuthHeaders()` (the kit bearer header, empty when
+  the secret is unset, also used by the plan page catalog fetch); `mintCustomerConnectToken(vendorId, kitSlug,
 notifyRef)`/`notifyCustomer(vendorId, notifyRef, message)`/
   `notifyVendor(vendorId, message)`: server-only HTTP client for merqo's
   `POST /api/merqo/customer-connect-token`/`POST /api/merqo/notify-customer`/

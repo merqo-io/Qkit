@@ -30,7 +30,7 @@ inline mark used on the login page.
   swipeable "live order board" carousel over `LANDING_BOARDS` — native
   scroll-snap plus pointer-drag and a 10s auto-advance timer (paused on
   interaction, skipped under reduced motion), decorative (`aria-hidden`).
-- `journey/` — the journey below the hero (scroll-played order, Mark Ready demo, closing call, FAQ rows); see its README.
+- `journey/` — the scroll-and-try journey below the hero (customer, stall and queue chapters, closing call, FAQ rows); see its README.
 - `hero-preview-carousel.dom.test.tsx` — RTL test for carousel dot
   navigation/active state.
 - `landing-board.tsx` — `LandingBoard({ board })`: renders one "live order

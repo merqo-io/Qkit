@@ -14,7 +14,7 @@ queue stays uncluttered); this is where a vendor pulls it back up.
   first page, the always-visible page count, the booth filter, the search
   box, the no-match state, the history-cap note, and defaulting to "Today"
   then widening through 7 days/30 days/All time as more orders come into
-  range.
+  range, and the older-orders note.
 - `completed-orders-list.tsx` — `CompletedOrdersList({ booths, orders,
 loadError, historyLimit, todayStartIso })` client component: a date-range
   segmented filter (Today/7 days/30 days/All time, filtering on
@@ -38,12 +38,16 @@ loadError, historyLimit, todayStartIso })` client component: a date-range
   completed orders yet" (nothing at all) vs. "No matching orders"
   (filter/search narrowed to zero). A retry banner on a load error, and a
   one-line note when the fetch hit `historyLimit` (the list isn't
-  unbounded).
+  unbounded). The optional `olderHidden` prop adds the line "Older orders are
+  kept and show on Pro."
 - `page.tsx` — `CompletedOrdersPage()` (server, `revalidate = 0`): reuses
   `requireEntitledVendor()`, reads the vendor's booths, then reads up to 500
   `status = 'completed'` orders across them (`BOARD_ORDER_COLUMNS`, newest
   `completed_at` first), computes `sgtStartOfDayIso()` once, and renders
-  `CompletedOrdersList`.
+  `CompletedOrdersList`. Free and Starter get `completed_at >=
+sgtYesterdayStartIso()` in the query (today and yesterday only); one
+  `limit(1)` read for an older row sets `olderHidden`. Pro and a running Event
+  Pass are unfiltered.
 
 ## Connectivity
 

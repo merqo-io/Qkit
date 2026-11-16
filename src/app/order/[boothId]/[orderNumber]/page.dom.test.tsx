@@ -8,22 +8,25 @@ import type { OrderStatus } from "@/lib/types";
 import OrderStatusPage from "./page";
 import { shortDateTime } from "@/lib/tz";
 
-const { notFoundMock, redirectMock, headersMock } = vi.hoisted(() => ({
-  // Both throw to abort rendering — mirrors the real next/navigation
-  // behavior so a test hitting either branch doesn't fall through into the
-  // rest of the function body, same as it never would in production.
-  notFoundMock: vi.fn(() => {
-    throw new Error("NEXT_NOT_FOUND");
+const { notFoundMock, redirectMock, headersMock, poweredBy } = vi.hoisted(
+  () => ({
+    poweredBy: vi.fn(),
+    // Both throw to abort rendering — mirrors the real next/navigation
+    // behavior so a test hitting either branch doesn't fall through into the
+    // rest of the function body, same as it never would in production.
+    notFoundMock: vi.fn(() => {
+      throw new Error("NEXT_NOT_FOUND");
+    }),
+    redirectMock: vi.fn((url: string) => {
+      throw new Error(`NEXT_REDIRECT:${url}`);
+    }),
+    // Real, allowlisted host by default; individual tests override to probe
+    // resolveOrigin's host-allowlist behavior.
+    headersMock: vi.fn(() =>
+      Promise.resolve(new Headers({ host: "booth.merqo.io" })),
+    ),
   }),
-  redirectMock: vi.fn((url: string) => {
-    throw new Error(`NEXT_REDIRECT:${url}`);
-  }),
-  // Real, allowlisted host by default; individual tests override to probe
-  // resolveOrigin's host-allowlist behavior.
-  headersMock: vi.fn(() =>
-    Promise.resolve(new Headers({ host: "booth.merqo.io" })),
-  ),
-}));
+);
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -32,6 +35,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/headers", () => ({ headers: headersMock }));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 vi.mock("./order-status-poller", () => ({ OrderStatusPoller: () => null }));
+vi.mock("@/lib/powered-by", () => ({
+  showPoweredByMerqo: poweredBy,
+}));
 vi.mock("./earn-link", () => ({ EarnLink: () => null }));
 vi.mock("./telegram-connect", () => ({
   TelegramConnect: () => <div data-testid="telegram-connect" />,
@@ -127,6 +133,7 @@ beforeEach(() => {
   // No board_settings row -> boardSettingsSchema fails -> resolveOrderDisplay
   // degrades to the real order_number, no second query.
   vendorMaybeSingle.mockReset().mockResolvedValue({ data: null });
+  poweredBy.mockReset().mockResolvedValue(false);
   notFoundMock.mockClear();
   redirectMock.mockClear();
   headersMock
@@ -382,5 +389,20 @@ describe("OrderStatusPage — pickup QR origin allowlist", () => {
       "data-value",
       `https://booth.merqo.io/order/${BOOTH_ID}/${ORDER_NUMBER}?t=${TOKEN}`,
     );
+  });
+});
+
+describe("OrderStatusPage Powered by Merqo line", () => {
+  it("shows for a Free vendor and is hidden otherwise", async () => {
+    poweredBy.mockResolvedValue(true);
+    const { unmount } = await renderPage("pending");
+    expect(poweredBy).toHaveBeenCalledWith(VENDOR_ID);
+    expect(
+      screen.getByRole("link", { name: "Powered by Merqo" }),
+    ).toHaveAttribute("href", "https://merqo.io");
+    unmount();
+    poweredBy.mockResolvedValue(false);
+    await renderPage("pending");
+    expect(screen.queryByText("Powered by Merqo")).toBeNull();
   });
 });

@@ -55,7 +55,26 @@ describe("PlanPage", () => {
     render(await PlanPage());
     expect(fetchPlanCatalog).toHaveBeenCalledWith(
       process.env.MERQO_BASE_URL ?? "https://www.merqo.io",
+      expect.anything(),
     );
+  });
+
+  it("sends the kit bearer to merqo when the secret is set", async () => {
+    vi.stubEnv("MERQO_CUSTOMER_SECRET", "s3cret");
+    requireEntitledVendor.mockResolvedValue(entitlement("free"));
+    render(await PlanPage());
+    expect(fetchPlanCatalog.mock.calls[0][1]).toEqual({
+      headers: { Authorization: "Bearer s3cret" },
+    });
+    vi.unstubAllEnvs();
+  });
+
+  it("calls without a header when the secret is missing", async () => {
+    vi.stubEnv("MERQO_CUSTOMER_SECRET", "");
+    requireEntitledVendor.mockResolvedValue(entitlement("free"));
+    render(await PlanPage());
+    expect(fetchPlanCatalog.mock.calls[0][1]).toEqual({ headers: {} });
+    vi.unstubAllEnvs();
   });
 
   it("renders the ladder with Pro highlighted and live prices", async () => {

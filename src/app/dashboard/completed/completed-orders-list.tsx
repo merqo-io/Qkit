@@ -53,11 +53,20 @@ function rangeCutoffMs(range: DateRange, todayStartIso: string): number | null {
   return Date.now() - days * 24 * 60 * 60 * 1000;
 }
 
+function OlderHiddenNote() {
+  return (
+    <p className="mb-4 text-xs text-muted-foreground">
+      Older orders are kept and show on Pro.
+    </p>
+  );
+}
+
 export function CompletedOrdersList({
   booths,
   orders,
   loadError,
   historyLimit,
+  olderHidden = false,
   todayStartIso,
   dailyOrderNumberBaselines = {},
 }: {
@@ -65,6 +74,7 @@ export function CompletedOrdersList({
   orders: BoardOrder[];
   loadError: boolean;
   historyLimit: number;
+  olderHidden?: boolean;
   todayStartIso: string;
   // Each booth's day and service baselines, when the vendor numbers from 1
   // each day. Empty otherwise.
@@ -128,12 +138,14 @@ export function CompletedOrdersList({
         <p className="mt-1 text-sm text-muted-foreground">
           Orders you mark picked up show up here.
         </p>
+        {olderHidden && <OlderHiddenNote />}
       </Ticket>
     );
   }
 
   return (
     <div>
+      {olderHidden && <OlderHiddenNote />}
       {orders.length === historyLimit && (
         <p className="mb-4 text-xs text-muted-foreground">
           Showing your most recent {historyLimit} completed orders.

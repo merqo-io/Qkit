@@ -6,7 +6,7 @@ The "Plans" user-guide article: what Free, Starter and Pro include, the optional
 
 ## Contents
 
-- `plans.ts` — exports `article` (`HelpArticle`, category `plans`): title, summary, `reviewed` date, the `uiLabels` the body quotes, the `covers` source files (`src/lib/plan.ts`, booth access and the plan, booths and stats pages) and the `body` blocks.
+- `plans.ts` — exports `article` (`HelpArticle`, category `plans`): title, summary, `reviewed` date, the `uiLabels` the body quotes, the `covers` source files (`src/lib/plan.ts`, booth access and the plan, booths and stats pages; the body also states the today-and-yesterday window and the Free-only Powered by Merqo line) and the `body` blocks.
 
 ## Conventions
 

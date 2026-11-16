@@ -164,3 +164,10 @@ export function sgtStartOfDayIso(now: Date = new Date()): string {
   const [y, m, d] = SGT_YMD_FORMAT.format(now).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d) - 8 * 60 * 60 * 1000).toISOString();
 }
+
+/** Start of "yesterday" in SGT as a UTC ISO instant (the short history window's floor). */
+export function sgtYesterdayStartIso(now: Date = new Date()): string {
+  return new Date(
+    Date.parse(sgtStartOfDayIso(now)) - 24 * 60 * 60 * 1000,
+  ).toISOString();
+}

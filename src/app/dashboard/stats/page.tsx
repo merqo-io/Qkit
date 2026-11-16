@@ -6,14 +6,15 @@ import {
   avgWaitSeconds,
   waitSeries,
   peakThroughput,
+  RANGE_DAYS,
+  rangeStartMs,
   type SeriesPoint,
   type WaitPoint,
 } from "@/lib/stats";
 import { createServerClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
-import { MS_PER_DAY } from "@/lib/utils";
-import { isStatsRange, type StatsRange } from "@/lib/plan";
+import { isStatsRange } from "@/lib/plan";
 import { groupReviewsByBooth, summarizeReviews } from "@/lib/reviews";
 import { StatsControls } from "./stats-controls";
 import { StatsView } from "./stats-view";
@@ -22,13 +23,6 @@ import { fetchOrders, fetchAllTimeTotals, fetchReviewRows } from "./queries";
 import { PageHeader } from "@merqo/ui";
 
 export const revalidate = 0;
-
-const RANGE_DAYS: Record<StatsRange, number> = {
-  "24h": 1,
-  "7d": 7,
-  "30d": 30,
-  "90d": 90,
-};
 
 interface Props {
   searchParams: Promise<{ range?: string; booth?: string }>;
@@ -51,7 +45,7 @@ export default async function StatsPage({ searchParams }: Props) {
   );
   const allBoothIds = boothList.map((b) => b.id);
 
-  // Plan gate: ranges come from the entitlement (24h only, or the longer ones).
+  // Plan gate: ranges come from the entitlement (today and yesterday only, or the longer ones).
   // Clamp an out-of-plan (or unknown) range to the widest it allows.
   const trends = entitlement.statsRanges.length > 1;
   const allowedRanges = entitlement.statsRanges;
@@ -66,7 +60,7 @@ export default async function StatsPage({ searchParams }: Props) {
   const floorMs = entitlement.statsSince
     ? Date.parse(entitlement.statsSince)
     : 0;
-  const cutoffMs = Math.max(now - days * MS_PER_DAY, floorMs);
+  const cutoffMs = rangeStartMs(range, now, floorMs);
   const cutoff = new Date(cutoffMs).toISOString();
 
   // Only honor a booth filter that belongs to this vendor; else aggregate all.
@@ -81,7 +75,7 @@ export default async function StatsPage({ searchParams }: Props) {
   // the trend period comparison, so it's skipped otherwise.
   const wantPrior = trends && queryIds.length > 0;
   const priorCutoff = new Date(
-    Math.max(now - 2 * days * MS_PER_DAY, floorMs),
+    Math.max(cutoffMs - (now - cutoffMs), floorMs),
   ).toISOString();
   const [orders, reviewRows, allTime, priorOrders] = await Promise.all([
     fetchOrders(supabaseEarly, queryIds, cutoff),
