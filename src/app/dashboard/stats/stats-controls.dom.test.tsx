@@ -25,7 +25,10 @@ describe("StatsControls accessibility", () => {
       screen.getByRole("radio", { name: "7 days", checked: true }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("radio", { name: "24h", checked: false }),
+      screen.getByRole("radio", {
+        name: "Today and yesterday",
+        checked: false,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("combobox", { name: "Filter by booth" }),

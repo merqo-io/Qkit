@@ -1,20 +1,25 @@
 import Link from "next/link";
-import { ScanLine } from "lucide-react";
+import { Check, ScanLine } from "lucide-react";
 import { Button } from "@merqo/ui/primitives";
 
 import { Nav } from "@/components/landing/nav";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
-import { BackToTop } from "@merqo/ui";
-import { ClosingCall } from "@/components/landing/journey/closing-call";
-import { FaqRows, type FaqRow } from "@/components/landing/journey/faq-rows";
-import { Journey } from "@/components/landing/journey/journey";
-import { MarkReadyDemo } from "@/components/landing/journey/mark-ready-demo";
-import { OrderWatch } from "@/components/landing/journey/order-watch";
+import { BackToTop, ClosingCall, FaqRows, type FaqRow } from "@merqo/ui";
+import { TryIt } from "@/components/landing/journey/try-it";
+import { Ticket } from "@/components/widgets/ticket";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
+
+const TRUST = ["No app", "No hardware", "Open signup"] as const;
+
+const PAIN = [
+  "A queue that hides your stall.",
+  "Paper slips that go missing.",
+  "“Forty-two! FORTY-TWO!”",
+] as const;
 
 // The charge condition must stay beside the free claim, so both are one string.
 const PRICING_LINE =
@@ -99,14 +104,65 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <Journey id="how" title="Follow one order from the queue to the counter.">
-        <OrderWatch />
-        <MarkReadyDemo />
-      </Journey>
+      <section className="mx-auto max-w-6xl px-5 pb-2">
+        <Ticket
+          shadow="none"
+          className="mx-auto flex max-w-full flex-wrap items-stretch divide-x divide-dashed divide-primary/30 bg-primary/[0.06] sm:inline-flex sm:w-auto"
+        >
+          {TRUST.map((t) => (
+            <span
+              key={t}
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-primary sm:px-6 sm:text-base"
+            >
+              <Check
+                className="size-4 shrink-0 sm:size-[1.05rem]"
+                strokeWidth={2.75}
+                aria-hidden
+              />
+              {t}
+            </span>
+          ))}
+        </Ticket>
+      </section>
 
-      <section id="faq" className="mx-auto max-w-5xl scroll-mt-20 px-5 pb-16">
+      <section
+        id="how"
+        className="mt-10 scroll-mt-20 bg-foreground py-16 text-background sm:py-20 dark:bg-card dark:text-foreground"
+      >
+        <div className="mx-auto max-w-6xl px-5">
+          <p className="font-mono text-xs uppercase tracking-[0.12em] opacity-70">
+            12:40 PM · Lunch rush
+          </p>
+          <h2 className="font-display mt-4 max-w-[20ch] text-balance text-4xl font-semibold leading-[1.05] sm:text-5xl">
+            You are shouting numbers again.
+          </h2>
+          <ul className="mt-8 max-w-xl text-lg font-medium leading-snug">
+            {PAIN.map((line, i) => (
+              <li
+                key={line}
+                className={`border-t border-background/30 dark:border-foreground/30 py-3.5 ${
+                  i === PAIN.length - 1 ? "border-b" : ""
+                }`}
+              >
+                {line}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-7 max-w-xl text-base opacity-80">
+            Here is the same order with qkit. Do it yourself, it takes three
+            taps.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 pb-10">
+        <h2 className="sr-only">Play one order from start to finish</h2>
+        <TryIt />
+      </section>
+
+      <section id="faq" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16">
         <ClosingCall
-          heading="That is the whole product. Want it at your stall?"
+          heading="That was the whole product. Now picture your menu on it."
           line={PRICING_LINE}
           action={
             <LandingCta

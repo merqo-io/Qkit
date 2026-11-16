@@ -16,7 +16,7 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 - `admin/` — internal admin dashboard (vendor management, pricing, feedback, support inbox).
 - `api/` — route-handler API endpoints: the Merqo cross-product integration and qkit's own `v1` public API.
 - `apple-icon.tsx` — `AppleIcon` route handler; renders `qkitBrandIcon(180)` (from `@/lib/brand`) as a 180×180 PNG `ImageResponse` for iOS home-screen touch icons.
-- `auth/` — Supabase auth callback route (OAuth/recovery code exchange).
+- `auth/` — Supabase auth callback route (OAuth/recovery code exchange) and the `confirm/` page and `verify/` route for emailed token-hash links.
 - `dashboard/` — authenticated vendor area (realtime order board, booth/menu management, stats).
 - `error.tsx` — client component rendering the shared `ErrorPage` from `@merqo/ui` as the root React error boundary; replaces the Next dev overlay in production, logs via `console.error`, shows a full-width 44px "Try again" button calling `reset()`. The shared page adds a "Reference: <digest>" line when Next supplies a digest. All visible copy is passed in as props.
 - `global-error.tsx` — client component rendering the shared `GlobalError` from `@merqo/ui`; the boundary Next renders only when the **root layout itself** throws, so it ships its own `<html>/<body>` with inline styles (no Tailwind, since `globals.css` may not have loaded). The content sits in a `main` landmark. It takes literal colour values, a `0.5rem` button radius and a system font stack. The shared component has no wordmark slot, so this page shows no wordmark.
@@ -30,7 +30,7 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 - `o/` — short-code customer ordering entry point.
 - `onboarding/` — post-signup vendor onboarding flow.
 - `order/` — legacy booth-id-based customer ordering route.
-- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then one journey below it (`Journey` with `OrderWatch` and `MarkReadyDemo`, anchor `#how`), then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
+- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then a trust strip, a dark pain band (anchor `#how`) and `TryIt`, the three-chapter play-through, then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
 
 ## Connectivity
 

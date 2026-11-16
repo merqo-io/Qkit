@@ -16,6 +16,8 @@ import { RecentOrders } from "@/components/order/recent-orders";
 import { ExpiredCode } from "@/components/order/expired-code";
 import { MediaImage } from "@/components/widgets/media-image";
 import { SocialLinksRow } from "@/components/widgets/social-links-row";
+import { PoweredByMerqo } from "@/components/order/powered-by-merqo";
+import { showPoweredByMerqoForBooth } from "@/lib/powered-by";
 
 export const revalidate = 0;
 
@@ -145,7 +147,10 @@ export default async function OrderEntryPage({ params }: Props) {
     closedDetail = "This booth isn't taking orders right now.";
   }
   const socialLinks = parseSocialLinks(booth.social_links);
-  const paysInPerson = await loadPaysInPerson(booth.booth_id);
+  const [paysInPerson, poweredBy] = await Promise.all([
+    loadPaysInPerson(booth.booth_id),
+    showPoweredByMerqoForBooth(booth.booth_id),
+  ]);
 
   return (
     <div className="mx-auto min-h-screen max-w-lg px-5 pb-28 pt-8 md:max-w-2xl">
@@ -204,6 +209,7 @@ export default async function OrderEntryPage({ params }: Props) {
         maxPerOrder={maxPerOrder}
         paysInPerson={paysInPerson}
       />
+      {poweredBy && <PoweredByMerqo />}
     </div>
   );
 }

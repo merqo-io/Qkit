@@ -3,10 +3,9 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { loadEntitlement } from "@/lib/supabase/get-entitlement";
 import { rateLimit } from "@/lib/rate-limit";
-import { computeStats, type StatsOrder } from "@/lib/stats";
+import { computeStats, rangeStartMs, type StatsOrder } from "@/lib/stats";
 import { fetchOrders } from "@/app/dashboard/stats/queries";
 import { toSalesSummaryV1 } from "@/lib/sales-summary";
-import { MS_PER_DAY } from "@/lib/utils";
 
 // Read-only sales summary, v1 of the external contract (see lib/sales-summary).
 // AUTH: currently the vendor's Supabase session (cookie) — so it serves the
@@ -14,13 +13,6 @@ import { MS_PER_DAY } from "@/lib/utils";
 // auth (per-vendor API keys) for cross-product (sibling -kit) access is a
 // deliberate FUTURE step — designed around the real consumer, not pre-built.
 // The response SHAPE is frozen now so that integration won't require a rewrite.
-
-const RANGE_DAYS: Record<StatsRange, number> = {
-  "24h": 1,
-  "7d": 7,
-  "30d": 30,
-  "90d": 90,
-};
 
 export async function GET(request: Request) {
   const { user, vendor, entitlement } = await loadEntitlement();
@@ -35,14 +27,13 @@ export async function GET(request: Request) {
   const range = allowed.includes(requested)
     ? requested
     : (allowed.at(-1) ?? "24h");
-  const days = RANGE_DAYS[range];
   const generatedAt = new Date().toISOString();
   // A pass-only vendor may not see history from before the pass started.
   const floorMs = entitlement.statsSince
     ? Date.parse(entitlement.statsSince)
     : 0;
   const cutoff = new Date(
-    Math.max(Date.parse(generatedAt) - days * MS_PER_DAY, floorMs),
+    rangeStartMs(range, Date.parse(generatedAt), floorMs),
   ).toISOString();
 
   const supabase = await createServerClient();

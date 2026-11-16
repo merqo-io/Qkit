@@ -17,6 +17,15 @@ import { GoogleMark } from "@merqo/ui";
 
 type Mode = "signin" | "signup";
 
+function LinkErrorNotice() {
+  if (useSearchParams().get("error") !== "link") return null;
+  return (
+    <p role="alert" className="mt-4 text-sm text-destructive">
+      That link is invalid or has expired. Request a new one.
+    </p>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -190,6 +199,7 @@ function LoginForm() {
                 ? "Sign in to your vendor dashboard."
                 : "Set up a vendor account in seconds."}
             </p>
+            <LinkErrorNotice />
 
             <Button
               type="button"

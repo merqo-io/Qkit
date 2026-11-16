@@ -10,6 +10,7 @@ import {
   waitSeries,
   peakThroughput,
   windowSeries,
+  rangeStartMs,
   type StatsOrder,
 } from "./stats";
 
@@ -742,5 +743,25 @@ describe("peakThroughput", () => {
         waitOrder("2026-06-12T04:05:00Z", null),
       ]),
     ).toBe(1);
+  });
+});
+
+describe("rangeStartMs", () => {
+  const now = Date.parse("2026-06-12T05:00:00Z");
+
+  it("24h starts at 00:00 SGT yesterday: hides 23:59 two days ago, shows 00:00", () => {
+    const start = rangeStartMs("24h", now, 0);
+    expect(Date.parse("2026-06-10T15:59:00Z") >= start).toBe(false);
+    expect(Date.parse("2026-06-10T16:00:00Z") >= start).toBe(true);
+  });
+
+  it("longer ranges roll back by whole days from now", () => {
+    expect(rangeStartMs("7d", now, 0)).toBe(Date.parse("2026-06-05T05:00:00Z"));
+  });
+
+  it("never reaches before the floor", () => {
+    const floor = Date.parse("2026-06-12T00:00:00Z");
+    expect(rangeStartMs("24h", now, floor)).toBe(floor);
+    expect(rangeStartMs("90d", now, floor)).toBe(floor);
   });
 });
