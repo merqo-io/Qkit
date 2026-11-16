@@ -72,13 +72,18 @@ describe("public landing page", () => {
     );
     expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
   });
-  it("follows one order as a journey with exactly three FAQ rows", async () => {
+  it("lets the visitor play one order through three chapters with exactly three FAQ rows", async () => {
     const { container } = render(await LandingPage());
-    expect(
-      screen.getByRole("heading", {
-        name: "Follow one order from the queue to the counter.",
-      }),
-    ).toBeInTheDocument();
+    for (const name of [
+      "You are shouting numbers again.",
+      "Order a kopi.",
+      "It is already on your board.",
+      "The number calls itself.",
+      "That was the whole product. Now picture your menu on it.",
+    ])
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    for (const t of ["No app", "No hardware", "Open signup"])
+      expect(screen.getByText(t)).toBeInTheDocument();
     expect(container.querySelector("#how")).toBeInTheDocument();
     expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(3);
     expect(
@@ -86,7 +91,7 @@ describe("public landing page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Up and running in three steps/)).toBeNull();
     expect(screen.queryByText("What qkit does")).toBeNull();
-    expect(screen.queryByText("No hardware")).toBeNull();
+    expect(screen.queryByText(/Built in Singapore/)).toBeNull();
   });
   it("shows the pilot badge and keeps open signup", async () => {
     render(await LandingPage());
@@ -114,7 +119,7 @@ describe("public landing page", () => {
     const { container } = render(await LandingPage());
     const text = container.textContent ?? "";
     expect(text).not.toMatch(
-      /\b(live|now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
+      /\b(live|available now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
     );
     expect(text).not.toContain("QKit");
     expect(text).not.toContain("Qkit");

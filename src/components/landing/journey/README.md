@@ -2,8 +2,10 @@
 
 ## Purpose
 
-The part of the landing page below the hero: one order followed from the
-customer's phone to the vendor's board, then a closing call. Structure and
+The part of the landing page below the hero: the visitor plays one order
+through three chapters (customer phone, vendor board, queue screen plus the
+customer's phone), then a closing call. Client state only: no network, server
+actions or database. Structure and
 behaviour sit apart from qkit's look (semantic Tailwind classes only) so the
 generic pieces can move into `@merqo/ui` later.
 
@@ -16,7 +18,11 @@ generic pieces can move into `@merqo/ui` later.
 - `closing-call.tsx` — `ClosingCall`, the closing block with a heading, a line, an action and an aside.
 - `use-scroll-play.ts` — `useScrollPlay(ref, steps)`: scroll position to a step from 0 to `steps` (passive scroll listener, one `requestAnimationFrame` per frame, cleaned up on unmount), plus `usePrefersReducedMotion`, `scrollProgress` and `progressToStep`. Pass the element that shows the result (the stage), not the section with copy above it. Play starts when a third of that element is visible and ends halfway between fully visible and top-of-viewport, so the last step lands while it is on screen. With JS and no reduced-motion preference the measured step always applies, once at mount and then on every scroll and resize, wherever the page loads. Server render, no-JS and reduced motion return the finished step; the mount measurement replaces it right after hydration.
 - `pinned-progress.ts` — `pinnedProgress`, pure maths: how far a sticky panel inside a tall track has played, 0 to 1 (0 before the pin, 1 after the release or when the track has no scroll distance).
-- `use-pinned-play.ts` — `usePinnedPlay(track, panel, steps)`: the step from `pinnedProgress` (passive scroll and resize, one `requestAnimationFrame` per frame, measured at mount), plus whether a pin is wanted and the panel height. Reduced motion, server render and no-JS get the finished step and no pin.
-- `order-watch.tsx` — `OrderWatch`, step 1: the step is held by `position: sticky` under the nav inside a `200svh` spacer track while scroll plays menu, add, options, cart and ORDER PLACED (40svh each, the last held before release); scrolling up rewinds. If the panel is taller than the viewport (short phones) its `top` goes negative so the stage stays fully on screen and the copy scrolls off first. No scroll hijacking and no ancestor `overflow` is needed. Reduced motion has no track and shows the finished order.
-- `mark-ready-demo.tsx` — `MarkReadyDemo`, step 2: Mark Ready stamps the ticket and the customer's phone reacts. Nothing resizes or moves on any tap: the helper text reserves the height of its longest line, and the ticket stays mounted but `invisible`, `inert` and `aria-hidden` in the last stage, sharing one grid cell with the "All caught up" box so the card keeps the ticket's height. The phone frame is fixed size and the button is full width. The print and stamp animations are skipped under reduced motion.
-- `*.test.tsx` — touch and keyboard operation, reduced-motion rendering, scroll mapping, FAQ row count.
+- `use-pinned-play.ts` - `usePinnedPlay(steps, driven)`: owns and returns the `track`, `panel` and `spacer` refs plus the step from `pinnedProgress` (passive scroll, resize and a `ResizeObserver` on the panel, one `requestAnimationFrame` per frame). The sticky `top` is written to the panel in the same measurement that reads it, so progress never lags it. While `driven` is false (the visitor's taps run the phone) the spacer is cut to the distance already scrolled, so nothing jumps and no dead scroll remains; it is restored only when fully off screen, compensating the scroll position if it sits above the viewport. Reduced motion returns step 0 and no pin; server render and no-JS return the finished step.
+- `try-it-state.ts` - the pure reducer shared by the three chapters (add, remove, place, ready, pickedUp, reset), the `taken` flag (first tap hands the phone from scroll play to the visitor), `phaseOf`, `ticketOf`, phone status strings and the live-region `announcement`.
+- `try-it.tsx` - `TryIt`: owns the reducer and the single `aria-live` region and renders the three chapters.
+- `chapter-order.tsx` - chapter 1: the customer's phone with working kopi minus and plus, pinned by `position: sticky` inside a `200svh` spacer track until the visitor taps. The spacer is hidden by `motion-reduce:hidden` and a `noscript` rule, so reduced-motion and no-JS visitors never see dead scroll.
+- `chapter-board.tsx` - chapter 2: the vendor ticket built from the `Ticket` widget (`LandingTicket` cannot host live buttons) with Mark Ready, Mark Picked Up and Play again from `ADVANCE`. Nothing resizes on a tap: the ticket stays mounted but `invisible` and `inert` in the last stage, sharing one grid cell with the "All caught up" box. Print and stamp animations are skipped under reduced motion.
+- `chapter-queue.tsx` - chapter 3: a miniature of the queue screen (mirrors `order/[boothId]/display/queue-display.tsx`, which polls and calls server actions) and the customer's phone.
+- `caption.tsx` - a helper line that reserves the height of its longest variant.
+- `*.test.ts(x)` - reducer, the full play-through by touch and keyboard, reduced-motion rendering, scroll mapping, FAQ row count.

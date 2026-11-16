@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 import { pinnedProgress } from "./pinned-progress";
 import { progressToStep, usePrefersReducedMotion } from "./use-scroll-play";
@@ -11,33 +17,91 @@ import { progressToStep, usePrefersReducedMotion } from "./use-scroll-play";
  */
 export const PIN_NAV_OFFSET_PX = 80;
 
+const PIN_TOP_CSS = (panelHeight: number) =>
+  `min(5rem, calc(100svh - ${panelHeight}px))`;
+
 /**
- * Scroll position as a play head for a pinned panel. `track` is the tall
- * block, `panel` the sticky element inside it. Returns the step (0 to
- * `steps`), whether a pin is wanted, and the measured panel height so the
- * caller can keep the panel's bottom on screen when it is taller than the
- * viewport. The pin point is read from the panel's resolved `top`, so the
- * progress agrees with where the browser actually sticks it. Reduced motion,
- * server render and no-JS report the finished step and no pin.
+ * Scroll position as a play head for a pinned panel. The hook owns the refs it
+ * returns: `track` wraps the sticky `panel` and a tall `spacer` that supplies
+ * the scroll distance. Also returns the step (0 to `steps`) and whether a pin
+ * is wanted.
+ *
+ * The sticky `top` is written straight to the panel in the same measurement
+ * that reads it back, so progress always agrees with where the browser sticks
+ * the panel; a `ResizeObserver` on the panel re-measures when fonts load or
+ * text rewraps. While `driven` is false (the visitor's taps run the demo) the
+ * spacer is cut to the distance already scrolled, which leaves the panel where
+ * it is and removes the stretch of scrolling where nothing would change; it
+ * is restored only once it is entirely off screen, compensating the scroll
+ * position when it sits above the viewport so nothing on screen moves.
+ * Reduced motion has no pin and no scroll play, and reports step 0. Server
+ * render and no-JS report the finished step.
  */
 export function usePinnedPlay(
-  track: RefObject<HTMLElement | null>,
-  panel: RefObject<HTMLElement | null>,
   steps: number,
-): { step: number; pinned: boolean; panelHeight: number } {
+  driven: boolean,
+): {
+  track: RefObject<HTMLDivElement | null>;
+  panel: RefObject<HTMLDivElement | null>;
+  spacer: RefObject<HTMLDivElement | null>;
+  step: number;
+  pinned: boolean;
+} {
+  const track = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const spacer = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
-  const [state, setState] = useState({ step: steps, panelHeight: 0 });
+  const [step, setStep] = useState(steps);
+  const shortened = useRef(false);
+
+  useLayoutEffect(() => {
+    if (reduced || driven) return;
+    const t = track.current;
+    const p = panel.current;
+    const s = spacer.current;
+    if (!t || !p || !s || shortened.current) return;
+    const resolved = parseFloat(getComputedStyle(p).top);
+    const pinTop = Number.isFinite(resolved) ? resolved : PIN_NAV_OFFSET_PX;
+    const scrolled = pinTop - t.getBoundingClientRect().top;
+    if (scrolled >= s.offsetHeight - 1) return;
+    s.style.height = `${Math.max(scrolled, 0)}px`;
+    shortened.current = true;
+  }, [reduced, driven]);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !driven) return;
     let queued = false;
     let frame = 0;
+    let lastTop = "";
+
+    const restoreSpacer = (s: HTMLElement) => {
+      const rect = s.getBoundingClientRect();
+      const offscreenBelow = rect.top >= window.innerHeight;
+      const offscreenAbove = rect.bottom <= 0;
+      if (!offscreenBelow && !offscreenAbove) return;
+      const before = s.offsetHeight;
+      s.style.height = "";
+      shortened.current = false;
+      if (offscreenAbove) window.scrollBy(0, s.offsetHeight - before);
+    };
+
     const measure = () => {
       queued = false;
       const t = track.current;
       const p = panel.current;
-      if (!t || !p) return;
+      const s = spacer.current;
+      if (!t || !p || !s) return;
+      if (shortened.current) restoreSpacer(s);
       const panelHeight = p.offsetHeight;
+      const top = PIN_TOP_CSS(panelHeight);
+      if (top !== lastTop) {
+        p.style.top = top;
+        lastTop = top;
+      }
+      if (shortened.current) {
+        setStep(steps);
+        return;
+      }
       const resolved = parseFloat(getComputedStyle(p).top);
       const progress = pinnedProgress({
         trackTop: t.getBoundingClientRect().top,
@@ -45,29 +109,32 @@ export function usePinnedPlay(
         panelHeight,
         pinTop: Number.isFinite(resolved) ? resolved : PIN_NAV_OFFSET_PX,
       });
-      const step = progressToStep(progress, steps);
-      setState((s) =>
-        s.step === step && s.panelHeight === panelHeight
-          ? s
-          : { step, panelHeight },
-      );
+      setStep(progressToStep(progress, steps));
     };
-    measure();
+
     const schedule = () => {
       if (queued) return;
       queued = true;
       frame = requestAnimationFrame(measure);
     };
+
+    measure();
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
+    const ro =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(schedule);
+    if (panel.current) ro?.observe(panel.current);
     return () => {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
+      ro?.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [reduced, track, panel, steps]);
+  }, [reduced, driven, steps]);
 
   return reduced
-    ? { step: steps, pinned: false, panelHeight: 0 }
-    : { step: state.step, pinned: true, panelHeight: state.panelHeight };
+    ? { track, panel, spacer, step: 0, pinned: false }
+    : { track, panel, spacer, step, pinned: true };
 }
