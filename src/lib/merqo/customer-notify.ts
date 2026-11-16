@@ -15,6 +15,13 @@ function merqoCustomerSecret(): string {
   return process.env.MERQO_CUSTOMER_SECRET ?? "";
 }
 
+/** Bearer header for merqo calls; empty when the secret is unset so callers
+ *  that can degrade (the plan page) still work. */
+export function merqoAuthHeaders(): Record<string, string> {
+  const secret = merqoCustomerSecret();
+  return secret ? { Authorization: `Bearer ${secret}` } : {};
+}
+
 type MerqoFetchResult = { res: Response } | { res: null; error: unknown };
 
 /** Shared bearer-authenticated POST to a merqo `/api/merqo/*` endpoint —

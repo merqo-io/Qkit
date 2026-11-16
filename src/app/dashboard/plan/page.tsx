@@ -2,6 +2,7 @@ import { Sparkles, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import { PricingLadder, fetchPlanCatalog } from "@merqo/ui";
 import { TIER_LABEL } from "@/lib/plan";
+import { merqoAuthHeaders } from "@/lib/merqo/customer-notify";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { PassCountdown } from "./pass-countdown";
 import { PageHeader } from "@merqo/ui";
@@ -33,6 +34,7 @@ export default async function PlanPage() {
   const { tier, eventPass } = entitlement;
   const catalog = await fetchPlanCatalog(
     process.env.MERQO_BASE_URL ?? "https://www.merqo.io",
+    { headers: merqoAuthHeaders() },
   ).catch(() => null);
   const currentListed = catalog?.plans.some((plan) => plan.slug === tier);
 
