@@ -8,8 +8,7 @@ import { Ticket } from "@/components/widgets/ticket";
 import { ADVANCE } from "@/lib/orders";
 
 import { Caption } from "./caption";
-import { JourneyStep } from "./journey";
-import { PressButton } from "./press-button";
+import { JourneyStep, PressButton, usePrefersReducedMotion } from "@merqo/ui";
 import {
   ORDER_NUMBER,
   ticketOf,
@@ -17,7 +16,6 @@ import {
   type TryItAction,
   type TryItState,
 } from "./try-it-state";
-import { usePrefersReducedMotion } from "./use-scroll-play";
 
 const CAPTION = [
   "Place your order above and it lands here.",
