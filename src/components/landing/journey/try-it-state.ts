@@ -23,6 +23,7 @@ export type TryItAction =
   | { type: "place" }
   | { type: "ready" }
   | { type: "pickedUp" }
+  | { type: "replay" }
   | { type: "reset" };
 
 export const INITIAL_STATE: TryItState = {
@@ -30,6 +31,14 @@ export const INITIAL_STATE: TryItState = {
   qty: 0,
   stage: "menu",
 };
+
+/**
+ * Order again keeps the takeover flag: scroll play stays off, so the phone
+ * shows the empty menu wherever the page is scrolled and the pinned track
+ * (already cut short by the first takeover, or still full for the untouched
+ * sample) is neither restored nor resized under the visitor.
+ */
+const REPLAYED_STATE: TryItState = { taken: true, qty: 0, stage: "menu" };
 
 /**
  * Taking over discards any progress made on the sample order, so the visitor's
@@ -64,6 +73,8 @@ export function tryItReducer(
         : state;
     case "pickedUp":
       return phaseOf(state) === "ready" ? { ...state, stage: "done" } : state;
+    case "replay":
+      return REPLAYED_STATE;
     case "reset":
       return INITIAL_STATE;
   }

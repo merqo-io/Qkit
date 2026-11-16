@@ -86,10 +86,48 @@ describe("TryIt untouched", () => {
     expect(screen.getByText("1 item")).toBeVisible();
   });
 
+  it("offers Order again on the placed sample order and resets all three chapters", async () => {
+    mockMatchMedia(false);
+    const user = userEvent.setup();
+    render(<TryIt />);
+    const queue = screen.getByRole("group", { name: "Queue screen" });
+    expect(screen.queryByRole("button", { name: "Order again" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Mark Ready" }));
+    await user.click(screen.getByRole("button", { name: "Order again" }));
+    expect(screen.queryByText("ORDER PLACED")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Order again" })).toBeNull();
+    expect(screen.getByText("Tap + to add a kopi")).toBeVisible();
+    expect(screen.getByText("No orders yet.")).toBeVisible();
+    expect(lane(queue, "Preparing")).toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "Add one kopi" })).toHaveFocus();
+  });
+
   it("has exactly one live region", () => {
     mockMatchMedia(false);
     const { container } = render(<TryIt />);
     expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
+  });
+});
+
+describe("TryIt order again", () => {
+  it("resets a placed order from the phone, then the visitor can order again", async () => {
+    mockMatchMedia(true);
+    const user = userEvent.setup();
+    render(<TryIt />);
+    const queue = screen.getByRole("group", { name: "Queue screen" });
+    await user.click(screen.getByRole("button", { name: "Add one kopi" }));
+    await user.click(screen.getByRole("button", { name: /Place order/ }));
+    await user.click(screen.getByRole("button", { name: "Mark Ready" }));
+    await user.click(screen.getByRole("button", { name: "Order again" }));
+
+    expect(screen.queryByText("ORDER PLACED")).not.toBeInTheDocument();
+    expect(screen.getByText("No orders yet.")).toBeVisible();
+    expect(lane(queue, "Ready for pickup")).toBeEmptyDOMElement();
+    expect(lane(queue, "Preparing")).toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "Add one kopi" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Add one kopi" }));
+    expect(screen.getByText("1 item")).toBeVisible();
   });
 });
 
@@ -110,8 +148,10 @@ describe("TryIt full flow", () => {
     expect(screen.getByText("2 items")).toBeVisible();
     expect(screen.getByText("No orders yet.")).toBeVisible();
 
+    expect(screen.queryByRole("button", { name: "Order again" })).toBeNull();
     await user.click(screen.getByRole("button", { name: /Place order/ }));
     expect(screen.getByText("ORDER PLACED")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Order again" })).toBeVisible();
     expect(screen.getByText("You")).toBeVisible();
     expect(screen.getByText("2×")).toBeVisible();
     expect(lane(queue, "Preparing")).toHaveTextContent("#0042");
