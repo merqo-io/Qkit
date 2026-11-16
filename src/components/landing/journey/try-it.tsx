@@ -5,6 +5,7 @@ import { useReducer } from "react";
 import { ChapterBoard } from "./chapter-board";
 import { ChapterOrder } from "./chapter-order";
 import { ChapterQueue } from "./chapter-queue";
+import { CHAPTER_STEP } from "../rhythm";
 import {
   INITIAL_STATE,
   announcement,
@@ -28,8 +29,12 @@ export function TryIt() {
         {announcement(state)}
       </p>
       <ChapterOrder state={state} dispatch={dispatch} />
-      <ChapterBoard state={state} phase={phase} dispatch={dispatch} />
-      <ChapterQueue phase={phase} />
+      <div className={CHAPTER_STEP}>
+        <ChapterBoard state={state} phase={phase} dispatch={dispatch} />
+      </div>
+      <div className={CHAPTER_STEP}>
+        <ChapterQueue phase={phase} />
+      </div>
     </>
   );
 }

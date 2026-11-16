@@ -10,6 +10,15 @@ import { BackToTop, ClosingCall, FaqRows, type FaqRow } from "@merqo/ui";
 import { TryIt } from "@/components/landing/journey/try-it";
 import { Ticket } from "@/components/widgets/ticket";
 import { createServerClient } from "@/lib/supabase/server";
+import {
+  CHAPTER_PAD_TOP,
+  CLOSING_STEP,
+  CONTAINER,
+  SECTION_MARGIN_TOP,
+  SECTION_PAD_BOTTOM,
+  SECTION_PAD_TOP,
+  SECTION_PAD_Y,
+} from "@/components/landing/rhythm";
 
 export const revalidate = 0;
 
@@ -58,7 +67,7 @@ export default async function LandingPage() {
       <Nav authed={Boolean(user)} />
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-5 pb-10 pt-10 sm:pt-16">
+      <section className={`${CONTAINER} pt-10 sm:pt-16`}>
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div className="text-center lg:text-left">
             <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 lg:justify-start">
@@ -104,7 +113,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-2">
+      <section className={`${CONTAINER} ${SECTION_PAD_TOP}`}>
         <Ticket
           shadow="none"
           className="mx-auto flex max-w-full flex-wrap items-stretch divide-x divide-dashed divide-primary/30 bg-primary/[0.06] sm:inline-flex sm:w-auto"
@@ -112,7 +121,7 @@ export default async function LandingPage() {
           {TRUST.map((t) => (
             <span
               key={t}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-primary sm:px-6 sm:text-base"
+              className="inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center text-sm font-semibold text-primary sm:flex-row sm:gap-2 sm:px-6 sm:py-2.5 sm:text-base"
             >
               <Check
                 className="size-4 shrink-0 sm:size-[1.05rem]"
@@ -127,13 +136,13 @@ export default async function LandingPage() {
 
       <section
         id="how"
-        className="mt-10 scroll-mt-20 bg-foreground py-16 text-background sm:py-20 dark:bg-card dark:text-foreground"
+        className={`${SECTION_MARGIN_TOP} ${SECTION_PAD_Y} scroll-mt-20 bg-foreground text-background dark:bg-card dark:text-foreground`}
       >
-        <div className="mx-auto max-w-6xl px-5">
+        <div className={CONTAINER}>
           <p className="font-mono text-xs uppercase tracking-[0.12em] opacity-70">
             12:40 PM · Lunch rush
           </p>
-          <h2 className="font-display mt-4 max-w-[20ch] text-balance text-4xl font-semibold leading-[1.05] sm:text-5xl">
+          <h2 className="font-display mt-2.5 max-w-[20ch] text-balance text-4xl font-semibold leading-[1.05] sm:text-5xl">
             You are shouting numbers again.
           </h2>
           <ul className="mt-8 max-w-xl text-lg font-medium leading-snug">
@@ -148,19 +157,22 @@ export default async function LandingPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-7 max-w-xl text-base opacity-80">
+          <p className="mt-8 max-w-xl text-base opacity-80">
             Here is the same order with qkit. Do it yourself, it takes three
             taps.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-10">
+      <section className={`${CONTAINER} ${CHAPTER_PAD_TOP}`}>
         <h2 className="sr-only">Play one order from start to finish</h2>
         <TryIt />
       </section>
 
-      <section id="faq" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16">
+      <section
+        id="faq"
+        className={`${CONTAINER} ${CHAPTER_PAD_TOP} ${SECTION_PAD_BOTTOM} ${CLOSING_STEP} scroll-mt-20`}
+      >
         <ClosingCall
           heading="That was the whole product. Now picture your menu on it."
           line={PRICING_LINE}

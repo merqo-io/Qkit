@@ -16,6 +16,7 @@ import {
   type TryItState,
 } from "./try-it-state";
 import { usePinnedPlay } from "./use-pinned-play";
+import { CHAPTER_FIRST } from "../rhythm";
 
 export const ORDER_WATCH_STEPS = 4;
 
@@ -116,7 +117,7 @@ export function ChapterOrder({
         ref={panel}
         data-pinned={pinned ? "" : undefined}
         className={cn(
-          "[&>div]:mt-0 [&>div]:border-t-0",
+          CHAPTER_FIRST,
           pinned && "sticky motion-reduce:static",
           PANEL_FIT,
         )}
