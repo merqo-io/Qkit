@@ -117,9 +117,12 @@ describe("public landing page", () => {
   });
   it("makes no readiness, other-kit or company claims", async () => {
     const { container } = render(await LandingPage());
-    const text = container.textContent ?? "";
+    const text = (container.textContent ?? "").replace(
+      "Now picture your menu on it.",
+      "",
+    );
     expect(text).not.toMatch(
-      /\b(live|available now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
+      /\b(live|now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
     );
     expect(text).not.toContain("QKit");
     expect(text).not.toContain("Qkit");

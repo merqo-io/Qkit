@@ -24,7 +24,8 @@ const CAPTION_INDEX: Record<Phase, number> = {
 /**
  * Mirrors the real queue screen (`order/[boothId]/display/queue-display.tsx`),
  * which polls, plays sound and calls server actions, so it cannot be imported.
- * Tile classes follow the real ones, minus the drop shadow the site avoids.
+ * Tile classes follow the real ones, minus the drop shadow the site avoids and
+ * the tilt, which the real screen applies only during the brief stamp entrance.
  */
 function NumberTile({ tone }: { tone: "preparing" | "ready" }) {
   const { lead, last } = splitTrailingDigit(ORDER_NUMBER);
@@ -34,7 +35,7 @@ function NumberTile({ tone }: { tone: "preparing" | "ready" }) {
         "inline-flex min-h-11 items-center rounded-2xl px-3 font-mono text-xl font-bold",
         tone === "preparing"
           ? "border border-border bg-card"
-          : "-rotate-3 border-[3px] border-primary bg-primary text-primary-foreground",
+          : "border-[3px] border-primary bg-primary text-primary-foreground",
       )}
     >
       #{lead}

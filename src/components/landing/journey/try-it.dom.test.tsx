@@ -57,6 +57,25 @@ describe("TryIt untouched", () => {
     expect(screen.getByText("Tap + to add a kopi")).toBeVisible();
   });
 
+  it("keeps the phone on the placed order after Mark Ready, even scrolled to the top of the track", async () => {
+    mockMatchMedia(false);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(
+      function (this: HTMLElement) {
+        if (this.hasAttribute("data-pinned")) return 300;
+        return this.querySelector("[data-pin-track]") ? 1000 : 0;
+      },
+    );
+    const user = userEvent.setup();
+    render(<TryIt />);
+    expect(screen.getByText("Tap + to add a kopi")).toBeVisible();
+    expect(screen.queryByText("ORDER PLACED")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Mark Ready" }));
+    expect(screen.getByText("READY")).toBeVisible();
+    expect(screen.getByText("ORDER PLACED")).toBeVisible();
+    expect(screen.queryByText("Tap + to add a kopi")).not.toBeInTheDocument();
+  });
+
   it("hands the phone to the visitor on the first tap", () => {
     mockMatchMedia(false);
     render(<TryIt />);

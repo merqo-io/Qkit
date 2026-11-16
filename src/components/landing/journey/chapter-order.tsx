@@ -32,6 +32,26 @@ const STEP_BUTTON =
   "grid size-11 place-items-center rounded-lg border-[1.5px] border-foreground font-mono text-lg font-bold transition-colors aria-disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /**
+ * What the phone shows. Scroll drives it only until the visitor taps; once the
+ * untouched sample order has moved on (ready or picked up on the board) the
+ * phone stays on the placed order so it cannot contradict the other screens
+ * when the visitor scrolls back up.
+ */
+function phoneView(state: TryItState, step: number) {
+  if (state.taken) {
+    return { qty: state.qty, bar: state.qty, placed: state.stage !== "menu" };
+  }
+  if (state.stage !== "menu") {
+    return { qty: SAMPLE_QTY, bar: SAMPLE_QTY, placed: true };
+  }
+  return {
+    qty: Math.min(step, SAMPLE_QTY),
+    bar: step >= 3 ? SAMPLE_QTY : 0,
+    placed: step >= 4,
+  };
+}
+
+/**
  * Chapter 1: the visitor is the customer. Until they tap, scroll position is
  * the play head and the step stays pinned under the nav (plain
  * `position: sticky` inside a tall track, never a scroll hijack); the first
@@ -53,13 +73,7 @@ export function ChapterOrder({
   } = usePinnedPlay(ORDER_WATCH_STEPS, !state.taken);
   const phase = phaseOf(state);
 
-  const view = state.taken
-    ? { qty: state.qty, bar: state.qty, placed: state.stage !== "menu" }
-    : {
-        qty: Math.min(s, SAMPLE_QTY),
-        bar: s >= 3 ? SAMPLE_QTY : 0,
-        placed: s >= 4,
-      };
+  const view = phoneView(state, s);
   const on = [true, view.qty > 0, view.bar > 0, view.placed];
 
   const place = () => {
