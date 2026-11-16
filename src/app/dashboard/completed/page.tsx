@@ -1,7 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { BOARD_ORDER_COLUMNS } from "@/lib/orders";
-import { sgtStartOfDayIso } from "@/lib/tz";
+import { sgtStartOfDayIso, sgtYesterdayStartIso } from "@/lib/tz";
 import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { NumbersDegradedBanner } from "../board-sections";
 import { CompletedOrdersList } from "./completed-orders-list";
@@ -12,8 +12,22 @@ export const revalidate = 0;
 
 const HISTORY_LIMIT = 500;
 
+async function hasOlderCompleted(boothIds: string[], beforeIso: string) {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from("orders")
+    .select("id")
+    .in("booth_id", boothIds)
+    .eq("status", "completed")
+    .lt("completed_at", beforeIso)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
 export default async function CompletedOrdersPage() {
-  const { vendor } = await requireEntitledVendor();
+  const { vendor, entitlement } = await requireEntitledVendor();
+  const windowStartIso =
+    entitlement.statsRanges.length > 1 ? null : sgtYesterdayStartIso();
   const supabase = await createServerClient();
 
   const { data: booths, error: boothErr } = await supabase
@@ -28,16 +42,22 @@ export default async function CompletedOrdersPage() {
 
   let orders: BoardOrder[] = [];
   let ordersErr = null;
+  let olderHidden = false;
   if (boothIds.length) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("orders")
       .select(BOARD_ORDER_COLUMNS)
       .in("booth_id", boothIds)
-      .eq("status", "completed")
+      .eq("status", "completed");
+    if (windowStartIso) query = query.gte("completed_at", windowStartIso);
+    const { data, error } = await query
       .order("completed_at", { ascending: false })
       .limit(HISTORY_LIMIT);
     ordersErr = error;
     if (error) console.error("completed orders read failed", error.message);
+    if (windowStartIso && !error) {
+      olderHidden = await hasOlderCompleted(boothIds, windowStartIso);
+    }
     orders = (data ?? []).filter(
       (o) => o.order_number !== null && o.order_number !== undefined,
     );
@@ -61,6 +81,7 @@ export default async function CompletedOrdersPage() {
         orders={orders}
         loadError={loadError}
         historyLimit={HISTORY_LIMIT}
+        olderHidden={olderHidden}
         todayStartIso={sgtStartOfDayIso()}
         dailyOrderNumberBaselines={dailyOrderNumberBaselines}
       />

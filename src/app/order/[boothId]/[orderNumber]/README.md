@@ -118,7 +118,9 @@ subscription)`: saves the customer's web push subscription for the
 - `order-status-poller.dom.test.tsx` — RTL tests covering the poll loop,
   status transitions, the ready-state alert/notification/title-flash paths,
   and the enable-alerts permission flow.
-- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). A priced,
+- `page.tsx` — `OrderStatusPage` (route entry, `revalidate=0`). Renders the
+  "Powered by Merqo" line for Free vendors (`showPoweredByMerqo`, hidden on any
+  failure). A priced,
   live order with `payment_status = not_required` (the booth takes no payment
   through qkit) shows "Pay at the counter when you collect." under its total. `resolveStaleView`
   (wrapping `isStaleOrderView` in `@/lib/orders`, kept out of the component body

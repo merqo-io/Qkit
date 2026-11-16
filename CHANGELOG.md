@@ -16,6 +16,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Free and Starter stats, the sales summary API and the Completed orders page now cover today and yesterday by Singapore date (from 00:00 SGT yesterday) instead of a rolling 24 hours or the whole history. The window is applied in the database query. Older orders are kept, not deleted, and show again on Pro. The stats range reads "Today and yesterday" and the Completed orders page shows "Older orders are kept and show on Pro." when rows are hidden. Pro and a running Event Pass keep the 7, 30 and 90 day views and the full Completed list.
+- The Plan page now sends the kit bearer credential when it fetches the plan catalog from merqo, and falls back to the same header-less call when the credential is not configured.
+- The Plans and Troubleshooting help articles describe the today-and-yesterday window, that Completed follows it, and the Powered by Merqo line on Free.
 - Moved `@merqo/ui` to v0.49.1 and removed the local `Journey`, `JourneyStep`, `PhoneFrame`, `PressButton`, `FaqRows`, `ClosingCall` and `useScrollPlay` copies; the landing uses the shared exports. The phone frame corners are 24px instead of 30px. The pin also rounds `ElevatedCard` to `rounded-2xl` with `shadow-md` and gives `Faq`, `Section` and `PricingLadder` surfaces `rounded-lg`. The `Footer` is compact on phones (under `sm`: three centred rows) and unchanged from `sm` up.
 - The landing page below the hero is now scroll and try: a trust strip, a dark pain band, then the visitor plays one order. Chapter 1 puts them on the customer's phone (tap + on the kopi and place the order, or just scroll to watch a sample order), chapter 2 on the stall's board (Mark Ready, Mark Picked Up, Play again), chapter 3 shows the queue screen and the customer's phone reacting. It ends in the same pricing line, sign-up button and three FAQ rows. Chapter 1 stays pinned only until the visitor taps, and reduced motion has no pin and works entirely by taps.
 - Signed-in copy no longer tells vendors to upgrade. The Booths header button for a vendor at their booth limit now reads "Your plan includes 1 booth" (it was "Upgrade to add booths"), the locked working-hours card says "Scheduled hours are not on your plan." and the Plans help article describes the lock that links to the Plan page and drops its price sentence. The menu item and option group locks are labelled "See plans" (was "Upgrade"), the limit errors for menu items, option groups and open booths no longer say to upgrade, and the locked stats card reads "Trends, the busy-times heatmap and profit margins are not on your plan." (was "Upgrade for trends, busy-times heatmap, profit margins and more"). The plan page test fixtures now use the live Pro catalog.
@@ -32,6 +35,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A small "Powered by Merqo" line linking to merqo.io under the customer order page and on the order status page for Free vendors. It is hidden on Starter, Pro and a running Event Pass, and also hidden if the plan cannot be read, so a paying vendor is never branded and ordering is never held up.
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
 - READMEs for `src/lib/db-types`, the legal privacy and terms pages, the help article route and the eight help content category folders.
 

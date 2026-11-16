@@ -4,7 +4,7 @@
 
 /** Window label shown in a chart's eyebrow header. */
 export const RANGE_LABEL: Record<string, string> = {
-  "24h": "last 24 hours",
+  "24h": "today and yesterday",
   "7d": "last 7 days",
   "30d": "last 30 days",
   "90d": "last 90 days",
@@ -12,14 +12,14 @@ export const RANGE_LABEL: Record<string, string> = {
 
 /**
  * Human window caption for the KPI strip — answers "what am I looking at?" in
- * one glance. 24h collapses to the friendlier "today"; the per-event view says
+ * one glance. 24h reads "today and yesterday"; the per-event view says
  * "this event" (its window is the event, not a rolling range). Falls back to a
  * neutral phrase so an unknown range never renders a bare key.
  */
 export function rangeCaption(range: string): string {
   switch (range) {
     case "24h":
-      return "today";
+      return "today and yesterday";
     case "7d":
       return "last 7 days";
     case "30d":

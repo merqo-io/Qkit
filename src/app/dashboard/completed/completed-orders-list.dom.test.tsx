@@ -433,3 +433,23 @@ describe("CompletedOrdersList", () => {
     });
   });
 });
+
+describe("CompletedOrdersList older-orders note", () => {
+  const props = {
+    booths: BOOTHS,
+    loadError: false,
+    historyLimit: 500,
+    todayStartIso: EPOCH_ISO,
+  };
+  const NOTE = "Older orders are kept and show on Pro.";
+
+  it("shows the note above an empty list when older orders are hidden", () => {
+    render(<CompletedOrdersList {...props} orders={[]} olderHidden />);
+    expect(screen.getByText(NOTE)).toBeInTheDocument();
+  });
+
+  it("omits the note by default", () => {
+    render(<CompletedOrdersList {...props} orders={[]} />);
+    expect(screen.queryByText(NOTE)).toBeNull();
+  });
+});

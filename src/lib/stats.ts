@@ -1,6 +1,32 @@
 import type { OrderItem, OrderStatus, PaymentStatus } from "@/lib/types";
 import { formatOptions, MS_PER_DAY, MS_PER_HOUR, isNil } from "@/lib/utils";
-import { sgtHour, sgtWeekday, WEEKDAY_ORDER } from "@/lib/tz";
+import {
+  sgtHour,
+  sgtWeekday,
+  sgtYesterdayStartIso,
+  WEEKDAY_ORDER,
+} from "@/lib/tz";
+import type { StatsRange } from "@/lib/plan";
+
+export const RANGE_DAYS: Record<StatsRange, number> = {
+  "24h": 1,
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+};
+
+/** "24h" means today and yesterday by SGT date; the others roll back N days. */
+export function rangeStartMs(
+  range: StatsRange,
+  nowMs: number,
+  floorMs: number,
+): number {
+  const start =
+    range === "24h"
+      ? Date.parse(sgtYesterdayStartIso(new Date(nowMs)))
+      : nowMs - RANGE_DAYS[range] * MS_PER_DAY;
+  return Math.max(start, floorMs);
+}
 
 /** A 1-day span buckets hourly; anything longer buckets one slot per day. */
 export function bucketPlan(days: number): {

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-const { rpc, form, expired, recent } = vi.hoisted(() => ({
+const { rpc, form, expired, recent, poweredBy } = vi.hoisted(() => ({
+  poweredBy: vi.fn(),
   rpc: vi.fn(),
   form: vi.fn(),
   expired: vi.fn(),
@@ -9,6 +10,9 @@ const { rpc, form, expired, recent } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({ rpc }),
+}));
+vi.mock("@/lib/powered-by", () => ({
+  showPoweredByMerqoForBooth: poweredBy,
 }));
 vi.mock("@/components/order/order-form", () => ({
   OrderForm: (props: unknown) => {
@@ -48,6 +52,7 @@ const booth = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  poweredBy.mockResolvedValue(false);
   rpc
     .mockReset()
     .mockResolvedValueOnce({ data: booth, error: null })
@@ -224,5 +229,21 @@ describe("public QR entry", () => {
     render(await entry());
     expect(screen.getByText("Booth image")).toBeInTheDocument();
     expect(screen.getByText("Reach Coffee here")).toBeInTheDocument();
+  });
+});
+
+describe("Powered by Merqo line", () => {
+  it("shows for a Free booth and links to merqo.io", async () => {
+    poweredBy.mockResolvedValue(true);
+    render(await entry());
+    expect(poweredBy).toHaveBeenCalledWith("a");
+    expect(
+      screen.getByRole("link", { name: "Powered by Merqo" }),
+    ).toHaveAttribute("href", "https://merqo.io");
+  });
+
+  it("is hidden otherwise", async () => {
+    render(await entry());
+    expect(screen.queryByText("Powered by Merqo")).toBeNull();
   });
 });

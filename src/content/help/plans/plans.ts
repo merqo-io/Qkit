@@ -28,8 +28,8 @@ export const article: HelpArticle = {
     {
       type: "bullets",
       items: [
-        "Free: the live order board and QR posters, one booth, up to 6 menu items, up to 3 option groups on an item, and the last 24 hours of stats.",
-        "Starter: one booth with unlimited items and customization, scheduled auto-close hours, sold-out stock caps and the daily item limit. Stats stay at the last 24 hours.",
+        "Free: the live order board and QR posters, one booth, up to 6 menu items, up to 3 option groups on an item, and stats and completed orders for today and yesterday.",
+        "Starter: one booth with unlimited items and customization, scheduled auto-close hours, sold-out stock caps and the daily item limit. Stats and completed orders stay at today and yesterday.",
         "Pro: everything in Starter, plus extra booths, the customer queue display on the TV, order labels, order-ready push alerts and full history and trends (7, 30 and 90 days) on the Stats page.",
         "Event Pass: a window of dates that gives you the Pro plan's features while it runs, with stats from the day it starts. The Plan page shows the countdown.",
       ],
@@ -51,7 +51,8 @@ export const article: HelpArticle = {
         "Option groups: on Free, an item can carry 3 groups of choices such as size or toppings.",
         "Opening hours: Free shows a locked card instead of the hours editor. You open and pause by hand. Starter and Pro can set hours so ordering stops automatically.",
         "Sold-out limit and Daily item limit: locked on Free, with a lock that links to the Plan page in place of the field.",
-        "Stats: Free and Starter show the last 24 hours. Pro adds 7, 30 and 90 day views.",
+        "Stats: Free and Starter show today and yesterday, and the Completed orders page follows the same window. Older orders are kept, not deleted, and show on Pro. Pro adds 7, 30 and 90 day views.",
+        "Powered by Merqo: on Free, the customer order and status pages show a small Powered by Merqo line. It is not shown on Starter, Pro or a running Event Pass.",
       ],
     },
 
