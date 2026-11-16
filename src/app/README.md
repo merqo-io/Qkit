@@ -30,7 +30,7 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 - `o/` — short-code customer ordering entry point.
 - `onboarding/` — post-signup vendor onboarding flow.
 - `order/` — legacy booth-id-based customer ordering route.
-- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then one journey below it (`Journey` with `OrderWatch` and `MarkReadyDemo`, anchor `#how`), then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
+- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then a trust strip, a dark pain band (anchor `#how`) and `TryIt`, the three-chapter play-through, then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
 
 ## Connectivity
 
