@@ -7,6 +7,7 @@ OAuth/magic-link callback handling for Supabase sign-in — the server-side leg 
 ## Contents
 
 - `callback/` — `GET` route (`route.ts`) that completes the code exchange and redirects.
+- `confirm/` — own-domain landing page for emailed links (`page.tsx`) and the `verify/` POST route that verifies the token hash.
 
 ## Parent
 
