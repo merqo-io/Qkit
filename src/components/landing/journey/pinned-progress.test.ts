@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { progressToStep } from "@merqo/ui";
 import { pinFits, pinnedProgress } from "./pinned-progress";
-import { progressToStep } from "./use-scroll-play";
 
 const base = { trackHeight: 1000, panelHeight: 400, pinTop: 80 };
 

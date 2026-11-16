@@ -8,8 +8,8 @@ import {
   type RefObject,
 } from "react";
 
+import { progressToStep, usePrefersReducedMotion } from "@merqo/ui";
 import { pinFits, pinnedProgress } from "./pinned-progress";
-import { progressToStep, usePrefersReducedMotion } from "./use-scroll-play";
 
 /**
  * Gap kept under the sticky site nav, matching the `scroll-mt-20` the page
