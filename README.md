@@ -95,21 +95,21 @@ function.
 
 ## Main routes
 
-| Route                                          | Audience           | Purpose                                                                                                   |
-| ---------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `/login`                                       | Vendor             | Sign-in and registration; `/register` redirects here                                                      |
-| `/onboarding`                                  | Signed-in vendor   | Initial vendor setup                                                                                      |
-| `/dashboard`                                   | Vendor             | Realtime order board and walk-up orders                                                                   |
-| `/dashboard/booths`                            | Vendor             | Booth, menu, payment and printing configuration                                                           |
-| `/dashboard/stats`                             | Vendor             | Sales, service and review statistics (Free and Starter: today and yesterday only, so no wider-range hint) |
-| `/o/[code]`                                    | Customer           | Current short-QR menu and ordering entry point                                                            |
-| `/order/[boothId]`                             | Customer           | Legacy entry-point handling                                                                               |
-| `/order/[boothId]/pay?t=…`                     | Customer           | Token-authorized payment submission                                                                       |
-| `/order/[boothId]/[orderNumber]?t=…`           | Customer           | Token-authorized order tracking                                                                           |
-| `/order/[boothId]/display`                     | Public display     | Queue display                                                                                             |
-| `/order/[boothId]/pickup`                      | Pickup kiosk       | Collection scanner                                                                                        |
-| `/admin`                                       | qkit administrator | Vendor and platform administration                                                                        |
-| `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                                                                     |
+| Route                                          | Audience           | Purpose                                                                                                                  |
+| ---------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `/login`                                       | Vendor             | Sign-in and registration (weak passwords get rule-specific feedback and a requirements hint); `/register` redirects here |
+| `/onboarding`                                  | Signed-in vendor   | Initial vendor setup                                                                                                     |
+| `/dashboard`                                   | Vendor             | Realtime order board and walk-up orders                                                                                  |
+| `/dashboard/booths`                            | Vendor             | Booth, menu, payment and printing configuration                                                                          |
+| `/dashboard/stats`                             | Vendor             | Sales, service and review statistics (Free and Starter: today and yesterday only, so no wider-range hint)                |
+| `/o/[code]`                                    | Customer           | Current short-QR menu and ordering entry point                                                                           |
+| `/order/[boothId]`                             | Customer           | Legacy entry-point handling                                                                                              |
+| `/order/[boothId]/pay?t=…`                     | Customer           | Token-authorized payment submission                                                                                      |
+| `/order/[boothId]/[orderNumber]?t=…`           | Customer           | Token-authorized order tracking                                                                                          |
+| `/order/[boothId]/display`                     | Public display     | Queue display                                                                                                            |
+| `/order/[boothId]/pickup`                      | Pickup kiosk       | Collection scanner                                                                                                       |
+| `/admin`                                       | qkit administrator | Vendor and platform administration                                                                                       |
+| `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                                                                                    |
 
 ## Payments and notifications
 
@@ -192,6 +192,8 @@ from shifting later pages. Dashboard booth filters use bounded batches; optional
 cup counters run with bounded concurrency and cannot fail the board.
 
 ## Security headers and MFA
+
+The public `/faq` page (`src/app/faq/`) is `@merqo/ui`'s `FaqPage` with qkit's own copy, nav and footer.
 
 `src/proxy.ts` sets a nonce CSP on every page and `X-Robots-Tag` off production. The admin area requires TOTP MFA; see `src/app/mfa/README.md` and `docs/security/`. The MFA form is a thin adapter over `MfaForm` from `@merqo/ui`.
 

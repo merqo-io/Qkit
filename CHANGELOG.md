@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
+- Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it. To keep the signed-out nav on one line at 320px, "Sign in" now shows from the sm breakpoint up; below it "Get started" opens the login page, which has an "Already have an account? Sign in" switch, and `/faq` gets the nonce CSP like the other public pages.
+
+### Changed
+
+- `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
+
 ### Documentation
 
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
@@ -13,6 +22,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.
 - Landing page: the three trust badges ("No app", "No hardware", "Open signup") stay on one line from 640px up, in three equal cells. They used to squeeze to about 130px each at desktop width, so two of them wrapped. On desktop the strip lines up with the hero's left column.
 - Landing page: one spacing rhythm across the page. Hero, trust strip, pain band, journey, closing section and footer now sit 80px apart on phones and 96px on desktop (they were 40 to 48px on phones and uneven on desktop), the pain band has the same padding above and below, and the dashed rules between chapters sit in the middle of the same gap. The three trust badges are equal cells with the tick above the label on phones.
@@ -44,7 +54,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
 - `/auth/confirm` and `/auth/confirm/verify`: an own-domain landing for emailed auth links (password reset, signup, invite, magic link, email change). The page only shows a Continue button, so email scanners cannot use up the token; the button's POST verifies it and signs in (recovery goes to `/reset-password`). A bad or expired link lands on `/login?error=link`, which now says "That link is invalid or has expired. Request a new one." The existing `/auth/callback` is unchanged.
 - A small "Powered by Merqo" line linking to merqo.io under the customer order page and on the order status page for Free vendors. It is hidden on Starter, Pro and a running Event Pass, and also hidden if the plan cannot be read, so a paying vendor is never branded and ordering is never held up.
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.

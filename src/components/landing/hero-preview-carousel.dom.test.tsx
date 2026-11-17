@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HeroPreviewCarousel } from "./hero-preview-carousel";
 
@@ -46,5 +47,27 @@ describe("HeroPreviewCarousel", () => {
     });
     const after = container.querySelector('[data-dot][data-active="true"]');
     expect(after).toBe(before);
+  });
+
+  it("gives every dot a 44px hit area and keeps the 6px visual", async () => {
+    mockMatchMedia(true);
+    const { container } = render(<HeroPreviewCarousel />);
+    const dots = container.querySelectorAll<HTMLElement>("[data-dot]");
+    for (const dot of dots) {
+      expect(dot).toHaveClass("size-11");
+      expect(dot).toHaveAttribute("tabindex", "-1");
+      expect(dot.firstElementChild).toHaveClass("size-1.5");
+    }
+  });
+
+  it("moves the carousel when a dot is tapped by touch", async () => {
+    mockMatchMedia(true);
+    const scrollTo = vi.fn();
+    Element.prototype.scrollTo = scrollTo;
+    const user = userEvent.setup();
+    const { container } = render(<HeroPreviewCarousel />);
+    const dots = container.querySelectorAll<HTMLElement>("[data-dot]");
+    await user.pointer({ keys: "[TouchA]", target: dots[2] });
+    expect(scrollTo).toHaveBeenCalled();
   });
 });
