@@ -55,16 +55,11 @@ export function weakPasswordMessage({
   return rules.map((rule) => sentences[rule]!(message)).join(" ");
 }
 
-/** Returns the friendly message for a weak_password auth error, else null. */
-export function weakPasswordErrorMessage(
-  error: { code?: string } & WeakPasswordInput,
-): string | null {
-  return error.code === "weak_password" ? weakPasswordMessage(error) : null;
-}
-
 /** Toast text for a signup or password-update error: friendly if weak, else the server message. */
 export function passwordErrorToast(
   error: { code?: string; message: string } & WeakPasswordInput,
 ): string {
-  return weakPasswordErrorMessage(error) ?? error.message;
+  return error.code === "weak_password"
+    ? weakPasswordMessage(error)
+    : error.message;
 }

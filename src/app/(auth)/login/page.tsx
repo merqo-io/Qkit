@@ -30,6 +30,26 @@ function LinkErrorNotice() {
   );
 }
 
+function PasswordLabel({ showHint }: { showHint: boolean }) {
+  return (
+    <div className="flex items-center gap-1">
+      <Label
+        htmlFor="password"
+        className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+      >
+        Password
+      </Label>
+      {showHint && (
+        <InfoTooltip
+          content={PASSWORD_REQUIREMENTS_HINT}
+          ariaLabel="Password requirements"
+          trigger="tap"
+        />
+      )}
+    </div>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -252,13 +272,8 @@ function LoginForm() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="password"
-                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Password
-                  </Label>
-                  {isSignin ? (
+                  <PasswordLabel showHint={!isSignin} />
+                  {isSignin && (
                     <button
                       type="button"
                       onClick={sendReset}
@@ -267,12 +282,6 @@ function LoginForm() {
                     >
                       Forgot password?
                     </button>
-                  ) : (
-                    <InfoTooltip
-                      content={PASSWORD_REQUIREMENTS_HINT}
-                      ariaLabel="Password requirements"
-                      trigger="tap"
-                    />
                   )}
                 </div>
                 <Input

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { weakPasswordMessage, weakPasswordErrorMessage } from "./weak-password";
+import { weakPasswordMessage, passwordErrorToast } from "./weak-password";
 
 const CHARS =
   "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};':\"|<>?,./`~.";
@@ -33,6 +33,18 @@ describe("weakPasswordMessage", () => {
           "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, 0123456789.",
       }),
     ).toBe("Password must include a lowercase letter and a number.");
+  });
+
+  it("names all four classes for the full Supabase characters message", () => {
+    expect(
+      weakPasswordMessage({
+        reasons: ["characters"],
+        message:
+          "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};':\"|<>?,./`~.",
+      }),
+    ).toBe(
+      "Password must include a lowercase letter, an uppercase letter, a number and a symbol.",
+    );
   });
 
   it("falls back when character classes are unparseable", () => {
@@ -77,14 +89,16 @@ describe("weakPasswordMessage", () => {
   });
 });
 
-describe("weakPasswordErrorMessage", () => {
-  it("returns copy for weak_password and null otherwise", () => {
+describe("passwordErrorToast", () => {
+  it("returns friendly copy for weak_password and the server message otherwise", () => {
     expect(
-      weakPasswordErrorMessage({ code: "weak_password", reasons: ["pwned"] }),
+      passwordErrorToast({
+        code: "weak_password",
+        reasons: ["pwned"],
+        message: "raw",
+      }),
     ).toMatch(/data breach/);
-    expect(
-      weakPasswordErrorMessage({ code: "other", message: "x" }),
-    ).toBeNull();
-    expect(weakPasswordErrorMessage({ message: "x" })).toBeNull();
+    expect(passwordErrorToast({ code: "other", message: "x" })).toBe("x");
+    expect(passwordErrorToast({ message: "y" })).toBe("y");
   });
 });

@@ -145,8 +145,8 @@ boothId, orderNumber, createdAt?)`: the day's rank when the vendor has daily
   time `onUpload` runs, so there's nothing left to close over.
 - `image-upload-adapter.test.ts` — tests a successful upload/public-URL
   round trip and that a storage error propagates as a rejection.
-- `weak-password.ts` — `PASSWORD_REQUIREMENTS_HINT` (the single statement of password rules shown to users), `weakPasswordMessage({ reasons, message })` (friendly, rule-specific copy built from the `weak_password` reasons and message Supabase returns, with no hardcoded policy numbers), `weakPasswordErrorMessage(error)` (that copy for a `weak_password` error, `null` otherwise) and `passwordErrorToast(error)` (the toast text: friendly if weak, else the server message).
-- `weak-password.test.ts` — covers length with and without a number, parsed and unparseable character rules, pwned, several reasons, inference from the message alone, the generic fallback and the null result for other errors.
+- `weak-password.ts` — `PASSWORD_REQUIREMENTS_HINT` (the single statement of password rules shown to users), `weakPasswordMessage({ reasons, message })` (friendly, rule-specific copy built from the `weak_password` reasons and message Supabase returns, with no hardcoded policy numbers), and `passwordErrorToast(error)` (the toast text: friendly if weak, else the server message).
+- `weak-password.test.ts` — covers length with and without a number, parsed, full-message and unparseable character rules, pwned, several reasons, inference from the message alone, the generic fallback and `passwordErrorToast` passing other errors through.
 - `legal-gate.ts` — `checkLegalAcceptance(email)` and its guard companion
   `requireCurrentLegalAcceptance(email)`. qkit owns no legal-acceptance
   record (merqo does), so checking currency is a bearer-authed

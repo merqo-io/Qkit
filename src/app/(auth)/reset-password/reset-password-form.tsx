@@ -109,9 +109,6 @@ export function ResetPasswordForm() {
       <h1 className="font-display text-2xl font-semibold leading-tight">
         Set a new password
       </h1>
-      <p className="mt-1.5 text-sm text-muted-foreground">
-        {PASSWORD_REQUIREMENTS_HINT}
-      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
