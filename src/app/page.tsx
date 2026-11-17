@@ -116,12 +116,12 @@ export default async function LandingPage() {
       <section className={`${CONTAINER} ${SECTION_PAD_TOP}`}>
         <Ticket
           shadow="none"
-          className="mx-auto flex max-w-full flex-wrap items-stretch divide-x divide-dashed divide-primary/30 bg-primary/[0.06] sm:inline-flex sm:w-auto"
+          className="mx-auto flex max-w-full flex-wrap items-stretch divide-x divide-dashed divide-primary/30 bg-primary/[0.06] sm:grid sm:w-fit sm:grid-cols-3 lg:mx-0"
         >
           {TRUST.map((t) => (
             <span
               key={t}
-              className="inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center text-sm font-semibold text-primary sm:flex-row sm:gap-2 sm:px-6 sm:py-2.5 sm:text-base"
+              className="inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center text-sm font-semibold text-primary sm:flex-row sm:gap-2 sm:px-6 sm:py-2.5 sm:text-base sm:whitespace-nowrap"
             >
               <Check
                 className="size-4 shrink-0 sm:size-[1.05rem]"
