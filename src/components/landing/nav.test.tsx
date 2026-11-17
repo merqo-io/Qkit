@@ -26,6 +26,18 @@ describe("Nav", () => {
     expect(link.className).not.toMatch(/(^|\s)hidden(\s|$)/);
   });
 
+  it("hides Sign in below sm so the signed-out row fits at 320px", () => {
+    render(<Nav authed={false} />);
+    const signIn = screen.getByRole("link", { name: "Sign in" }).className;
+    expect(signIn).toMatch(/(^|\s)hidden(\s|$)/);
+    expect(signIn).toContain("sm:inline-flex");
+    for (const name of ["FAQ", "Get started"]) {
+      expect(screen.getByRole("link", { name }).className).not.toMatch(
+        /(^|\s)hidden(\s|$)/,
+      );
+    }
+  });
+
   it("shows Sign in / Get started when signed out", () => {
     render(<Nav authed={false} />);
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(

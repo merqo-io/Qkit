@@ -37,7 +37,12 @@ export function Nav({ authed }: { authed: boolean }) {
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm" className="rounded-lg">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden rounded-lg sm:inline-flex"
+              >
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="rounded-lg">

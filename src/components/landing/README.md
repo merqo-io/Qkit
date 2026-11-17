@@ -21,7 +21,9 @@ inline mark used on the login page.
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
   link targets, and that the FAQ link (`/faq`, a plain text link) is not
-  hidden below `sm`.
+  hidden below `sm`, while the signed-out "Sign in" link is hidden below `sm`
+  to keep the row on one line at 320px (the login page has its own
+  sign-in switch).
 - `wordmark.tsx` — `Wordmark({ size?, className? })`: thin wrapper over
   `@merqo/ui`'s `Wordmark` shell that supplies the "qkit" letters and the
   `text-primary` accent on the q. Used by the login page's two panels (`lg`

@@ -8,7 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it, and `/faq` gets the nonce CSP like the other public pages.
+- Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it. To keep the signed-out nav on one line at 320px, "Sign in" now shows from the sm breakpoint up; below it "Get started" opens the login page, which has an "Already have an account? Sign in" switch, and `/faq` gets the nonce CSP like the other public pages.
 
 ### Changed
 
