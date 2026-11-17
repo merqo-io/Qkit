@@ -85,7 +85,8 @@ pro, speed, allTime })`: the main render — pinned KPI strip + best-seller/
   (lazy-loaded `TrendChart`/`ServiceSpeedChart`/`TopItems` via
   `next/dynamic` so Recharts isn't in the initial bundle) or (free) a capped
   `TopItems` + an upgrade banner. `Stagger` staggers each section's fade-rise
-  animation.
+  animation. With no orders it shows an empty state that suggests a wider
+  range only when `trends` (more than one allowed range) is true.
 - `top-items.tsx` — `TopItems({ items, limit })`: a Recharts horizontal bar
   list, toggleable between "By volume" and "By revenue" ranking.
 - `trend-chart.tsx`, `TrendChart({ series, range, title })` (trends): a Recharts

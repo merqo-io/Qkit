@@ -204,6 +204,22 @@ describe("StatsView", () => {
       />,
     );
     expect(screen.getByText(/no orders yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/try a wider range/i)).toBeInTheDocument();
+  });
+
+  it("empty state omits the wider-range hint when no wider range is available", () => {
+    render(
+      <StatsView
+        summary={summary({ orderCount: 0 })}
+        deltas={null}
+        series={null}
+        range="24h"
+        boothId="all"
+        trends={false}
+      />,
+    );
+    expect(screen.getByText("Nothing in this window.")).toBeInTheDocument();
+    expect(screen.queryByText(/wider range/i)).not.toBeInTheDocument();
   });
 
   it("trends: pins the metric strip + at-a-glance highlights above three tabs", () => {
