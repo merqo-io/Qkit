@@ -9,6 +9,7 @@ export const NONCE_PREFIXES: readonly string[] = [
   ...SHARED_NONCE_PREFIXES,
   "/",
   "/about",
+  "/faq",
   "/legal",
   "/offers",
   "/order-history",

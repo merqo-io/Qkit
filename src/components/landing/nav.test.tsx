@@ -12,11 +12,11 @@ describe("Nav", () => {
     );
   });
 
-  it("points the FAQ link at the home page's #faq section, not a bare hash", () => {
+  it("links to the full FAQ page", () => {
     render(<Nav authed={false} />);
     expect(screen.getByRole("link", { name: "FAQ" })).toHaveAttribute(
       "href",
-      "/#faq",
+      "/faq",
     );
   });
 

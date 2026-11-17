@@ -23,8 +23,7 @@ export function Nav({ authed }: { authed: boolean }) {
             size="sm"
             className="hidden rounded-lg sm:inline-flex"
           >
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump */}
-            <a href="/#faq">FAQ</a>
+            <Link href="/faq">FAQ</Link>
           </Button>
           <Button
             asChild

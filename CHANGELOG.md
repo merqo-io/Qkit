@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it, and `/faq` gets the nonce CSP like the other public pages.
+
+### Changed
+
+- `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
+
 ### Documentation
 
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.

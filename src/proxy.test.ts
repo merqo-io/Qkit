@@ -74,7 +74,14 @@ describe("proxy nonce CSP", () => {
     expect(csp(response)).toMatch(/script-src 'self' 'nonce-/);
   });
 
-  it.each(["/", "/about", "/legal/privacy", "/order-history", "/offers"])(
+  it.each([
+    "/",
+    "/about",
+    "/faq",
+    "/legal/privacy",
+    "/order-history",
+    "/offers",
+  ])(
     "gives the public page %s a nonce and no script unsafe-inline",
     async (path) => {
       signedIn();
