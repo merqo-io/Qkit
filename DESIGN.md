@@ -236,7 +236,7 @@ Public pages (landing, about, FAQ, legal) follow the shared rules at https://git
 - **Radius:** `--radius` is `0.5rem` (`src/app/globals.css`). Surfaces use `rounded-lg`.
 - **Product objects:** the order ticket, with its scalloped top edge (the `Ticket` widget), and the customer's phone, `PhoneFrame` from `@merqo/ui`, which is `rounded-3xl`.
 - **Journey:** three steps, all built: tap 1 watch the order build on scroll and place your own (customer phone), tap 2 tap Mark Ready on the ticket (vendor board), tap 3 the number calls itself (queue screen plus the customer's phone).
-- **Exceptions:** none.
+- **Open:** the hero board has a drop shadow with a literal value (`src/components/landing/landing-board.tsx`). Whether it stays is not decided.
 
 ## Do's and Don'ts
 
