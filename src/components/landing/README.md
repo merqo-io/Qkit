@@ -20,7 +20,10 @@ inline mark used on the login page.
   and "About" links plus either a "Dashboard" link (`authed`) or "Sign
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
-  link targets.
+  link targets, and that the FAQ link (`/faq`, a plain text link) is not
+  hidden below `sm`, while the signed-out "Sign in" link is hidden below `sm`
+  to keep the row on one line at 320px (the login page has its own
+  sign-in switch).
 - `wordmark.tsx` — `Wordmark({ size?, className? })`: thin wrapper over
   `@merqo/ui`'s `Wordmark` shell that supplies the "qkit" letters and the
   `text-primary` accent on the q. Used by the login page's two panels (`lg`
@@ -29,7 +32,7 @@ inline mark used on the login page.
 - `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the landing hero's
   swipeable "live order board" carousel over `LANDING_BOARDS` — native
   scroll-snap plus pointer-drag and a 10s auto-advance timer (paused on
-  interaction, skipped under reduced motion), decorative (`aria-hidden`).
+  interaction, skipped under reduced motion), decorative (`aria-hidden`); each dot is a 44px tap target around a 6px visual.
 - `rhythm.ts` — the landing's one spacing scale as shared class strings
   (`CONTAINER`, `SECTION_*`, `CHAPTER_*`): 80px then 96px between major
   sections and for the pain band's padding, 40px then 48px each side of a

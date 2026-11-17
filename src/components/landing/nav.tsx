@@ -17,15 +17,12 @@ export function Nav({ authed }: { authed: boolean }) {
       }
       end={
         <>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden rounded-lg sm:inline-flex"
+          <Link
+            href="/faq"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 rounded-sm px-1 text-sm outline-none focus-visible:ring-[3px]"
           >
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump */}
-            <a href="/#faq">FAQ</a>
-          </Button>
+            FAQ
+          </Link>
           <Button
             asChild
             variant="ghost"
@@ -40,7 +37,12 @@ export function Nav({ authed }: { authed: boolean }) {
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm" className="rounded-lg">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden rounded-lg sm:inline-flex"
+              >
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="rounded-lg">

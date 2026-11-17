@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it. To keep the signed-out nav on one line at 320px, "Sign in" now shows from the sm breakpoint up; below it "Get started" opens the login page, which has an "Already have an account? Sign in" switch, and `/faq` gets the nonce CSP like the other public pages.
+
+### Changed
+
+- `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
+
 ### Documentation
 
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
@@ -13,6 +21,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.
 - Landing page: the three trust badges ("No app", "No hardware", "Open signup") stay on one line from 640px up, in three equal cells. They used to squeeze to about 130px each at desktop width, so two of them wrapped. On desktop the strip lines up with the hero's left column.
 - Landing page: one spacing rhythm across the page. Hero, trust strip, pain band, journey, closing section and footer now sit 80px apart on phones and 96px on desktop (they were 40 to 48px on phones and uneven on desktop), the pain band has the same padding above and below, and the dashed rules between chapters sit in the middle of the same gap. The three trust badges are equal cells with the tick above the label on phones.
