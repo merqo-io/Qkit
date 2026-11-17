@@ -14,6 +14,7 @@ Vendor sign-in page — combines email/password sign-in, sign-up, Google OAuth, 
   - `sendReset()` validates the email field alone, then calls `supabase.auth.resetPasswordForEmail` with `redirectTo` pointing at `/auth/callback?next=/reset-password`, and shows the same "check your email" panel (reset variant).
   - Async submissions run through `useAsyncAction` (`@/hooks/use-async-action`) for pending/loading state and `navigatingAway()` to avoid a state update after navigation.
   - UI is built from `Ticket`, shadcn `Button`/`Input`/`Label`, and `sonner` toasts for Supabase error messages.
+  - `LinkErrorNotice` renders an inline `role="alert"` message when the URL has `?error=link` (an invalid or expired link), alongside the toasts.
 
 ## Connectivity
 
