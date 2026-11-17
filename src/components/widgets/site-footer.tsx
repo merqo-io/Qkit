@@ -21,6 +21,7 @@ export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
       tagline="Built for booths. Made in Singapore."
       kitName="qkit"
       showSignIn={showSignIn}
+      faqHref="/faq"
     />
   );
 }
