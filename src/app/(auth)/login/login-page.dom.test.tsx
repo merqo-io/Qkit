@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const { authMock, search } = vi.hoisted(() => ({
@@ -63,5 +64,16 @@ describe("LoginPage", () => {
         },
       }),
     );
+  });
+
+  it("gives the mode toggle a 44px touch target and a focus ring", async () => {
+    search.value = "";
+    render(<LoginPage />);
+    const toggle = screen.getByRole("button", { name: "Create an account" });
+    expect(toggle).toHaveClass("min-h-11", "inline-flex", "items-center");
+    expect(toggle).toHaveClass("focus-visible:ring-[3px]");
+    const user = userEvent.setup();
+    await user.pointer({ keys: "[TouchA]", target: toggle });
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 });

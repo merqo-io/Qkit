@@ -118,7 +118,7 @@ export function HeroPreviewCarousel() {
         ))}
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-0.5">
+      <div className="mt-0.5 -mb-3 flex items-center justify-center">
         {LANDING_BOARDS.map((board, i) => (
           <button
             key={board.key}
@@ -131,10 +131,11 @@ export function HeroPreviewCarousel() {
               scrollToIndex(i);
               startTimer();
             }}
-            // Small dot, generous tap area — a 6px dot is unmissable on desktop
-            // but far below a comfortable touch target, so the padded button
-            // gives thumbs ~24px to hit without changing the visual.
-            className="grid cursor-pointer place-items-center rounded-full p-2"
+            // The 6px dot is the visual; the 44px button is the touch target.
+            // The wrapper is aria-hidden, so these stay out of the tab order
+            // and unlabelled. The row's negative bottom margin offsets the
+            // extra button height so the layout does not move.
+            className="grid size-11 cursor-pointer place-items-center rounded-full"
           >
             <span
               className={cn(
