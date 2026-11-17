@@ -105,7 +105,7 @@ export function StatsView({
       <Ticket shadow="none" dashed className="py-20 text-center">
         <p className="font-display text-2xl font-semibold">No orders yet</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Nothing in this window. Try a wider range.
+          Nothing in this window.{trends && " Try a wider range."}
         </p>
       </Ticket>
     );
