@@ -9,6 +9,7 @@ pickup status.
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
 React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.51.0)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
+The app runs Next.js 16.4.6, which clears GHSA-mfr8-8qww-v76h.
 
 The shared UI dependency is pinned to a reviewed immutable Git commit. Its
 exact archive identity is approved for package preparation in

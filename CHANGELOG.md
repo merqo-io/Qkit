@@ -35,6 +35,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Live orders header: a booth the plan does not serve no longer counts as open, so a Free vendor with two active booths sees "1/2 open" instead of "2/2 open". The booth list banner for booths over the plan limit now reads "Over your plan's booth limit", says to pause another booth to switch which is live, and names Pro (not "the qkit plan") alongside the Event Pass.
 - Landing journey: on phones the order in step 1 now starts building only once the phone frame is a third in view and finishes while it is fully on screen (it used to start while the frame was still scrolling in). A frame already visible at load stays finished instead of emptying on the first scroll or resize. The Mark Ready helper text reserves room for its longest line, so the ticket no longer jumps down when it is pressed.
 
+### Security
+
+- Bumped `next` and `eslint-config-next` to 16.4.6, which fixes GHSA-mfr8-8qww-v76h (fixed upstream in 16.4.5).
+
 ### Changed
 
 - Free and Starter stats, the sales summary API and the Completed orders page now cover today and yesterday by Singapore date (from 00:00 SGT yesterday) instead of a rolling 24 hours or the whole history. The window is applied in the database query. Older orders are kept, not deleted, and show again on Pro. The stats range reads "Today and yesterday" and the Completed orders page shows "Older orders are kept and show on Pro." when rows are hidden. Pro and a running Event Pass keep the 7, 30 and 90 day views and the full Completed list.
