@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
+- `@merqo/ui` repinned from v0.50.0 to v0.50.1: footer links get a 44px minimum touch height and a visible focus ring at every width, and the footer reserves bottom padding so the fixed Back to top button no longer covers them.
 
 ### Documentation
 
