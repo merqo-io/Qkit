@@ -13,7 +13,11 @@ import { Wordmark } from "@/components/landing/wordmark";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
-import { GoogleMark } from "@merqo/ui";
+import { GoogleMark, InfoTooltip } from "@merqo/ui";
+import {
+  PASSWORD_REQUIREMENTS_HINT,
+  passwordErrorToast,
+} from "@/lib/weak-password";
 
 type Mode = "signin" | "signup";
 
@@ -23,6 +27,26 @@ function LinkErrorNotice() {
     <p role="alert" className="mt-4 text-sm text-destructive">
       That link is invalid or has expired. Request a new one.
     </p>
+  );
+}
+
+function PasswordLabel({ showHint }: { showHint: boolean }) {
+  return (
+    <div className="flex items-center gap-1">
+      <Label
+        htmlFor="password"
+        className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+      >
+        Password
+      </Label>
+      {showHint && (
+        <InfoTooltip
+          content={PASSWORD_REQUIREMENTS_HINT}
+          ariaLabel="Password requirements"
+          trigger="tap"
+        />
+      )}
+    </div>
   );
 }
 
@@ -67,7 +91,7 @@ function LoginForm() {
       if (mode === "signup") {
         const { data: result, error } = await supabase.auth.signUp(data);
         if (error) {
-          toast.error(error.message);
+          toast.error(passwordErrorToast(error));
           return;
         }
         // Email confirmation on → no session yet. Show a "check your email" state
@@ -248,12 +272,7 @@ function LoginForm() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="password"
-                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Password
-                  </Label>
+                  <PasswordLabel showHint={!isSignin} />
                   {isSignin && (
                     <button
                       type="button"

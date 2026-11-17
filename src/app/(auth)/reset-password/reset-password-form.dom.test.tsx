@@ -81,6 +81,26 @@ describe("password recovery", () => {
     ).toBeEnabled();
   });
 
+  it("shows specific weak-password feedback and the requirements hint", async () => {
+    auth.updateUser.mockResolvedValue({
+      error: {
+        code: "weak_password",
+        reasons: ["length"],
+        message: "Password should be at least 8 characters.",
+      },
+    });
+    render(<ResetPasswordForm />);
+    expect(
+      await screen.findByRole("button", { name: "Password requirements" }),
+    ).toBeInTheDocument();
+    await enterPasswords();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Password is too short. Use at least 8 characters.",
+      ),
+    );
+  });
+
   it("updates the authenticated password before routing to the dashboard", async () => {
     render(<ResetPasswordForm />);
     await enterPasswords();

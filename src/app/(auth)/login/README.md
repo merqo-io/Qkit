@@ -10,7 +10,7 @@ Vendor sign-in page — combines email/password sign-in, sign-up, Google OAuth, 
   - Reads `?mode=signup` from the URL to pick the initial `Mode` (`"signin"` | `"signup"`), toggled thereafter by a text button with a 44px touch target and focus ring.
   - `loginSchema` (`@/lib/schemas`) + `react-hook-form`/`zodResolver` validate the `email`/`password` fields.
   - `signInWithGoogle()` calls `supabase.auth.signInWithOAuth({ provider: "google", redirectTo: ".../auth/callback" })`.
-  - `onSubmit` calls `supabase.auth.signUp` or `supabase.auth.signInWithPassword` depending on `mode`; on sign-up with email confirmation required (no session returned), it shows a "check your email" panel instead of redirecting; otherwise it routes to `/dashboard` and refreshes.
+  - `onSubmit` calls `supabase.auth.signUp` or `supabase.auth.signInWithPassword` depending on `mode`; on sign-up with email confirmation required (no session returned), it shows a "check your email" panel instead of redirecting; otherwise it routes to `/dashboard` and refreshes. A `weak_password` sign-up error toasts rule-specific copy via `passwordErrorToast` (`@/lib/weak-password`), and sign-up mode shows a tap `InfoTooltip` ("Password requirements") beside the password label.
   - `sendReset()` validates the email field alone, then calls `supabase.auth.resetPasswordForEmail` with `redirectTo` pointing at `/auth/callback?next=/reset-password`, and shows the same "check your email" panel (reset variant).
   - Async submissions run through `useAsyncAction` (`@/hooks/use-async-action`) for pending/loading state and `navigatingAway()` to avoid a state update after navigation.
   - UI is built from `Ticket`, shadcn `Button`/`Input`/`Label`, and `sonner` toasts for Supabase error messages.
