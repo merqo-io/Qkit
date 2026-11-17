@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
 - Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it. To keep the signed-out nav on one line at 320px, "Sign in" now shows from the sm breakpoint up; below it "Get started" opens the login page, which has an "Already have an account? Sign in" switch, and `/faq` gets the nonce CSP like the other public pages.
 
 ### Changed
