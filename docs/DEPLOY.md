@@ -94,6 +94,31 @@ the branch-assigned staging domain. Vercel's git integration deploys the
 promotion the `staging sync` workflow only fast-forwards `staging` to main's
 commit; it does not trigger a deploy.
 
+### After the promotion merge: promote the staged deployment
+
+"Auto-Assign Custom Production Domains" is disabled on purpose (Vercel >
+Settings > Environments > Production; turned off 2026-10-24 via the Vercel
+CLI). A push to `main` builds a Production deployment that ends Ready but
+Staged: it gets its own `*.vercel.app` URL, and `qkit.merqo.io` keeps serving
+the previous production deployment until someone promotes the new one. The
+staged build uses production env vars and the production database, so it can be
+smoke-tested on its own URL first. Sign-in does not work on `*.vercel.app`
+hosts (cookie domain, above), so that check covers public pages only.
+
+Whoever merges the `staging` -> `main` promotion finishes the release:
+
+1. In Vercel > qkit > Deployments, find the Staged Production deployment for
+   the merge commit.
+2. Row "..." menu > Promote, then confirm the dialog. CLI equivalent:
+   `vercel promote <deployment-url-or-id>`. Promotion is instant, no rebuild.
+3. Verify on the real domain, not the `*.vercel.app` URL: open
+   https://qkit.merqo.io and check something that changed in the release (a new
+   route returning 200, changed copy).
+
+Symptom when the step is skipped: CI on `main` is green and GitHub shows the
+Production deployment as success, but `qkit.merqo.io` still shows the old
+build.
+
 Load staging's schema with `scripts/staging-migrate.sh`, not
 `supabase db push`: every kit shares one migration history table and
 reuses the same version numbers.

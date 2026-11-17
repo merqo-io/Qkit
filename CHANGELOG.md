@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
+
 ### Fixed
 
 - Landing page: one spacing rhythm across the page. Hero, trust strip, pain band, journey, closing section and footer now sit 80px apart on phones and 96px on desktop (they were 40 to 48px on phones and uneven on desktop), the pain band has the same padding above and below, and the dashed rules between chapters sit in the middle of the same gap. The three trust badges are equal cells with the tick above the label on phones.
