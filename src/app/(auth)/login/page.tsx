@@ -13,7 +13,11 @@ import { Wordmark } from "@/components/landing/wordmark";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
-import { GoogleMark } from "@merqo/ui";
+import { GoogleMark, InfoTooltip } from "@merqo/ui";
+import {
+  PASSWORD_REQUIREMENTS_HINT,
+  passwordErrorToast,
+} from "@/lib/weak-password";
 
 type Mode = "signin" | "signup";
 
@@ -67,7 +71,7 @@ function LoginForm() {
       if (mode === "signup") {
         const { data: result, error } = await supabase.auth.signUp(data);
         if (error) {
-          toast.error(error.message);
+          toast.error(passwordErrorToast(error));
           return;
         }
         // Email confirmation on → no session yet. Show a "check your email" state
@@ -254,7 +258,7 @@ function LoginForm() {
                   >
                     Password
                   </Label>
-                  {isSignin && (
+                  {isSignin ? (
                     <button
                       type="button"
                       onClick={sendReset}
@@ -263,6 +267,12 @@ function LoginForm() {
                     >
                       Forgot password?
                     </button>
+                  ) : (
+                    <InfoTooltip
+                      content={PASSWORD_REQUIREMENTS_HINT}
+                      ariaLabel="Password requirements"
+                      trigger="tap"
+                    />
                   )}
                 </div>
                 <Input

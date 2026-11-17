@@ -10,7 +10,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Ticket } from "@/components/widgets/ticket";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { passwordChangeSchema } from "@/lib/schemas";
-import { FORM_ERROR_CLASS, FORM_LABEL_CLASS } from "@merqo/ui";
+import { FORM_ERROR_CLASS, FORM_LABEL_CLASS, InfoTooltip } from "@merqo/ui";
+import {
+  PASSWORD_REQUIREMENTS_HINT,
+  passwordErrorToast,
+} from "@/lib/weak-password";
 
 type SessionState = "checking" | "ready" | "no-session" | "failed";
 
@@ -56,7 +60,7 @@ export function ResetPasswordForm() {
         password: parsed.data.password,
       });
       if (updateError) {
-        toast.error(updateError.message);
+        toast.error(passwordErrorToast(updateError));
         return;
       }
       toast.success("Password updated");
@@ -106,7 +110,7 @@ export function ResetPasswordForm() {
         Set a new password
       </h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
-        Pick something at least 8 characters long.
+        {PASSWORD_REQUIREMENTS_HINT}
       </p>
       <form
         onSubmit={(e) => {
@@ -116,9 +120,16 @@ export function ResetPasswordForm() {
         className="mt-6 space-y-5"
       >
         <div className="space-y-2">
-          <Label htmlFor="new-password" className={FORM_LABEL_CLASS}>
-            New password
-          </Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="new-password" className={FORM_LABEL_CLASS}>
+              New password
+            </Label>
+            <InfoTooltip
+              content={PASSWORD_REQUIREMENTS_HINT}
+              ariaLabel="Password requirements"
+              trigger="tap"
+            />
+          </div>
           <Input
             id="new-password"
             type="password"

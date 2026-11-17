@@ -21,6 +21,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
+import { toast } from "sonner";
 import LoginPage from "./page";
 
 describe("LoginPage", () => {
@@ -62,6 +63,45 @@ describe("LoginPage", () => {
           queryParams: { hl: "en" },
         },
       }),
+    );
+  });
+
+  it("shows the requirements hint in signup mode only", () => {
+    search.value = "";
+    const { unmount } = render(<LoginPage />);
+    expect(
+      screen.queryByRole("button", { name: "Password requirements" }),
+    ).toBeNull();
+    unmount();
+    search.value = "mode=signup";
+    render(<LoginPage />);
+    expect(
+      screen.getByRole("button", { name: "Password requirements" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows specific feedback when signup returns a weak_password error", async () => {
+    search.value = "mode=signup";
+    authMock.signUp.mockResolvedValue({
+      data: {},
+      error: {
+        code: "weak_password",
+        reasons: ["pwned"],
+        message: "Password is known to be weak.",
+      },
+    });
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "a@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "Password1!" },
+    });
+    fireEvent.submit(screen.getByLabelText("Email").closest("form")!);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "This password has appeared in a data breach. Choose a different one.",
+      ),
     );
   });
 });

@@ -44,6 +44,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint, and the reset form helper line uses the same wording.
 - `/auth/confirm` and `/auth/confirm/verify`: an own-domain landing for emailed auth links (password reset, signup, invite, magic link, email change). The page only shows a Continue button, so email scanners cannot use up the token; the button's POST verifies it and signs in (recovery goes to `/reset-password`). A bad or expired link lands on `/login?error=link`, which now says "That link is invalid or has expired. Request a new one." The existing `/auth/callback` is unchanged.
 - A small "Powered by Merqo" line linking to merqo.io under the customer order page and on the order status page for Free vendors. It is hidden on Starter, Pro and a running Event Pass, and also hidden if the plan cannot be read, so a paying vendor is never branded and ordering is never held up.
 - Loading skeletons for the admin, MFA, onboarding, queue display and pay routes, which previously showed nothing while their server queries ran.
