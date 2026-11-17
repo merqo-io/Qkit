@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Documentation
 
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
+- `AGENTS.md` Git Workflow now reminds agents that a `staging` -> `main` promotion leaves Production Staged until it is promoted in Vercel.
 
 ### Fixed
 

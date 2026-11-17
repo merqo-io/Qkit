@@ -41,6 +41,7 @@ E2E and mutation testing procedure: `docs/TESTING.md`.
 - Branch `feat/*` or `fix/*` from `staging`. Open the PR into `staging` (squash is fine); CI runs on it.
 - After merge, Vercel's git integration deploys `qkit-staging.merqo.io` (Preview env, staging Supabase). Test there, not on `*.vercel.app`: the sign-in cookie only works on merqo.io hosts and branch previews are disabled.
 - Promote with a PR `staging` -> `main` merged as a MERGE COMMIT (never squash or rebase) so `staging-sync` can fast-forward `staging` to main.
+- After a `staging` -> `main` promotion merges, the Production deployment is only Staged: promote it in Vercel (Deployments > row menu > Promote, or `vercel promote <url>`) and verify on https://qkit.merqo.io; see docs/DEPLOY.md.
 - Never commit directly to `main` or `staging`.
 
 ## Data model (summary)
