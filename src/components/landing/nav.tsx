@@ -17,14 +17,12 @@ export function Nav({ authed }: { authed: boolean }) {
       }
       end={
         <>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden rounded-lg sm:inline-flex"
+          <Link
+            href="/faq"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 rounded-sm px-1 text-sm outline-none focus-visible:ring-[3px]"
           >
-            <Link href="/faq">FAQ</Link>
-          </Button>
+            FAQ
+          </Link>
           <Button
             asChild
             variant="ghost"

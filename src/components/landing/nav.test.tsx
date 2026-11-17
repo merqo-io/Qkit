@@ -20,6 +20,12 @@ describe("Nav", () => {
     );
   });
 
+  it("keeps the FAQ link visible on phones, not hidden below sm", () => {
+    render(<Nav authed={false} />);
+    const link = screen.getByRole("link", { name: "FAQ" });
+    expect(link.className).not.toMatch(/(^|\s)hidden(\s|$)/);
+  });
+
   it("shows Sign in / Get started when signed out", () => {
     render(<Nav authed={false} />);
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(

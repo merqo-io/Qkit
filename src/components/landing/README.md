@@ -20,7 +20,8 @@ inline mark used on the login page.
   and "About" links plus either a "Dashboard" link (`authed`) or "Sign
   in" + "Get started" links (signed out).
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
-  link targets.
+  link targets, and that the FAQ link (`/faq`, a plain text link) is not
+  hidden below `sm`.
 - `wordmark.tsx` — `Wordmark({ size?, className? })`: thin wrapper over
   `@merqo/ui`'s `Wordmark` shell that supplies the "qkit" letters and the
   `text-primary` accent on the q. Used by the login page's two panels (`lg`
