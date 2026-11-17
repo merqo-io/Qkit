@@ -30,6 +30,11 @@ inline mark used on the login page.
   swipeable "live order board" carousel over `LANDING_BOARDS` — native
   scroll-snap plus pointer-drag and a 10s auto-advance timer (paused on
   interaction, skipped under reduced motion), decorative (`aria-hidden`).
+- `rhythm.ts` — the landing's one spacing scale as shared class strings
+  (`CONTAINER`, `SECTION_*`, `CHAPTER_*`): 80px then 96px between major
+  sections and for the pain band's padding, 40px then 48px each side of a
+  chapter rule, so a rule reads as the same break as a section edge. Add new
+  landing spacing here instead of writing new padding classes in `page.tsx`.
 - `journey/` — the scroll-and-try journey below the hero (customer, stall and queue chapters, closing call, FAQ rows); see its README.
 - `hero-preview-carousel.dom.test.tsx` — RTL test for carousel dot
   navigation/active state.

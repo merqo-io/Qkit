@@ -45,3 +45,5 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 [src](../README.md)
 
 `mfa/` is the TOTP enrol/verify page that `requireAdmin()` redirects password-only admins to. `robots.ts` disallows crawling except on production. The root layout hands the proxy nonce to the theme script.
+
+The landing `page.tsx` takes every section gap from `src/components/landing/rhythm.ts` (80px, then 96px from `md`) instead of per-section padding classes. The trust strip is a three-column grid from `sm`, so its equal cells size to the widest label and never wrap.
