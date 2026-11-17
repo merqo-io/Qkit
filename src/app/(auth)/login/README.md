@@ -7,7 +7,7 @@ Vendor sign-in page — combines email/password sign-in, sign-up, Google OAuth, 
 ## Contents
 
 - `page.tsx` — default-exports `LoginPage`, which wraps `LoginForm` in a `Suspense` boundary (needed for `useSearchParams`). `LoginForm` (`"use client"`):
-  - Reads `?mode=signup` from the URL to pick the initial `Mode` (`"signin"` | `"signup"`), toggled thereafter by a text button.
+  - Reads `?mode=signup` from the URL to pick the initial `Mode` (`"signin"` | `"signup"`), toggled thereafter by a text button with a 44px touch target and focus ring.
   - `loginSchema` (`@/lib/schemas`) + `react-hook-form`/`zodResolver` validate the `email`/`password` fields.
   - `signInWithGoogle()` calls `supabase.auth.signInWithOAuth({ provider: "google", redirectTo: ".../auth/callback" })`.
   - `onSubmit` calls `supabase.auth.signUp` or `supabase.auth.signInWithPassword` depending on `mode`; on sign-up with email confirmation required (no session returned), it shows a "check your email" panel instead of redirecting; otherwise it routes to `/dashboard` and refreshes.

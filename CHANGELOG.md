@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.
 - Landing page: the three trust badges ("No app", "No hardware", "Open signup") stay on one line from 640px up, in three equal cells. They used to squeeze to about 130px each at desktop width, so two of them wrapped. On desktop the strip lines up with the hero's left column.
 - Landing page: one spacing rhythm across the page. Hero, trust strip, pain band, journey, closing section and footer now sit 80px apart on phones and 96px on desktop (they were 40 to 48px on phones and uneven on desktop), the pain band has the same padding above and below, and the dashed rules between chapters sit in the middle of the same gap. The three trust badges are equal cells with the tick above the label on phones.

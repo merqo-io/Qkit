@@ -297,11 +297,11 @@ function LoginForm() {
           </div>
 
           <div className="border-t" />
-          <p className="px-7 py-4 text-center text-sm text-muted-foreground">
+          <p className="px-7 py-1 text-center text-sm text-muted-foreground">
             {isSignin ? "New to qkit? " : "Already have an account? "}
             <button
               type="button"
-              className="font-semibold text-primary underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center rounded-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
               onClick={() => setMode(isSignin ? "signup" : "signin")}
             >
               {isSignin ? "Create an account" : "Sign in"}
