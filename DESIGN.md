@@ -229,6 +229,15 @@ Confident and plain, sized for a thumb.
 
 The vendor's ticket is laid out to be read at a counter: order number largest and first (a heading, so a screen reader can jump between tickets), customer name beside it, one line per item with options always visible, a single attention line, then one action button the full width of the ticket. Advancing an order is one tap with a short visible Undo, not a confirmation dialog. Countdown bars (undo, auto-clear, hold) are thin, drain by `transform`, and stop under reduced motion.
 
+## Public pages
+
+Public pages (landing, about, FAQ, legal) follow the shared rules at https://github.com/merqo-io/merqo-ui/blob/main/docs/public-page-rules.md. This section never restates them; it only adds qkit's own values.
+
+- **Radius:** `--radius` is `0.5rem` (`src/app/globals.css`). Surfaces use `rounded-lg`.
+- **Product objects:** the order ticket, with its scalloped top edge (the `Ticket` widget), and the customer's phone, `PhoneFrame` from `@merqo/ui`, which is `rounded-3xl`.
+- **Journey:** three steps, all built: tap 1 watch the order build on scroll and place your own (customer phone), tap 2 tap Mark Ready on the ticket (vendor board), tap 3 the number calls itself (queue screen plus the customer's phone).
+- **Open:** the hero board has a drop shadow with a literal value (`src/components/landing/landing-board.tsx`). Whether it stays is not decided.
+
 ## Do's and Don'ts
 
 ### Do:
