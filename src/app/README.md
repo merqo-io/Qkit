@@ -31,7 +31,7 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 - `o/` — short-code customer ordering entry point.
 - `onboarding/` — post-signup vendor onboarding flow.
 - `order/` — legacy booth-id-based customer ordering route.
-- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then a trust strip, a dark pain band (anchor `#how`) and `TryIt`, the three-chapter play-through, then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
+- `page.tsx`, `LandingPage` async server component, the marketing home page. Fetches the signed-in user via `createServerClient()`. Renders the hero, then a one-line plain statement of the trust facts (`TRUST_LINE`, no strip), a dark pain band (anchor `#how`) and `TryIt`, the three-chapter play-through, then a closing call that carries the static pricing note (`PRICING_LINE`, no prices: plans live in Merqo), the sign-up button and three FAQ rows (`FAQ`, for prospects, anchor `#faq`) with a link to the vendor guide at `/dashboard/help` (the old `VENDOR_FAQ` troubleshooting moved into `src/content/help/troubleshooting`), and `SiteFooter` (`src/components/widgets/site-footer.tsx`). CTA target and label switch based on whether `user` is signed in.
 
 ## Connectivity
 
@@ -47,4 +47,4 @@ Next.js App Router tree — every page, layout, route handler, and PWA manifest 
 
 `mfa/` is the TOTP enrol/verify page that `requireAdmin()` redirects password-only admins to. `robots.ts` disallows crawling except on production. The root layout hands the proxy nonce to the theme script.
 
-The landing `page.tsx` takes every section gap from `src/components/landing/rhythm.ts` (80px, then 96px from `md`) instead of per-section padding classes. The trust strip is a three-column grid from `sm`, so its equal cells size to the widest label and never wrap.
+The landing `page.tsx` takes every section gap from `src/components/landing/rhythm.ts` (80px, then 96px from `md`) instead of per-section padding classes. The hero carries one status pill ("Piloting"); the trust facts are a single plain sentence, not a strip or grid.

@@ -24,11 +24,7 @@ export function LandingBoard({ board }: { board: LandingBoardData }) {
             {board.title}
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
-            <span className="relative inline-flex size-2 rounded-full bg-primary" />
-          </span>
+        <span className="text-xs font-semibold text-primary">
           {board.activeCount} active
         </span>
       </div>
