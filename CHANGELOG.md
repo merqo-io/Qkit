@@ -22,6 +22,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `DESIGN.md` gets a "Public pages" section: it links to the shared public-page rules in `@merqo/ui` and records qkit's own radius, product objects and landing journey.
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
+- `DESIGN.md` drops the stale "Open" note about the hero board shadow, which is gone: the board renders its `Ticket` with `shadow="none"`.
 - `AGENTS.md` Git Workflow now reminds agents that a `staging` -> `main` promotion leaves Production Staged until it is promoted in Vercel.
 
 ### Fixed
