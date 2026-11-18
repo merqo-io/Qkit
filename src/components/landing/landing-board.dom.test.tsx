@@ -58,6 +58,11 @@ describe("LandingBoard", () => {
     expect(screen.getByText(/active/i)).toBeInTheDocument();
     expect(screen.getByText("#0042")).toBeInTheDocument();
   });
+  it("labels the board as sample orders with no pulsing live dot", () => {
+    const { container } = render(<LandingBoard board={LANDING_BOARDS[0]} />);
+    expect(screen.getByText("Sample orders")).toBeInTheDocument();
+    expect(container.querySelector(".animate-ping")).toBeNull();
+  });
   it("separates from the page by its border, with no literal shadow or colour", () => {
     const { container } = render(<LandingBoard board={LANDING_BOARDS[0]} />);
     const root = container.firstElementChild as HTMLElement;

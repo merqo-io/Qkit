@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Check, ScanLine } from "lucide-react";
 import { Button } from "@merqo/ui/primitives";
 
 import { Nav } from "@/components/landing/nav";
@@ -8,7 +7,6 @@ import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
 import { BackToTop, ClosingCall, FaqRows, type FaqRow } from "@merqo/ui";
 import { TryIt } from "@/components/landing/journey/try-it";
-import { Ticket } from "@/components/widgets/ticket";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   CHAPTER_PAD_TOP,
@@ -22,7 +20,8 @@ import {
 
 export const revalidate = 0;
 
-const TRUST = ["No app", "No hardware", "Open signup"] as const;
+// Plain facts in one sentence: the public-page rules ban trust strips.
+const TRUST_LINE = "No app. No hardware. Open signup.";
 
 const PAIN = [
   "A queue that hides your stall.",
@@ -78,11 +77,7 @@ export default async function LandingPage() {
                 Running with a few vendors
               </span>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              <ScanLine className="size-3.5" />
-              Scan · order · track
-            </span>
-            <h1 className="font-display mt-6 text-5xl font-semibold leading-[1.05] sm:text-6xl">
+            <h1 className="font-display mt-2 text-5xl font-semibold leading-[1.05] sm:text-6xl">
               Booth ordering,
               <br />
               minus the queue.
@@ -114,24 +109,9 @@ export default async function LandingPage() {
       </section>
 
       <section className={`${CONTAINER} ${SECTION_PAD_TOP}`}>
-        <Ticket
-          shadow="none"
-          className="mx-auto flex max-w-full flex-wrap items-stretch divide-x divide-dashed divide-primary/30 bg-primary/[0.06] sm:grid sm:w-fit sm:grid-cols-3 lg:mx-0"
-        >
-          {TRUST.map((t) => (
-            <span
-              key={t}
-              className="inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center text-sm font-semibold text-primary sm:flex-row sm:gap-2 sm:px-6 sm:py-2.5 sm:text-base sm:whitespace-nowrap"
-            >
-              <Check
-                className="size-4 shrink-0 sm:size-[1.05rem]"
-                strokeWidth={2.75}
-                aria-hidden
-              />
-              {t}
-            </span>
-          ))}
-        </Ticket>
+        <p className="text-center text-base font-medium text-muted-foreground lg:text-left">
+          {TRUST_LINE}
+        </p>
       </section>
 
       <section
