@@ -82,8 +82,9 @@ describe("public landing page", () => {
       "That was the whole product. Now picture your menu on it.",
     ])
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
-    for (const t of ["No app", "No hardware", "Open signup"])
-      expect(screen.getByText(t)).toBeInTheDocument();
+    expect(
+      screen.getByText("No app. No hardware. Open signup."),
+    ).toBeInTheDocument();
     expect(container.querySelector("#how")).toBeInTheDocument();
     expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(3);
     expect(
@@ -92,6 +93,13 @@ describe("public landing page", () => {
     expect(screen.queryByText(/Up and running in three steps/)).toBeNull();
     expect(screen.queryByText("What qkit does")).toBeNull();
     expect(screen.queryByText(/Built in Singapore/)).toBeNull();
+  });
+  it("shows one status pill in the hero and no three-column trust grid", async () => {
+    const { container } = render(await LandingPage());
+    const hero = container.querySelector("section") as HTMLElement;
+    expect(hero.querySelectorAll(".rounded-full")).toHaveLength(1);
+    expect(screen.queryByText(/Scan · order · track/)).toBeNull();
+    expect(container.querySelector(".sm\:grid-cols-3")).toBeNull();
   });
   it("shows the pilot badge and keeps open signup", async () => {
     render(await LandingPage());

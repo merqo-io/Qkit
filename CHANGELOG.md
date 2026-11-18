@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Landing: the sample order board no longer pulses a live dot, the hero keeps only the "Piloting" status pill (the "Scan · order · track" pill is gone), and the three-cell trust strip is now one plain sentence with the same facts.
 - `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
 - `@merqo/ui` repinned from v0.50.0 to v0.50.1: footer links get a 44px minimum touch height and a visible focus ring at every width, and the footer reserves bottom padding so the fixed Back to top button no longer covers them.
 - `@merqo/ui` repinned from v0.50.1 to v0.51.0 for the footer's opt-in `faqHref`. The shared footer in `SiteFooter` now links to `/faq` after About, on the landing page, `/about`, `/faq` and the dashboard.
