@@ -43,8 +43,10 @@ inline mark used on the login page.
   navigation/active state.
 - `landing-board.tsx` — `LandingBoard({ board })`: renders one "live order
   board" ticket container (title + active-count pulse badge) for the hero
-  carousel, laying out its `LandingTicket`s in a 2-col grid.
-- `landing-board.dom.test.tsx` — RTL test for `LandingBoard` rendering.
+  carousel, laying out its `LandingTicket`s in a 2-col grid. The board has no
+  shadow; the Ticket border separates it from the page.
+- `landing-board.dom.test.tsx` — RTL test for `LandingBoard` rendering and
+  its no-literal-shadow surface.
 - `landing-boards.ts` — `LANDING_BOARDS`: static sample data for the 4 hero
   scenario boards (coffee cart, ice-cream cart, a payment-claim flow, a
   "rush" with aging/overdue tickets).

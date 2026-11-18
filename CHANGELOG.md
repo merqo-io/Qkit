@@ -24,6 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing page: the hero order board no longer carries a literal drop shadow with an `oklch` colour; its border alone separates it from the page, as the shared public page rules require.
 - Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.
 - Landing page: the three trust badges ("No app", "No hardware", "Open signup") stay on one line from 640px up, in three equal cells. They used to squeeze to about 130px each at desktop width, so two of them wrapped. On desktop the strip lines up with the hero's left column.
