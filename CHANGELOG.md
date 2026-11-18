@@ -19,11 +19,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Documentation
 
+- `DESIGN.md` gets a "Public pages" section: it links to the shared public-page rules in `@merqo/ui` and records qkit's own radius, product objects and landing journey.
 - `docs/DEPLOY.md` documents the manual promote that finishes a release: a push to `main` builds a Staged Production deployment, and `qkit.merqo.io` keeps serving the previous build until it is promoted in Vercel (or with `vercel promote`), then verified on the real domain.
 - `AGENTS.md` Git Workflow now reminds agents that a `staging` -> `main` promotion leaves Production Staged until it is promoted in Vercel.
 
 ### Fixed
 
+- Landing page: the hero order board no longer carries a literal drop shadow with an `oklch` colour; its border alone separates it from the page, as the shared public page rules require.
 - Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.
 - Landing page: the three trust badges ("No app", "No hardware", "Open signup") stay on one line from 640px up, in three equal cells. They used to squeeze to about 130px each at desktop width, so two of them wrapped. On desktop the strip lines up with the hero's left column.

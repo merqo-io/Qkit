@@ -14,10 +14,7 @@ export type LandingBoardData = {
 
 export function LandingBoard({ board }: { board: LandingBoardData }) {
   return (
-    <Ticket
-      shadow="none"
-      className="relative w-full bg-card p-3 shadow-[0_1px_0_0_var(--color-border),0_24px_48px_-32px_oklch(0.4_0.06_45/0.45)] sm:p-4"
-    >
+    <Ticket shadow="none" className="relative w-full bg-card p-3 sm:p-4">
       <div className="mb-3 flex items-center justify-between px-1">
         <div className="min-w-0">
           <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
