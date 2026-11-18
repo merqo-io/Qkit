@@ -58,4 +58,11 @@ describe("LandingBoard", () => {
     expect(screen.getByText(/active/i)).toBeInTheDocument();
     expect(screen.getByText("#0042")).toBeInTheDocument();
   });
+  it("separates from the page by its border, with no literal shadow or colour", () => {
+    const { container } = render(<LandingBoard board={LANDING_BOARDS[0]} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toContain("shadow-[");
+    expect(root.className).not.toContain("oklch(");
+    expect(root.className).toMatch(/(^|\s)border(\s|$)/);
+  });
 });
