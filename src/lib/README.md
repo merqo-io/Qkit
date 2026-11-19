@@ -21,6 +21,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   (`ok` is false on a queue read or clear error or a caught exception); the
   cron route turns `failed > 0` or `!ok` into a 500, while `deleteBooth` runs it
   best-effort and ignores the result.
+- `landing-account.ts` — `toLandingAccount(user)`: maps the auth user to the `{ name, avatarUrl }` the public nav's account menu needs (email or "Account" for the name; no vendor-profile read, which writes).
 - `action-result.ts` — `ActionResult<T>` discriminated union plus the `ok(data?)` and `fail(error)` constructors; build Server Action results with these, never `{ success }` literals (import them, a `"use server"` file cannot re-export them)
   (`{success:true}&T | {success:false,error}`) returned by every Server Action.
 - `allergen-icons.ts` — `ALLERGEN_ICONS: Record<AllergenTag, string>`, an

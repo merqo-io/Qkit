@@ -8,19 +8,24 @@ inline mark used on the login page.
 
 ## Contents
 
-- `nav.tsx` — `Nav({ authed })`: the sticky top nav, shared by the
-  landing page and `/about`. Composes `@merqo/ui`'s `LandingNav` shell
-  (sticky positioning, background blur, border, and the responsive
-  `end`-slot gap all live there) — this file supplies only the wordmark
-  and right-side content: a plain `<a href="/#top">` (not `next/link`'s
-  `Link` — a same-page hash jump needs a native anchor so the URL bar's
-  hash always updates, which `Link` doesn't reliably do when only the
-  fragment changes) as `wordmark`, and, as `end`, "FAQ" (`/#faq`, an
-  absolute path since this nav also renders on `/about`, not just `/`)
-  and "About" links plus either a "Dashboard" link (`authed`) or "Sign
-  in" + "Get started" links (signed out).
+- `nav.tsx` — `Nav({ account, signOutAction })` (a client component, so
+  it can pass `next/link` to the shared account menu): the sticky top nav,
+  shared by the landing page, `/about` and `/faq`. Composes `@merqo/ui`'s
+  `LandingNav` shell (sticky positioning, background blur, border, and the
+  responsive `end`-slot gap live there) and supplies the wordmark (a plain
+  `<a href="/#top">`, since `Link` leaves the old hash in the URL bar on a
+  fragment-only jump) and the right-side content. "FAQ", "About" and
+  "Dashboard" are all `Button asChild variant="ghost"` links so they render
+  identically; a bare styled `Link` made FAQ look different before. Signed
+  in (`account` set) shows "Dashboard" plus `@merqo/ui`'s `AccountMenu`
+  (avatar dropdown with sign out, help and feedback wired to
+  `submitSupportMessage`/`submitFeedback`); signed out shows "Sign in" and
+  "Get started".
+- `nav.dom.test.tsx` — signed out has no account menu, signed in has
+  Dashboard plus a menu whose Sign out calls the action, and FAQ, About and
+  Dashboard share the same styling classes.
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
-  link targets, and that the FAQ link (`/faq`, a plain text link) is not
+  link targets, and that the FAQ link (`/faq`) is not
   hidden below `sm`, while the signed-out "Sign in" link is hidden below `sm`
   to keep the row on one line at 320px (the login page has its own
   sign-in switch).
@@ -68,7 +73,7 @@ inline mark used on the login page.
 ## Connectivity
 
 `nav.tsx`'s `Nav` is rendered by both
-`src/app/page.tsx` (the landing page) and `src/app/about/page.tsx`.
+`src/app/page.tsx` (the landing page), `src/app/about/page.tsx` and `src/app/faq/page.tsx`, each passing `toLandingAccount(user)` and the `signOutToHome` action.
 `wordmark.tsx`'s `Wordmark` is rendered by `src/app/(auth)/login/page.tsx`.
 None of these are used by the vendor dashboard, which has its own wordmark
 markup inlined in `src/app/dashboard/dashboard-nav.tsx` (also composing

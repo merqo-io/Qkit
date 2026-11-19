@@ -3,6 +3,8 @@ import { AboutMerqo } from "@merqo/ui";
 import { Button } from "@merqo/ui/primitives";
 
 import { Nav } from "@/components/landing/nav";
+import { signOutToHome } from "@/app/actions/auth";
+import { toLandingAccount } from "@/lib/landing-account";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -16,7 +18,7 @@ export default async function AboutPage() {
 
   return (
     <div className="min-h-screen">
-      <Nav authed={Boolean(user)} />
+      <Nav account={toLandingAccount(user)} signOutAction={signOutToHome} />
       <AboutMerqo kitName="qkit">
         <Button asChild size="lg">
           <Link href="/#how">See how qkit works</Link>
