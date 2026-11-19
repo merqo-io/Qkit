@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
 - `@merqo/ui` repinned from v0.50.0 to v0.50.1: footer links get a 44px minimum touch height and a visible focus ring at every width, and the footer reserves bottom padding so the fixed Back to top button no longer covers them.
 - `@merqo/ui` repinned from v0.50.1 to v0.51.0 for the footer's opt-in `faqHref`. The shared footer in `SiteFooter` now links to `/faq` after About, on the landing page, `/about`, `/faq` and the dashboard.
+- `@merqo/ui` repinned from v0.51.0 to v0.54.0 (adds `CopyButton`, `DownloadButton`, `SearchField`, `usePolling` and card hierarchy changes to `StatusBadge` and `StatTile`; `TooltipProvider` now defaults to a 300ms delay).
 
 ### Documentation
 
