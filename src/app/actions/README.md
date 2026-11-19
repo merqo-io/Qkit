@@ -14,6 +14,8 @@ Server actions shared across routes rather than colocated with a single page —
 - `support.ts` — `submitSupportMessage(input: SupportMessageInput): Promise<ActionResult>`. Validates via `supportMessageSchema`, requires a signed-in vendor, and files the message into the shared cross-kit `merqo.support_messages` table via the `merqo.submit_support_message` SECURITY DEFINER RPC (Task 5 exported as `submitSupportMessage` from `@/lib/merqo/support`) — the RPC derives `vendor_id` and `kit_slug` (="qkit") from `auth.uid()` and the kit context.
 - `support.test.ts` — tests the signed-in RPC-call path with correct kit slug and parameters, empty-body rejection, bad-category rejection, the "please sign in" path, and RPC-failure handling.
 
+- `auth.ts` — `signOutToHome()`: signs the session out and redirects to `/`, used by the public-page nav's account menu (the dashboard has its own sign-out that lands on `/login`).
+
 ## Connectivity
 
 Each file is a `"use server"` module imported directly by the client components that trigger it (e.g. feedback forms, the support form), there is no shared dispatcher. Feedback, purchase and support use the session client and RLS or SECURITY DEFINER RPC authorization. Analytics uses the service client only after validating its public input; the shared rate limiter also uses the service client because its generic RPC is private. `events.ts`'s `logEvent` is also called from the landing page's CTAs and the order flow to track the scan→order conversion funnel that `admin/page.tsx` and `admin/activation-funnel.tsx` summarize.

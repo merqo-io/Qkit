@@ -1,8 +1,41 @@
-import Link from "next/link";
-import { LandingNav } from "@merqo/ui";
-import { Button } from "@merqo/ui/primitives";
+"use client";
 
-export function Nav({ authed }: { authed: boolean }) {
+import Link from "next/link";
+import { AccountMenu, LandingNav } from "@merqo/ui";
+import { Button } from "@merqo/ui/primitives";
+import type { LandingAccount } from "@/lib/landing-account";
+import type { SupportMessageInput } from "@/lib/schemas";
+import { submitFeedback } from "@/app/actions/feedback";
+import { submitSupportMessage } from "@/app/actions/support";
+
+const HELP_CATEGORIES: {
+  value: SupportMessageInput["category"];
+  label: string;
+}[] = [
+  { value: "pass", label: "Event pass" },
+  { value: "payment", label: "Payment" },
+  { value: "pro", label: "Plan / billing" },
+  { value: "other", label: "Something else" },
+];
+
+// @merqo/ui types the sheet's category as a bare string, so narrow it back by
+// membership in the values this nav offered instead of asserting the type.
+function isHelpCategory(
+  value: string | undefined,
+): value is SupportMessageInput["category"] {
+  return HELP_CATEGORIES.some((c) => c.value === value);
+}
+
+const LINK_CLASS = "rounded-lg";
+const SECONDARY_LINK_CLASS = `hidden ${LINK_CLASS} sm:inline-flex`;
+
+export function Nav({
+  account,
+  signOutAction,
+}: {
+  account: LandingAccount | null;
+  signOutAction: () => Promise<void>;
+}) {
   return (
     <LandingNav
       wordmark={
@@ -17,24 +50,50 @@ export function Nav({ authed }: { authed: boolean }) {
       }
       end={
         <>
-          <Link
-            href="/faq"
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 rounded-sm px-1 text-sm outline-none focus-visible:ring-[3px]"
-          >
-            FAQ
-          </Link>
+          <Button asChild variant="ghost" size="sm" className={LINK_CLASS}>
+            <Link href="/faq">FAQ</Link>
+          </Button>
           <Button
             asChild
             variant="ghost"
             size="sm"
-            className="hidden rounded-lg sm:inline-flex"
+            className={SECONDARY_LINK_CLASS}
           >
             <Link href="/about">About</Link>
           </Button>
-          {authed ? (
-            <Button asChild variant="ghost" size="sm" className="rounded-lg">
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
+          {account ? (
+            <>
+              <Button asChild variant="ghost" size="sm" className={LINK_CLASS}>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <AccountMenu
+                LinkComponent={Link}
+                vendor={{
+                  name: account.name,
+                  avatarUrl: account.avatarUrl ?? undefined,
+                }}
+                signOutAction={signOutAction}
+                getHelp={{
+                  type: "form",
+                  onSubmit: async ({ message, category }) => {
+                    const res = await submitSupportMessage({
+                      category: isHelpCategory(category) ? category : "other",
+                      body: message,
+                    });
+                    if (!res.success) throw new Error(res.error);
+                  },
+                  categories: HELP_CATEGORIES,
+                }}
+                onFeedbackSubmit={async ({ message, nps }) => {
+                  const res = await submitFeedback({
+                    source: "vendor",
+                    nps,
+                    message,
+                  });
+                  if (!res.success) throw new Error(res.error);
+                }}
+              />
+            </>
           ) : (
             <>
               <Button

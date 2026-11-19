@@ -28,6 +28,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Signed-in visitors on `/`, `/about` and `/faq` now get the account menu (avatar, Sign out) next to a Dashboard link instead of a lone Dashboard button, so they can sign out without leaving the public site; sign out returns to `/`. The FAQ nav link is now the same ghost button as About and Dashboard (it was a bare styled link, so its weight and padding differed).
+
 - Landing page: the hero order board no longer carries a literal drop shadow with an `oklch` colour; its border alone separates it from the page, as the shared public page rules require.
 - Landing page and login: the hero carousel dots and the sign-in/create-account toggle now have a 44px touch target (they were about 22px and a bare text line), with the same look. The toggle also gets a visible focus ring.
 - Stats: the empty state says "Nothing in this window." without "Try a wider range." for Free and Starter, who can only view today and yesterday. Pro and a running Event Pass still see the hint.

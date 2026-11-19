@@ -43,7 +43,9 @@ describe("public landing page", () => {
     render(await LandingPage());
     for (const link of screen.getAllByRole("link", { name: "Get started" }))
       expect(link).toHaveAttribute("href", "/login?mode=signup");
-    expect(nav).toHaveBeenCalledWith({ authed: false });
+    expect(nav).toHaveBeenCalledWith(
+      expect.objectContaining({ account: null }),
+    );
   });
   it("keeps vendor troubleshooting out of the public page and points to the guide", async () => {
     render(await LandingPage());
@@ -61,7 +63,11 @@ describe("public landing page", () => {
     render(await LandingPage());
     for (const link of screen.getAllByRole("link", { name: "Go to dashboard" }))
       expect(link).toHaveAttribute("href", "/dashboard");
-    expect(nav).toHaveBeenCalledWith({ authed: true });
+    expect(nav).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: { name: "Account", avatarUrl: null },
+      }),
+    );
   });
   it("says PayNow checkout exists and that qkit does not hold the money", async () => {
     render(await LandingPage());
