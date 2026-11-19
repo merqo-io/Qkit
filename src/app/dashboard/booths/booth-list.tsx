@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useSyncExternalStore, type ReactElement } from "react";
 import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
@@ -62,6 +62,8 @@ function IconTip({
   );
 }
 
+const subscribeNever = () => () => {};
+
 export function BoothList({
   booths,
   maxBooths,
@@ -69,8 +71,15 @@ export function BoothList({
   booths: BoothRow[];
   maxBooths: number | null;
 }) {
+  // Read on the client only: the card renders on the server too, where there
+  // is no window.
+  const origin = useSyncExternalStore(
+    subscribeNever,
+    () => window.location.origin,
+    () => "",
+  );
   function orderLink(shortCode: string) {
-    return `${window.location.origin}/o/${shortCode}`;
+    return `${origin}/o/${shortCode}`;
   }
 
   return (
