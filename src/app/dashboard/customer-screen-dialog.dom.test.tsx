@@ -94,7 +94,7 @@ describe("CustomerScreenButton", () => {
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(urlFor(KOPI.id)),
     );
-    expect(toast.success).toHaveBeenCalledWith("Link copied");
+    expect(await screen.findByRole("status")).toHaveTextContent("Copied");
   });
 
   it("has no booth picker for a single booth", async () => {

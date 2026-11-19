@@ -115,7 +115,15 @@ export function useBoothDelete(boothId: string | undefined) {
   function onDelete() {
     if (!boothId) return;
     return runDelete(async () => {
-      const result = await deleteBooth(boothId);
+      let result: Awaited<ReturnType<typeof deleteBooth>>;
+      try {
+        result = await deleteBooth(boothId);
+      } catch {
+        // A network error or server crash carries no message a vendor can use.
+        throw new Error(
+          "Could not delete the booth. Refresh to check its status before retrying.",
+        );
+      }
       if (!result.success) {
         throw new Error(result.error);
       }

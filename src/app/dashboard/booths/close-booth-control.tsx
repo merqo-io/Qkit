@@ -130,7 +130,14 @@ export function CloseBoothControl({
 
   function reopen() {
     return runReopen(async () => {
-      const res = await toggleBoothActive(boothId, true);
+      let res: Awaited<ReturnType<typeof toggleBoothActive>>;
+      try {
+        res = await toggleBoothActive(boothId, true);
+      } catch {
+        // The Undo action calls this without a catch of its own.
+        toast.error("Could not reopen the booth");
+        return;
+      }
       if (!res.success) {
         toast.error(res.error);
         return;

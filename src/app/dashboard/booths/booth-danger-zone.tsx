@@ -31,7 +31,7 @@ export function BoothDangerZone({
         title={`Delete “${boothName}”?`}
         description="This permanently deletes the booth."
         consequence="Every order placed at this booth is deleted too. This can't be undone."
-        confirmPhrase={boothName}
+        confirmPhrase={boothName.trim() ? boothName : "delete"}
         confirmLabel="Delete booth"
         cancelLabel="Keep booth"
         pendingLabel="Deleting…"

@@ -4,11 +4,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BoothDangerZone } from "./booth-danger-zone";
 
-function setup(onDelete: () => Promise<void> | void) {
+function setup(
+  onDelete: () => Promise<void> | void,
+  boothName = "Pad Thai Cart",
+) {
   const user = userEvent.setup();
   render(
     <BoothDangerZone
-      boothName="Pad Thai Cart"
+      boothName={boothName}
       deleting={false}
       saving={false}
       onDelete={onDelete}
@@ -45,6 +48,16 @@ describe("BoothDangerZone", () => {
     expect(confirm).toBeEnabled();
     await user.pointer({ keys: "[TouchA]", target: confirm });
     await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
+  });
+
+  it("still gates the delete when the booth name is blank", async () => {
+    const onDelete = vi.fn();
+    const user = setup(onDelete, "  ");
+    const dialog = await openDialog(user);
+    const confirm = confirmButton(dialog);
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByRole("textbox"), "delete");
+    expect(confirm).toBeEnabled();
   });
 
   it("stays open and shows the error when the delete fails", async () => {

@@ -85,7 +85,6 @@ function ScreenOptions({ booth }: { booth: Booth }) {
           size="default"
           className="h-11 w-full rounded-xl"
           label="Copy the link"
-          onCopied={() => toast.success("Link copied")}
           onError={() => toast.error("Could not copy. Scan the code instead.")}
         />
       </section>

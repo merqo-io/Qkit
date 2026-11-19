@@ -149,7 +149,6 @@ export function BoothList({
                     copiedLabel={
                       <span className="sr-only">Order link copied</span>
                     }
-                    onCopied={() => toast.success("Order link copied")}
                     onError={() =>
                       toast.error(
                         "Could not copy the link. Open the booth QR to share it.",

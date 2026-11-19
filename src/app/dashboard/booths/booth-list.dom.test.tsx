@@ -99,7 +99,10 @@ describe("BoothList", () => {
         `${window.location.origin}/o/abc123`,
       ),
     );
-    expect(successToast).toHaveBeenCalledWith("Order link copied");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Order link copied",
+    );
+    expect(successToast).not.toHaveBeenCalled();
   });
 
   it("explains clipboard failure without an unhandled rejection", async () => {
