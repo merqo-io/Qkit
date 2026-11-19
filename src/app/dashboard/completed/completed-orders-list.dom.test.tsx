@@ -342,6 +342,32 @@ describe("CompletedOrdersList", () => {
     expect(screen.getByText("No matching orders")).toBeInTheDocument();
   });
 
+  it("clears the search with the clear button on touch", async () => {
+    const user = userEvent.setup();
+    render(
+      <CompletedOrdersList
+        booths={BOOTHS}
+        orders={[makeOrder({ id: "o1" })]}
+        loadError={false}
+        historyLimit={500}
+        todayStartIso={EPOCH_ISO}
+      />,
+    );
+    const search = screen.getByRole("searchbox", {
+      name: "Search completed orders",
+    });
+    await user.type(search, "nobody");
+    expect(screen.getByText("No matching orders")).toBeInTheDocument();
+
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("button", { name: "Clear search" }),
+    });
+
+    expect(search).toHaveValue("");
+    expect(screen.queryByText("No matching orders")).not.toBeInTheDocument();
+  });
+
   describe("daily numbering", () => {
     const TODAY_ISO = "2026-10-11T00:00:00.000Z";
     const today = makeOrder({

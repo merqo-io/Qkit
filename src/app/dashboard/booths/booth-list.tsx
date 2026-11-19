@@ -4,7 +4,8 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
-import { Copy, Pencil, QrCode } from "lucide-react";
+import { Pencil, QrCode } from "lucide-react";
+import { CopyButton } from "@merqo/ui";
 import {
   Button,
   Tooltip,
@@ -68,14 +69,8 @@ export function BoothList({
   booths: BoothRow[];
   maxBooths: number | null;
 }) {
-  async function copyLink(shortCode: string) {
-    const url = `${window.location.origin}/o/${shortCode}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Order link copied");
-    } catch {
-      toast.error("Could not copy the link. Open the booth QR to share it.");
-    }
+  function orderLink(shortCode: string) {
+    return `${window.location.origin}/o/${shortCode}`;
   }
 
   return (
@@ -146,15 +141,21 @@ export function BoothList({
                   </Button>
                 </IconTip>
                 <IconTip label="Copy order link">
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <CopyButton
+                    value={orderLink(booth.shortCode)}
                     className="rounded-lg"
-                    onClick={() => copyLink(booth.shortCode)}
                     aria-label="Copy order link"
-                  >
-                    <Copy className="size-3.5" />
-                  </Button>
+                    label={null}
+                    copiedLabel={
+                      <span className="sr-only">Order link copied</span>
+                    }
+                    onCopied={() => toast.success("Order link copied")}
+                    onError={() =>
+                      toast.error(
+                        "Could not copy the link. Open the booth QR to share it.",
+                      )
+                    }
+                  />
                 </IconTip>
                 {/* The board header's own button and dialog, so the two
                     open the customer screen the same way. */}

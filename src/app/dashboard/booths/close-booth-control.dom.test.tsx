@@ -16,6 +16,7 @@ const { toastFn, toastError } = vi.hoisted(() => ({
 vi.mock("sonner", () => ({
   toast: Object.assign((...args: unknown[]) => toastFn(...args), {
     error: toastError,
+    dismiss: vi.fn(),
     success: vi.fn(),
   }),
 }));

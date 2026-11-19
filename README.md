@@ -196,6 +196,8 @@ cup counters run with bounded concurrency and cannot fail the board.
 
 The public `/faq` page (`src/app/faq/`) is `@merqo/ui`'s `FaqPage` with qkit's own copy, nav and footer.
 
+Dashboard destructive and clipboard actions use the shared `@merqo/ui` components: deleting a booth is a `ConfirmDialog` with a `consequence` and a `confirmPhrase` (the booth name), reversible changes offer `undoToast`, links are copied with `CopyButton`, CSV and PNG saves go through `downloadBlob` or `DownloadButton`, and the completed-orders filter is a `SearchField`.
+
 `src/proxy.ts` sets a nonce CSP on every page and `X-Robots-Tag` off production. The admin area requires TOTP MFA; see `src/app/mfa/README.md` and `docs/security/`. The MFA form is a thin adapter over `MfaForm` from `@merqo/ui`.
 
 ## Lint

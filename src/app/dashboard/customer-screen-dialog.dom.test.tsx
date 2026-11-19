@@ -87,7 +87,10 @@ describe("CustomerScreenButton", () => {
       "data-value",
       urlFor(KOPI.id),
     );
-    await user.click(screen.getByRole("button", { name: "Copy the link" }));
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("button", { name: "Copy the link" }),
+    });
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(urlFor(KOPI.id)),
     );

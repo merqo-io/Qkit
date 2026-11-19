@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { undoToast } from "@merqo/ui";
 import { Power, PowerOff } from "lucide-react";
 import {
   AlertDialog,
@@ -148,9 +149,10 @@ export function CloseBoothControl({
         return;
       }
       onChanged(false);
-      toast(`${boothName} is paused`, {
+      undoToast({
+        message: `${boothName} is paused`,
         duration: CLOSE_UNDO_MS,
-        action: { label: "Undo", onClick: reopen },
+        onUndo: reopen,
       });
     });
   }

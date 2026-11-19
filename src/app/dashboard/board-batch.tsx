@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { undoToast } from "@merqo/ui";
 import { Button } from "@merqo/ui/primitives";
 
 import { Hint } from "@/components/widgets/hint";
@@ -196,12 +197,10 @@ export function useBatchSelection() {
       // One tap moved many orders, and a customer watching theirs sees it
       // change, so the same tap has to be reversible in one tap.
       if (ok > 0)
-        toast.success(batchDoneMessage(expectedStatus, ok), {
+        undoToast({
+          message: batchDoneMessage(expectedStatus, ok),
           duration: BATCH_UNDO_MS,
-          action: {
-            label: "Undo",
-            onClick: () => undoAdvanced(moved, expectedStatus, paymentById),
-          },
+          onUndo: () => undoAdvanced(moved, expectedStatus, paymentById),
         });
       if (failed > 0)
         toast.error(
