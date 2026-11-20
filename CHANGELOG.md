@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Light theme palette: darker text, borders, primary text and status colours for stronger contrast (every text grade is at least 5:1 on the page and card), a slightly deeper khaki fill, and a flat page background with no grain or radial glows. Dark mode is unchanged. DESIGN.md records the new tokens and the public-page rules.
 - Deleting a booth now uses the shared `ConfirmDialog`: Delete stays disabled until the booth name is typed, the dialog says every order at the booth is deleted too, and it stays open with the error shown when the delete fails (it used to close and lose the message). Undo toasts (booth pause, now 8 seconds instead of 4 so touch users can reach it, close booth, menu item and section removal, board batch advance) use `undoToast`. The booth list and Customer screen copy buttons use `CopyButton`, Export CSV uses `DownloadButton`, QR poster and menu CSV saves use the shared `downloadBlob`, and the completed-orders search is a `SearchField` with a clear button. The local `src/lib/download.ts` is removed.
 - Landing: the sample order board no longer pulses a live dot, the hero keeps only the "Piloting" status pill (the "Scan · order · track" pill is gone), and the three-cell trust strip is now one plain sentence with the same facts.
 - `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.

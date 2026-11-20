@@ -17,31 +17,31 @@
 
 :root {
   /* chalk-cream paper canvas, charcoal ink, khaki primary + olive counter-tone */
-  --background: oklch(0.918 0.038 86.9);
-  --foreground: oklch(0.273 0.014 67.2);
+  --background: oklch(0.925 0.045 86.9);
+  --foreground: oklch(0.21 0.014 67.2);
   --card: oklch(0.99 0.012 86.9);
-  --card-foreground: oklch(0.273 0.014 67.2);
+  --card-foreground: oklch(0.21 0.014 67.2);
   --popover: oklch(0.99 0.012 86.9);
-  --popover-foreground: oklch(0.273 0.014 67.2);
+  --popover-foreground: oklch(0.21 0.014 67.2);
   /* Khaki #bc892b */
-  --primary: oklch(0.664 0.123 78.3);
-  --primary-text: oklch(0.46 0.095 78.3);
-  --primary-foreground: oklch(0.273 0.014 67.2);
+  --primary: oklch(0.72 0.15 74);
+  --primary-text: oklch(0.43 0.11 66);
+  --primary-foreground: oklch(0.2 0.014 67.2);
   /* Deep Grayish Olive #635a3a */
   --secondary: oklch(0.468 0.049 94.3);
   --secondary-foreground: oklch(0.918 0.038 86.9);
-  --muted: oklch(0.93 0.014 76);
-  --muted-foreground: oklch(0.48 0.022 55);
-  --accent: oklch(0.9 0.038 70);
+  --muted: oklch(0.895 0.022 76);
+  --muted-foreground: oklch(0.42 0.022 55);
+  --accent: oklch(0.885 0.05 76);
   --accent-foreground: oklch(0.3 0.03 50);
   --destructive: oklch(0.55 0.2 27);
   --destructive-text: oklch(0.49 0.19 27);
   /* Diamine Green #1a7444 */
   --success: oklch(0.495 0.112 154.6);
-  --success-text: oklch(0.45 0.105 154.6);
+  --success-text: oklch(0.42 0.12 154.6);
   --warning: oklch(0.65 0.19 55);
-  --warning-text: oklch(0.47 0.16 55);
-  --border: oklch(0.75 0.025 70);
+  --warning-text: oklch(0.45 0.17 55);
+  --border: oklch(0.74 0.03 70);
   --input: oklch(0.59 0.02 72);
   /* Ink, not brand: at the 50% the shadcn primitives draw it, khaki falls
      under 3:1 against the paper. */
@@ -49,30 +49,30 @@
   --radius: 0.5rem;
 
   /* kitchen-ticket status stamps */
-  --status-pending: oklch(0.72 0.15 75);
+  --status-pending: oklch(0.68 0.16 72);
   --status-confirmed: oklch(0.6 0.13 245);
   --status-preparing: oklch(0.62 0.18 40);
-  --status-ready: oklch(0.6 0.13 154.6);
-  --status-completed: oklch(0.55 0.01 60);
+  --status-ready: oklch(0.58 0.15 154.6);
+  --status-completed: oklch(0.5 0.012 60);
   --status-cancelled: oklch(0.58 0.2 27);
   --status-aging: oklch(0.65 0.19 55);
   /* same blue as .ticket-alert's "says-paid" wash — the actionable,
      needs-your-confirmation payment state. Dark enough for the white label
      of the button filled with it. */
   --status-payment-claimed: oklch(0.52 0.13 245);
-  --status-payment-confirmed: oklch(0.6 0.13 154.6);
+  --status-payment-confirmed: oklch(0.58 0.15 154.6);
   --status-print-failed: oklch(0.58 0.2 27);
 
-  --status-pending-text: oklch(0.47 0.15 75);
+  --status-pending-text: oklch(0.44 0.13 70);
   --status-confirmed-text: oklch(0.47 0.13 245);
   --status-preparing-text: oklch(0.47 0.16 40);
-  --status-ready-text: oklch(0.45 0.105 154.6);
-  --status-completed-text: oklch(0.47 0.01 60);
-  --status-cancelled-text: oklch(0.47 0.16 27);
-  --status-aging-text: oklch(0.47 0.16 55);
-  --status-payment-claimed-text: oklch(0.47 0.13 245);
-  --status-payment-confirmed-text: oklch(0.45 0.105 154.6);
-  --status-print-failed-text: oklch(0.47 0.16 27);
+  --status-ready-text: oklch(0.41 0.12 154.6);
+  --status-completed-text: oklch(0.42 0.012 60);
+  --status-cancelled-text: oklch(0.47 0.2 27);
+  --status-aging-text: oklch(0.45 0.17 55);
+  --status-payment-claimed-text: oklch(0.48 0.15 250);
+  --status-payment-confirmed-text: oklch(0.41 0.12 154.6);
+  --status-print-failed-text: oklch(0.47 0.2 27);
 }
 
 .dark {
@@ -194,20 +194,6 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
-  /* warm paper grain: layered radial glow + faint fibre noise */
-  background-image:
-    radial-gradient(
-      ellipse 80% 50% at 50% -10%,
-      oklch(0.6 0.16 45 / 0.06),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 60% 40% at 100% 0%,
-      oklch(0.72 0.12 80 / 0.05),
-      transparent 55%
-    ),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  background-attachment: fixed;
 }
 
 /* Scroll stays fully functional (wheel/touch/keyboard); the bar itself is
@@ -253,16 +239,16 @@ html::-webkit-scrollbar {
    top edge instead of being broken by it. One wash at a time, by priority:
    overdue (red) > says-paid (blue) > aging (amber). */
 .ticket-alert {
-  background: oklch(0.93 0.045 245);
-  border-color: oklch(0.62 0.13 245);
+  background: oklch(0.925 0.05 245);
+  border-color: oklch(0.55 0.15 245);
 }
 .ticket-aging {
-  background: oklch(0.95 0.04 80);
-  border-color: oklch(0.72 0.13 80);
+  background: oklch(0.94 0.07 85);
+  border-color: oklch(0.66 0.15 75);
 }
 .ticket-overdue {
-  background: oklch(0.94 0.055 27);
-  border-color: oklch(0.6 0.2 27);
+  background: oklch(0.935 0.06 27);
+  border-color: oklch(0.56 0.21 27);
 }
 .dark .ticket-alert {
   background: oklch(0.33 0.06 245);

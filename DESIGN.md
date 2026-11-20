@@ -2,27 +2,27 @@
 name: qkit
 description: Live booth ordering on a kitchen ticket, in Market Ochre.
 colors:
-  khaki: "oklch(0.664 0.123 78.3)"
-  khaki-text: "oklch(0.46 0.095 78.3)"
+  khaki: "oklch(0.72 0.15 74)"
+  khaki-text: "oklch(0.43 0.11 66)"
   deep-grayish-olive: "oklch(0.468 0.049 94.3)"
   diamine-green: "oklch(0.495 0.112 154.6)"
-  diamine-green-text: "oklch(0.45 0.105 154.6)"
-  chalk-cream: "oklch(0.918 0.038 86.9)"
+  diamine-green-text: "oklch(0.42 0.12 154.6)"
+  chalk-cream: "oklch(0.925 0.045 86.9)"
   ticket-paper: "oklch(0.99 0.012 86.9)"
-  charcoal-ink: "oklch(0.273 0.014 67.2)"
-  quiet-paper: "oklch(0.93 0.014 76)"
-  quiet-ink: "oklch(0.48 0.022 55)"
-  hover-paper: "oklch(0.9 0.038 70)"
-  rule: "oklch(0.75 0.025 70)"
+  charcoal-ink: "oklch(0.21 0.014 67.2)"
+  quiet-paper: "oklch(0.895 0.022 76)"
+  quiet-ink: "oklch(0.42 0.022 55)"
+  hover-paper: "oklch(0.885 0.05 76)"
+  rule: "oklch(0.74 0.03 70)"
   field-rule: "oklch(0.59 0.02 72)"
   stop-red: "oklch(0.55 0.2 27)"
   stop-red-text: "oklch(0.49 0.19 27)"
   caution-amber: "oklch(0.65 0.19 55)"
-  caution-amber-text: "oklch(0.47 0.16 55)"
-  stamp-pending: "oklch(0.72 0.15 75)"
+  caution-amber-text: "oklch(0.45 0.17 55)"
+  stamp-pending: "oklch(0.68 0.16 72)"
   stamp-preparing: "oklch(0.62 0.18 40)"
-  stamp-ready: "oklch(0.6 0.13 154.6)"
-  stamp-completed: "oklch(0.55 0.01 60)"
+  stamp-ready: "oklch(0.58 0.15 154.6)"
+  stamp-completed: "oklch(0.5 0.012 60)"
   stamp-cancelled: "oklch(0.58 0.2 27)"
   stamp-says-paid: "oklch(0.52 0.13 245)"
 typography:
@@ -95,7 +95,7 @@ components:
 
 **Creative North Star: "The Market Ticket"**
 
-Every surface in qkit is a kitchen ticket lying on a stall counter. The page is chalk-cream paper with a faint grain; each card is a slip of whiter paper with a perforated, scalloped top edge, as if torn off a roll. Numbers are set in a typewriter mono, headings in a soft old-style serif, and status is a rubber stamp in one flat colour. The system exists to be read standing up, at arm's length, in daylight, by someone with wet hands and a queue.
+Every surface in qkit is a kitchen ticket lying on a stall counter. The page is plain chalk-cream paper; each card is a slip of whiter paper with a perforated, scalloped top edge, as if torn off a roll. Numbers are set in a typewriter mono, headings in a soft old-style serif, and status is a rubber stamp in one flat colour. The system exists to be read standing up, at arm's length, in daylight, by someone with wet hands and a queue.
 
 The palette is "Market Ochre", anchored on combination 146 of Sanzo Wada's _A Dictionary of Color Combinations_: Khaki, Deep Grayish Olive and Diamine Green. It is warm and slightly dusty, closer to kraft paper and a chalkboard menu than to an app. The earlier ember and orange-red identity was retired because it read as another product's brand. Do not move back toward it.
 
@@ -116,7 +116,7 @@ A dusty, daylight palette: one ochre, one olive, one green, on warm paper with c
 
 ### Primary
 
-- **Khaki** (`{colors.khaki}`, Wada 146, `#bc892b`): the fill of the one button that is the next step, the selected state of a choice, the accent "Q" of the wordmark, focus-adjacent highlights. Carries charcoal ink as its label, not white.
+- **Khaki** (`{colors.khaki}`, Wada 146, `#db940e`): the fill of the one button that is the next step, the selected state of a choice, the accent "Q" of the wordmark, focus-adjacent highlights. Carries charcoal ink as its label, not white.
 - **Khaki, text grade** (`{colors.khaki-text}`): the same hue darkened for words on paper: prices, links, the eyebrow above a page title. Khaki at fill strength is too light to read as text on cream and is never used for it.
 
 ### Secondary
@@ -234,8 +234,11 @@ The vendor's ticket is laid out to be read at a counter: order number largest an
 Public pages (landing, about, FAQ, legal) follow the shared rules at https://github.com/merqo-io/merqo-ui/blob/main/docs/public-page-rules.md. This section never restates them; it only adds qkit's own values.
 
 - **Radius:** `--radius` is `0.5rem` (`src/app/globals.css`). Surfaces use `rounded-lg`.
-- **Product objects:** the order ticket, with its scalloped top edge (the `Ticket` widget; the hero board carries no shadow), and the customer's phone, `PhoneFrame` from `@merqo/ui`, which is `rounded-3xl`.
-- **Journey:** three steps, all built: tap 1 watch the order build on scroll and place your own (customer phone), tap 2 tap Mark Ready on the ticket (vendor board), tap 3 the number calls itself (queue screen plus the customer's phone).
+- **Edge:** nav, content and footer share one 1152px box with 20px inside padding; nothing sits outside it.
+- **Ground:** flat page colour. No grain, no radial glows, no shadow on the hero board.
+- **Product objects:** the order ticket with its scalloped top edge, the vendor board on a tablet, and the customer's phone (`PhoneFrame`, `rounded-3xl`, with camera island, side keys and the browser bar).
+- **Journey:** one scroll, three steps, "one order, two screens": scan and order on the phone; the order lands on the board; tap Ready and the phone says Ready.
+- **Footer:** one row, about 64px; wraps to two short rows on a phone.
 
 ## Do's and Don'ts
 
