@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import QRCode from "react-qr-code";
-import { Copy, ExternalLink, Tv } from "lucide-react";
+import { ExternalLink, Tv } from "lucide-react";
 import { toast } from "sonner";
+import { CopyButton } from "@merqo/ui";
 import {
   Button,
   cn,
@@ -39,15 +40,6 @@ function ScreenOptions({ booth }: { booth: Booth }) {
       toast.error(
         "Your browser blocked the window. Allow pop-ups for this site, or use the link below.",
       );
-  }
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Could not copy. Scan the code instead.");
-    }
   }
 
   return (
@@ -88,15 +80,13 @@ function ScreenOptions({ booth }: { booth: Booth }) {
             />
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
+        <CopyButton
+          value={url}
+          size="default"
           className="h-11 w-full rounded-xl"
-          onClick={copyLink}
-        >
-          <Copy className="size-4" />
-          Copy the link
-        </Button>
+          label="Copy the link"
+          onError={() => toast.error("Could not copy. Scan the code instead.")}
+        />
       </section>
     </div>
   );

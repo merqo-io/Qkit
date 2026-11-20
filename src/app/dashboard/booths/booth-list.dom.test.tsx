@@ -17,6 +17,7 @@ import { BoothList } from "./booth-list";
 const render = (ui: ReactElement) =>
   rtlRender(ui, { wrapper: TooltipProvider });
 const errorToast = vi.fn();
+const successToast = vi.fn();
 const clipboardDescriptor = Object.getOwnPropertyDescriptor(
   navigator,
   "clipboard",
@@ -34,7 +35,7 @@ afterEach(() => {
 vi.mock("sonner", () => ({
   toast: {
     error: (...args: unknown[]) => errorToast(...args),
-    success: vi.fn(),
+    success: (...args: unknown[]) => successToast(...args),
   },
 }));
 
@@ -79,6 +80,29 @@ describe("BoothList", () => {
   it("shows no over-limit explanation for a booth that serves", () => {
     render(<BoothList maxBooths={1} booths={[BOOTH]} />);
     expect(screen.queryByText(/Customers can't order/)).toBeNull();
+  });
+
+  it("copies the order link on touch and says so", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<BoothList maxBooths={1} booths={[BOOTH]} />);
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("button", { name: "Copy order link" }),
+    });
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/o/abc123`,
+      ),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Order link copied",
+    );
+    expect(successToast).not.toHaveBeenCalled();
   });
 
   it("explains clipboard failure without an unhandled rejection", async () => {

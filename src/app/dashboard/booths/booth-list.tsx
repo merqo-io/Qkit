@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useSyncExternalStore, type ReactElement } from "react";
 import Link from "next/link";
 import { MediaImage } from "@/components/widgets/media-image";
 import { toast } from "sonner";
-import { Copy, Pencil, QrCode } from "lucide-react";
+import { Pencil, QrCode } from "lucide-react";
+import { CopyButton } from "@merqo/ui";
 import {
   Button,
   Tooltip,
@@ -61,6 +62,8 @@ function IconTip({
   );
 }
 
+const subscribeNever = () => () => {};
+
 export function BoothList({
   booths,
   maxBooths,
@@ -68,14 +71,15 @@ export function BoothList({
   booths: BoothRow[];
   maxBooths: number | null;
 }) {
-  async function copyLink(shortCode: string) {
-    const url = `${window.location.origin}/o/${shortCode}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Order link copied");
-    } catch {
-      toast.error("Could not copy the link. Open the booth QR to share it.");
-    }
+  // Read on the client only: the card renders on the server too, where there
+  // is no window.
+  const origin = useSyncExternalStore(
+    subscribeNever,
+    () => window.location.origin,
+    () => "",
+  );
+  function orderLink(shortCode: string) {
+    return `${origin}/o/${shortCode}`;
   }
 
   return (
@@ -146,15 +150,20 @@ export function BoothList({
                   </Button>
                 </IconTip>
                 <IconTip label="Copy order link">
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <CopyButton
+                    value={orderLink(booth.shortCode)}
                     className="rounded-lg"
-                    onClick={() => copyLink(booth.shortCode)}
                     aria-label="Copy order link"
-                  >
-                    <Copy className="size-3.5" />
-                  </Button>
+                    label={null}
+                    copiedLabel={
+                      <span className="sr-only">Order link copied</span>
+                    }
+                    onError={() =>
+                      toast.error(
+                        "Could not copy the link. Open the booth QR to share it.",
+                      )
+                    }
+                  />
                 </IconTip>
                 {/* The board header's own button and dialog, so the two
                     open the customer screen the same way. */}

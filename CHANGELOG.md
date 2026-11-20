@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Deleting a booth now uses the shared `ConfirmDialog`: Delete stays disabled until the booth name is typed, the dialog says every order at the booth is deleted too, and it stays open with the error shown when the delete fails (it used to close and lose the message). Undo toasts (booth pause, now 8 seconds instead of 4 so touch users can reach it, close booth, menu item and section removal, board batch advance) use `undoToast`. The booth list and Customer screen copy buttons use `CopyButton`, Export CSV uses `DownloadButton`, QR poster and menu CSV saves use the shared `downloadBlob`, and the completed-orders search is a `SearchField` with a clear button. The local `src/lib/download.ts` is removed.
 - Landing: the sample order board no longer pulses a live dot, the hero keeps only the "Piloting" status pill (the "Scan · order · track" pill is gone), and the three-cell trust strip is now one plain sentence with the same facts.
 - `@merqo/ui` repinned from v0.49.1 to v0.50.0 for `FaqPage` and `faqJsonLd`.
 - `@merqo/ui` repinned from v0.50.0 to v0.50.1: footer links get a 44px minimum touch height and a visible focus ring at every width, and the footer reserves bottom padding so the fixed Back to top button no longer covers them.
@@ -29,6 +30,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Landing nav controls (FAQ, About, Dashboard, Sign in, Get started and the account avatar) now have at least a 44px tap target below the sm breakpoint; the desktop size is unchanged.
+- Moved `@merqo/ui` to 0.54.1: the legal gate no longer caches a failed legal-status check, and idempotent Supabase and merqo calls retry once on a dropped connection, which fixes the sign-in loop back to `/legal/accept`.
 - Signed-in visitors on `/`, `/about` and `/faq` now get the account menu (avatar, Sign out) next to a Dashboard link instead of a lone Dashboard button, so they can sign out without leaving the public site; sign out returns to `/`. The FAQ nav link is now the same ghost button as About and Dashboard (it was a bare styled link, so its weight and padding differed).
 
 - Landing page: the hero order board no longer carries a literal drop shadow with an `oklch` colour; its border alone separates it from the page, as the shared public page rules require.

@@ -1,11 +1,10 @@
 "use client";
 
-import { downloadBlob } from "@/lib/download";
 import { useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import { Download, Printer } from "lucide-react";
-import { BackButton } from "@merqo/ui";
+import { BackButton, downloadBlob } from "@merqo/ui";
 import { Button } from "@merqo/ui/primitives";
 
 import { Ticket } from "@/components/widgets/ticket";
