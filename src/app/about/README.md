@@ -3,7 +3,7 @@
 ## Purpose
 
 The public "Why Merqo" page — the origin story (the qkit
-wedding-coffee-cart story), linked from the landing `Nav` and `Footer`.
+wedding-coffee-cart story), linked from the landing `Nav` and `Footer`. The nav account comes from `getLandingNavUser(user)`.
 
 ## Contents
 

@@ -3,7 +3,7 @@ import { Button } from "@merqo/ui/primitives";
 
 import { Nav } from "@/components/landing/nav";
 import { signOutToHome } from "@/app/actions/auth";
-import { toLandingAccount } from "@/lib/landing-account";
+import { getLandingNavUser } from "@/lib/landing-nav-user";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
@@ -49,7 +49,7 @@ export default async function LandingPage() {
 
   return (
     <div id="top" className="min-h-screen">
-      <Nav account={toLandingAccount(user)} signOutAction={signOutToHome} />
+      <Nav user={await getLandingNavUser(user)} signOutAction={signOutToHome} />
 
       <main>
         <section className="pt-[clamp(40px,7vw,96px)] pb-[clamp(56px,8vw,112px)]">
