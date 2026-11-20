@@ -1,18 +1,31 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TryIt } from "./try-it";
 
 function mockMatchMedia(opts: { reduced: boolean; wide?: boolean }) {
+  const listeners = new Set<() => void>();
   vi.stubGlobal("matchMedia", (q: string) => ({
-    matches: q.includes("reduced-motion") ? opts.reduced : !!opts.wide,
+    get matches() {
+      return q.includes("reduced-motion") ? opts.reduced : !!opts.wide;
+    },
     media: q,
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+    removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
     dispatchEvent: () => false,
   }));
+  return (reduced: boolean) => {
+    opts.reduced = reduced;
+    act(() => listeners.forEach((fn) => fn()));
+  };
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -55,5 +68,33 @@ describe("TryIt with reduced motion", () => {
     render(<TryIt />);
     expect(screen.getAllByText("Collected").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Play it again" })).toBeVisible();
+  });
+
+  it("settles when the setting turns on while mounted", () => {
+    const setReduced = mockMatchMedia({ reduced: false });
+    render(<TryIt />);
+    expect(screen.queryAllByText("Collected")).toHaveLength(0);
+    setReduced(true);
+    expect(screen.getAllByText("Collected").length).toBeGreaterThan(0);
+  });
+
+  it("highlights the step passing the viewport middle on a wide page", async () => {
+    mockMatchMedia({ reduced: true, wide: true });
+    const rect = vi
+      .spyOn(HTMLLIElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLLIElement) {
+        const i = Array.from(this.parentElement?.children ?? []).indexOf(this);
+        return { top: i < 2 ? -50 : 5000 } as DOMRect;
+      });
+    const { container } = render(<TryIt />);
+    fireEvent.scroll(window);
+    await waitFor(() => {
+      const items = container.querySelectorAll("#story > ol > li");
+      expect(Array.from(items).map((li) => li.hasAttribute("data-on"))).toEqual(
+        [false, true, false],
+      );
+    });
+    expect(screen.getAllByText("Collected").length).toBeGreaterThan(0);
+    rect.mockRestore();
   });
 });

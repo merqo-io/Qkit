@@ -133,7 +133,7 @@ export default async function LandingPage() {
                   the{" "}
                   <Link
                     href="/dashboard/help"
-                    className="font-semibold text-foreground underline underline-offset-4 hover:no-underline"
+                    className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4 hover:no-underline"
                   >
                     user guide
                   </Link>

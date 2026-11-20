@@ -18,10 +18,12 @@ export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
           <span className="text-primary">Q</span>Kit
         </a>
       }
-      tagline="Built for booths. Made in Singapore."
+      tagline="a Merqo kit"
       kitName="qkit"
+      copyright="© 2026 Merqo"
       showSignIn={showSignIn}
       faqHref="/faq"
+      layout="compact"
     />
   );
 }

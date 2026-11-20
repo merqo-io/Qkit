@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Landing follow-ups: a burst of wheel events over the hero carousel restarts its countdown once; the carousel and the how-it-works story follow the reduced-motion setting live; with reduced motion the desktop story highlights the step in view again and no longer flashes the start state on first paint; the "user guide" link is a 44px tap target; the footer uses the compact two-row layout on phones.
+
 ### Added
 
 - Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
@@ -13,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Repinned `@merqo/ui` to v0.56.1: the account menu avatar trigger now has a 44px touch target below the sm breakpoint, with an unchanged layout footprint.
 - `@merqo/ui` moves to v0.56.0. The landing nav's signed-in end is now the shared `LandingAccountNav`, and the account is named after the vendor's stall (`toNavUser`), falling back to the email name if that read fails. The local `toLandingAccount` wrapper is removed; help requests go through a small `submitLandingSupport` adapter.
 - Landing page shell rebuilt around the story: the hero now has the Piloting row, a "Scan · order · track" pill and a sample-board carousel made from the real board ticket parts (five boards with captions, one countdown that any interaction restarts). The trust line and the dark pain band are gone, and the closing section reads "Put your menu on it." with the same pricing line and three FAQs. The landing-only ticket and board copies are deleted.
 - Landing "How it works" is now one order shown on two screens: the customer's phone and the vendor's board, driven by one shared state and built from the real status page and ticket parts. Below 960px, tabs switch between the screens and flash "Tap to continue" when the next tap is on the hidden one. The 10 second auto-clear is labelled as a sample delay.

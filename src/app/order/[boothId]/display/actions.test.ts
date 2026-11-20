@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { getBoothQueueDisplay } from "./actions";
 
 const { rateLimitMock } = vi.hoisted(() => ({ rateLimitMock: vi.fn() }));
@@ -78,16 +78,27 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const BOOTH = "00000000-0000-4000-8000-000000000001";
-// Relative to now: an order older than STALE_ORDER_VIEW_HOURS is left off the
-// display, so a fixed date would age out of every test below.
-const PLACED_FIRST = new Date(Date.now() - 10 * 60_000).toISOString();
-const PLACED_SECOND = new Date(Date.now() - 5 * 60_000).toISOString();
+// Midday in Singapore: fixtures a few minutes old must not straddle the
+// booth's local midnight, which would change the daily-reset display numbers.
+const NOW = Date.parse("2026-06-15T04:00:00Z");
+const minutesAgo = (m: number) =>
+  new Date(Date.now() - m * 60_000).toISOString();
+let PLACED_FIRST: string;
+let PLACED_SECOND: string;
 const VENDOR = "00000000-0000-4000-8000-000000000002";
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
+  PLACED_FIRST = minutesAgo(10);
+  PLACED_SECOND = minutesAgo(5);
   createServiceClientMock.mockClear();
   fromMock.mockReset();
   rateLimitMock.mockReset().mockResolvedValue(true);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("getBoothQueueDisplay", () => {
@@ -233,6 +244,48 @@ describe("getBoothQueueDisplay", () => {
     const res = await getBoothQueueDisplay(BOOTH);
     expect(res).toEqual([
       { orderNumber: "0105", status: "ready", displayNumber: "006" },
+    ]);
+  });
+
+  it("shows the permanent number for an order placed before Singapore midnight", async () => {
+    vi.setSystemTime(Date.parse("2026-06-15T16:03:00Z"));
+    const active = [
+      {
+        order_number: "0105",
+        status: "ready",
+        created_at: minutesAgo(10),
+        priority_bumped_at: null,
+      },
+    ];
+    fromMock
+      .mockReturnValueOnce(chain({ data: { vendor_id: VENDOR }, error: null }))
+      .mockReturnValueOnce(
+        chain({
+          data: {
+            board_settings: {
+              aging_min: 5,
+              overdue_min: 10,
+              sound_id: "chime",
+              desktop_notify: false,
+              undo_seconds: 5,
+              daily_order_number_reset: true,
+              show_wait_estimate: true,
+              default_prep_minutes: null,
+              ready_auto_clear_min: null,
+            },
+          },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        chain({ data: [{ id: BOOTH, cap_reset_at: null }], error: null }),
+      )
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: active, error: null }));
+
+    expect(await getBoothQueueDisplay(BOOTH)).toEqual([
+      { orderNumber: "0105", status: "ready", displayNumber: "0105" },
     ]);
   });
 
