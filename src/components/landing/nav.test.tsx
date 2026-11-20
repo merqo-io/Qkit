@@ -5,7 +5,7 @@ import { Nav } from "./nav";
 
 describe("Nav", () => {
   it("links to the About page", () => {
-    render(<Nav authed={false} />);
+    render(<Nav account={null} signOutAction={async () => {}} />);
     expect(screen.getByRole("link", { name: "About" })).toHaveAttribute(
       "href",
       "/about",
@@ -13,7 +13,7 @@ describe("Nav", () => {
   });
 
   it("links to the full FAQ page", () => {
-    render(<Nav authed={false} />);
+    render(<Nav account={null} signOutAction={async () => {}} />);
     expect(screen.getByRole("link", { name: "FAQ" })).toHaveAttribute(
       "href",
       "/faq",
@@ -21,13 +21,13 @@ describe("Nav", () => {
   });
 
   it("keeps the FAQ link visible on phones, not hidden below sm", () => {
-    render(<Nav authed={false} />);
+    render(<Nav account={null} signOutAction={async () => {}} />);
     const link = screen.getByRole("link", { name: "FAQ" });
     expect(link.className).not.toMatch(/(^|\s)hidden(\s|$)/);
   });
 
   it("hides Sign in below sm so the signed-out row fits at 320px", () => {
-    render(<Nav authed={false} />);
+    render(<Nav account={null} signOutAction={async () => {}} />);
     const signIn = screen.getByRole("link", { name: "Sign in" }).className;
     expect(signIn).toMatch(/(^|\s)hidden(\s|$)/);
     expect(signIn).toContain("sm:inline-flex");
@@ -39,7 +39,7 @@ describe("Nav", () => {
   });
 
   it("shows Sign in / Get started when signed out", () => {
-    render(<Nav authed={false} />);
+    render(<Nav account={null} signOutAction={async () => {}} />);
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login",
@@ -51,7 +51,12 @@ describe("Nav", () => {
   });
 
   it("shows Dashboard when signed in", () => {
-    render(<Nav authed={true} />);
+    render(
+      <Nav
+        account={{ name: "a", avatarUrl: null }}
+        signOutAction={async () => {}}
+      />,
+    );
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
       "href",
       "/dashboard",

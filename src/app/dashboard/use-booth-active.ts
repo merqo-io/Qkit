@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { undoToast } from "@merqo/ui";
 import { toggleBoothActive } from "./booths/actions";
 import type { BoothView } from "./board-booths";
 
@@ -36,8 +37,11 @@ export function useBoothActive(booths: BoothView[]) {
           setActiveOverrides((prev) => new Map(prev).set(b.id, !active));
           return;
         }
-        toast(active ? `${b.name} is open for orders` : `${b.name} is paused`, {
-          action: { label: "Undo", onClick: () => setBoothActive(b, !active) },
+        undoToast({
+          message: active
+            ? `${b.name} is open for orders`
+            : `${b.name} is paused`,
+          onUndo: () => setBoothActive(b, !active),
         });
         router.refresh();
       } catch {

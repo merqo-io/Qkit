@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { undoToast } from "@merqo/ui";
 import { canAddMenuItem, type Entitlement } from "@/lib/plan";
 import type { ALLERGEN_TAGS, MenuItemFormInput } from "@/lib/schemas";
 import type { MenuCategory } from "@/lib/types";
@@ -42,19 +42,17 @@ function useCategoryMutations(
     if (index === -1) return;
     const removed = categories[index]!;
     onCategoriesChange(categories.filter((c) => c.id !== id));
-    toast(`${removed.label || "Section"} removed`, {
+    undoToast({
+      message: `${removed.label || "Section"} removed`,
       duration: REMOVE_UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const current = categoriesRef.current;
-          const at = Math.min(index, current.length);
-          onCategoriesChange([
-            ...current.slice(0, at),
-            removed,
-            ...current.slice(at),
-          ]);
-        },
+      onUndo: () => {
+        const current = categoriesRef.current;
+        const at = Math.min(index, current.length);
+        onCategoriesChange([
+          ...current.slice(0, at),
+          removed,
+          ...current.slice(at),
+        ]);
       },
     });
   }
@@ -134,15 +132,13 @@ export function useMenuMutations({
   function removeItem(index: number) {
     const removed = items[index];
     onChange(items.filter((_, i) => i !== index));
-    toast(`${removed.name || "Item"} removed`, {
+    undoToast({
+      message: `${removed.name || "Item"} removed`,
       duration: REMOVE_UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const current = itemsRef.current;
-          const at = Math.min(index, current.length);
-          onChange([...current.slice(0, at), removed, ...current.slice(at)]);
-        },
+      onUndo: () => {
+        const current = itemsRef.current;
+        const at = Math.min(index, current.length);
+        onChange([...current.slice(0, at), removed, ...current.slice(at)]);
       },
     });
   }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { FaqPage } from "@merqo/ui";
 
 import { Nav } from "@/components/landing/nav";
+import { signOutToHome } from "@/app/actions/auth";
+import { toLandingAccount } from "@/lib/landing-account";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { createServerClient } from "@/lib/supabase/server";
 import { FAQ_GROUPS, FAQ_INTRO, FAQ_TITLE } from "./faq-content";
@@ -22,7 +24,7 @@ export default async function FaqRoute() {
 
   return (
     <div className="min-h-screen">
-      <Nav authed={Boolean(user)} />
+      <Nav account={toLandingAccount(user)} signOutAction={signOutToHome} />
       <main>
         <FaqPage title={FAQ_TITLE} intro={FAQ_INTRO} groups={FAQ_GROUPS} />
       </main>

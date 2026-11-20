@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
 import { OrderCard } from "@/components/board/order-card";
 import { displayOrderNumber } from "@/lib/orders";
 import {
@@ -10,9 +9,8 @@ import {
 } from "@/lib/numbering-baselines";
 import { Ticket } from "@/components/widgets/ticket";
 import { Paginated } from "@/components/widgets/paginated";
-import { SegmentedControl } from "@merqo/ui";
+import { SearchField, SegmentedControl } from "@merqo/ui";
 import {
-  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -177,17 +175,14 @@ export function CompletedOrdersList({
             </SelectContent>
           </Select>
         )}
-        <div className="relative min-w-[14rem] flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search order # or customer name"
-            className="h-9 rounded-lg pl-9"
-            aria-label="Search completed orders"
-          />
-        </div>
+        <SearchField
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Search order # or customer name"
+          aria-label="Search completed orders"
+          wrapperClassName="min-w-[14rem] flex-1"
+          className="h-9 rounded-lg"
+        />
       </div>
 
       {filtered.length === 0 ? (
