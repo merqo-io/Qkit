@@ -38,7 +38,7 @@ beforeEach(() => {
 describe("DashboardNav", () => {
   const baseProps = {
     signOut: vi.fn(async () => {}),
-    vendorName: "Kopi Corner",
+    accountLabel: "Kopi Corner",
     avatarUrl: null,
     tier: "free" as const,
   };
@@ -113,9 +113,10 @@ describe("DashboardNav", () => {
     expect(screen.getAllByText("Kopi Corner").length).toBeGreaterThan(1);
   });
 
-  it("falls back to a generic subtitle when the vendor has no name set", () => {
-    render(<DashboardNav {...baseProps} vendorName="" />);
-    expect(screen.getAllByText("Your stall").length).toBeGreaterThan(0);
+  it("shows the label it is given verbatim, with no local fallback text", () => {
+    render(<DashboardNav {...baseProps} accountLabel="ann" />);
+    expect(screen.getAllByText("ann").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Your stall")).not.toBeInTheDocument();
   });
 
   it("stamps data-tour=nav-account on the account trigger", () => {
