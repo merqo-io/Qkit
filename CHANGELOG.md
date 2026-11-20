@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing story: the gap under the Try it devices now matches the closing section's top and bottom padding (about 175px down to about 96px on desktop, 195px to about 58px on phones). The wrapper padding follows the same clamp, the stage's trailing padding is gone, and on phones the hidden device no longer reserves height under the other tab's shorter frame.
 - Landing hero carousel: the sample ticket's action button grows with its label instead of clipping "Confirm payment received" on narrow two-column cards; the carousel's outer box is a plain rounded box (a booth, not an order chit, so no zig-zag edges); each slide is top-aligned so the booth header stays put as the ticket count changes.
 - Landing follow-ups: a burst of wheel events over the hero carousel restarts its countdown once; the carousel and the how-it-works story follow the reduced-motion setting live; with reduced motion the desktop story highlights the step in view again and no longer flashes the start state on first paint; the "user guide" link is a 44px tap target; the footer uses the compact two-row layout on phones.
 

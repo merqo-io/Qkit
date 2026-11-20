@@ -98,3 +98,15 @@ describe("TryIt with reduced motion", () => {
     rect.mockRestore();
   });
 });
+
+describe("TryIt bottom spacing", () => {
+  it("pads the story to the closing section's clamp minus the replay row", () => {
+    mockMatchMedia({ reduced: false });
+    const { container } = render(<TryIt />);
+    const story = container.querySelector("#story");
+    expect(story?.className).toContain(
+      "pb-[max(0px,calc(clamp(56px,8vw,96px)_-_58px))]",
+    );
+    expect(story?.className).not.toMatch(/\bmd:pb-24\b/);
+  });
+});
