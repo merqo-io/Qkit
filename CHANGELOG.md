@@ -29,6 +29,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing nav controls (FAQ, About, Dashboard, Sign in, Get started and the account avatar) now have at least a 44px tap target below the sm breakpoint; the desktop size is unchanged.
 - Moved `@merqo/ui` to 0.54.1: the legal gate no longer caches a failed legal-status check, and idempotent Supabase and merqo calls retry once on a dropped connection, which fixes the sign-in loop back to `/legal/accept`.
 - Signed-in visitors on `/`, `/about` and `/faq` now get the account menu (avatar, Sign out) next to a Dashboard link instead of a lone Dashboard button, so they can sign out without leaving the public site; sign out returns to `/`. The FAQ nav link is now the same ghost button as About and Dashboard (it was a bare styled link, so its weight and padding differed).
 

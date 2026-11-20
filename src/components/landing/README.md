@@ -21,6 +21,9 @@ inline mark used on the login page.
   (avatar dropdown with sign out, help and feedback wired to
   `submitSupportMessage`/`submitFeedback`); signed out shows "Sign in" and
   "Get started".
+- Tap targets: every nav control is at least 44x44px below `sm` (links via
+  `h-11 min-w-11`, the `@merqo/ui` avatar trigger via an arbitrary child
+  variant on its wrapper) and keeps the 32px look from `sm` up.
 - `nav.dom.test.tsx` — signed out has no account menu, signed in has
   Dashboard plus a menu whose Sign out calls the action, and FAQ, About and
   Dashboard share the same styling classes.
