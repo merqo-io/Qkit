@@ -60,7 +60,6 @@ export function Nav({
               signOutAction={signOutAction}
               actions={{ submitSupport: submitLandingSupport, submitFeedback }}
               supportCategories={SUPPORT_CATEGORY_LABELS}
-              LinkComponent={Link}
             />
           ) : (
             <>

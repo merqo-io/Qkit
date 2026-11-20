@@ -14,8 +14,10 @@ service-worker registrar and the maintenance banner.
   anything underneath); renders nothing when disabled or the message is
   blank, so a stray enabled-but-empty row never shows an empty bar to every
   visitor.
+- `providers.dom.test.tsx` — RTL test that `Providers` supplies `next/link`
+  through `useAppLink`.
 - `providers.tsx` — `Providers({ children })`: app-wide client providers —
-  Radix `TooltipProvider` and the `sonner` `Toaster`.
+  `AppLinkProvider` (hands `next/link` to every client export of `@merqo/ui`, so none needs a `LinkComponent` prop), Radix `TooltipProvider` and the `sonner` `Toaster`.
 - `service-worker-registrar.tsx` — `ServiceWorkerRegistrar()`: registers
   `/sw.js` (best-effort) so ready-order notifications can use
   `registration.showNotification` (required on Android Chrome) and the app

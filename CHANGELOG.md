@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Repinned `@merqo/ui` to v0.57.0 and mounted its `AppLinkProvider` with `next/link` in `Providers`, so `AccountMenu`, `DashboardNav`, `LoginForm`, `ResetPasswordForm` and `LandingAccountNav` navigate client-side without a `LinkComponent` prop. The prop is dropped from `DashboardNav` and `LandingAccountNav`.
 - Repinned `@merqo/ui` to v0.56.1: the account menu avatar trigger now has a 44px touch target below the sm breakpoint, with an unchanged layout footprint.
 - `@merqo/ui` moves to v0.56.0. The landing nav's signed-in end is now the shared `LandingAccountNav`, and the account is named after the vendor's stall (`toNavUser`), falling back to the email name if that read fails. The local `toLandingAccount` wrapper is removed; help requests go through a small `submitLandingSupport` adapter.
 - Landing page shell rebuilt around the story: the hero now has the Piloting row, a "Scan · order · track" pill and a sample-board carousel made from the real board ticket parts (five boards with captions, one countdown that any interaction restarts). The trust line and the dark pain band are gone, and the closing section reads "Put your menu on it." with the same pricing line and three FAQs. The landing-only ticket and board copies are deleted.
