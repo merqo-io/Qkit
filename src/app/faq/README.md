@@ -8,7 +8,7 @@ cost and pilot).
 
 ## Contents
 
-- `page.tsx` - `FaqRoute`, an async Server Component. Same session-aware `Nav`
+- `page.tsx` - `FaqRoute`, an async Server Component. Same session-aware `Nav` (account named via `getLandingNavUser`)
   and `SiteFooter` as `/about`; the body is `@merqo/ui`'s `FaqPage` with
   JSON-LD on and no `closing` line.
 - `faq-content.ts` - the title, intro and `FAQ_GROUPS` copy. Copy rules: no

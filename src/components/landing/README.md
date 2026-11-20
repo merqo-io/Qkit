@@ -8,25 +8,24 @@ inline mark used on the login page.
 
 ## Contents
 
-- `nav.tsx` — `Nav({ account, signOutAction })` (a client component, so
-  it can pass `next/link` to the shared account menu): the sticky top nav,
+- `nav.tsx` — `Nav({ user, signOutAction })` (a client component, so
+  it can pass `next/link` to the shared account menu; `user` is a `NavUser | null`): the sticky top nav,
   shared by the landing page, `/about` and `/faq`. Composes `@merqo/ui`'s
   `LandingNav` shell (sticky positioning, background blur, border, and the
   responsive `end`-slot gap live there) and supplies the wordmark (a plain
   `<a href="/#top">`, since `Link` leaves the old hash in the URL bar on a
-  fragment-only jump) and the right-side content. "FAQ", "About" and
-  "Dashboard" are all `Button asChild variant="ghost"` links so they render
-  identically; a bare styled `Link` made FAQ look different before. Signed
-  in (`account` set) shows "Dashboard" plus `@merqo/ui`'s `AccountMenu`
-  (avatar dropdown with sign out, help and feedback wired to
-  `submitSupportMessage`/`submitFeedback`); signed out shows "Sign in" and
+  fragment-only jump) and the right-side content. "FAQ" and "About"
+  are `Button asChild variant="ghost"` links so they render identically. Signed
+  in (`user` set) renders `@merqo/ui`'s `LandingAccountNav` (Dashboard link plus
+  the account menu with sign out, help via `submitLandingSupport` and feedback
+  via `submitFeedback`, categories in `SUPPORT_CATEGORY_LABELS`); signed out shows "Sign in" and
   "Get started".
-- Tap targets: every nav control is at least 44x44px below `sm` (links via
-  `h-11 min-w-11`, the `@merqo/ui` avatar trigger via an arbitrary child
-  variant on its wrapper) and keeps the 32px look from `sm` up.
+- Tap targets: every nav control is at least 44x44px below `sm` (FAQ, About and the signed-out links via
+  `h-11 min-w-11`; the Dashboard link and avatar trigger inside
+  `LandingAccountNav` carry their own 44px sizing) and keeps the 32px look from `sm` up.
 - `nav.dom.test.tsx` — signed out has no account menu, signed in has
-  Dashboard plus a menu whose Sign out calls the action, and FAQ, About and
-  Dashboard share the same styling classes.
+  Dashboard plus a menu opened by touch whose Sign out calls the action, and FAQ and About
+  share the same styling classes.
 - `nav.test.tsx` — asserts the About/FAQ/Sign-in/Get-started/Dashboard
   link targets, and that the FAQ link (`/faq`) is not
   hidden below `sm`, while the signed-out "Sign in" link is hidden below `sm`
@@ -52,7 +51,7 @@ inline mark used on the login page.
 ## Connectivity
 
 `nav.tsx`'s `Nav` is rendered by both
-`src/app/page.tsx` (the landing page), `src/app/about/page.tsx` and `src/app/faq/page.tsx`, each passing `toLandingAccount(user)` and the `signOutToHome` action.
+`src/app/page.tsx` (the landing page), `src/app/about/page.tsx` and `src/app/faq/page.tsx`, each passing `await getLandingNavUser(user)` and the `signOutToHome` action.
 `wordmark.tsx`'s `Wordmark` is rendered by `src/app/(auth)/login/page.tsx`.
 None of these are used by the vendor dashboard, which has its own wordmark
 markup inlined in `src/app/dashboard/dashboard-nav.tsx` (also composing

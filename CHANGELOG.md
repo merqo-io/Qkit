@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `@merqo/ui` moves to v0.56.0. The landing nav's signed-in end is now the shared `LandingAccountNav`, and the account is named after the vendor's stall (`toNavUser`), falling back to the email name if that read fails. The local `toLandingAccount` wrapper is removed; help requests go through a small `submitLandingSupport` adapter.
 - Landing page shell rebuilt around the story: the hero now has the Piloting row, a "Scan · order · track" pill and a sample-board carousel made from the real board ticket parts (five boards with captions, one countdown that any interaction restarts). The trust line and the dark pain band are gone, and the closing section reads "Put your menu on it." with the same pricing line and three FAQs. The landing-only ticket and board copies are deleted.
 - Landing "How it works" is now one order shown on two screens: the customer's phone and the vendor's board, driven by one shared state and built from the real status page and ticket parts. Below 960px, tabs switch between the screens and flash "Tap to continue" when the next tap is on the hidden one. The 10 second auto-clear is labelled as a sample delay.
 - Light theme palette: darker text, borders, primary text and status colours for stronger contrast (every text grade is at least 5:1 on the page and card), a slightly deeper khaki fill, and a flat page background with no grain or radial glows. Dark mode is unchanged. DESIGN.md records the new tokens and the public-page rules.

@@ -11,6 +11,10 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: { getUser },
   }),
 }));
+vi.mock("@/lib/landing-nav-user", () => ({
+  getLandingNavUser: async (user: { id: string } | null) =>
+    user ? { name: "Kopi Corner" } : null,
+}));
 vi.mock("@/components/landing/nav", () => ({
   Nav: (props: unknown) => {
     nav(props);
@@ -50,9 +54,7 @@ describe("public landing page", () => {
     render(await LandingPage());
     for (const link of screen.getAllByRole("link", { name: "Get started" }))
       expect(link).toHaveAttribute("href", "/login?mode=signup");
-    expect(nav).toHaveBeenCalledWith(
-      expect.objectContaining({ account: null }),
-    );
+    expect(nav).toHaveBeenCalledWith(expect.objectContaining({ user: null }));
   });
   it("keeps vendor troubleshooting out of the public page and points to the guide", async () => {
     render(await LandingPage());
@@ -72,7 +74,7 @@ describe("public landing page", () => {
       expect(link).toHaveAttribute("href", "/dashboard");
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
-        account: { name: "Account", avatarUrl: null },
+        user: { name: "Kopi Corner" },
       }),
     );
   });
