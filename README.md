@@ -112,6 +112,8 @@ function.
 | `/admin`                                       | qkit administrator | Vendor and platform administration                                                                                       |
 | `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                                                                                    |
 
+The public landing page `/` ends with the "Try it" story and a closing section; the story's bottom spacing is tied to the closing section's padding so the gaps above and below the divider match (see `src/components/landing/journey/README.md`).
+
 ## Payments and notifications
 
 Paykit owns payment configuration and transactions. qkit stores a minimal booth
