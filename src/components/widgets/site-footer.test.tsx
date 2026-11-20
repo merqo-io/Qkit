@@ -11,7 +11,7 @@ describe("SiteFooter", () => {
       screen.getByRole("link", { name: "qkit home, back to top" }),
     ).toHaveAttribute("href", "/#top");
     expect(screen.getByText("a Merqo kit")).toBeInTheDocument();
-    expect(screen.getByText("© 2026 qkit · a Merqo kit")).toBeInTheDocument();
+    expect(screen.getByText("© 2026 Merqo")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Vendor sign in →" }),
     ).toHaveAttribute("href", "/login");

@@ -63,7 +63,7 @@ describe("DashboardLayout", () => {
 
     const footer = container.querySelector("footer");
     expect(footer?.parentElement).toHaveClass("contents", "print:hidden");
-    expect(footer).toHaveTextContent("© 2026 qkit · a Merqo kit");
+    expect(footer).toHaveTextContent("© 2026 Merqo");
     expect(footer).not.toHaveTextContent("Vendor sign in");
   });
 });
