@@ -1,136 +1,181 @@
-// Sample data for the 4 landing-hero scenario boards: two that take money (a
-// coffee cart, a payment-claim flow) and two queue-only ice cream carts with
-// topping options and no payment: one calm, one a rush with an overdue and an
-// aging ticket.
+import type { SampleOrder } from "./sample-ticket";
 
-import type { LandingBoardData } from "./landing-board";
+export type LandingBoardData = {
+  key: string;
+  title: string;
+  lead: string;
+  caption: string;
+  orders: SampleOrder[];
+};
 
+// Five sample boards, one per thing the board does for a vendor: finish an
+// order, start one, check a payment, spot the oldest ticket, hand one over.
+// The amber and red minutes are the vendor's own setting, so the rush caption
+// calls 7 and 12 an example.
 export const LANDING_BOARDS: LandingBoardData[] = [
   {
-    key: "coffee",
+    key: "ready",
     title: "Kopitiam Cart",
-    activeCount: 2,
-    tickets: [
+    lead: "Mark Ready.",
+    caption:
+      "Ada's kopi is done. Her ticket also tells you she hasn't paid yet.",
+    orders: [
       {
-        n: "0042",
+        number: "0042",
         name: "Ada",
         status: "preparing",
-        age: { label: "4m", tone: "aging" },
-        payment: "unpaid",
-        lines: [{ q: 2, name: "Kopi", opt: "Iced" }],
+        ageMins: 4,
+        payment: "pending",
+        items: [{ quantity: 2, name: "Kopi", options: ["Iced"] }],
         action: "Mark Ready",
       },
       {
-        n: "0041",
+        number: "0041",
         name: "Wei",
         status: "ready",
-        lines: [
-          { q: 1, name: "Milo", opt: "Hot" },
-          { q: 3, name: "Teh", opt: "Less sugar" },
+        ageMins: 6,
+        items: [
+          { quantity: 1, name: "Milo", options: ["Hot"] },
+          { quantity: 3, name: "Teh", options: ["Less sugar"] },
         ],
         action: "Mark Picked Up",
       },
     ],
   },
   {
-    key: "icecream",
+    key: "start",
     title: "Ice Cream Cart",
-    activeCount: 2,
-    tickets: [
+    lead: "Start.",
+    caption: "A new order waits for you to begin it.",
+    orders: [
       {
-        n: "0018",
+        number: "0019",
+        name: "Tom",
+        status: "pending",
+        ageMins: 1,
+        items: [
+          {
+            quantity: 1,
+            name: "Single Scoop",
+            options: ["Mango", "Sprinkles"],
+          },
+        ],
+        action: "Start now",
+      },
+      {
+        number: "0018",
         name: "Mei",
         status: "preparing",
-        lines: [
+        ageMins: 3,
+        items: [
           {
-            q: 1,
+            quantity: 1,
             name: "Single Scoop",
-            options: [
-              { group: "Flavour", choice: "Vanilla" },
-              { group: "Toppings", choice: "Sprinkles" },
-            ],
+            options: ["Vanilla", "Sprinkles"],
           },
         ],
         action: "Mark Ready",
-      },
-      {
-        n: "0017",
-        name: "Sam",
-        status: "ready",
-        lines: [
-          {
-            q: 2,
-            name: "Double Scoop",
-            options: [
-              { group: "Flavour", choice: "Chocolate" },
-              { group: "Toppings", choice: "Peanuts, Choc sauce" },
-            ],
-          },
-        ],
-        action: "Mark Picked Up",
       },
     ],
   },
   {
     key: "payment",
     title: "Kopitiam Cart",
-    activeCount: 2,
-    tickets: [
+    lead: "Says paid.",
+    caption: "Nur paid by PayNow. Check your bank app, then confirm.",
+    orders: [
       {
-        n: "0031",
+        number: "0031",
         name: "Nur",
         status: "preparing",
+        ageMins: 2,
         payment: "claimed",
-        lines: [{ q: 1, name: "Kopi", opt: "Iced" }],
+        amount: "$2.40",
+        items: [{ quantity: 1, name: "Kopi", options: ["Iced"] }],
         action: "Confirm payment received",
       },
       {
-        n: "0030",
+        number: "0030",
         name: "Jun",
         status: "completed",
-        payment: "paid",
-        lines: [{ q: 2, name: "Teh" }],
+        items: [{ quantity: 2, name: "Teh" }],
       },
     ],
   },
   {
     key: "rush",
     title: "Ice Cream Cart",
-    activeCount: 2,
-    tickets: [
+    lead: "Rush.",
+    caption:
+      "You choose when a ticket turns amber and red. Here it's 7 and 12 minutes, so the oldest stands out.",
+    orders: [
       {
-        n: "0056",
+        number: "0056",
         name: "Lim",
         status: "preparing",
-        age: { label: "12m", tone: "overdue" },
-        lines: [
+        ageMins: 12,
+        tone: "overdue",
+        items: [
           {
-            q: 2,
+            quantity: 2,
             name: "Double Scoop",
-            options: [
-              { group: "Flavour", choice: "Chocolate" },
-              { group: "Toppings", choice: "Peanuts, Sprinkles" },
-            ],
+            options: ["Chocolate", "Peanuts, Sprinkles"],
           },
         ],
         action: "Mark Ready",
       },
       {
-        n: "0057",
+        number: "0057",
         name: "Aisha",
         status: "preparing",
-        age: { label: "7m", tone: "aging" },
-        lines: [
+        ageMins: 7,
+        tone: "aging",
+        items: [
           {
-            q: 1,
+            quantity: 1,
             name: "Single Scoop",
-            options: [
-              { group: "Flavour", choice: "Strawberry" },
-              { group: "Toppings", choice: "Choc sauce" },
-            ],
+            options: ["Strawberry", "Choc sauce"],
           },
         ],
         action: "Mark Ready",
+      },
+    ],
+  },
+  {
+    key: "handover",
+    title: "Ice Cream Cart",
+    lead: "Ready.",
+    caption:
+      "Sam's phone already says to collect. Tap Mark Picked Up, or let it clear itself after the minutes you set.",
+    orders: [
+      {
+        number: "0018",
+        name: "Mei",
+        status: "preparing",
+        ageMins: 5,
+        items: [
+          {
+            quantity: 1,
+            name: "Single Scoop",
+            options: ["Vanilla", "Sprinkles"],
+          },
+        ],
+        action: "Mark Ready",
+      },
+      {
+        number: "0017",
+        name: "Sam",
+        status: "ready",
+        ageMins: 8,
+        items: [
+          {
+            quantity: 2,
+            name: "Double Scoop",
+            options: ["Chocolate", "Peanuts, Choc sauce"],
+          },
+        ],
+        action: "Mark Picked Up",
+        drain: true,
       },
     ],
   },

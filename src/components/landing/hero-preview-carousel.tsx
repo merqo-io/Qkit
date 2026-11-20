@@ -1,151 +1,186 @@
 "use client";
 
-// Hero visual: a swipeable horizontal carousel of mock "live order" boards so
-// visitors see the real product board (pricing, queue-only, payment, rush).
-// Native scroll-snap handles finger + trackpad; pointer handlers add mouse
-// click-drag; a 10s timer auto-advances but pauses while the visitor interacts.
-// Decorative only (aria-hidden). Reduced-motion: no auto-advance, no smooth.
-
 import { cn } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LandingBoard } from "@/components/landing/landing-board";
 import { LANDING_BOARDS } from "@/components/landing/landing-boards";
+import { SampleTicket } from "@/components/landing/sample-ticket";
+import { Ticket } from "@/components/widgets/ticket";
 import { nearestIndex } from "@/lib/carousel";
 
-const ROTATE_MS = 10_000;
+const ROTATE_MS = 7000;
+const COUNT = LANDING_BOARDS.length;
 
+/**
+ * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
+ * click-drag on top, and one countdown that moves to the next board. Any touch
+ * of the carousel restarts the whole countdown, so a visitor reading a board is
+ * never moved on a moment later. Reduced motion has no auto-advance.
+ */
 export function HeroPreviewCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const timer = useRef<number | null>(null);
+  const index = useRef(0);
+  const paused = useRef(false);
   const reduced = useRef(false);
+  const [active, setActive] = useState(0);
+  const [epoch, setEpoch] = useState(0);
 
-  const scrollToIndex = useCallback((i: number) => {
+  const restart = useCallback(() => setEpoch((e) => e + 1), []);
+
+  const show = useCallback((i: number) => {
     const el = trackRef.current;
-    if (!el) return;
-    el.scrollTo({
+    index.current = i;
+    setActive(i);
+    el?.scrollTo?.({
       left: i * el.clientWidth,
       behavior: reduced.current ? "auto" : "smooth",
     });
   }, []);
 
-  const stopTimer = useCallback(() => {
-    if (timer.current !== null) {
-      window.clearInterval(timer.current);
-      timer.current = null;
-    }
-  }, []);
-
-  const startTimer = useCallback(() => {
-    if (reduced.current) return;
-    stopTimer();
-    timer.current = window.setInterval(() => {
-      const el = trackRef.current;
-      if (!el) return;
-      const cur = nearestIndex(
-        el.scrollLeft,
-        el.clientWidth,
-        LANDING_BOARDS.length,
-      );
-      scrollToIndex((cur + 1) % LANDING_BOARDS.length);
-    }, ROTATE_MS);
-  }, [scrollToIndex, stopTimer]);
-
   useEffect(() => {
     reduced.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    startTimer();
-    return stopTimer;
-  }, [startTimer, stopTimer]);
+  }, []);
+
+  useEffect(() => {
+    if (reduced.current) return;
+    const id = window.setTimeout(() => {
+      if (!paused.current && !document.hidden)
+        show((index.current + 1) % COUNT);
+      restart();
+    }, ROTATE_MS);
+    return () => window.clearTimeout(id);
+  }, [epoch, restart, show]);
 
   const onScroll = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    setActive(
-      nearestIndex(el.scrollLeft, el.clientWidth, LANDING_BOARDS.length),
-    );
+    const i = nearestIndex(el.scrollLeft, el.clientWidth, COUNT);
+    index.current = i;
+    setActive(i);
   }, []);
 
-  const drag = useRef<{ startX: number; startLeft: number } | null>(null);
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
-    stopTimer();
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = trackRef.current;
-    if (!el) return;
-    drag.current = { startX: e.clientX, startLeft: el.scrollLeft };
+    if (e.pointerType !== "mouse" || e.button !== 0 || !el) return;
+    drag.current = { x: e.clientX, left: el.scrollLeft, moved: false };
     el.setPointerCapture?.(e.pointerId);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = trackRef.current;
-    if (!drag.current || !el) return;
-    el.scrollLeft = drag.current.startLeft - (e.clientX - drag.current.startX);
-  };
-  const endDrag = (e: React.PointerEvent) => {
-    const el = trackRef.current;
-    if (drag.current && el) {
-      el.releasePointerCapture?.(e.pointerId);
-      scrollToIndex(
-        nearestIndex(el.scrollLeft, el.clientWidth, LANDING_BOARDS.length),
-      );
+    const d = drag.current;
+    if (!d || !el) return;
+    const dx = e.clientX - d.x;
+    if (Math.abs(dx) > 4) {
+      d.moved = true;
+      el.dataset.drag = "";
     }
+    el.scrollLeft = d.left - dx;
+  };
+  const endDrag = () => {
+    const el = trackRef.current;
+    const d = drag.current;
     drag.current = null;
-    startTimer();
+    if (!el || !d) return;
+    delete el.dataset.drag;
+    if (!d.moved) return;
+    const w = el.clientWidth;
+    const delta = el.scrollLeft - d.left;
+    const flicked = Math.abs(delta) > w * 0.15;
+    const step = flicked ? Math.sign(delta) : 0;
+    show(Math.min(COUNT - 1, Math.max(0, Math.round(d.left / w) + step)));
   };
 
   return (
-    // min-w-0 is load-bearing: as a grid/flex child this wrapper defaults to
-    // min-width:auto, which would report the scroll track's full 4-board width
-    // as its minimum and stretch the whole page wide (horizontal overflow →
-    // pinch-zoom on mobile). min-w-0 lets it shrink to the column so the track
-    // actually clips and scrolls.
-    <div aria-hidden className="w-full min-w-0">
-      <div
-        ref={trackRef}
-        onScroll={onScroll}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onPointerEnter={stopTimer}
-        onPointerLeave={startTimer}
-        className="flex w-full min-w-0 snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    <div
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Sample order boards"
+      className="min-w-0"
+      onPointerDown={restart}
+      onTouchStart={restart}
+      onTouchEnd={restart}
+      onWheel={restart}
+      onKeyDown={restart}
+      onClick={restart}
+      onMouseEnter={() => (paused.current = true)}
+      onMouseLeave={() => (paused.current = false)}
+      onFocus={() => (paused.current = true)}
+      onBlur={() => (paused.current = false)}
+    >
+      <Ticket
+        radius="xl"
+        shadow="none"
+        className="flex h-full min-h-[420px] w-full min-w-0 flex-col bg-card"
       >
-        {LANDING_BOARDS.map((board) => (
-          <div key={board.key} className="w-full shrink-0 snap-center px-0.5">
-            <LandingBoard board={board} />
-          </div>
-        ))}
-      </div>
+        <div
+          ref={trackRef}
+          data-testid="hero-track"
+          onScroll={onScroll}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className="flex flex-1 cursor-grab snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] data-[drag]:cursor-grabbing data-[drag]:snap-none data-[drag]:select-none [&::-webkit-scrollbar]:hidden"
+        >
+          {LANDING_BOARDS.map((board, i) => (
+            <div
+              key={board.key}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${COUNT}`}
+              className="flex min-w-0 flex-[0_0_100%] snap-start flex-col justify-center px-4 pt-6 pb-1 sm:px-5"
+            >
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Sample orders
+                  </p>
+                  <p className="font-display mt-0.5 truncate text-[0.95rem] font-semibold">
+                    {board.title}
+                  </p>
+                </div>
+                <p className="text-xs font-bold whitespace-nowrap text-primary">
+                  {board.orders.filter((o) => o.status !== "completed").length}{" "}
+                  active
+                </p>
+              </div>
+              <div className="grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3">
+                {board.orders.map((order) => (
+                  <SampleTicket key={order.number} order={order} />
+                ))}
+              </div>
+              <p className="mt-3 min-h-6 text-[0.8125rem] text-muted-foreground">
+                <b className="font-semibold text-foreground">{board.lead}</b>{" "}
+                {board.caption}
+              </p>
+            </div>
+          ))}
+        </div>
 
-      <div className="mt-0.5 -mb-3 flex items-center justify-center">
-        {LANDING_BOARDS.map((board, i) => (
-          <button
-            key={board.key}
-            type="button"
-            tabIndex={-1}
-            data-dot
-            data-active={i === active}
-            onClick={() => {
-              stopTimer();
-              scrollToIndex(i);
-              startTimer();
-            }}
-            // The 6px dot is the visual; the 44px button is the touch target.
-            // The wrapper is aria-hidden, so these stay out of the tab order
-            // and unlabelled. The row's negative bottom margin offsets the
-            // extra button height so the layout does not move.
-            className="grid size-11 cursor-pointer place-items-center rounded-full"
-          >
-            <span
-              className={cn(
-                "size-1.5 rounded-full transition-colors duration-500",
-                i === active ? "bg-primary" : "bg-border",
-              )}
-            />
-          </button>
-        ))}
-      </div>
+        <div className="flex justify-center px-2 pb-1">
+          {LANDING_BOARDS.map((board, i) => (
+            <button
+              key={board.key}
+              type="button"
+              aria-label={`Show sample ${i + 1}: ${board.lead.replace(/\.$/, "")}`}
+              aria-current={i === active}
+              onClick={() => show(i)}
+              className="group grid size-11 cursor-pointer place-items-center rounded-lg"
+            >
+              <span
+                className={cn(
+                  "h-2 rounded-full transition-[width,background-color] duration-300 motion-reduce:transition-none",
+                  i === active
+                    ? "w-[22px] bg-foreground"
+                    : "w-2 bg-border group-hover:bg-muted-foreground",
+                )}
+              />
+            </button>
+          ))}
+        </div>
+      </Ticket>
     </div>
   );
 }
