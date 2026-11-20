@@ -21,6 +21,9 @@ inline mark used on the login page.
   (avatar dropdown with sign out, help and feedback wired to
   `submitSupportMessage`/`submitFeedback`); signed out shows "Sign in" and
   "Get started".
+- Tap targets: every nav control is at least 44x44px below `sm` (links via
+  `h-11 min-w-11`, the `@merqo/ui` avatar trigger via an arbitrary child
+  variant on its wrapper) and keeps the 32px look from `sm` up.
 - `nav.dom.test.tsx` — signed out has no account menu, signed in has
   Dashboard plus a menu whose Sign out calls the action, and FAQ, About and
   Dashboard share the same styling classes.
@@ -34,41 +37,17 @@ inline mark used on the login page.
   `text-primary` accent on the q. Used by the login page's two panels (`lg`
   and `xl`) and the MFA page (`lg`), where the nav shell doesn't apply.
 - `wordmark.test.tsx` — asserts the text, the accent class and the size class.
-- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the landing hero's
-  swipeable "live order board" carousel over `LANDING_BOARDS` — native
-  scroll-snap plus pointer-drag and a 10s auto-advance timer (paused on
-  interaction, skipped under reduced motion), decorative (`aria-hidden`); each dot is a 44px tap target around a 6px visual.
+- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the hero's sample-board carousel over `LANDING_BOARDS`. Native scroll-snap plus mouse drag, one `setTimeout` countdown (7s) that any click, tap, swipe, drag, wheel or key restarts, so auto-advance never skips a board. Hover and focus pause it, reduced motion switches it off. It is a labelled carousel region; each dot is a 44px tap target.
 - `rhythm.ts` — the landing's one spacing scale as shared class strings
   (`CONTAINER`, `SECTION_*`, `CHAPTER_*`): 80px then 96px between major
-  sections and for the pain band's padding, 40px then 48px each side of a
+  sections, 40px then 48px each side of a
   chapter rule, so a rule reads as the same break as a section edge. Add new
   landing spacing here instead of writing new padding classes in `page.tsx`.
 - `journey/` — the scroll-and-try journey below the hero (customer, stall and queue chapters, closing call, FAQ rows); see its README.
-- `hero-preview-carousel.dom.test.tsx` — RTL test for carousel dot
-  navigation/active state.
-- `landing-board.tsx` — `LandingBoard({ board })`: renders one "live order
-  board" ticket container (title + static active count, no pulse because the data is sample) for the hero
-  carousel, laying out its `LandingTicket`s in a 2-col grid. The board has no
-  shadow; the Ticket border separates it from the page.
-- `landing-board.dom.test.tsx` — RTL test for `LandingBoard` rendering and
-  its no-literal-shadow surface.
-- `landing-boards.ts` — `LANDING_BOARDS`: static sample data for the 4 hero
-  scenario boards (coffee cart, ice-cream cart, a payment-claim flow, a
-  "rush" with aging/overdue tickets).
-- `landing-cta.tsx` — `LandingCta({ href, children, variant, event })`: a
-  landing-page call-to-action `Button`+`Link` that fires an optional
-  analytics event (`logEvent`) on click before navigating.
-- `landing-ticket.tsx` — `LandingTicket({ t })`: presentational "order chit"
-  mirroring the real `OrderCard`'s layout for the landing hero: a large
-  number and name, every option on one line with nothing to expand, a single
-  attention line ("Not paid yet", "Says paid. Check the payment", same wording
-  as `ticketAttention`), a status badge only past preparing, the aging wash,
-  and one action button.
-  No prices or totals. No server actions, purely
-  decorative sample data.
-- `landing-ticket.dom.test.tsx` — RTL test for `LandingTicket` rendering
-  across status/payment/age combinations, the single attention line, and
-  options shown without a toggle.
+- `hero-preview-carousel.dom.test.tsx` — RTL test for the carousel: real ticket parts, closed ticket without footer, the 7s advance, the countdown restart on interaction, no double jump, reduced motion and dot navigation.
+- `landing-boards.ts` — `LANDING_BOARDS`: the five sample boards (Mark Ready, Start, Says paid, Rush, Ready) with their captions.
+- `landing-cta.tsx` — `LandingCta({ href, children, variant, event })`: a landing-page call-to-action `Button`+`Link` that fires an optional analytics event (`logEvent`) on click before navigating.
+- `sample-ticket.tsx` — `SampleTicket({ order })`: one hero ticket assembled from the board's own parts (`Ticket`, `TicketItems`, `AttentionLine`, `TicketFooter`, `OrderStatusBadge`, `ticketAttention`) so it cannot drift from `OrderCard`. The wired parts (more menu, buttons) are plain text. A closed ticket has no footer and aligns to the start.
 
 ## Connectivity
 

@@ -21,7 +21,14 @@ vi.mock("@/components/widgets/site-footer", () => ({
   SiteFooter: () => null,
 }));
 vi.mock("@/components/landing/hero-preview-carousel", () => ({
-  HeroPreviewCarousel: () => null,
+  HeroPreviewCarousel: () => <div data-sample-board />,
+}));
+vi.mock("@/components/landing/journey/try-it", () => ({
+  TryIt: () => (
+    <section id="how">
+      <h2>What your customer sees. What you see.</h2>
+    </section>
+  ),
 }));
 vi.mock("@/components/landing/landing-cta", () => ({
   LandingCta: ({ href, children }: { href: string; children: ReactNode }) => (
@@ -78,34 +85,42 @@ describe("public landing page", () => {
     );
     expect(screen.queryByText(/^Not yet\./)).not.toBeInTheDocument();
   });
-  it("lets the visitor play one order through three chapters with exactly three FAQ rows", async () => {
+  it("shows the hero, the story section and the closing call with exactly three FAQ rows", async () => {
     const { container } = render(await LandingPage());
     for (const name of [
-      "You are shouting numbers again.",
-      "Order a kopi.",
-      "It is already on your board.",
-      "The number calls itself.",
-      "That was the whole product. Now picture your menu on it.",
+      "Booth ordering, minus the queue.",
+      "What your customer sees. What you see.",
+      "Put your menu on it.",
     ])
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
-    expect(
-      screen.getByText("No app. No hardware. Open signup."),
-    ).toBeInTheDocument();
     expect(container.querySelector("#how")).toBeInTheDocument();
+    expect(container.querySelector("#faq")).toBeInTheDocument();
     expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(3);
-    expect(
-      screen.getByText("Says paid. Check the payment"),
-    ).toBeInTheDocument();
     expect(screen.queryByText(/Up and running in three steps/)).toBeNull();
     expect(screen.queryByText("What qkit does")).toBeNull();
     expect(screen.queryByText(/Built in Singapore/)).toBeNull();
   });
-  it("shows one status pill in the hero and no three-column trust grid", async () => {
-    const { container } = render(await LandingPage());
-    const hero = container.querySelector("section") as HTMLElement;
-    expect(hero.querySelectorAll(".rounded-full")).toHaveLength(1);
-    expect(screen.queryByText(/Scan · order · track/)).toBeNull();
-    expect(container.querySelector(".sm\:grid-cols-3")).toBeNull();
+  it("drops the trust line and the dark pain band", async () => {
+    render(await LandingPage());
+    expect(screen.queryByText("No app. No hardware. Open signup.")).toBeNull();
+    expect(
+      screen.queryByRole("heading", {
+        name: "You are shouting numbers again.",
+      }),
+    ).toBeNull();
+    expect(screen.queryByText(/Lunch rush/)).toBeNull();
+  });
+  it("puts the status row, then the kicker pill, ahead of the headline", async () => {
+    render(await LandingPage());
+    const pilot = screen.getByText("Piloting");
+    const kicker = screen.getByText(/Scan · order · track/);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(
+      pilot.compareDocumentPosition(kicker) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      kicker.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
   it("shows the pilot badge and keeps open signup", async () => {
     render(await LandingPage());

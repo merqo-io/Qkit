@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroPreviewCarousel } from "./hero-preview-carousel";
+import { LANDING_BOARDS } from "./landing-boards";
 
 function mockMatchMedia(reduced: boolean) {
   vi.stubGlobal("matchMedia", (q: string) => ({
@@ -16,58 +16,99 @@ function mockMatchMedia(reduced: boolean) {
     onchange: null,
   }));
 }
+
+function dots() {
+  return screen.getAllByRole("button", { name: /^Show sample/ });
+}
+
+function current() {
+  return dots().findIndex((b) => b.getAttribute("aria-current") === "true");
+}
+
+function wait(ms: number) {
+  act(() => void vi.advanceTimersByTime(ms));
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  Element.prototype.scrollTo = vi.fn();
+});
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
 describe("HeroPreviewCarousel", () => {
-  it("shows no price, em dash or readiness claim on any board", () => {
+  it("is built from the real ticket parts: attention lines, actions and status", () => {
     mockMatchMedia(false);
-    const { container } = render(<HeroPreviewCarousel />);
-    const text = container.textContent ?? "";
-    expect(text).not.toMatch(/\$/);
-    expect(text).not.toMatch(/\u2014/);
-    expect(text).not.toMatch(/\b(live|now|available today|proven)\b/i);
-  });
-  it("renders all 4 boards and 4 dots", () => {
-    mockMatchMedia(false);
-    const { container } = render(<HeroPreviewCarousel />);
-    expect(screen.getAllByText(/Sample orders/i)).toHaveLength(4);
-    expect(container.querySelectorAll("[data-dot]")).toHaveLength(4);
-  });
-  it("does not auto-advance the active dot under reduced motion", () => {
-    vi.useFakeTimers();
-    mockMatchMedia(true);
-    const { container } = render(<HeroPreviewCarousel />);
-    const before = container.querySelector('[data-dot][data-active="true"]');
-    expect(before).toBeInTheDocument();
-    act(() => {
-      vi.advanceTimersByTime(11_000);
-    });
-    const after = container.querySelector('[data-dot][data-active="true"]');
-    expect(after).toBe(before);
+    render(<HeroPreviewCarousel />);
+    expect(screen.getAllByText("Not paid yet").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("Says paid. Check the payment").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mark Picked Up").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
   });
 
-  it("gives every dot a 44px hit area and keeps the 6px visual", async () => {
-    mockMatchMedia(true);
+  it("gives a closed ticket no footer and aligns it to the start", () => {
+    mockMatchMedia(false);
     const { container } = render(<HeroPreviewCarousel />);
-    const dots = container.querySelectorAll<HTMLElement>("[data-dot]");
-    for (const dot of dots) {
-      expect(dot).toHaveClass("size-11");
-      expect(dot).toHaveAttribute("tabindex", "-1");
-      expect(dot.firstElementChild).toHaveClass("size-1.5");
-    }
+    const closed = container.querySelector(".self-start");
+    expect(closed).not.toBeNull();
+    expect(closed?.textContent).toContain("Jun");
+    expect(closed?.querySelector(".h-10")).toBeNull();
   });
 
-  it("moves the carousel when a dot is tapped by touch", async () => {
-    mockMatchMedia(true);
-    const scrollTo = vi.fn();
-    Element.prototype.scrollTo = scrollTo;
-    const user = userEvent.setup();
+  it("advances one board after 7 seconds", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    expect(current()).toBe(0);
+    wait(7000);
+    expect(current()).toBe(1);
+  });
+
+  it("restarts the whole countdown on any interaction", () => {
+    mockMatchMedia(false);
     const { container } = render(<HeroPreviewCarousel />);
-    const dots = container.querySelectorAll<HTMLElement>("[data-dot]");
-    await user.pointer({ keys: "[TouchA]", target: dots[2] });
-    expect(scrollTo).toHaveBeenCalled();
+    const root = container.firstElementChild as HTMLElement;
+    wait(6000);
+    fireEvent.wheel(root);
+    wait(6000);
+    expect(current()).toBe(0);
+    wait(1000);
+    expect(current()).toBe(1);
+    wait(5000);
+    fireEvent.keyDown(root, { key: "ArrowRight" });
+    wait(6999);
+    expect(current()).toBe(1);
+  });
+
+  it("never moves two boards on one tick", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    wait(7001);
+    expect(current()).toBe(1);
+  });
+
+  it("does not auto-advance with reduced motion", () => {
+    mockMatchMedia(true);
+    render(<HeroPreviewCarousel />);
+    wait(30000);
+    expect(current()).toBe(0);
+  });
+
+  it("jumps to a board from its dot", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    fireEvent.click(dots()[3]);
+    expect(current()).toBe(3);
+  });
+
+  it("has one slide per sample board with a lead caption", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    expect(screen.getAllByRole("group")).toHaveLength(LANDING_BOARDS.length);
+    for (const board of LANDING_BOARDS)
+      expect(screen.getByText(board.lead)).toBeInTheDocument();
   });
 });

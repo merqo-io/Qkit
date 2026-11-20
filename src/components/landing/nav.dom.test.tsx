@@ -64,4 +64,32 @@ describe("landing Nav", () => {
     expect(faq).toEqual(about);
     expect(dash).toEqual(about);
   });
+
+  it("gives every visible control a 44px hit area below sm and 32px from sm up", () => {
+    const { unmount } = render(
+      <Nav
+        account={{ name: "Kopi Corner", avatarUrl: null }}
+        signOutAction={signOut}
+      />,
+    );
+    for (const name of ["FAQ", "About", "Dashboard"]) {
+      const cls = screen.getByRole("link", { name }).className;
+      expect(cls).toContain("h-11");
+      expect(cls).toContain("min-w-11");
+      expect(cls).toContain("sm:h-8");
+    }
+    const wrapper = screen.getByRole("button", { name: /account menu/i })
+      .parentElement as HTMLElement;
+    expect(wrapper.className).toContain("[&_button]:min-h-11");
+    expect(wrapper.className).toContain("[&_button]:min-w-11");
+    expect(wrapper.className).toContain("sm:[&_button]:min-h-0");
+    unmount();
+
+    render(<Nav account={null} signOutAction={signOut} />);
+    for (const name of ["Sign in", "Get started"]) {
+      const cls = screen.getByRole("link", { name }).className;
+      expect(cls).toContain("h-11");
+      expect(cls).toContain("sm:h-8");
+    }
+  });
 });
