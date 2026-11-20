@@ -83,7 +83,11 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    dismiss: vi.fn(),
+  }),
 }));
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -1242,7 +1246,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
     expect(advanceOrder).not.toHaveBeenCalledWith("o3", "preparing");
-    expect(toast.success).toHaveBeenCalledWith(
+    expect(toast).toHaveBeenCalledWith(
       "Marked 2 orders ready",
       expect.anything(),
     );
@@ -1258,7 +1262,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
 
     await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(3));
     expect(advanceOrder).toHaveBeenLastCalledWith("o3", "ready");
-    expect(toast.success).toHaveBeenCalledWith(
+    expect(toast).toHaveBeenCalledWith(
       "Marked 1 order picked up",
       expect.anything(),
     );
@@ -1297,7 +1301,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
     expect(advanceOrder).toHaveBeenCalledWith("o1", "ready");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "ready");
-    expect(toast.success).toHaveBeenCalledWith(
+    expect(toast).toHaveBeenCalledWith(
       "Marked 2 orders picked up",
       expect.anything(),
     );
@@ -1326,7 +1330,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await waitFor(() => expect(advanceOrder).toHaveBeenCalledTimes(2));
 
     const batchToast = vi
-      .mocked(toast.success)
+      .mocked(toast)
       .mock.calls.find(([message]) => message === "Marked 2 orders picked up");
     const options = batchToast?.[1] as {
       action: { label: string; onClick: () => Promise<void> };
@@ -1346,7 +1350,9 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       "completed",
       "not_required",
     );
-    expect(toast.success).toHaveBeenCalledWith("Put 2 orders back");
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Put 2 orders back"),
+    );
   });
 
   it("ticks a ticket when it is tapped anywhere, not only on its checkbox", async () => {
@@ -1426,7 +1432,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("1 order couldn't be updated"),
     );
-    expect(toast.success).toHaveBeenCalledWith(
+    expect(toast).toHaveBeenCalledWith(
       "Marked 1 order ready",
       expect.anything(),
     );
@@ -1469,11 +1475,11 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith("1 order couldn't be updated"),
       );
-      expect(toast.success).toHaveBeenCalledWith(
+      expect(toast).toHaveBeenCalledWith(
         "Marked 1 order picked up",
         expect.anything(),
       );
-      expect(toast.success).not.toHaveBeenCalledWith(
+      expect(toast).not.toHaveBeenCalledWith(
         "Marked 2 orders picked up",
         expect.anything(),
       );
@@ -1570,7 +1576,7 @@ describe("RealtimeOrderBoard Accepted header", () => {
     expect(advanceOrder).toHaveBeenCalledWith("o1", "preparing");
     expect(advanceOrder).toHaveBeenCalledWith("o2", "preparing");
     const batchToast = vi
-      .mocked(toast.success)
+      .mocked(toast)
       .mock.calls.find(([message]) => message === "Marked 2 orders ready");
     const options = batchToast?.[1] as {
       action: { label: string; onClick: () => Promise<void> };
@@ -1700,7 +1706,7 @@ describe("RealtimeOrderBoard start all incoming", () => {
     expect(advanceOrder).toHaveBeenCalledWith("o2", "pending");
 
     const startedToast = vi
-      .mocked(toast.success)
+      .mocked(toast)
       .mock.calls.find(([message]) => message === "Started 2 orders");
     const options = startedToast?.[1] as {
       action: { label: string; onClick: () => Promise<void> };

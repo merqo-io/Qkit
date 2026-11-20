@@ -13,7 +13,9 @@ import type { MenuItemFormInput } from "@/lib/schemas";
 import type { Entitlement } from "@/lib/plan";
 import type { MenuCategory } from "@/lib/types";
 
-const { toast } = vi.hoisted(() => ({ toast: vi.fn() }));
+const { toast } = vi.hoisted(() => ({
+  toast: Object.assign(vi.fn(), { dismiss: vi.fn() }),
+}));
 vi.mock("sonner", () => ({ toast }));
 beforeEach(() => toast.mockClear());
 

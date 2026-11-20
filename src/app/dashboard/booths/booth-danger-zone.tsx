@@ -1,24 +1,14 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-  Button,
-} from "@merqo/ui/primitives";
+import { ConfirmDialog } from "@merqo/ui";
+import { Button } from "@merqo/ui/primitives";
 
 interface Props {
   boothName: string;
   deleting: boolean;
   saving: boolean;
-  onDelete: () => void;
+  onDelete: () => Promise<void> | void;
 }
 
 export function BoothDangerZone({
@@ -36,8 +26,17 @@ export function BoothDangerZone({
         Deleting this booth permanently removes it and every order placed at it.
         The data can&apos;t be retrieved.
       </p>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
+      <ConfirmDialog
+        variant="destructive"
+        title={`Delete “${boothName}”?`}
+        description="This permanently deletes the booth."
+        consequence="Every order placed at this booth is deleted too. This can't be undone."
+        confirmPhrase={boothName.trim() ? boothName : "delete"}
+        confirmLabel="Delete booth"
+        cancelLabel="Keep booth"
+        pendingLabel="Deleting…"
+        onConfirm={onDelete}
+        trigger={
           <Button
             type="button"
             variant="outline"
@@ -47,29 +46,8 @@ export function BoothDangerZone({
             <Trash2 className="size-4" />
             {deleting ? "Deleting…" : "Delete booth"}
           </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete “{boothName}”?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes the booth and every order placed at it.
-              This can&apos;t be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>
-              Keep booth
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={onDelete}
-              disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
-              Delete booth
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        }
+      />
     </div>
   );
 }

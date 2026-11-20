@@ -87,11 +87,14 @@ describe("CustomerScreenButton", () => {
       "data-value",
       urlFor(KOPI.id),
     );
-    await user.click(screen.getByRole("button", { name: "Copy the link" }));
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("button", { name: "Copy the link" }),
+    });
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(urlFor(KOPI.id)),
     );
-    expect(toast.success).toHaveBeenCalledWith("Link copied");
+    expect(await screen.findByRole("status")).toHaveTextContent("Copied");
   });
 
   it("has no booth picker for a single booth", async () => {

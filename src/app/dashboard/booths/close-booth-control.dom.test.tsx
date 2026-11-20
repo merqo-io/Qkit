@@ -16,6 +16,7 @@ const { toastFn, toastError } = vi.hoisted(() => ({
 vi.mock("sonner", () => ({
   toast: Object.assign((...args: unknown[]) => toastFn(...args), {
     error: toastError,
+    dismiss: vi.fn(),
     success: vi.fn(),
   }),
 }));
@@ -185,5 +186,28 @@ describe("CloseBoothControl (paused)", () => {
     await waitFor(() => expect(toggleBoothActive).toHaveBeenCalled());
     expect(onChanged).not.toHaveBeenCalled();
     expect(toastError).toHaveBeenCalledWith("Could not update booth");
+  });
+
+  it("shows an error toast instead of rejecting when reopening throws", async () => {
+    toggleBoothActive.mockRejectedValue(new Error("Failed to fetch"));
+    const user = userEvent.setup();
+    const onChanged = vi.fn();
+    render(
+      <CloseBoothControl
+        boothId={BOOTH_ID}
+        boothName="Kopi Corner"
+        isActive={false}
+        onChanged={onChanged}
+      />,
+    );
+    await user.pointer({
+      keys: "[TouchA]",
+      target: screen.getByRole("button", { name: /resume booth/i }),
+    });
+
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith("Could not reopen the booth"),
+    );
+    expect(onChanged).not.toHaveBeenCalled();
   });
 });

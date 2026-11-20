@@ -1,7 +1,6 @@
 "use client";
 
-import { downloadBlob } from "@/lib/download";
-import { Download } from "lucide-react";
+import { DownloadButton, downloadBlob } from "@merqo/ui";
 import { salesSummaryToCsv, toSalesSummaryV1 } from "@/lib/sales-summary";
 import type { StatsSummary } from "@/lib/stats";
 
@@ -35,13 +34,10 @@ export function ExportButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={download}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:min-h-11"
-    >
-      <Download className="size-3.5" />
-      Export CSV
-    </button>
+    <DownloadButton
+      label="Export CSV"
+      onDownload={download}
+      className="rounded-lg text-muted-foreground hover:text-foreground"
+    />
   );
 }
