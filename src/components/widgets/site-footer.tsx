@@ -18,7 +18,7 @@ export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
           <span className="text-primary">Q</span>Kit
         </a>
       }
-      tagline="Built for booths. Made in Singapore."
+      tagline="a Merqo kit"
       kitName="qkit"
       showSignIn={showSignIn}
       faqHref="/faq"

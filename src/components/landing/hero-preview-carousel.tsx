@@ -1,9 +1,9 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@merqo/ui";
 import { cn } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANDING_BOARDS } from "@/components/landing/landing-boards";
-import { useReducedMotion } from "@/components/landing/use-reduced-motion";
 import { SampleTicket } from "@/components/landing/sample-ticket";
 import { Ticket } from "@/components/widgets/ticket";
 import { nearestIndex } from "@/lib/carousel";
@@ -16,13 +16,14 @@ const COUNT = LANDING_BOARDS.length;
  * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
  * click-drag on top, and one countdown that moves to the next board. Any touch
  * of the carousel restarts the whole countdown, so a visitor reading a board is
- * never moved on a moment later; one burst of wheel events counts as one touch. Reduced motion has no auto-advance.
+ * never moved on a moment later; one burst of wheel events counts as one
+ * touch. Reduced motion has no auto-advance.
  */
 export function HeroPreviewCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
   const index = useRef(0);
   const paused = useRef(false);
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   const reducedRef = useRef(reduced);
   const wheelBurst = useRef<number | null>(null);
   const [active, setActive] = useState(0);

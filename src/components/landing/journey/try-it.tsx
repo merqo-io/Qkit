@@ -10,10 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
-import { PhoneFrame } from "@merqo/ui";
+import { PhoneFrame, usePrefersReducedMotion } from "@merqo/ui";
 import { Button, cn } from "@merqo/ui/primitives";
 
-import { useReducedMotion } from "@/components/landing/use-reduced-motion";
 import { Cue } from "./story-cue";
 import { StoryBoard } from "./story-board";
 import { StoryPhone } from "./story-phone";
@@ -91,7 +90,7 @@ export function TryIt() {
   const [state, dispatch] = useReducer(storyReducer, INITIAL_STATE);
   const [left, setLeft] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState<StoryStep | null>(null);
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   const wide = useWide();
 
   const wideRef = useRef(wide);
