@@ -211,8 +211,8 @@ export function TryIt() {
             What your customer sees. What you see.
           </h2>
           <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-            Follow order 0042 from the queue to the counter. The screens are
-            live: tap the buttons on them.
+            Follow order 0042 from the queue to the counter. Tap through one
+            order on both screens.
           </p>
         </div>
       </div>
