@@ -34,8 +34,10 @@ function wash(order: SampleOrder, closed: boolean) {
   return "border-border";
 }
 
+// min-h, not a fixed height: on a narrow two-column card a long label such as
+// "Confirm payment received" wraps to three lines and a fixed h-12 clips it.
 const ACTION_BASE =
-  "relative flex h-12 w-full items-center overflow-hidden rounded-lg px-3 text-base font-semibold";
+  "relative flex min-h-12 w-full items-center overflow-hidden rounded-lg px-3 py-2 text-base leading-tight font-semibold whitespace-normal";
 
 /**
  * One sample ticket for the hero, put together from the board's own parts so
@@ -120,9 +122,9 @@ export function SampleTicket({ order }: { order: SampleOrder }) {
             {claimed && (
               <Banknote className="size-4 shrink-0" aria-hidden="true" />
             )}
-            <span className="relative">{order.action}</span>
+            <span className="relative min-w-0">{order.action}</span>
             {order.amount && (
-              <span className="relative ml-auto font-mono tabular-nums">
+              <span className="relative ml-auto shrink-0 pl-3 font-mono tabular-nums">
                 {order.amount}
               </span>
             )}
