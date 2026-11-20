@@ -4,17 +4,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroPreviewCarousel } from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
 
-function mockMatchMedia(reduced: boolean) {
+function mockMatchMedia(initial: boolean) {
+  let reduced = initial;
+  const listeners = new Set<() => void>();
   vi.stubGlobal("matchMedia", (q: string) => ({
-    matches: reduced,
+    get matches() {
+      return reduced;
+    },
     media: q,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
+    addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+    removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
     dispatchEvent: () => false,
-    onchange: null,
   }));
+  return (next: boolean) => {
+    reduced = next;
+    act(() => listeners.forEach((fn) => fn()));
+  };
 }
 
 function dots() {
@@ -80,6 +85,33 @@ describe("HeroPreviewCarousel", () => {
     wait(5000);
     fireEvent.keyDown(root, { key: "ArrowRight" });
     wait(6999);
+    expect(current()).toBe(1);
+  });
+
+  it("restarts the countdown once for a burst of wheel events", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    const root = container.firstElementChild as HTMLElement;
+    wait(6000);
+    fireEvent.wheel(root);
+    wait(100);
+    fireEvent.wheel(root);
+    wait(100);
+    fireEvent.wheel(root);
+    wait(6799);
+    expect(current()).toBe(0);
+    wait(1);
+    expect(current()).toBe(1);
+  });
+
+  it("follows a reduced-motion change while mounted", () => {
+    const setReduced = mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    setReduced(true);
+    wait(30000);
+    expect(current()).toBe(0);
+    setReduced(false);
+    wait(7000);
     expect(current()).toBe(1);
   });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@merqo/ui";
 import { cn } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANDING_BOARDS } from "@/components/landing/landing-boards";
@@ -8,19 +9,23 @@ import { Ticket } from "@/components/widgets/ticket";
 import { nearestIndex } from "@/lib/carousel";
 
 const ROTATE_MS = 7000;
+const WHEEL_BURST_MS = 150;
 const COUNT = LANDING_BOARDS.length;
 
 /**
  * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
  * click-drag on top, and one countdown that moves to the next board. Any touch
  * of the carousel restarts the whole countdown, so a visitor reading a board is
- * never moved on a moment later. Reduced motion has no auto-advance.
+ * never moved on a moment later; one burst of wheel events counts as one
+ * touch. Reduced motion has no auto-advance.
  */
 export function HeroPreviewCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
   const index = useRef(0);
   const paused = useRef(false);
-  const reduced = useRef(false);
+  const reduced = usePrefersReducedMotion();
+  const reducedRef = useRef(reduced);
+  const wheelBurst = useRef<number | null>(null);
   const [active, setActive] = useState(0);
   const [epoch, setEpoch] = useState(0);
 
@@ -32,25 +37,39 @@ export function HeroPreviewCarousel() {
     setActive(i);
     el?.scrollTo?.({
       left: i * el.clientWidth,
-      behavior: reduced.current ? "auto" : "smooth",
+      behavior: reducedRef.current ? "auto" : "smooth",
     });
   }, []);
 
   useEffect(() => {
-    reduced.current = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-  }, []);
+    reducedRef.current = reduced;
+  }, [reduced]);
 
   useEffect(() => {
-    if (reduced.current) return;
+    if (reduced) return;
     const id = window.setTimeout(() => {
       if (!paused.current && !document.hidden)
         show((index.current + 1) % COUNT);
       restart();
     }, ROTATE_MS);
     return () => window.clearTimeout(id);
-  }, [epoch, restart, show]);
+  }, [epoch, reduced, restart, show]);
+
+  useEffect(
+    () => () => {
+      if (wheelBurst.current !== null) window.clearTimeout(wheelBurst.current);
+    },
+    [],
+  );
+
+  const onWheel = useCallback(() => {
+    const burst = wheelBurst.current;
+    if (burst !== null) window.clearTimeout(burst);
+    else restart();
+    wheelBurst.current = window.setTimeout(() => {
+      wheelBurst.current = null;
+    }, WHEEL_BURST_MS);
+  }, [restart]);
 
   const onScroll = useCallback(() => {
     const el = trackRef.current;
@@ -101,7 +120,7 @@ export function HeroPreviewCarousel() {
       onPointerDown={restart}
       onTouchStart={restart}
       onTouchEnd={restart}
-      onWheel={restart}
+      onWheel={onWheel}
       onKeyDown={restart}
       onClick={restart}
       onMouseEnter={() => (paused.current = true)}

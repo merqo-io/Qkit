@@ -70,9 +70,7 @@ describe("FaqRoute", () => {
       "href",
       "/dashboard",
     );
-    expect(
-      screen.getByText("Built for booths. Made in Singapore."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("a Merqo kit")).toBeInTheDocument();
   });
 
   it("keeps the copy free of prices, plan names, readiness claims and dashes", () => {
