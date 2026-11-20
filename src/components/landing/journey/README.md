@@ -2,24 +2,20 @@
 
 ## Purpose
 
-The part of the landing page below the hero: the visitor plays one order
-through three chapters (customer phone, vendor board, queue screen plus the
-customer's phone), then a closing call. Client state only: no network, server
-actions or database. Structure and
-behaviour sit apart from qkit's look (semantic Tailwind classes only) so the
-generic pieces can move into `@merqo/ui` later.
+The "How it works" story below the hero: one order, two screens. The visitor
+follows order 0042 across the customer's phone and the vendor's tablet, both
+driven by one reducer. Client state only: no network, server actions or
+database.
 
 ## Contents
 
-- `Journey`, `JourneyStep`, `PhoneFrame`, `PressButton`, `FaqRows`, `ClosingCall`, `useScrollPlay`, `usePrefersReducedMotion`, `scrollProgress` and `progressToStep` come from `@merqo/ui`; there are no local copies.
-- `pinned-progress.ts` — `pinnedProgress`, pure maths: how far a sticky panel inside a tall track has played, 0 to 1 (0 before the pin, 1 after the release or when the track has no scroll distance), and `pinFits`, whether a panel fits between the pin top and the viewport bottom.
-- `use-pinned-play.ts` - `usePinnedPlay(steps, driven)`: owns and returns the `track`, `panel` and `spacer` refs plus the step from `pinnedProgress` (passive scroll, resize and a `ResizeObserver` on the panel, one `requestAnimationFrame` per frame). The sticky `top` is written to the panel in the same measurement that reads it, so progress never lags it. While `driven` is false (the visitor's taps run the phone) the spacer is cut to the distance already scrolled, so nothing jumps and no dead scroll remains; it is restored only when fully off screen, compensating the scroll position if it sits above the viewport with scroll anchoring switched off for that resize so Chrome, Firefox and Safari agree. A takeover at the very top of the track leaves a spacer of about zero height, which moves nothing. The pin top is a fixed 5rem; a panel too tall to fit under it in the shortest viewport (measured with an `svh` probe, so a retracting phone toolbar cannot flip it) is not pinned and shows the finished step. Chapter 1 shrinks its phone frame and spacing under 760px of height on phones so it still fits down to about 530px. Reduced motion returns step 0 and no pin; server render and no-JS return the finished step.
-- `try-it-state.ts` - the pure reducer shared by the three chapters (add, remove, place, ready, pickedUp, reset), the `taken` flag (first tap hands the phone from scroll play to the visitor), `phaseOf`, `ticketOf`, phone status strings and the live-region `announcement`.
-- `try-it.tsx` - `TryIt`: owns the reducer and the single `aria-live` region and renders the three chapters.
-- `chapter-order.tsx` - chapter 1: the customer's phone with working kopi minus and plus, pinned by `position: sticky` inside a `200svh` spacer track until the visitor taps. The spacer is hidden by `motion-reduce:hidden` and a `noscript` rule, so reduced-motion and no-JS visitors never see dead scroll.
-- `chapter-order.tsx` also holds "Order again", a secondary button inside the ORDER PLACED overlay (absolutely positioned, so the panel never changes height). It dispatches `replay`: empty menu with the takeover flag kept, so scroll play stays off, the pinned track is not restored or resized, and the board and queue chapters empty too. Focus moves to the + button. `reset` (Play again, chapter 2) still returns to the untouched sample.
-- `try-it.tsx` wraps chapters 2 and 3 in the `CHAPTER_STEP` override from `../rhythm.ts`, and `chapter-order.tsx` applies `CHAPTER_FIRST` to the pinned panel. The `JourneyStep` and `ClosingCall` roots come from `@merqo/ui` with their own margins and padding, so the page overrides them with `[&>div]` selectors from that file instead of editing the package. Chapter 1 keeps its package top padding on phones so the short-phone fit numbers above still hold.
-- `chapter-board.tsx` - chapter 2: the vendor ticket built from the `Ticket` widget (`LandingTicket` cannot host live buttons) with Mark Ready, Mark Picked Up and Play again from `ADVANCE`. Nothing resizes on a tap: the ticket stays mounted but `invisible` and `inert` in the last stage, sharing one grid cell with the "All caught up" box. Print and stamp animations are skipped under reduced motion.
-- `chapter-queue.tsx` - chapter 3: a miniature of the queue screen (mirrors `order/[boothId]/display/queue-display.tsx`, which polls and calls server actions) and the customer's phone.
-- `caption.tsx` - a helper line that reserves the height of its longest variant.
-- `*.test.ts(x)` - reducer, the full play-through by touch and keyboard, reduced-motion rendering, scroll mapping, FAQ row count.
+- `try-it.tsx` - `TryIt`, called with no props. Renders `<section id="how">` with the heading, the steps column, the stepper (below 960px), the screen tabs, the two devices, "Play it again" and the single `aria-live` region. Owns the reducer, the 10 second auto-clear timer, the scroll-to-step picker (a step is active once its top passes the middle of the screen) and the tap auto-scroll, which is clamped so the sticky devices stay pinned on the last step while still scrolling far enough for step 3 to pass the middle line.
+- `try-it-state.ts` - the pure reducer and helpers: `STEP_OF` (stage to step), `CANON` (step to stage), `focusOf`, `cuedScreen`, `tabSubtitle`, `tabFlashes`, `stepAfter`, `announcement`. Start jumps to step 3; "2 Start" with the phone showing switches to the board; an act never switches screens on a phone.
+- `story-phone.tsx` - the customer's phone: a working menu, then the real status page parts (`StageTrack`, `WaitEstimate`, `statusCopy`) for order 0042.
+- `story-board.tsx` - the vendor's tablet: tickets from the real `Ticket`, `TicketItems` and `TicketFooter`. Landscape with two columns from 960px, portrait with one column below. "Mark Picked Up" shows a draining 10 second countdown labelled as a sample, since the vendor sets the real delay.
+- `story-cue.tsx` - `Cue`, a pulsing ring around the next button to tap.
+- `story-steps.ts` - the three step texts.
+- `use-story-layout.ts` - `useWide` (960px media query, false on the server) and `useFitScale`, which shrinks the fixed-size devices with CSS `zoom` to fit the column and the viewport height.
+- `*.test.ts(x)` - reducer tests and a DOM test for the tabs, the "Tap to continue" cue, the single live region and the reduced-motion finished state.
+
+Below 960px one device shows at a time. The hidden one's tab flashes "Tap to continue" when the next action is on it. The outgoing screen hides at once and the incoming one fades in. With reduced motion the story starts in its finished state with no animation.
