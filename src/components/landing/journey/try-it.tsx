@@ -64,7 +64,7 @@ function Device({
         "transition-opacity duration-[400ms] motion-reduce:transition-none max-[959px]:[grid-area:1/1]",
         !lit && "min-[960px]:opacity-40",
         off
-          ? "max-[959px]:invisible max-[959px]:absolute max-[959px]:left-1/2 max-[959px]:-translate-x-1/2"
+          ? "max-[959px]:invisible"
           : "max-[959px]:animate-in max-[959px]:fade-in motion-reduce:animate-none",
       )}
     >
@@ -223,8 +223,9 @@ export function TryIt() {
       {/* The replay row below the stage is 58px (mt-3.5 + min-h-11) and always
           reserves its height, so the bottom padding is the closing section's
           clamp minus that, leaving the same gap under the last content as the
-          rule has above and below it. A hidden narrow-width device is taken
-          out of flow so the other tab's shorter frame adds no extra space. */}
+          rule has above and below it. On narrow widths both devices share one grid
+          cell and sit on its bottom edge, so the shorter tablet leaves its slack
+          above the frame and the gap under the visible frame stays that row. */}
       <div
         id="story"
         className="mx-auto grid max-w-6xl gap-x-12 px-5 pb-[max(0px,calc(clamp(56px,8vw,96px)_-_58px))] min-[960px]:grid-cols-[minmax(0,0.66fr)_minmax(0,1.34fr)]"
@@ -290,7 +291,7 @@ export function TryIt() {
 
             <div
               ref={zoomRef}
-              className="relative mx-auto grid w-max justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
+              className="mx-auto grid w-max items-end justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
             >
               <Device
                 id="story-phone"

@@ -109,4 +109,14 @@ describe("TryIt bottom spacing", () => {
     );
     expect(story?.className).not.toMatch(/\bmd:pb-24\b/);
   });
+
+  it("bottom-aligns both devices in flow so tab switches keep the height", () => {
+    mockMatchMedia({ reduced: false });
+    const { container } = render(<TryIt />);
+    const row = container.querySelector("#story-phone")?.parentElement;
+    expect(row?.className).toContain("items-end");
+    for (const id of ["#story-phone", "#story-board"]) {
+      expect(container.querySelector(id)?.className).not.toContain("absolute");
+    }
+  });
 });
