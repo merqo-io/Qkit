@@ -18,4 +18,4 @@ database.
 - `use-story-layout.ts` - `useWide` (960px media query, false on the server) and `useFitScale`, which shrinks the fixed-size devices with CSS `zoom` to fit the column and the viewport height.
 - `*.test.ts(x)` - reducer tests and a DOM test for the tabs, the "Tap to continue" cue, the single live region and the reduced-motion finished state.
 
-Below 960px one device shows at a time. The hidden one's tab flashes "Tap to continue" when the next action is on it. The outgoing screen hides at once and the incoming one fades in. With reduced motion the story starts in its finished state with no animation.
+Below 960px one device shows at a time. The hidden one's tab flashes "Tap to continue" when the next action is on it. The outgoing screen hides at once and the incoming one fades in. With reduced motion the story shows its finished state with no animation (applied before first paint, and live when the setting changes). On a wide page the step list still highlights the step whose top passes the viewport middle; that is local highlight state and leaves the finished devices alone.

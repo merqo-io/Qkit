@@ -3,15 +3,17 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useReducer,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 
-import { PhoneFrame, usePrefersReducedMotion } from "@merqo/ui";
+import { PhoneFrame } from "@merqo/ui";
 import { Button, cn } from "@merqo/ui/primitives";
 
+import { useReducedMotion } from "@/components/landing/use-reduced-motion";
 import { Cue } from "./story-cue";
 import { StoryBoard } from "./story-board";
 import { StoryPhone } from "./story-phone";
@@ -88,7 +90,8 @@ function Device({
 export function TryIt() {
   const [state, dispatch] = useReducer(storyReducer, INITIAL_STATE);
   const [left, setLeft] = useState<number | null>(null);
-  const reduced = usePrefersReducedMotion();
+  const [scrolled, setScrolled] = useState<StoryStep | null>(null);
+  const reduced = useReducedMotion();
   const wide = useWide();
 
   const wideRef = useRef(wide);
@@ -106,7 +109,7 @@ export function TryIt() {
 
   useFitScale(colRef, zoomRef, wide);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (reduced) dispatch({ type: "settle" });
   }, [reduced]);
 
@@ -130,7 +133,7 @@ export function TryIt() {
   }, [counting]);
 
   useEffect(() => {
-    if (!wide || reduced) return;
+    if (!wide) return;
     let frame = 0;
     const pick = () => {
       if (Date.now() < lockUntil.current) return;
@@ -141,7 +144,8 @@ export function TryIt() {
           best = (i + 1) as StoryStep;
         }
       });
-      dispatch({ type: "scroll", step: best });
+      if (reducedRef.current) setScrolled(best);
+      else dispatch({ type: "scroll", step: best });
     };
     const onScroll = () => {
       if (frame) return;
@@ -195,7 +199,7 @@ export function TryIt() {
     if (wide && !reduced) followStep(stepAfter(a));
   };
 
-  const step = STEP_OF[state.stage];
+  const step = reduced && wide && scrolled ? scrolled : STEP_OF[state.stage];
   const focus = focusOf(state);
   const cued = cuedScreen(state);
   const landing = state.stage === 1 && state.prev === 0 && !reduced;

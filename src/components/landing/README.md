@@ -36,7 +36,7 @@ inline mark used on the login page.
   `text-primary` accent on the q. Used by the login page's two panels (`lg`
   and `xl`) and the MFA page (`lg`), where the nav shell doesn't apply.
 - `wordmark.test.tsx` — asserts the text, the accent class and the size class.
-- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the hero's sample-board carousel over `LANDING_BOARDS`. Native scroll-snap plus mouse drag, one `setTimeout` countdown (7s) that any click, tap, swipe, drag, wheel or key restarts, so auto-advance never skips a board. Hover and focus pause it, reduced motion switches it off. It is a labelled carousel region; each dot is a 44px tap target.
+- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the hero's sample-board carousel over `LANDING_BOARDS`. Native scroll-snap plus mouse drag, one `setTimeout` countdown (7s) that any click, tap, swipe, drag, wheel or key restarts (a burst of wheel events counts once), so auto-advance never skips a board. Hover and focus pause it, reduced motion switches it off. `use-reduced-motion.ts` (`useReducedMotion()`, a `useSyncExternalStore` over the media query) makes that setting live for the carousel and the story. It is a labelled carousel region; each dot is a 44px tap target.
 - `rhythm.ts` — the landing's one spacing scale as shared class strings
   (`CONTAINER`, `SECTION_*`, `CHAPTER_*`): 80px then 96px between major
   sections, 40px then 48px each side of a

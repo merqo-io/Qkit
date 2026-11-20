@@ -22,6 +22,7 @@ export function SiteFooter({ showSignIn = false }: { showSignIn?: boolean }) {
       kitName="qkit"
       showSignIn={showSignIn}
       faqHref="/faq"
+      layout="compact"
     />
   );
 }

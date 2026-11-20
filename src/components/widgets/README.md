@@ -40,7 +40,8 @@ alwaysShowCount })`: client-side pager over pre-rendered rows —
 - `site-footer.test.tsx` — wordmark, tagline, copyright, About, Terms and
   Privacy links; sign-in link only with `showSignIn`.
 - `site-footer.tsx` — `SiteFooter({ showSignIn })`: `@merqo/ui`'s family
-  `Footer` with qkit's wordmark and tagline. The landing page and `/about`
+  `Footer` (`layout="compact"`: brand and copyright on one row, links on the
+  next on a phone, one row from `sm`) with qkit's wordmark and tagline. The landing page and `/about`
   pass `showSignIn`; the dashboard layout ends with it, without.
 - `social-links-row.dom.test.tsx` — RTL tests for `SocialLinksRow`'s
   empty/partial-link rendering.
