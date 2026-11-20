@@ -13,6 +13,8 @@ Server actions shared across routes rather than colocated with a single page —
 - `purchase.test.ts` — tests the Zod rejection, the sign-in requirement, the rate-limit denial (before the idempotency check even runs), the idempotent no-op, a successful insert, and insert-failure handling.
 - `support.ts` — `submitSupportMessage(input: SupportMessageInput): Promise<ActionResult>`. Validates via `supportMessageSchema`, requires a signed-in vendor, and files the message into the shared cross-kit `merqo.support_messages` table via the `merqo.submit_support_message` SECURITY DEFINER RPC (Task 5 exported as `submitSupportMessage` from `@/lib/merqo/support`) — the RPC derives `vendor_id` and `kit_slug` (="qkit") from `auth.uid()` and the kit context.
 - `support.test.ts` — tests the signed-in RPC-call path with correct kit slug and parameters, empty-body rejection, bad-category rejection, the "please sign in" path, and RPC-failure handling.
+- `landing-support.ts` — `submitLandingSupport({ category, message })`: adapter for `LandingAccountNav`'s help form that maps `message` to `body` and calls `submitSupportMessage`, returning its result.
+- `landing-support.test.ts` — tests the field mapping and that a failed result is returned unchanged.
 
 - `auth.ts` — `signOutToHome()`: signs the session out and redirects to `/`, used by the public-page nav's account menu (the dashboard has its own sign-out that lands on `/login`).
 
