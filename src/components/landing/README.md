@@ -9,7 +9,7 @@ inline mark used on the login page.
 ## Contents
 
 - `nav.tsx` — `Nav({ user, signOutAction })` (a client component, so
-  it can pass `next/link` to the shared account menu; `user` is a `NavUser | null`): the sticky top nav,
+  the shared account menu gets `next/link` from `AppLinkProvider` in `components/layout/providers.tsx`; `user` is a `NavUser | null`): the sticky top nav,
   shared by the landing page, `/about` and `/faq`. Composes `@merqo/ui`'s
   `LandingNav` shell (sticky positioning, background blur, border, and the
   responsive `end`-slot gap live there) and supplies the wordmark (a plain

@@ -78,7 +78,6 @@ export function DashboardNav({
 
   return (
     <SharedDashboardNav
-      LinkComponent={Link}
       wordmark={
         <Link
           href="/dashboard"
