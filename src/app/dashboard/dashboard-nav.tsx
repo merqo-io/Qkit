@@ -65,12 +65,12 @@ function isHelpCategory(
  */
 export function DashboardNav({
   signOut,
-  vendorName = "",
+  accountLabel,
   avatarUrl = null,
   tier = "free",
 }: {
   signOut: () => Promise<void>;
-  vendorName?: string;
+  accountLabel: string;
   avatarUrl?: string | null;
   tier?: Tier;
 }) {
@@ -91,15 +91,10 @@ export function DashboardNav({
       isActiveHref={(href) => isActive(path, href)}
       tourAnchor={tourAnchor}
       vendor={{
-        name: vendorName || "Account",
+        name: accountLabel,
         avatarUrl: avatarUrl ?? undefined,
         tier,
-        // `subtitle` is the only line @merqo/ui's AccountMenu renders next
-        // to the trigger and in the dropdown header, so it can't carry both
-        // a generic descriptor and the vendor's real name — the actual
-        // stall name is far more useful here than a static "Vendor
-        // account" label.
-        subtitle: vendorName || "Your stall",
+        subtitle: accountLabel,
       }}
       signOutAction={signOut}
       kitLocalSettingsHref="/dashboard/settings"
