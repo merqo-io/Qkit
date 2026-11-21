@@ -55,6 +55,29 @@ describe("HeroPreviewCarousel", () => {
     expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
   });
 
+  it("lets the action button grow so a wrapped label is not clipped", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    const button = screen
+      .getAllByText("Confirm payment received")[0]
+      .closest(".overflow-hidden");
+    expect(button?.classList.contains("min-h-12")).toBe(true);
+    expect(button?.classList.contains("h-12")).toBe(false);
+  });
+
+  it("draws the booth box plain and top-aligns every slide", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    const track = screen.getByTestId("hero-track");
+    const box = track.parentElement;
+    expect(box?.classList.contains("rounded-xl")).toBe(true);
+    expect(box?.className).not.toMatch(/shadow-|zigzag|ticket/);
+    for (const slide of Array.from(track.children)) {
+      expect(slide.classList.contains("justify-start")).toBe(true);
+      expect(slide.classList.contains("justify-center")).toBe(false);
+    }
+  });
+
   it("gives a closed ticket no footer and aligns it to the start", () => {
     mockMatchMedia(false);
     const { container } = render(<HeroPreviewCarousel />);
