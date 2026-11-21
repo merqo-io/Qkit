@@ -14,11 +14,18 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: { signOut: vi.fn() },
   })),
 }));
+const entitlementMock = vi.hoisted(() => ({
+  vendorName: "Kopi Corner",
+}));
 vi.mock("@/lib/supabase/get-entitlement", () => ({
   loadEntitlement: vi.fn(async () => ({
-    user: { id: "v1", user_metadata: {} },
+    user: {
+      id: "v1",
+      email: "ann@example.com",
+      user_metadata: { full_name: "Ann Lee" },
+    },
     vendor: {
-      name: "Kopi Corner",
+      name: entitlementMock.vendorName,
       tours_seen: { orders: "2026-01-01T00:00:00Z" },
     },
     entitlement: ENTITLEMENTS.free,
@@ -65,5 +72,23 @@ describe("DashboardLayout", () => {
     expect(footer?.parentElement).toHaveClass("contents", "print:hidden");
     expect(footer).toHaveTextContent("© 2026 Merqo");
     expect(footer).not.toHaveTextContent("Vendor sign in");
+  });
+
+  it("labels the account menu with the stall name", async () => {
+    entitlementMock.vendorName = "Kopi Corner";
+    const jsx = await DashboardLayout({ children: <div>page content</div> });
+    const { container } = render(jsx);
+
+    expect(container).toHaveTextContent("Kopi Corner");
+  });
+
+  it("falls back to the shared account label chain when the stall name is empty", async () => {
+    entitlementMock.vendorName = "  ";
+    const jsx = await DashboardLayout({ children: <div>page content</div> });
+    const { container } = render(jsx);
+
+    expect(container).toHaveTextContent("Ann Lee");
+    expect(container).not.toHaveTextContent("Your stall");
+    entitlementMock.vendorName = "Kopi Corner";
   });
 });

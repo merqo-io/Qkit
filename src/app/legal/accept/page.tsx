@@ -1,5 +1,7 @@
-import { AcceptForm } from "./accept-form";
-import { safeRedirectPath } from "@merqo/ui";
+import { AcceptTermsPage, safeRedirectPath } from "@merqo/ui";
+
+import { LegalWordmark } from "../wordmark";
+import { acceptLegalTerms } from "./actions";
 
 export const revalidate = 0;
 
@@ -16,14 +18,10 @@ export default async function LegalAcceptPage({
   const { next } = await searchParams;
 
   return (
-    <div className="mx-auto max-w-md px-5 py-16">
-      <h1 className="mb-4 text-xl font-semibold">
-        Our terms have been updated
-      </h1>
-      <p className="mb-6 text-sm text-muted-foreground">
-        Please review and accept before continuing.
-      </p>
-      <AcceptForm next={safeRedirectPath(next, "/dashboard")} />
-    </div>
+    <AcceptTermsPage
+      action={acceptLegalTerms}
+      next={safeRedirectPath(next, "/dashboard")}
+      wordmark={<LegalWordmark />}
+    />
   );
 }

@@ -7,7 +7,7 @@ pickup status.
 ## Stack
 
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
-React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.56.1)
+React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.58.0)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
 The app runs Next.js 16.4.6, which clears GHSA-mfr8-8qww-v76h.
 
@@ -63,6 +63,7 @@ See [.env.example](.env.example) for the full configuration contract and
 preview hostname breaks authentication. Preview deployments use the staging
 Supabase project, not production (see the deployment notes). Missing Merqo legal configuration
 prevents signed-in vendors from passing the legal-acceptance gate.
+The `/legal/terms`, `/legal/privacy` and `/legal/accept` pages render `@merqo/ui`'s shared `LegalPage` and `AcceptTermsPage`.
 
 ## Database setup
 
@@ -111,6 +112,8 @@ function.
 | `/order/[boothId]/pickup`                      | Pickup kiosk       | Collection scanner                                                                                                       |
 | `/admin`                                       | qkit administrator | Vendor and platform administration                                                                                       |
 | `/api/merqo/*`, `/api/printkit/*`, `/api/v1/*` | Integrations       | Independently authenticated endpoints                                                                                    |
+
+The public landing page `/` ends with the "Try it" story and a closing section; the story's bottom spacing is tied to the closing section's padding so the gaps above and below the divider match (see `src/components/landing/journey/README.md`).
 
 ## Payments and notifications
 
