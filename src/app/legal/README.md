@@ -8,23 +8,31 @@ it and, on `accept/`, records the vendor's acceptance with merqo.
 
 ## Contents
 
-- `terms/page.tsx` ([README](terms/README.md)) — `TermsPage`, a one-line Server Component rendering
-  `@merqo/ui`'s `<LegalDocument doc="terms" kit="qkit" />` (the component
+- `legal-page-client.tsx` — `LegalPageClient`, a `"use client"` wrapper around
+  `LegalPage` with `next/link`. Needed because `@merqo/ui` 0.57 inlines its
+  client-only `LegalDocument` into `LegalPage` without a client boundary, so
+  `LegalPage` rendered straight from a Server Component 500s. Remove once the
+  package keeps the boundary.
+- `wordmark.tsx` — `LegalWordmark`, the qkit mark the three pages pass to the
+  shared components (which wrap it in the home link).
+- `page.dom.test.tsx` — renders the three pages: shared metadata titles,
+  wordmark home link, and the accept submit gated on the checkbox (touch) with
+  `next` sanitised.
+- `terms/page.tsx` ([README](terms/README.md)) — `TermsPage`, a Server Component rendering
+  `LegalPageClient` (`@merqo/ui`'s `LegalPage`) and exporting
+  `legalPageMetadata("terms")` (the component
   brings its own `mx-auto max-w-3xl` prose container, so there's no local
   layout). The `kit` prop scopes the rendered Annex to qkit's own schedule
   only, not every sibling kit's.
-- `privacy/page.tsx` ([README](privacy/README.md)) — `PrivacyPage`, the same for `<LegalDocument doc="privacy" />`.
+- `privacy/page.tsx` ([README](privacy/README.md)) — `PrivacyPage`, the same for `<LegalPage doc="privacy" />`.
 - `accept/page.tsx` — `LegalAcceptPage`. The interstitial
   `requireCurrentLegalAcceptance` (`@/lib/legal-gate`) redirects a signed-in
   vendor to when their accepted terms/privacy versions are behind
   `@merqo/ui`'s `LEGAL_VERSIONS`. Reads the `next` search param (through
-  `safeRedirectPath`, `@merqo/ui`) and renders the client form.
+  `safeRedirectPath`, `@merqo/ui`) and renders `@merqo/ui`'s `AcceptTermsPage`
+  (a client component fed only serialisable props).
   Deliberately runs **no** legal-gate check itself — it is what the gate
   redirects to, so gating it would loop.
-- `accept/accept-form.tsx` — `AcceptForm`, a client component wrapping
-  `@merqo/ui`'s `TermsAcceptanceCheckbox` (just the agree checkbox — no
-  typed name); the submit button is disabled until it's checked. Posts to
-  `acceptLegalTerms`.
 - `accept/actions.ts` — `acceptLegalTerms` server action. Re-checks for a
   signed-in user (redirects to `/login` otherwise), reads the vendor's
   real `ip`/`user_agent` (via `headers()`/`clientIp`, since this action

@@ -220,9 +220,15 @@ export function TryIt() {
         </div>
       </div>
 
+      {/* The replay row below the stage is 58px (mt-3.5 + min-h-11) and always
+          reserves its height, so the bottom padding is the closing section's
+          clamp minus that, leaving the same gap under the last content as the
+          rule has above and below it. On narrow widths both devices share one grid
+          cell and sit on its bottom edge, so the shorter tablet leaves its slack
+          above the frame and the gap under the visible frame stays that row. */}
       <div
         id="story"
-        className="mx-auto grid max-w-6xl gap-x-12 px-5 pb-14 md:pb-24 min-[960px]:grid-cols-[minmax(0,0.66fr)_minmax(0,1.34fr)]"
+        className="mx-auto grid max-w-6xl gap-x-12 px-5 pb-[max(0px,calc(clamp(56px,8vw,96px)_-_58px))] min-[960px]:grid-cols-[minmax(0,0.66fr)_minmax(0,1.34fr)]"
       >
         <div
           role="group"
@@ -245,7 +251,7 @@ export function TryIt() {
         <div ref={colRef} className="min-w-0 min-[960px]:order-2">
           <div
             ref={stageRef}
-            className="py-5 min-[960px]:sticky min-[960px]:top-[calc(4rem+3vh)]"
+            className="pt-5 min-[960px]:sticky min-[960px]:top-[calc(4rem+3vh)]"
           >
             <div
               role="tablist"
@@ -285,7 +291,7 @@ export function TryIt() {
 
             <div
               ref={zoomRef}
-              className="mx-auto grid w-max justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
+              className="mx-auto grid w-max items-end justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
             >
               <Device
                 id="story-phone"

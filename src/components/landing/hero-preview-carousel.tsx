@@ -5,7 +5,6 @@ import { cn } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANDING_BOARDS } from "@/components/landing/landing-boards";
 import { SampleTicket } from "@/components/landing/sample-ticket";
-import { Ticket } from "@/components/widgets/ticket";
 import { nearestIndex } from "@/lib/carousel";
 
 const ROTATE_MS = 7000;
@@ -128,11 +127,7 @@ export function HeroPreviewCarousel() {
       onFocus={() => (paused.current = true)}
       onBlur={() => (paused.current = false)}
     >
-      <Ticket
-        radius="xl"
-        shadow="none"
-        className="flex h-full min-h-[420px] w-full min-w-0 flex-col bg-card"
-      >
+      <div className="flex h-full min-h-[420px] w-full min-w-0 flex-col rounded-xl border border-border bg-card">
         <div
           ref={trackRef}
           data-testid="hero-track"
@@ -149,7 +144,7 @@ export function HeroPreviewCarousel() {
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${COUNT}`}
-              className="flex min-w-0 flex-[0_0_100%] snap-start flex-col justify-center px-4 pt-6 pb-1 sm:px-5"
+              className="flex min-w-0 flex-[0_0_100%] snap-start flex-col justify-start px-4 pt-6 pb-1 sm:px-5"
             >
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div className="min-w-0">
@@ -199,7 +194,7 @@ export function HeroPreviewCarousel() {
             </button>
           ))}
         </div>
-      </Ticket>
+      </div>
     </div>
   );
 }

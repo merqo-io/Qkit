@@ -1,5 +1,9 @@
-import { LegalDocument } from "@merqo/ui";
+import { legalPageMetadata } from "@merqo/ui";
+
+import { LegalPageClient } from "../legal-page-client";
+
+export const metadata = legalPageMetadata("terms");
 
 export default function TermsPage() {
-  return <LegalDocument doc="terms" kit="qkit" />;
+  return <LegalPageClient doc="terms" kit="qkit" />;
 }

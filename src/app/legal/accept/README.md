@@ -10,13 +10,10 @@ folder's job is entirely to collect the vendor's consent and forward it.
 ## Contents
 
 - `page.tsx` — `LegalAcceptPage`. Reads the `next` search param (through
-  `safeRedirectPath`, `@merqo/ui`) and renders the client form.
+  `safeRedirectPath`, `@merqo/ui`) and renders `@merqo/ui`'s `AcceptTermsPage`
+  with `acceptLegalTerms` as its action and the shared `LegalWordmark`.
   Deliberately runs no legal-gate check itself — it is what the gate
   redirects to, so gating it would loop.
-- `accept-form.tsx` — `AcceptForm`, a client component wrapping `@merqo/ui`'s
-  `TermsAcceptanceCheckbox` (just the agree checkbox, no typed name); the
-  submit button stays disabled until it is checked. Posts to
-  `acceptLegalTerms`.
 - `actions.ts` — `acceptLegalTerms` server action. Re-checks for a signed-in
   user, records the acceptance against merqo, and redirects to the
   `next` path (again through `safeRedirectPath`, so a crafted `next` cannot
@@ -25,6 +22,10 @@ folder's job is entirely to collect the vendor's consent and forward it.
   duplicate-insert tolerance, and the redirect target.
 
 ## Shared package note
+
+The form (agree checkbox, submit disabled until ticked) is `AcceptTermsPage`
+from `@merqo/ui`; it is a client component, so the page passes only
+serialisable props (the server action, the sanitised `next`, the wordmark).
 
 `safeRedirectPath` comes from `@merqo/ui` (v0.31.0) rather than a
 qkit-local `@/lib/safe-redirect`; it was duplicated in all five repos.

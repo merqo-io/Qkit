@@ -6,7 +6,7 @@ The public privacy-policy page at `/legal/privacy`. The text is not kept here: i
 
 ## Contents
 
-- `page.tsx` — `PrivacyPage`, a one-line Server Component rendering `@merqo/ui`'s `<LegalDocument doc="privacy" />`. The component brings its own prose container, so there is no local layout.
+- `page.tsx` — `PrivacyPage`, a Server Component rendering `../legal-page-client.tsx`'s `LegalPageClient` (`@merqo/ui`'s `LegalPage` with the shared `LegalWordmark` and `next/link`) for `doc="privacy"`, and exporting `legalPageMetadata("privacy")` as its `metadata`. The component brings its own prose container, so there is no local layout.
 
 ## Conventions
 

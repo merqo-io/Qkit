@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Landing story: the gap under the Try it devices now matches the closing section's top and bottom padding (about 175px down to about 96px on desktop, 195px to about 58px on phones). The wrapper padding follows the same clamp, the stage's trailing padding is gone, and on phones both devices sit on the bottom of their shared cell, so the shorter tablet leaves its slack above the frame instead of below it.
+- Landing hero carousel: the sample ticket's action button grows with its label instead of clipping "Confirm payment received" on narrow two-column cards; the carousel's outer box is a plain rounded box (a booth, not an order chit, so no zig-zag edges); each slide is top-aligned so the booth header stays put as the ticket count changes.
 - Landing follow-ups: a burst of wheel events over the hero carousel restarts its countdown once; the carousel and the how-it-works story follow the reduced-motion setting live; with reduced motion the desktop story highlights the step in view again and no longer flashes the start state on first paint; the "user guide" link is a 44px tap target; the footer uses the compact two-row layout on phones.
 
 ### Added
@@ -17,6 +19,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The terms, privacy and accept-terms pages now use `@merqo/ui`'s `LegalPage` / `legalPageMetadata` and `AcceptTermsPage`. Each page gets a qkit wordmark linking home and a proper title; the accept page keeps its sanitised `next` and runs no legal gate. The local `accept-form.tsx` is removed.
+- Repinned `@merqo/ui` to v0.58.0. The dashboard account menu now shows the vendor's stall name through the shared `accountLabel` chain (stall name, full name, display name, email local part, "Account"), so it matches the landing nav; the "Your stall" fallback is gone.
+- Repinned `@merqo/ui` to v0.57.0 and mounted its `AppLinkProvider` with `next/link` in `Providers`, so `AccountMenu`, `DashboardNav`, `LoginForm`, `ResetPasswordForm` and `LandingAccountNav` navigate client-side without a `LinkComponent` prop. The prop is dropped from `DashboardNav` and `LandingAccountNav`.
 - Repinned `@merqo/ui` to v0.56.1: the account menu avatar trigger now has a 44px touch target below the sm breakpoint, with an unchanged layout footprint.
 - `@merqo/ui` moves to v0.56.0. The landing nav's signed-in end is now the shared `LandingAccountNav`, and the account is named after the vendor's stall (`toNavUser`), falling back to the email name if that read fails. The local `toLandingAccount` wrapper is removed; help requests go through a small `submitLandingSupport` adapter.
 - Landing page shell rebuilt around the story: the hero now has the Piloting row, a "Scan · order · track" pill and a sample-board carousel made from the real board ticket parts (five boards with captions, one countdown that any interaction restarts). The trust line and the dark pain band are gone, and the closing section reads "Put your menu on it." with the same pricing line and three FAQs. The landing-only ticket and board copies are deleted.

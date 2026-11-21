@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { accountLabel } from "@merqo/ui";
 import { createServerClient } from "@/lib/supabase/server";
 import { loadEntitlement } from "@/lib/supabase/get-entitlement";
 import { isAdmin } from "@/lib/admin/access";
@@ -70,7 +71,7 @@ export default async function DashboardLayout({
       <div className="contents print:hidden">
         <DashboardNav
           signOut={signOut}
-          vendorName={vendor.name}
+          accountLabel={accountLabel(user, vendor.name)}
           avatarUrl={avatarUrl}
           tier={entitlement.tier}
         />
