@@ -62,12 +62,6 @@ describe("landing Nav", () => {
     const { unmount } = render(
       <Nav user={{ name: "Kopi Corner" }} signOutAction={signOut} />,
     );
-    for (const name of ["FAQ", "About"]) {
-      const cls = screen.getByRole("link", { name }).className;
-      expect(cls).toContain("h-11");
-      expect(cls).toContain("min-w-11");
-      expect(cls).toContain("sm:h-8");
-    }
     const dashboard = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboard.className).toContain("min-h-11");
     expect(dashboard.className).toContain("sm:min-h-0");

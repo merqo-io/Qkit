@@ -15,14 +15,15 @@ inline mark used on the login page.
   responsive `end`-slot gap live there) and supplies the wordmark (a plain
   `<a href="/#top">`, since `Link` leaves the old hash in the URL bar on a
   fragment-only jump) and the right-side content. "FAQ" and "About"
-  are `Button asChild variant="ghost"` links so they render identically. Signed
+  are passed as plain data through the shell's `links` prop (inline from `sm` up,
+  inside a burger menu below `sm`). Signed
   in (`user` set) renders `@merqo/ui`'s `LandingAccountNav` (Dashboard link plus
   the account menu with sign out, help via `submitLandingSupport` and feedback
   via `submitFeedback`, categories in `SUPPORT_CATEGORY_LABELS`); signed out shows "Sign in" and
   "Get started".
-- Tap targets: every nav control is at least 44x44px below `sm` (FAQ, About and the signed-out links via
+- Tap targets: every nav control is at least 44x44px below `sm` (the signed-out links via
   `h-11 min-w-11`; the Dashboard link and avatar trigger inside
-  `LandingAccountNav` carry their own 44px sizing) and keeps the 32px look from `sm` up.
+  `LandingAccountNav` carry their own 44px sizing) and keeps the 32px look from `sm` up; the shell's burger menu sizes FAQ and About itself.
 - `nav.dom.test.tsx` — signed out has no account menu, signed in has
   Dashboard plus a menu opened by touch whose Sign out calls the action, and FAQ and About
   share the same styling classes.
