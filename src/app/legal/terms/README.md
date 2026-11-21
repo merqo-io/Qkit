@@ -6,7 +6,7 @@ The public terms-of-service page at `/legal/terms`. The text is not kept here: i
 
 ## Contents
 
-- `page.tsx` — `TermsPage`, a one-line Server Component rendering `@merqo/ui`'s `<LegalDocument doc="terms" kit="qkit" />`. The `kit` prop scopes the rendered Annex to qkit's own schedule only.
+- `page.tsx` — `TermsPage`, a Server Component rendering `../legal-page-client.tsx`'s `LegalPageClient` (`@merqo/ui`'s `LegalPage` with the shared `LegalWordmark` and `next/link`) for `doc="terms" kit="qkit"`, and exporting `legalPageMetadata("terms")` as its `metadata`. The `kit` prop scopes the rendered Annex to qkit's own schedule only.
 
 ## Conventions
 

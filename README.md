@@ -63,6 +63,7 @@ See [.env.example](.env.example) for the full configuration contract and
 preview hostname breaks authentication. Preview deployments use the staging
 Supabase project, not production (see the deployment notes). Missing Merqo legal configuration
 prevents signed-in vendors from passing the legal-acceptance gate.
+The `/legal/terms`, `/legal/privacy` and `/legal/accept` pages render `@merqo/ui`'s shared `LegalPage` and `AcceptTermsPage`.
 
 ## Database setup
 
