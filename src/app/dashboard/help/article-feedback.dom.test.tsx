@@ -92,4 +92,33 @@ describe("ArticleFeedback", () => {
       screen.queryByText("Thanks for the feedback."),
     ).not.toBeInTheDocument();
   });
+
+  it("keeps the saved vote until a No is actually sent", async () => {
+    const submit = vi.fn(ok);
+    render(
+      <ArticleFeedback
+        slug="payments"
+        initialVote={{ helpful: true, comment: null }}
+        submit={submit}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "No" }));
+    expect(screen.getByLabelText("What was missing?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Yes" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "No" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(submit).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "No" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
+  });
 });

@@ -86,7 +86,11 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
         <ArticleBody blocks={article.body} />
 
         {myVote.available && (
-          <ArticleFeedback slug={article.slug} initialVote={myVote.vote} />
+          <ArticleFeedback
+            key={article.slug}
+            slug={article.slug}
+            initialVote={myVote.vote}
+          />
         )}
 
         <p className="border-t border-border pt-4 text-xs text-muted-foreground">

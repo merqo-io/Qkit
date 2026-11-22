@@ -32,7 +32,7 @@ export type HelpFeedbackResult =
   | { ok: true }
   | {
       ok: false;
-      error: "invalid" | "unauthenticated" | "unavailable" | "failed";
+      error: "invalid" | "unauthenticated" | "failed";
     };
 
 export type HelpVote = { helpful: boolean; comment: string | null };

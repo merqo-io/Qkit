@@ -25,11 +25,11 @@ export function ArticleFeedback({
   initialVote,
   submit = submitHelpFeedback,
 }: Props) {
-  const [vote, setVote] = useState<boolean | null>(
+  const [saved, setSaved] = useState<boolean | null>(
     initialVote ? initialVote.helpful : null,
   );
+  const [composing, setComposing] = useState(false);
   const [comment, setComment] = useState(initialVote?.comment ?? "");
-  const [done, setDone] = useState(initialVote !== null);
   const [error, setError] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -42,8 +42,8 @@ export function ArticleFeedback({
         ...(helpful ? {} : { comment: text }),
       });
       if (result.ok) {
-        setVote(helpful);
-        setDone(true);
+        setSaved(helpful);
+        setComposing(false);
       } else {
         setError(true);
       }
@@ -56,8 +56,8 @@ export function ArticleFeedback({
       send(true);
       return;
     }
-    setVote(false);
-    setDone(false);
+    setError(false);
+    setComposing(true);
   }
 
   const buttonClass = "min-h-11 min-w-24 flex-1 sm:flex-none";
@@ -73,8 +73,8 @@ export function ArticleFeedback({
       <div className="flex gap-2">
         <Button
           type="button"
-          variant={vote === true ? "default" : "outline"}
-          aria-pressed={vote === true}
+          variant={saved === true ? "default" : "outline"}
+          aria-pressed={saved === true}
           disabled={pending}
           onClick={() => choose(true)}
           className={buttonClass}
@@ -83,8 +83,8 @@ export function ArticleFeedback({
         </Button>
         <Button
           type="button"
-          variant={vote === false ? "default" : "outline"}
-          aria-pressed={vote === false}
+          variant={saved === false ? "default" : "outline"}
+          aria-pressed={saved === false}
           disabled={pending}
           onClick={() => choose(false)}
           className={buttonClass}
@@ -93,7 +93,7 @@ export function ArticleFeedback({
         </Button>
       </div>
 
-      {vote === false && !done && (
+      {composing && (
         <div className="space-y-2">
           <label htmlFor="help-feedback-comment" className="text-sm">
             What was missing?
@@ -123,7 +123,7 @@ export function ArticleFeedback({
         </div>
       )}
 
-      {done && !pending && !error && (
+      {saved !== null && !composing && !pending && !error && (
         <p role="status" className="text-sm text-muted-foreground">
           Thanks for the feedback.
         </p>
