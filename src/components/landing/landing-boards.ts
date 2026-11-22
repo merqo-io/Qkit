@@ -5,7 +5,9 @@ export type SampleOrder = {
   name: string;
   status: OrderStatus;
   ageMins: number;
-  readyAgoMins?: number;
+  /** Earlier age the ticket shows first; the carousel jumps to `ageMins` midway through the board's view. */
+  startAgeMins?: number;
+  readyAgoSec?: number;
   payment?: PaymentStatus;
   items: {
     name: string;
@@ -28,9 +30,12 @@ export type LandingBoardData = {
 export const SAMPLE_AGING_MIN = 7;
 export const SAMPLE_OVERDUE_MIN = 12;
 
-// A ready ticket's drain bar runs for what is left of this window, so each
-// board shows it moving for a while after it is seeded.
-export const SAMPLE_AUTO_CLEAR_MS = 3 * 60_000;
+// The drain bar always starts full and runs for what is left of this window
+// (window minus the ready ticket's age at seed). With the 3s default age that
+// is 7s, the carousel's ROTATE_MS, so the bar visibly empties across a board's
+// view instead of creeping.
+export const SAMPLE_AUTO_CLEAR_MS = 10_000;
+export const SAMPLE_READY_AGO_SEC = 3;
 
 const MINUTE_MS = 60_000;
 
@@ -40,12 +45,19 @@ const MINUTE_MS = 60_000;
  * sensibly whenever a board is seeded, and the carousel re-seeds a board each
  * time it comes into view.
  */
-export function toBoardOrder(sample: SampleOrder, seedMs: number): BoardOrder {
-  const created = new Date(seedMs - sample.ageMins * MINUTE_MS).toISOString();
+export function toBoardOrder(
+  sample: SampleOrder,
+  seedMs: number,
+  flipped = true,
+): BoardOrder {
+  const ageMins = flipped
+    ? sample.ageMins
+    : (sample.startAgeMins ?? sample.ageMins);
+  const created = new Date(seedMs - ageMins * MINUTE_MS).toISOString();
   const readyAt =
     sample.status === "ready"
       ? new Date(
-          seedMs - (sample.readyAgoMins ?? 0.5) * MINUTE_MS,
+          seedMs - (sample.readyAgoSec ?? SAMPLE_READY_AGO_SEC) * 1000,
         ).toISOString()
       : null;
   const items = sample.items.map((item, i) => ({
@@ -193,6 +205,7 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         name: "Lim",
         status: "preparing",
         ageMins: 12,
+        startAgeMins: 11.8,
         items: [
           {
             quantity: 2,
@@ -206,6 +219,7 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         name: "Aisha",
         status: "preparing",
         ageMins: 7,
+        startAgeMins: 6.8,
         items: [
           {
             quantity: 1,

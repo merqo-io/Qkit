@@ -16,6 +16,9 @@ import { nearestIndex } from "@/lib/carousel";
 const ROTATE_MS = 7000;
 const WHEEL_BURST_MS = 150;
 const COUNT = LANDING_BOARDS.length;
+const HAS_FLIP = LANDING_BOARDS.map((b) =>
+  b.orders.some((o) => o.startAgeMins !== undefined),
+);
 
 /**
  * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
@@ -44,6 +47,10 @@ export function HeroPreviewCarousel() {
     LANDING_BOARDS.map(() => 0),
   );
 
+  const [flipped, setFlipped] = useState<boolean[]>(() =>
+    LANDING_BOARDS.map(() => true),
+  );
+
   const restart = useCallback(() => setEpoch((e) => e + 1), []);
 
   const show = useCallback((i: number) => {
@@ -68,7 +75,27 @@ export function HeroPreviewCarousel() {
     setSeeds((prev) =>
       prev.map((seed, i) => (i === active || seed === 0 ? now : seed)),
     );
+    if (!reducedRef.current && HAS_FLIP[active])
+      setFlipped((prev) => prev.map((f, i) => (i === active ? false : f)));
   }, [active]);
+
+  // Boards with a `startAgeMins` show it first and jump to the final ages
+  // halfway through the view, so the amber and red tones are both seen. The
+  // re-seed changes the card keys: `OrderCard` reads its clock once on mount,
+  // and a stale clock would put the new ages back under their thresholds.
+  useEffect(() => {
+    if (reduced) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reduced motion settles every board on its final state
+      setFlipped((prev) => (prev.every(Boolean) ? prev : prev.map(() => true)));
+      return;
+    }
+    if (!HAS_FLIP[active]) return;
+    const id = window.setTimeout(() => {
+      setSeeds((prev) => prev.map((s, i) => (i === active ? Date.now() : s)));
+      setFlipped((prev) => prev.map((f, i) => (i === active ? true : f)));
+    }, ROTATE_MS / 2);
+    return () => window.clearTimeout(id);
+  }, [active, reduced]);
 
   useEffect(() => {
     if (reduced) return;
@@ -141,7 +168,7 @@ export function HeroPreviewCarousel() {
       role="region"
       aria-roledescription="carousel"
       aria-label="Sample order boards"
-      className="min-w-0"
+      className="min-w-0 min-[960px]:absolute min-[960px]:inset-0"
       onPointerDown={restart}
       onTouchStart={restart}
       onTouchEnd={restart}
@@ -153,7 +180,7 @@ export function HeroPreviewCarousel() {
       onFocus={() => (paused.current = true)}
       onBlur={() => (paused.current = false)}
     >
-      <div className="flex h-full min-h-[420px] w-full min-w-0 flex-col rounded-xl border border-border bg-card">
+      <div className="flex h-full min-h-[420px] min-[960px]:min-h-0 w-full min-w-0 flex-col rounded-xl border border-border bg-card">
         <div
           ref={trackRef}
           data-testid="hero-track"
@@ -162,7 +189,7 @@ export function HeroPreviewCarousel() {
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          className="flex flex-1 cursor-grab snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] data-[drag]:cursor-grabbing data-[drag]:snap-none data-[drag]:select-none [&::-webkit-scrollbar]:hidden"
+          className="flex min-h-0 flex-1 cursor-grab snap-x snap-mandatory overflow-x-auto min-[960px]:overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] data-[drag]:cursor-grabbing data-[drag]:snap-none data-[drag]:select-none [&::-webkit-scrollbar]:hidden"
         >
           {LANDING_BOARDS.map((board, i) => (
             <div
@@ -187,17 +214,18 @@ export function HeroPreviewCarousel() {
               </div>
               <TooltipProvider>
                 <div
+                  key={`${seeds[i]}-${flipped[i]}`}
                   inert
                   data-seeded={seeds[i] !== 0}
                   className={cn(
-                    "grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3",
+                    "grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3 min-[960px]:[zoom:0.8]",
                     seeds[i] === 0 && "invisible",
                   )}
                 >
                   {board.orders.map((order) => (
                     <OrderCard
                       key={order.number}
-                      order={toBoardOrder(order, seeds[i])}
+                      order={toBoardOrder(order, seeds[i], flipped[i])}
                       agingMin={SAMPLE_AGING_MIN}
                       overdueMin={SAMPLE_OVERDUE_MIN}
                       readyAutoClearMs={SAMPLE_AUTO_CLEAR_MS}
