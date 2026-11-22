@@ -188,7 +188,11 @@ export function HeroPreviewCarousel() {
               <TooltipProvider>
                 <div
                   inert
-                  className="grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3"
+                  data-seeded={seeds[i] !== 0}
+                  className={cn(
+                    "grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3",
+                    seeds[i] === 0 && "invisible",
+                  )}
                 >
                   {board.orders.map((order) => (
                     <OrderCard

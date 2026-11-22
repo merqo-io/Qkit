@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroPreviewCarousel } from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
@@ -83,6 +84,25 @@ describe("HeroPreviewCarousel", () => {
     expect(buttons.length).toBeGreaterThan(0);
     for (const button of buttons)
       expect(button.closest("[inert]")).not.toBeNull();
+  });
+
+  it("keeps tickets invisible and unaged until their board is seeded", () => {
+    mockMatchMedia(false);
+    const html = renderToString(<HeroPreviewCarousel />);
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const grids = doc.querySelectorAll("[inert]");
+    expect(grids).toHaveLength(LANDING_BOARDS.length);
+    for (const grid of Array.from(grids)) {
+      expect(grid.classList.contains("invisible")).toBe(true);
+      expect(grid.textContent).not.toMatch(/\d{5}/);
+    }
+  });
+
+  it("shows tickets once seeded", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    for (const grid of Array.from(container.querySelectorAll("[inert]")))
+      expect(grid.classList.contains("invisible")).toBe(false);
   });
 
   it("shows only active tickets and a true active count per board", () => {
