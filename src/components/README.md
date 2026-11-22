@@ -9,7 +9,7 @@ shadcn primitive (`ui/`) or ordering-flow-specific (`order/`).
 ## Contents
 
 - `landing/` — the sticky landing-page nav (`Nav`, composing `@merqo/ui`'s
-  `LandingNav` shell) and the standalone wordmark used on the login page
+  `LandingNav` shell; FAQ and About go through its `links` prop, a burger menu below sm) and the standalone wordmark used on the login page
   (`Wordmark`). See its own README.
 - `order/` — components specific to the customer ordering flow (menu/cart
   form, recent-orders list, expired-code screen). See its own README.

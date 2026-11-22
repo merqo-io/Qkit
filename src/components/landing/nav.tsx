@@ -18,7 +18,10 @@ const SUPPORT_CATEGORY_LABELS: Record<SupportMessageInput["category"], string> =
 // 44px hit area below sm (WCAG 2.5.5); sm up keeps the 32px size="sm" look.
 const TAP_CLASS = "h-11 min-w-11 sm:h-8 sm:min-w-0";
 const LINK_CLASS = `rounded-lg ${TAP_CLASS}`;
-const SECONDARY_LINK_CLASS = `hidden ${LINK_CLASS} sm:inline-flex`;
+const NAV_LINKS = [
+  { label: "FAQ", href: "/faq" },
+  { label: "About", href: "/about" },
+];
 
 export function Nav({
   user,
@@ -29,6 +32,7 @@ export function Nav({
 }) {
   return (
     <LandingNav
+      links={NAV_LINKS}
       wordmark={
         // eslint-disable-next-line @next/next/no-html-link-for-pages -- Link leaves the old hash in the URL bar on a fragment-only jump
         <a
@@ -41,17 +45,6 @@ export function Nav({
       }
       end={
         <>
-          <Button asChild variant="ghost" size="sm" className={LINK_CLASS}>
-            <Link href="/faq">FAQ</Link>
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className={SECONDARY_LINK_CLASS}
-          >
-            <Link href="/about">About</Link>
-          </Button>
           {user ? (
             <LandingAccountNav
               kit="qkit"
