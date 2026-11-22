@@ -1,8 +1,26 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroPreviewCarousel } from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
+
+vi.mock("@/app/dashboard/order-advance-actions", () => ({
+  advanceOrder: vi.fn(),
+  revertOrderAdvance: vi.fn(),
+  restoreAutoCompleted: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-payment-actions", () => ({
+  confirmOrderPayment: vi.fn(),
+  confirmPaymentAndStart: vi.fn(),
+  declinePaymentClaim: vi.fn(),
+  revertPaymentAndStart: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-cancel-actions", () => ({
+  cancelOrder: vi.fn(),
+  bumpOrder: vi.fn(),
+}));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 function mockMatchMedia(initial: boolean) {
   let reduced = initial;
@@ -44,7 +62,7 @@ afterEach(() => {
 });
 
 describe("HeroPreviewCarousel", () => {
-  it("is built from the real ticket parts: attention lines, actions and status", () => {
+  it("renders the board's real order cards for every sample ticket", () => {
     mockMatchMedia(false);
     render(<HeroPreviewCarousel />);
     expect(screen.getAllByText("Not paid yet").length).toBeGreaterThan(0);
@@ -52,17 +70,48 @@ describe("HeroPreviewCarousel", () => {
       screen.getAllByText("Says paid. Check the payment").length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Mark Picked Up").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
+    const tickets = LANDING_BOARDS.flatMap((board) => board.orders);
+    for (const order of tickets)
+      expect(screen.getAllByText(order.name).length).toBeGreaterThan(0);
   });
 
-  it("lets the action button grow so a wrapped label is not clipped", () => {
+  it("puts every ticket control inside an inert subtree, so no action can fire", () => {
     mockMatchMedia(false);
     render(<HeroPreviewCarousel />);
-    const button = screen
-      .getAllByText("Confirm payment received")[0]
-      .closest(".overflow-hidden");
-    expect(button?.classList.contains("min-h-12")).toBe(true);
-    expect(button?.classList.contains("h-12")).toBe(false);
+    const buttons = screen
+      .getAllByRole("button", { hidden: true })
+      .filter((b) => !/^Show sample/.test(b.getAttribute("aria-label") ?? ""));
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons)
+      expect(button.closest("[inert]")).not.toBeNull();
+  });
+
+  it("keeps tickets invisible and unaged until their board is seeded", () => {
+    mockMatchMedia(false);
+    const html = renderToString(<HeroPreviewCarousel />);
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const grids = doc.querySelectorAll("[inert]");
+    expect(grids).toHaveLength(LANDING_BOARDS.length);
+    for (const grid of Array.from(grids)) {
+      expect(grid.classList.contains("invisible")).toBe(true);
+      expect(grid.textContent).not.toMatch(/\d{5}/);
+    }
+  });
+
+  it("shows tickets once seeded", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    for (const grid of Array.from(container.querySelectorAll("[inert]")))
+      expect(grid.classList.contains("invisible")).toBe(false);
+  });
+
+  it("shows only active tickets and a true active count per board", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    expect(screen.queryByText("Completed")).toBeNull();
+    expect(screen.getAllByText(/^\d+ active$/)).toHaveLength(
+      LANDING_BOARDS.length,
+    );
   });
 
   it("draws the booth box plain and top-aligns every slide", () => {
@@ -76,15 +125,6 @@ describe("HeroPreviewCarousel", () => {
       expect(slide.classList.contains("justify-start")).toBe(true);
       expect(slide.classList.contains("justify-center")).toBe(false);
     }
-  });
-
-  it("gives a closed ticket no footer and aligns it to the start", () => {
-    mockMatchMedia(false);
-    const { container } = render(<HeroPreviewCarousel />);
-    const closed = container.querySelector(".self-start");
-    expect(closed).not.toBeNull();
-    expect(closed?.textContent).toContain("Jun");
-    expect(closed?.querySelector(".h-10")).toBeNull();
   });
 
   it("advances one board after 7 seconds", () => {
