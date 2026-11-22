@@ -13,6 +13,9 @@ The vendor user guide at `/dashboard/help`. It lives inside the dashboard, not o
 - `page.tsx` — `HelpIndexPage()`: hero with large search, "Popular articles" (`POPULAR_HELP_SLUGS`) and a category card grid linking to each category's first article.
 - `[slug]/page.tsx` ([README](%5Bslug%5D/README.md)) — `HelpArticlePage({ params })`: one article (async `params`) with breadcrumb, "On this page" TOC and previous/next links. A draft or unknown slug calls `notFound()`.
 - `article-body.tsx` — `ArticleBody({ blocks })` renders the `HelpBlock` union and gives headings stable ids; `articleHeadings()` lists the level-2 ones for the TOC. Links starting with `/` use `next/link`; others open in a new tab.
+- `article-feedback.tsx` - client `ArticleFeedback({ slug, initialVote })`: the "Was this helpful?" Yes/No control at the end of an article. No reveals an optional comment (500 characters). The vote can be changed; failures show inline.
+- `feedback-actions.ts` - server action `submitHelpFeedback`: validates with `helpFeedbackSchema` (`src/lib/help/feedback.ts`), requires a published slug, upserts into `qkit.help_feedback` on the user session (RLS), returns a typed result and never throws. The article page loads the vendor's vote with `loadMyHelpVote` and hides the widget if the table is not there yet (migration 0122).
+- `article-feedback.dom.test.tsx` - widget cases: Yes, No with a comment, change vote, error.
 - `help.dom.test.tsx` — sidebar, search, home, article, draft 404 and static params.
 
 ## Connectivity

@@ -8,7 +8,10 @@ import {
   orderedArticles,
   publishedArticles,
 } from "@/content/help";
+import { createServerClient } from "@/lib/supabase/server";
+import { loadMyHelpVote } from "@/lib/help/feedback-queries";
 import { ArticleBody, articleHeadings } from "../article-body";
+import { ArticleFeedback } from "../article-feedback";
 
 type Params = Promise<{ slug: string }>;
 
@@ -35,6 +38,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
   if (!article) notFound();
   const category = categoryFor(article);
   const headings = articleHeadings(article.body);
+  const myVote = await loadMyHelpVote(await createServerClient(), article.slug);
   const sequence = orderedArticles();
   const position = sequence.findIndex((a) => a.slug === article.slug);
   const previous = position > 0 ? sequence[position - 1] : undefined;
@@ -80,6 +84,14 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
         </header>
 
         <ArticleBody blocks={article.body} />
+
+        {myVote.available && (
+          <ArticleFeedback
+            key={article.slug}
+            slug={article.slug}
+            initialVote={myVote.vote}
+          />
+        )}
 
         <p className="border-t border-border pt-4 text-xs text-muted-foreground">
           Last checked {article.reviewed}
