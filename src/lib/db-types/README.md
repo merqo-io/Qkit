@@ -6,7 +6,7 @@ The hand-written `Database["qkit"]` shape, split by table group so no single fil
 
 ## Contents
 
-- `account-tables.ts` — `AccountTables`: Row/Insert/Update shapes for `vendors`, `admins`, `admin_audit`, `events`, `vendor_entitlements`, `payments`, `platform_settings`, `legal_check_state` and `feedback`.
+- `account-tables.ts` — `AccountTables`: Row/Insert/Update shapes for `vendors`, `admins`, `admin_audit`, `events`, `vendor_entitlements`, `payments`, `platform_settings`, `legal_check_state`, `feedback` and `help_feedback`.
 - `order-tables.ts` — `OrderTables`: Row/Insert/Update shapes for `booths`, `orders`, `booth_item_sold`, `order_status_events`, `order_push_subscriptions`, `booth_service_starts`, `ops_events`, `cart_holds` and `rate_limits`.
 - `proof-storage-tables.ts` — `ProofStorageTables`: the `proof_storage_deletions` queue table (migration 0119).
 - `functions.ts` — `DbFunctions`: Args/Returns shapes for the qkit schema's Postgres functions (`is_admin`, `place_order`, `place_walkup_order`, `start_new_service`, the stock and entitlement helpers and the purge and sweep jobs).

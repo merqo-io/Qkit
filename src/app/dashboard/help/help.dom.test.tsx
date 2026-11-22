@@ -15,6 +15,15 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: nav.push }),
 }));
 
+const loadVote = vi.hoisted(() =>
+  vi.fn(async () => ({ available: true, vote: null }) as unknown),
+);
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: async () => ({}),
+}));
+vi.mock("@/lib/help/feedback-queries", () => ({ loadMyHelpVote: loadVote }));
+vi.mock("./feedback-actions", () => ({ submitHelpFeedback: vi.fn() }));
+
 import HelpIndexPage from "./page";
 import HelpLayout from "./layout";
 import HelpArticlePage, { generateStaticParams } from "./[slug]/page";
@@ -178,6 +187,19 @@ describe("help index", () => {
 });
 
 describe("help article page", () => {
+  it("shows the feedback widget, and hides it when the table is unavailable", async () => {
+    const { unmount } = render(
+      await HelpArticlePage({ params: Promise.resolve({ slug: "payments" }) }),
+    );
+    expect(screen.getByText("Was this helpful?")).toBeInTheDocument();
+    unmount();
+    loadVote.mockResolvedValueOnce({ available: false });
+    render(
+      await HelpArticlePage({ params: Promise.resolve({ slug: "payments" }) }),
+    );
+    expect(screen.queryByText("Was this helpful?")).not.toBeInTheDocument();
+  });
+
   it("renders the troubleshooting article", async () => {
     render(
       await HelpArticlePage({

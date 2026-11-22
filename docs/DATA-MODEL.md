@@ -69,6 +69,8 @@ z.boolean().default(true)` — a vendor-side opt-out for the `ready`-transition
   (`src/app/dashboard/settings/settings-form.tsx`). See
   `docs/superpowers/specs/2026-08-16-customer-notify-vendor-toggle-design.md`.
 
+- `help_feedback` (0122): one "Was this helpful?" vote per vendor per help article (`unique (vendor_id, article_slug)`, optional comment up to 500 characters, only collected on a No). A vendor selects, inserts and updates only their own rows; admins select all; no delete policy and no `anon` access. Written with the user session, not the service role. Apply before deploying; the widget hides itself until the table exists.
+
 ## Project notes
 
 **paykit checkout cutover (2026-08-11):** qkit's local PayNow QR builder and

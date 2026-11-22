@@ -19,6 +19,7 @@ import { ResolveMessageButton } from "./resolve-message-button";
 import { StuckOrdersSection } from "./stuck-orders-section";
 import { AdminAuditLog } from "./audit-log";
 import { HelpFreshnessSection } from "./help-freshness-section";
+import { summarizeHelpFeedback } from "@/lib/help/feedback";
 import { isTerminal } from "@/lib/orders";
 import {
   findStuckOrders,
@@ -39,6 +40,7 @@ export const revalidate = 0;
 
 const ENTITLEMENT_SCAN_LIMIT = 1000;
 const HELP_REQUEST_LIMIT = 200;
+const HELP_FEEDBACK_SCAN_LIMIT = 5000;
 
 function humanizeDetail(detail: unknown): string {
   if (!detail || typeof detail !== "object") return "";
@@ -51,6 +53,12 @@ export default async function AdminPage() {
   await requireAdmin();
 
   const supabase = await createServerClient();
+  // Null on error so the page still renders before migration 0122 is applied.
+  const { data: helpFeedbackRows } = await supabase
+    .from("help_feedback")
+    .select("article_slug, helpful, comment, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(HELP_FEEDBACK_SCAN_LIMIT);
   // merqo.support_messages' SELECT policy gates on merqo.merqo_team
   // membership, not qkit.admins — the RLS-scoped client above would silently
   // return zero rows for a qkit admin who isn't also a merqo_team member, so
@@ -289,7 +297,12 @@ export default async function AdminPage() {
         boothNameById={boothNameById}
       />
 
-      <HelpFreshnessSection now={new Date()} />
+      <HelpFreshnessSection
+        now={new Date()}
+        feedback={
+          helpFeedbackRows ? summarizeHelpFeedback(helpFeedbackRows) : null
+        }
+      />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           label="GMV · 30d"
