@@ -6,10 +6,14 @@ The vendor user guide at `/dashboard/help`. It lives inside the dashboard, not o
 
 ## Contents
 
-- `page.tsx` â€” `HelpIndexPage()`: every category with its published articles (title and summary). A category with only drafts shows "Coming soon." rather than disappearing, rendered with `@merqo/ui`'s `EmptyState` at `size="compact"`.
-- `[slug]/page.tsx` ([README](%5Bslug%5D/README.md)) â€” `HelpArticlePage({ params })`: one article (async `params`). A draft or unknown slug calls `notFound()`. `generateStaticParams` pre-renders the published slugs.
-- `article-body.tsx` â€” `ArticleBody({ blocks })`: renders the `HelpBlock` union. Links starting with `/` use `next/link`; others open in a new tab.
-- `help.dom.test.tsx` â€” index and article rendering, the draft 404 and the static params.
+- `layout.tsx` — `HelpLayout({ children })`: two columns on `lg+` (sticky sidebar, content). Builds the sidebar data and the search index on the server and passes them as plain props.
+- `help-sidebar.tsx` — client `HelpSidebar`: "Help home" link, search, and the category/article nav with the current article marked `aria-current="page"`. Below `lg` the nav is a native "Browse topics" `<details>`.
+- `help-search-box.tsx` — client `HelpSearch`: combobox/listbox search. `/` focuses it, arrows and Enter navigate, Esc clears. The empty state links to Troubleshooting.
+- `help-search.ts` — pure `searchHelp(index, query)`: every word must match; title outranks summary outranks body.
+- `page.tsx` — `HelpIndexPage()`: hero with large search, "Popular articles" (`POPULAR_HELP_SLUGS`) and a category card grid linking to each category's first article.
+- `[slug]/page.tsx` ([README](%5Bslug%5D/README.md)) — `HelpArticlePage({ params })`: one article (async `params`) with breadcrumb, "On this page" TOC and previous/next links. A draft or unknown slug calls `notFound()`.
+- `article-body.tsx` — `ArticleBody({ blocks })` renders the `HelpBlock` union and gives headings stable ids; `articleHeadings()` lists the level-2 ones for the TOC. Links starting with `/` use `next/link`; others open in a new tab.
+- `help.dom.test.tsx` — sidebar, search, home, article, draft 404 and static params.
 
 ## Connectivity
 

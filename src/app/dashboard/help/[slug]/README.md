@@ -6,7 +6,7 @@ One user-guide article at `/dashboard/help/<slug>`.
 
 ## Contents
 
-- `page.tsx` â€” `HelpArticlePage({ params })` (async `params`): looks the slug up with `getPublishedArticle`, shows a back link, the category and the title, and renders the body through `ArticleBody` (`../article-body.tsx`). A draft or unknown slug calls `notFound()`. `generateStaticParams` pre-renders the published slugs, and `generateMetadata` titles the page `<article> | User guide`.
+- `page.tsx` — `HelpArticlePage({ params })` (async `params`): looks the slug up with `getPublishedArticle`, shows a breadcrumb (Help / category / title), the body through `ArticleBody` (`../article-body.tsx`), previous/next links in global sidebar order (`orderedArticles`) and, from `xl`, an "On this page" TOC of level-2 headings. A draft or unknown slug calls `notFound()`. `generateStaticParams` pre-renders the published slugs, and `generateMetadata` titles the page `<article> | User guide`.
 
 ## Conventions
 

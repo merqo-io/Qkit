@@ -7,8 +7,8 @@ The text of the vendor user guide, one typed module per article. Rendered by `sr
 ## Contents
 
 - `types.ts` — `HelpArticle`, `HelpBlock` (heading, paragraph, steps, bullets, note, tip, link), `HelpCategory` and the `HelpCategoryId` union.
-- `categories.ts` — the eight categories in display order.
-- `index.ts` — registers every article and exposes `publishedArticles`, `articlesInCategory`, `getPublishedArticle` (a draft returns `undefined`, so its page 404s) and `categoryFor`.
+- `categories.ts` — the eight categories in display order, plus `POPULAR_HELP_SLUGS` (the curated shortcuts on the help home).
+- `index.ts` — registers every article and exposes `publishedArticles`, `articlesInCategory`, `getPublishedArticle` (a draft returns `undefined`, so its page 404s) and `categoryFor`, plus `orderedArticles` (sidebar order), `popularArticles` and `buildSearchIndex` (plain data for the client search).
 - `<category>/<slug>.ts` — one article each, exporting `article`. Articles that are not written yet are `draft: true` with an empty body: hidden from the index and a 404 on their page.
 - Category folders, each with its own README: [`getting-started`](getting-started/README.md), [`menu-and-stock`](menu-and-stock/README.md), [`running-a-service`](running-a-service/README.md), [`payments`](payments/README.md), [`customer-alerts`](customer-alerts/README.md), [`printing`](printing/README.md), [`plans`](plans/README.md), [`troubleshooting`](troubleshooting/README.md).
 - `source-text.ts` — turns source into what a user could see: strips comments and decodes JSX/HTML entities, for the drift test.
