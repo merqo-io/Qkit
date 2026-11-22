@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { HelpSearchEntry } from "@/content/help";
 import { searchHelp } from "./help-search";
@@ -12,6 +12,9 @@ type Props = {
   size?: "compact" | "large";
   hotkey?: boolean;
 };
+
+const DROPDOWN =
+  "absolute inset-x-0 top-full z-30 mt-2 max-h-96 overflow-y-auto rounded-xl border border-border bg-card shadow-lg lg:right-auto lg:min-w-full lg:w-[24rem]";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -23,16 +26,35 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export function HelpSearch({ index, size = "compact", hotkey = false }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const inputRef = useRef<HTMLInputElement>(null);
   const baseId = useId();
   const listId = `${baseId}-results`;
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    setQuery("");
+    setActive(0);
+  }
+
+  function reset() {
+    setQuery("");
+    setActive(0);
+  }
+
   const trimmed = query.trim();
   const results = searchHelp(index, trimmed);
   const open = trimmed.length > 0;
   const activeId = results[active] ? `${baseId}-opt-${active}` : undefined;
+
+  useEffect(() => {
+    document
+      .getElementById(`${baseId}-opt-${active}`)
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [active, baseId]);
 
   useEffect(() => {
     if (!hotkey) return;
@@ -49,8 +71,7 @@ export function HelpSearch({ index, size = "compact", hotkey = false }: Props) {
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
-      setQuery("");
-      setActive(0);
+      reset();
     } else if (event.key === "ArrowDown" && results.length > 0) {
       event.preventDefault();
       setActive((i) => (i + 1) % results.length);
@@ -60,6 +81,7 @@ export function HelpSearch({ index, size = "compact", hotkey = false }: Props) {
     } else if (event.key === "Enter" && results[active]) {
       event.preventDefault();
       router.push(`/dashboard/help/${results[active].slug}`);
+      reset();
     }
   }
 
@@ -77,7 +99,7 @@ export function HelpSearch({ index, size = "compact", hotkey = false }: Props) {
           type="text"
           role="combobox"
           aria-label="Search the user guide"
-          aria-expanded={open}
+          aria-expanded={results.length > 0}
           aria-controls={listId}
           aria-activedescendant={activeId}
           aria-autocomplete="list"
@@ -98,49 +120,52 @@ export function HelpSearch({ index, size = "compact", hotkey = false }: Props) {
         id={listId}
         role="listbox"
         aria-label="Search results"
-        hidden={!open}
-        className="absolute inset-x-0 top-full z-30 mt-2 max-h-96 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg"
+        hidden={results.length === 0}
+        className={`${DROPDOWN} p-1`}
       >
-        {open && results.length === 0 ? (
-          <li role="presentation" className="px-3 py-3 text-sm">
+        {results.map((result, i) => (
+          <li
+            key={result.slug}
+            id={`${baseId}-opt-${i}`}
+            role="option"
+            aria-selected={i === active}
+            className={`rounded-lg ${i === active ? "bg-muted" : ""}`}
+          >
+            <Link
+              href={`/dashboard/help/${result.slug}`}
+              tabIndex={-1}
+              onClick={reset}
+              className="block min-h-11 px-3 py-2"
+            >
+              <span className="block text-sm font-semibold text-foreground">
+                {result.title}
+              </span>
+              <span className="block font-mono text-[0.65rem] uppercase tracking-[0.16em] text-primary">
+                {result.category}
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                {result.snippet}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div aria-live="polite">
+        {open && results.length === 0 && (
+          <div className={`${DROPDOWN} px-3 py-3 text-sm`}>
             <p className="text-muted-foreground">
               No articles match &ldquo;{trimmed}&rdquo;.
             </p>
             <Link
               href="/dashboard/help/troubleshooting"
+              onClick={reset}
               className="mt-1 inline-block font-semibold text-primary underline-offset-4 hover:underline"
             >
               Try the Troubleshooting guide
             </Link>
-          </li>
-        ) : (
-          results.map((result, i) => (
-            <li
-              key={result.slug}
-              id={`${baseId}-opt-${i}`}
-              role="option"
-              aria-selected={i === active}
-              className={`rounded-lg ${i === active ? "bg-muted" : ""}`}
-            >
-              <Link
-                href={`/dashboard/help/${result.slug}`}
-                tabIndex={-1}
-                className="block min-h-11 px-3 py-2"
-              >
-                <span className="block text-sm font-semibold text-foreground">
-                  {result.title}
-                </span>
-                <span className="block font-mono text-[0.65rem] uppercase tracking-[0.16em] text-primary">
-                  {result.category}
-                </span>
-                <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                  {result.snippet}
-                </span>
-              </Link>
-            </li>
-          ))
+          </div>
         )}
-      </ul>
+      </div>
     </div>
   );
 }

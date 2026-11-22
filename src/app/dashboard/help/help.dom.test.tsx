@@ -116,6 +116,40 @@ describe("help search", () => {
   });
 });
 
+describe("help search lifecycle", () => {
+  it("clears the query when the route changes and when a result is clicked", async () => {
+    nav.pathname = "/dashboard/help/payments";
+    const { rerender } = render(<HelpLayout>content</HelpLayout>);
+    const input = screen.getByRole("combobox", {
+      name: "Search the user guide",
+    });
+    await userEvent.type(input, "printing");
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+    nav.pathname = "/dashboard/help/printing";
+    rerender(<HelpLayout>content</HelpLayout>);
+    expect(input).toHaveValue("");
+    await userEvent.type(input, "printing");
+    await userEvent.click(
+      within(screen.getAllByRole("option")[0]).getByRole("link", {
+        hidden: true,
+      }),
+    );
+    expect(input).toHaveValue("");
+  });
+
+  it("shows a single search input on help home", () => {
+    nav.pathname = "/dashboard/help";
+    render(
+      <HelpLayout>
+        <HelpIndexPage />
+      </HelpLayout>,
+    );
+    expect(
+      screen.getAllByRole("combobox", { name: "Search the user guide" }),
+    ).toHaveLength(1);
+  });
+});
+
 describe("help index", () => {
   it("renders a category card for each of the eight categories", () => {
     nav.pathname = "/dashboard/help";

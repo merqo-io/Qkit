@@ -68,7 +68,7 @@ export function HelpSidebar({
   const onHome = pathname === HOME;
 
   return (
-    <aside className="space-y-3 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
+    <aside className="space-y-3 lg:sticky lg:top-6 lg:self-start">
       <Link
         href={HOME}
         aria-current={onHome ? "page" : undefined}
@@ -77,7 +77,7 @@ export function HelpSidebar({
         <BookOpen aria-hidden className="size-4 text-primary" />
         Help home
       </Link>
-      <HelpSearch index={index} hotkey={!onHome} />
+      {!onHome && <HelpSearch index={index} hotkey />}
       <details className="group rounded-xl border border-border bg-card lg:hidden">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 text-sm font-semibold">
           Browse topics
@@ -94,7 +94,7 @@ export function HelpSidebar({
           />
         </div>
       </details>
-      <div className="hidden lg:block">
+      <div className="hidden lg:block lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto lg:pr-1">
         <Nav
           categories={categories}
           pathname={pathname}
