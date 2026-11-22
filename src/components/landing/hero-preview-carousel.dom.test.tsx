@@ -86,6 +86,18 @@ describe("HeroPreviewCarousel", () => {
       expect(button.closest("[inert]")).not.toBeNull();
   });
 
+  it("sizes the card to the hero text column and shrinks tickets at desktop", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    expect(container.firstElementChild).toHaveClass(
+      "min-[960px]:absolute",
+      "min-[960px]:inset-0",
+    );
+    expect(container.querySelector("[inert]")).toHaveClass(
+      "min-[960px]:[zoom:0.8]",
+    );
+  });
+
   it("keeps tickets invisible and unaged until their board is seeded", () => {
     mockMatchMedia(false);
     const html = renderToString(<HeroPreviewCarousel />);
@@ -205,5 +217,68 @@ describe("HeroPreviewCarousel", () => {
     expect(screen.getAllByRole("group")).toHaveLength(LANDING_BOARDS.length);
     for (const board of LANDING_BOARDS)
       expect(screen.getByText(board.lead)).toBeInTheDocument();
+  });
+});
+
+describe("ready ticket drain bar", () => {
+  it("runs for what fits one board view, so it visibly empties", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    const bars = container.querySelectorAll<HTMLElement>(".autoclear-bar");
+    expect(bars.length).toBeGreaterThan(0);
+    for (const bar of Array.from(bars)) {
+      const ms = Number.parseFloat(bar.style.animationDuration);
+      expect(ms).toBeGreaterThan(6000);
+      expect(ms).toBeLessThanOrEqual(7000);
+    }
+  });
+});
+
+describe("rush board tone jump", () => {
+  const rushIndex = LANDING_BOARDS.findIndex((b) => b.key === "rush");
+
+  function rushTickets(container: HTMLElement) {
+    const grid = container.querySelectorAll("[inert]")[rushIndex];
+    return {
+      grid,
+      overdue: grid.querySelectorAll(".ticket-overdue"),
+      aging: grid.querySelectorAll(".ticket-aging"),
+    };
+  }
+
+  function showRush() {
+    const dots = screen.getAllByRole("button", { name: /^Show sample/ });
+    fireEvent.click(dots[rushIndex]);
+  }
+
+  it("starts with Lim aging and Aisha fresh, then flips both halfway", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    let t = rushTickets(container);
+    expect(t.overdue).toHaveLength(0);
+    expect(t.aging).toHaveLength(1);
+    wait(3500);
+    t = rushTickets(container);
+    expect(t.overdue).toHaveLength(1);
+    expect(t.aging).toHaveLength(1);
+  });
+
+  it("shows the final state at once with reduced motion", () => {
+    mockMatchMedia(true);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    const t = rushTickets(container);
+    expect(t.overdue).toHaveLength(1);
+    expect(t.aging).toHaveLength(1);
+  });
+
+  it("remounts the cards on re-seed", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    const before = rushTickets(container).grid;
+    wait(3500);
+    expect(rushTickets(container).grid).not.toBe(before);
   });
 });

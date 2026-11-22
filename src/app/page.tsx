@@ -55,7 +55,7 @@ export default async function LandingPage() {
         <section className="pt-[clamp(40px,7vw,96px)] pb-[clamp(56px,8vw,112px)]">
           <div className={CONTAINER}>
             <div className="grid items-stretch gap-10 min-[960px]:grid-cols-[1.05fr_1fr] min-[960px]:gap-16">
-              <div className="flex min-w-0 flex-col justify-center py-2">
+              <div className="flex min-w-0 flex-col">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   <span className="rounded-full border-[1.5px] border-primary/40 px-3 py-[3px] text-xs font-bold uppercase tracking-[0.16em] text-primary">
                     Piloting
@@ -96,7 +96,9 @@ export default async function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <HeroPreviewCarousel />
+              <div className="relative min-w-0">
+                <HeroPreviewCarousel />
+              </div>
             </div>
           </div>
         </section>
