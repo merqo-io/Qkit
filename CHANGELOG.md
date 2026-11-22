@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Landing: a "Vendors on qkit" showcase after the hero (static row for 1-3 vendors, scrolling marquee for 4-11, card grid for 12 or more). The list ships empty, so the page is unchanged until a later change feeds it.
+
 ### Fixed
 
 - Landing hero carousel: at 960px and up the ticket zoom is now measured (one shared scale, 0.8 down to a 0.6 floor) so the board caption and tickets are no longer clipped between about 960 and 1180px wide.

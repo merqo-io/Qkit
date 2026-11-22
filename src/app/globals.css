@@ -398,6 +398,17 @@ html::-webkit-scrollbar {
   animation: undo-drain 1s linear forwards;
 }
 
+/* Vendor showcase marquee: the track holds two identical lists, so sliding
+   by half its width loops with no visible jump. */
+@keyframes vendor-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* Left-to-right fill on a hold-to-confirm button (close-booth-control.tsx) —
    the visible progress of a 3-second press. The actual timing is a JS
    setTimeout, independent of this; the animation is feedback only. */
