@@ -6,15 +6,55 @@ function isInternal(href: string): boolean {
   return href.startsWith("/");
 }
 
-function BlockView({ block }: { block: HelpBlock }) {
+export type ArticleHeading = { id: string; text: string };
+
+function slugify(text: string): string {
+  const slug = text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join("-");
+  return slug || "section";
+}
+
+/** Stable per-article ids; a repeated heading gets a numeric suffix. */
+function headingIds(blocks: HelpBlock[]): Map<number, string> {
+  const seen = new Map<string, number>();
+  const ids = new Map<number, string>();
+  blocks.forEach((block, index) => {
+    if (block.type !== "heading") return;
+    const base = slugify(block.text);
+    const count = (seen.get(base) ?? 0) + 1;
+    seen.set(base, count);
+    ids.set(index, count === 1 ? base : `${base}-${count}`);
+  });
+  return ids;
+}
+
+export function articleHeadings(blocks: HelpBlock[]): ArticleHeading[] {
+  const ids = headingIds(blocks);
+  return blocks.flatMap((block, index) =>
+    block.type === "heading" && block.level === 2
+      ? [{ id: ids.get(index) ?? "", text: block.text }]
+      : [],
+  );
+}
+
+function BlockView({ block, id }: { block: HelpBlock; id?: string }) {
   switch (block.type) {
     case "heading":
       return block.level === 2 ? (
-        <h2 className="font-display mt-10 text-xl font-semibold leading-snug first:mt-0">
+        <h2
+          id={id}
+          className="font-display scroll-mt-6 mt-10 text-xl font-semibold leading-snug first:mt-0"
+        >
           {block.text}
         </h2>
       ) : (
-        <h3 className="font-display mt-6 text-lg font-semibold leading-snug">
+        <h3
+          id={id}
+          className="font-display scroll-mt-6 mt-6 text-lg font-semibold leading-snug"
+        >
           {block.text}
         </h3>
       );
@@ -76,10 +116,15 @@ function BlockView({ block }: { block: HelpBlock }) {
 }
 
 export function ArticleBody({ blocks }: { blocks: HelpBlock[] }) {
+  const ids = headingIds(blocks);
   return (
     <div className="space-y-4 text-[0.95rem]">
       {blocks.map((block, index) => (
-        <BlockView key={`${block.type}-${index}`} block={block} />
+        <BlockView
+          key={`${block.type}-${index}`}
+          block={block}
+          id={ids.get(index)}
+        />
       ))}
     </div>
   );

@@ -42,3 +42,12 @@ export const HELP_CATEGORIES: readonly HelpCategory[] = [
     description: "Quick fixes for the most common stall-side snags.",
   },
 ];
+
+/** Curated shortcuts shown on the help home; order is display order. */
+export const POPULAR_HELP_SLUGS: readonly string[] = [
+  "getting-started",
+  "running-a-service",
+  "payments",
+  "printing",
+  "troubleshooting",
+];
