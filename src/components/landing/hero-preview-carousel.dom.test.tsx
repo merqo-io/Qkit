@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HeroPreviewCarousel } from "./hero-preview-carousel";
+import { fitScale, HeroPreviewCarousel } from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
 
 vi.mock("@/app/dashboard/order-advance-actions", () => ({
@@ -94,7 +94,7 @@ describe("HeroPreviewCarousel", () => {
       "min-[960px]:inset-0",
     );
     expect(container.querySelector("[inert]")).toHaveClass(
-      "min-[960px]:[zoom:0.8]",
+      "min-[960px]:[zoom:var(--hero-zoom,0.8)]",
     );
   });
 
@@ -280,5 +280,27 @@ describe("rush board tone jump", () => {
     const before = rushTickets(container).grid;
     wait(3500);
     expect(rushTickets(container).grid).not.toBe(before);
+  });
+});
+
+const B = { max: 0.8, min: 0.6 };
+
+describe("fitScale", () => {
+  it("keeps the max when the content already fits", () => {
+    expect(fitScale(600, 150, 300, B)).toBeCloseTo(0.8);
+  });
+
+  it("shrinks until the grid plus the fixed parts fit", () => {
+    expect(fitScale(450, 150, 500, B)).toBeCloseTo(0.6);
+    expect(fitScale(470, 150, 500, B)).toBeCloseTo(0.64);
+  });
+
+  it("never goes below the floor", () => {
+    expect(fitScale(200, 150, 500, B)).toBeCloseTo(0.6);
+  });
+
+  it("falls back to the max when nothing is measurable", () => {
+    expect(fitScale(0, 0, 0, B)).toBeCloseTo(0.8);
+    expect(fitScale(500, 100, 0, B)).toBeCloseTo(0.8);
   });
 });
