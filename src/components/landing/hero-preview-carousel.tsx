@@ -1,10 +1,16 @@
 "use client";
 
 import { usePrefersReducedMotion } from "@merqo/ui";
-import { cn } from "@merqo/ui/primitives";
+import { cn, TooltipProvider } from "@merqo/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LANDING_BOARDS } from "@/components/landing/landing-boards";
-import { SampleTicket } from "@/components/landing/sample-ticket";
+import { OrderCard } from "@/components/board/order-card";
+import {
+  LANDING_BOARDS,
+  SAMPLE_AGING_MIN,
+  SAMPLE_AUTO_CLEAR_MS,
+  SAMPLE_OVERDUE_MIN,
+  toBoardOrder,
+} from "@/components/landing/landing-boards";
 import { nearestIndex } from "@/lib/carousel";
 
 const ROTATE_MS = 7000;
@@ -17,6 +23,13 @@ const COUNT = LANDING_BOARDS.length;
  * of the carousel restarts the whole countdown, so a visitor reading a board is
  * never moved on a moment later; one burst of wheel events counts as one
  * touch. Reduced motion has no auto-advance.
+ *
+ * The tickets are the board's own `OrderCard`, fed sample rows, so the hero
+ * cannot drift from the product. The grid is `inert`: the cards' buttons would
+ * otherwise call real server actions, and an inert subtree hands its pointer
+ * events to the track, so mouse drag still works. Sample times are seeded
+ * after mount (a render-time clock breaks hydration) and again each time a
+ * board comes into view, which restarts its "Mark Picked Up" drain bar.
  */
 export function HeroPreviewCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -27,6 +40,9 @@ export function HeroPreviewCarousel() {
   const wheelBurst = useRef<number | null>(null);
   const [active, setActive] = useState(0);
   const [epoch, setEpoch] = useState(0);
+  const [seeds, setSeeds] = useState<number[]>(() =>
+    LANDING_BOARDS.map(() => 0),
+  );
 
   const restart = useCallback(() => setEpoch((e) => e + 1), []);
 
@@ -43,6 +59,16 @@ export function HeroPreviewCarousel() {
   useEffect(() => {
     reducedRef.current = reduced;
   }, [reduced]);
+
+  // Boards not yet seen are seeded at mount too (seed 0 means unseeded), so a
+  // slide scrolled into view never shows a 1970 timestamp as a huge age.
+  useEffect(() => {
+    const now = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
+    setSeeds((prev) =>
+      prev.map((seed, i) => (i === active || seed === 0 ? now : seed)),
+    );
+  }, [active]);
 
   useEffect(() => {
     if (reduced) return;
@@ -156,15 +182,25 @@ export function HeroPreviewCarousel() {
                   </p>
                 </div>
                 <p className="text-xs font-bold whitespace-nowrap text-primary">
-                  {board.orders.filter((o) => o.status !== "completed").length}{" "}
-                  active
+                  {board.orders.length} active
                 </p>
               </div>
-              <div className="grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3">
-                {board.orders.map((order) => (
-                  <SampleTicket key={order.number} order={order} />
-                ))}
-              </div>
+              <TooltipProvider>
+                <div
+                  inert
+                  className="grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3"
+                >
+                  {board.orders.map((order) => (
+                    <OrderCard
+                      key={order.number}
+                      order={toBoardOrder(order, seeds[i])}
+                      agingMin={SAMPLE_AGING_MIN}
+                      overdueMin={SAMPLE_OVERDUE_MIN}
+                      readyAutoClearMs={SAMPLE_AUTO_CLEAR_MS}
+                    />
+                  ))}
+                </div>
+              </TooltipProvider>
               <p className="mt-3 min-h-6 text-[0.8125rem] text-muted-foreground">
                 <b className="font-semibold text-foreground">{board.lead}</b>{" "}
                 {board.caption}

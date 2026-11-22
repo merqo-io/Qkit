@@ -25,7 +25,7 @@ shadcn primitive (`ui/`) or ordering-flow-specific (`order/`).
 `ui/` is the shadcn/ui primitive library everything else in this tree is
 built from; `order/` holds components specific to the customer ordering flow
 and is consumed by `src/app/o/[code]/page.tsx`. The `landing-*` family
-(`landing-boards`, `landing-cta`, `sample-ticket`)
+(`landing-boards`, `landing-cta`)
 renders the marketing landing page alongside
 `hero-preview-carousel.tsx`, shared `BackToTop` from `@merqo/ui`, and `landing/`'s `Nav`. Its
 sibling `landing/`-`Wordmark` is consumed only by the login page, outside the

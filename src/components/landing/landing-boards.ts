@@ -1,4 +1,19 @@
-import type { SampleOrder } from "./sample-ticket";
+import type { BoardOrder, OrderStatus, PaymentStatus } from "@/lib/types";
+
+export type SampleOrder = {
+  number: string;
+  name: string;
+  status: OrderStatus;
+  ageMins: number;
+  readyAgoMins?: number;
+  payment?: PaymentStatus;
+  items: {
+    name: string;
+    quantity: number;
+    priceCents?: number;
+    options?: string[];
+  }[];
+};
 
 export type LandingBoardData = {
   key: string;
@@ -8,10 +23,74 @@ export type LandingBoardData = {
   orders: SampleOrder[];
 };
 
+// The amber and red minutes the hero's tickets are drawn with; the rush
+// caption quotes them.
+export const SAMPLE_AGING_MIN = 7;
+export const SAMPLE_OVERDUE_MIN = 12;
+
+// A ready ticket's drain bar runs for what is left of this window, so each
+// board shows it moving for a while after it is seeded.
+export const SAMPLE_AUTO_CLEAR_MS = 3 * 60_000;
+
+const MINUTE_MS = 60_000;
+
+/**
+ * Turns a sample into the board's own `BoardOrder` row, so the hero draws the
+ * real ticket. Timestamps are relative to `seedMs`: ages and the drain bar read
+ * sensibly whenever a board is seeded, and the carousel re-seeds a board each
+ * time it comes into view.
+ */
+export function toBoardOrder(sample: SampleOrder, seedMs: number): BoardOrder {
+  const created = new Date(seedMs - sample.ageMins * MINUTE_MS).toISOString();
+  const readyAt =
+    sample.status === "ready"
+      ? new Date(
+          seedMs - (sample.readyAgoMins ?? 0.5) * MINUTE_MS,
+        ).toISOString()
+      : null;
+  const items = sample.items.map((item, i) => ({
+    menuItemId: `${sample.number}-${i}`,
+    name: item.name,
+    quantity: item.quantity,
+    ...(item.priceCents === undefined ? {} : { price_cents: item.priceCents }),
+    options: item.options?.map((choice) => ({ group: "Option", choice })),
+  }));
+  const priced = sample.items.every((item) => item.priceCents !== undefined);
+  const payment = sample.payment ?? "not_required";
+  return {
+    id: `sample-${sample.number}`,
+    booth_id: "sample-booth",
+    order_number: sample.number,
+    customer_name: sample.name,
+    items,
+    status: sample.status,
+    total_cents: priced
+      ? sample.items.reduce(
+          (sum, item) => sum + (item.priceCents ?? 0) * item.quantity,
+          0,
+        )
+      : 0,
+    payment_status: payment,
+    payment_method_kind: payment === "not_required" ? null : "paynow",
+    paid_at: null,
+    payment_proof_path: null,
+    payment_proof_hash: null,
+    print_status: "not_required",
+    print_status_updated_at: null,
+    created_at: created,
+    ready_at: readyAt,
+    completed_at: null,
+    updated_at: created,
+    idempotency_key: null,
+    priority_bumped_at: null,
+    source: "qr",
+    auto_completed: false,
+  };
+}
+
 // Five sample boards, one per thing the board does for a vendor: finish an
 // order, start one, check a payment, spot the oldest ticket, hand one over.
-// The amber and red minutes are the vendor's own setting, so the rush caption
-// calls 7 and 12 an example.
+// Every ticket is active, so each board's "N active" is just its length.
 export const LANDING_BOARDS: LandingBoardData[] = [
   {
     key: "ready",
@@ -26,8 +105,9 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         status: "preparing",
         ageMins: 4,
         payment: "pending",
-        items: [{ quantity: 2, name: "Kopi", options: ["Iced"] }],
-        action: "Mark Ready",
+        items: [
+          { quantity: 2, name: "Kopi", priceCents: 120, options: ["Iced"] },
+        ],
       },
       {
         number: "0041",
@@ -38,7 +118,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
           { quantity: 1, name: "Milo", options: ["Hot"] },
           { quantity: 3, name: "Teh", options: ["Less sugar"] },
         ],
-        action: "Mark Picked Up",
       },
     ],
   },
@@ -60,7 +139,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Mango", "Sprinkles"],
           },
         ],
-        action: "Start now",
       },
       {
         number: "0018",
@@ -74,7 +152,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Vanilla", "Sprinkles"],
           },
         ],
-        action: "Mark Ready",
       },
     ],
   },
@@ -90,15 +167,17 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         status: "preparing",
         ageMins: 2,
         payment: "claimed",
-        amount: "$2.40",
-        items: [{ quantity: 1, name: "Kopi", options: ["Iced"] }],
-        action: "Confirm payment received",
+        items: [
+          { quantity: 1, name: "Kopi", priceCents: 240, options: ["Iced"] },
+        ],
       },
       {
         number: "0030",
         name: "Jun",
-        status: "completed",
-        items: [{ quantity: 2, name: "Teh" }],
+        status: "ready",
+        ageMins: 5,
+        payment: "confirmed",
+        items: [{ quantity: 2, name: "Teh", priceCents: 140 }],
       },
     ],
   },
@@ -114,7 +193,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
         name: "Lim",
         status: "preparing",
         ageMins: 12,
-        tone: "overdue",
         items: [
           {
             quantity: 2,
@@ -122,14 +200,12 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Chocolate", "Peanuts, Sprinkles"],
           },
         ],
-        action: "Mark Ready",
       },
       {
         number: "0057",
         name: "Aisha",
         status: "preparing",
         ageMins: 7,
-        tone: "aging",
         items: [
           {
             quantity: 1,
@@ -137,7 +213,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Strawberry", "Choc sauce"],
           },
         ],
-        action: "Mark Ready",
       },
     ],
   },
@@ -160,7 +235,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Vanilla", "Sprinkles"],
           },
         ],
-        action: "Mark Ready",
       },
       {
         number: "0017",
@@ -174,8 +248,6 @@ export const LANDING_BOARDS: LandingBoardData[] = [
             options: ["Chocolate", "Peanuts, Choc sauce"],
           },
         ],
-        action: "Mark Picked Up",
-        drain: true,
       },
     ],
   },
