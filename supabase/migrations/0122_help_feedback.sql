@@ -33,7 +33,7 @@ GRANT ALL ON qkit.help_feedback TO service_role;
 
 CREATE POLICY "help_feedback_select" ON qkit.help_feedback
   FOR SELECT TO authenticated
-  USING (vendor_id = auth.uid() OR qkit.is_admin(auth.uid()));
+  USING (vendor_id = (SELECT auth.uid()) OR qkit.is_admin((SELECT auth.uid())));
 
 CREATE POLICY "help_feedback_insert_own" ON qkit.help_feedback
   FOR INSERT TO authenticated

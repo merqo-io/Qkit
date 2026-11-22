@@ -7,10 +7,10 @@ insert into auth.users (id, instance_id, aud, role, email) values
  ('30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','hf-a@test.local'),
  ('30000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','hf-b@test.local'),
  ('30000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated','hf-admin@test.local');
-insert into qkit.vendors(id, is_admin) values
- ('30000000-0000-0000-0000-000000000001', false),
- ('30000000-0000-0000-0000-000000000002', false),
- ('30000000-0000-0000-0000-000000000003', true);
+insert into qkit.vendors(id) values
+ ('30000000-0000-0000-0000-000000000001'),
+ ('30000000-0000-0000-0000-000000000002');
+insert into qkit.admins(user_id) values ('30000000-0000-0000-0000-000000000003');
 insert into qkit.help_feedback (vendor_id, article_slug, helpful, comment) values
  ('30000000-0000-0000-0000-000000000001', 'getting-started', false, 'missing step'),
  ('30000000-0000-0000-0000-000000000002', 'getting-started', true, null);
