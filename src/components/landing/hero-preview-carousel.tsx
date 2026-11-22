@@ -15,10 +15,29 @@ import { nearestIndex } from "@/lib/carousel";
 
 const ROTATE_MS = 7000;
 const WHEEL_BURST_MS = 150;
+const ZOOM_MAX = 0.8;
+const ZOOM_MIN = 0.6;
 const COUNT = LANDING_BOARDS.length;
 const HAS_FLIP = LANDING_BOARDS.map((b) =>
   b.orders.some((o) => o.startAgeMins !== undefined),
 );
+
+/**
+ * Zoom that makes a slide fit its track: `fixed` is everything but the ticket
+ * grid (header, caption, padding), `grid` the grid's height at zoom 1. Capped at
+ * `max` so roomy layouts keep the design size, floored at `min` so tickets stay
+ * legible when even that cannot fit.
+ */
+export function fitScale(
+  available: number,
+  fixed: number,
+  grid: number,
+  bounds: { max: number; min: number },
+): number {
+  const { max, min } = bounds;
+  if (grid <= 0 || available <= 0 || Number.isNaN(grid + available)) return max;
+  return Math.min(max, Math.max(min, (available - fixed) / grid));
+}
 
 /**
  * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
@@ -50,6 +69,44 @@ export function HeroPreviewCarousel() {
   const [flipped, setFlipped] = useState<boolean[]>(() =>
     LANDING_BOARDS.map(() => true),
   );
+
+  // One zoom for every board so tickets match across slides. Measured at zoom 1
+  // (the only unambiguous reading under CSS zoom), then the variable is set
+  // before paint. Below 960px the grid is not zoomed and the card is natural height.
+  const fit = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (!window.matchMedia?.("(min-width: 960px)").matches) {
+      track.style.removeProperty("--hero-zoom");
+      return;
+    }
+    track.style.setProperty("--hero-zoom", "1");
+    let scale = ZOOM_MAX;
+    for (const slide of Array.from(track.children) as HTMLElement[]) {
+      const grid = slide.querySelector<HTMLElement>("[data-hero-grid]");
+      if (!grid) continue;
+      const gridH = grid.offsetHeight;
+      scale = Math.min(
+        scale,
+        fitScale(track.clientHeight, slide.scrollHeight - gridH, gridH, {
+          max: ZOOM_MAX,
+          min: ZOOM_MIN,
+        }),
+      );
+    }
+    track.style.setProperty("--hero-zoom", String(scale));
+  }, []);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    fit();
+    if (!track) return;
+    const ro =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    ro?.observe(track);
+    void document.fonts?.ready.then(fit);
+    return () => ro?.disconnect();
+  }, [fit, seeds]);
 
   const restart = useCallback(() => setEpoch((e) => e + 1), []);
 
@@ -216,9 +273,10 @@ export function HeroPreviewCarousel() {
                 <div
                   key={`${seeds[i]}-${flipped[i]}`}
                   inert
+                  data-hero-grid
                   data-seeded={seeds[i] !== 0}
                   className={cn(
-                    "grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3 min-[960px]:[zoom:0.8]",
+                    "grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-3 min-[960px]:[zoom:var(--hero-zoom,0.8)]",
                     seeds[i] === 0 && "invisible",
                   )}
                 >
