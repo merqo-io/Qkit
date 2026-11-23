@@ -27,6 +27,7 @@ import { PrintingSection } from "./printing-section";
 import { SocialLinksSection } from "./social-links-section";
 import { BookingStatusSection } from "./booking-status-section";
 import { CloseBoothControl } from "./close-booth-control";
+import { PickupKioskLink } from "./pickup-kiosk-link";
 import { SettingRow } from "./setting-row";
 import { BoothDangerZone } from "./booth-danger-zone";
 import { BoothLimitsSection } from "./booth-limits-section";
@@ -409,6 +410,9 @@ export function BoothForm({
                 aria-label="Self-checkout pickup"
               />
             </SettingRow>
+            {pickupScanEnabled && initial?.boothId ? (
+              <PickupKioskLink boothId={initial.boothId} />
+            ) : null}
           </Section>
 
           <Section

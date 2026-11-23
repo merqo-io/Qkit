@@ -124,6 +124,7 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
 
 ## Form and menu editor pieces
 
+- `pickup-kiosk-link.tsx` — `PickupKioskLink({ boothId })`: the booth form's kiosk URL (`/order/{boothId}/pickup`) with "Open kiosk" and "Copy link", shown when the self-checkout pickup switch is on for a saved booth.
 - `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard; its menu prompt for an unsaved booth is the shared `EmptyState`.
   `use-booth-save.ts` owns `useBoothSave` (Zod parse, image commit,
   `saveBooth`) and `useBoothDelete`. `booth-limits-section.tsx` renders the
