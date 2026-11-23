@@ -1,14 +1,13 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { ShowcaseVendor } from "./showcase-vendors";
+import type { ShowcaseVendor } from "@/lib/landing/showcase";
 import { SHOWCASE_LAYOUT, VendorShowcase } from "./vendor-showcase";
 
 function makeVendors(count: number, withLogo = false): ShowcaseVendor[] {
   return Array.from({ length: count }, (_, i) => ({
     name: `Test Stall ${i + 1}`,
     logoUrl: withLogo ? `https://example.test/logo-${i + 1}.png` : null,
-    kind: i === 0 ? "Noodles" : null,
   }));
 }
 
@@ -43,12 +42,11 @@ describe("VendorShowcase", () => {
     expect(container.querySelectorAll("[data-vendor-chip]")).toHaveLength(12);
   });
 
-  it("renders a grid of cards with the kind for 12 vendors", () => {
+  it("renders a grid of cards for 12 vendors", () => {
     const { container } = render(<VendorShowcase vendors={makeVendors(12)} />);
     expect(layoutOf(container)).toBe("grid");
     expect(container.querySelector("[data-marquee-track]")).toBeNull();
     expect(container.querySelectorAll("[data-vendor-card]")).toHaveLength(12);
-    expect(screen.getByText("Noodles")).toBeTruthy();
   });
 
   it("exports the layout thresholds", () => {
