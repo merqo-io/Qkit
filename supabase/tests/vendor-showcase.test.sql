@@ -13,6 +13,8 @@ insert into qkit.vendors(id, showcase_on_landing) values
  ('40000000-0000-0000-0000-000000000002', true),
  ('40000000-0000-0000-0000-000000000003', false),
  ('40000000-0000-0000-0000-000000000004', true);
+insert into qkit.vendor_entitlements(vendor_id,tier,stats_window,issued_at) values
+ ('40000000-0000-0000-0000-000000000002','qkit','90d',now());
 insert into qkit.booths (id, vendor_id, name, created_at) values
  ('40000000-0000-0000-0000-0000000b0002','40000000-0000-0000-0000-000000000002','Booth Bee','2026-02-01'),
  ('40000000-0000-0000-0000-0000000b0003','40000000-0000-0000-0000-000000000002','Later Booth','2026-03-01');
