@@ -47,7 +47,7 @@ write paths for menu columns; a booth-metadata save does not overwrite them.
 Item and category writes are separate operations, so callers handle partial
 success and retain retry availability.
 
-`actions.ts` also exposes `toggleBoothActive`, `regenerateShortCode`,
+`actions.ts` also exposes `saveModifierGroups` (writes `booths.modifier_groups` and the re-expanded `menu_items` in one update; `saveMenuItems` re-expands linked copies from the stored library too), `toggleBoothActive`, `regenerateShortCode`,
 `startNewService` (resets the daily item count through the
 `start_new_service` RPC, migration 0106) and `deleteBooth`. Deleting a booth cascades to its orders, and `deleteBooth` then calls `drainProofDeletions()` best-effort to remove their payment screenshots from Storage; the editor requires an
 explicit confirmation. `CloseBoothControl` uses a confirmation and three-second

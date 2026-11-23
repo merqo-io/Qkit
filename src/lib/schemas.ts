@@ -103,6 +103,7 @@ const optionGroupSchema = z.object({
   // A group with no choices can't be satisfied; drop it on read so it never
   // reaches the customizer (which would crash trying to resolve a default).
   choices: z.array(optionChoiceSchema).min(1),
+  shared_id: z.string().min(1).optional(),
 });
 
 /**
@@ -198,6 +199,21 @@ const menuCategorySchema = z.object({
 
 /** Ordered menu sections (`booths.menu_categories`). */
 export const menuCategoriesSchema = z.array(menuCategorySchema).max(40);
+
+const MAX_MODIFIER_GROUPS = 40;
+
+/** The booth's reusable modifier group library (`booths.modifier_groups`).
+ * Labels are unique (trimmed, case-insensitive) because orders match groups
+ * by label. */
+export const modifierGroupsSchema = z
+  .array(optionGroupSchema.omit({ shared_id: true }))
+  .max(MAX_MODIFIER_GROUPS)
+  .refine(
+    (groups) =>
+      new Set(groups.map((g) => g.label.trim().toLowerCase())).size ===
+      groups.length,
+    "Duplicate modifier group label",
+  );
 
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/, "Use HH:MM");
 const dayWindowSchema = z.object({ open: hhmm, close: hhmm });
@@ -570,6 +586,12 @@ export const menuItemSchema = z.object({
 /** Parse a JSONB booths.menu_categories value; any malformed shape degrades to []. */
 export function parseMenuCategories(data: unknown): MenuCategory[] {
   const parsed = menuCategoriesSchema.safeParse(data);
+  return parsed.success ? parsed.data : [];
+}
+
+/** Parse a JSONB booths.modifier_groups value; any malformed shape degrades to []. */
+export function parseModifierGroups(data: unknown): OptionGroup[] {
+  const parsed = modifierGroupsSchema.safeParse(data);
   return parsed.success ? parsed.data : [];
 }
 

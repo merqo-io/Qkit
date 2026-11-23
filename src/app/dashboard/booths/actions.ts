@@ -10,11 +10,17 @@ import {
   boothFormSchema,
   menuCategoriesSchema,
   menuItemsInputSchema,
+  modifierGroupsSchema,
+  parseModifierGroups,
   uuidSchema,
   type BoothFormInput,
   type MenuItemFormInput,
 } from "@/lib/schemas";
-import type { MenuCategory } from "@/lib/types";
+import type { MenuCategory, OptionGroup } from "@/lib/types";
+import {
+  expandLinkedGroups,
+  hasDuplicateGroupLabels,
+} from "@/lib/modifier-groups";
 import {
   boothImagePaths,
   orphanedImagePaths,
@@ -90,7 +96,7 @@ async function syncPrintLocation(
  * vendor's work). Returns an error message, or null when within plan limits.
  */
 function validateMenuCaps(
-  menuItems: MenuItemFormInput[],
+  menuItems: Pick<MenuItemFormInput, "option_groups">[],
   entitlement: Pick<Entitlement, "maxMenuItems" | "maxOptionGroupsPerItem">,
 ): string | null {
   if (
@@ -474,7 +480,7 @@ export async function saveMenuItems(
 
   // Same stock-cap stripping rule saveBooth used to apply. The booth-limit
   // opt-out goes with it: it only matters on a plan that can set a daily limit.
-  const menu_items = entitlement.stockCaps
+  const stripped = entitlement.stockCaps
     ? parsed.data
     : parsed.data.map(
         ({
@@ -489,10 +495,19 @@ export async function saveMenuItems(
   // RLS scopes this to the vendor's own booths; a foreign id reads null.
   const { data: prev } = await supabase
     .from("booths")
-    .select("menu_items")
+    .select("menu_items, modifier_groups")
     .eq("id", boothId)
     .maybeSingle();
   if (!prev) return fail("Booth not found");
+
+  // Linked copies are re-expanded from the stored library so a stale client
+  // can never write a copy that disagrees with it.
+  const menu_items = expandLinkedGroups(
+    stripped,
+    parseModifierGroups(prev.modifier_groups),
+  );
+  if (hasDuplicateGroupLabels(menu_items))
+    return fail("An item has two customization groups with the same name");
 
   const { data: updated, error } = await supabase
     .from("booths")
@@ -508,6 +523,49 @@ export async function saveMenuItems(
     "saveMenuItems",
   );
   after(() => sweepUnsavedUploads(supabase, user));
+  return ok();
+}
+
+/**
+ * Exclusive write path for `booths.modifier_groups`. Re-expands every linked
+ * copy in menu_items and writes both columns in one update, so the library
+ * and the inline copies the order path reads never diverge.
+ */
+export async function saveModifierGroups(
+  boothId: string,
+  library: OptionGroup[],
+): Promise<ActionResult> {
+  if (!uuidSchema.safeParse(boothId).success) return fail("Invalid booth");
+  const parsed = modifierGroupsSchema.safeParse(library);
+  if (!parsed.success) return fail("Invalid modifier groups");
+
+  const { user, entitlement } = await loadEntitlement();
+  if (!user) return fail("Not authenticated");
+
+  const supabase = await createServerClient();
+  const { data: prev } = await supabase
+    .from("booths")
+    .select("menu_items")
+    .eq("id", boothId)
+    .maybeSingle();
+  if (!prev) return fail("Booth not found");
+
+  const stored = menuItemsInputSchema.safeParse(prev.menu_items);
+  if (!stored.success) return fail("Fix the menu before editing groups");
+
+  const menu_items = expandLinkedGroups(stored.data, parsed.data);
+  if (hasDuplicateGroupLabels(menu_items))
+    return fail("An item has two customization groups with the same name");
+  const menuCapError = validateMenuCaps(menu_items, entitlement);
+  if (menuCapError) return fail(menuCapError);
+
+  const { data: updated, error } = await supabase
+    .from("booths")
+    .update({ menu_items, modifier_groups: parsed.data })
+    .eq("id", boothId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) return fail("Could not save modifier groups");
   return ok();
 }
 
