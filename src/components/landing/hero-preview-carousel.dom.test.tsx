@@ -2,7 +2,11 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fitScale, HeroPreviewCarousel } from "./hero-preview-carousel";
+import {
+  fitScale,
+  HeroPreviewCarousel,
+  shortfall,
+} from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
 
 vi.mock("@/app/dashboard/order-advance-actions", () => ({
@@ -302,5 +306,19 @@ describe("fitScale", () => {
   it("falls back to the max when nothing is measurable", () => {
     expect(fitScale(0, 0, 0, B)).toBeCloseTo(0.8);
     expect(fitScale(500, 100, 0, B)).toBeCloseTo(0.8);
+  });
+});
+
+describe("shortfall", () => {
+  it("is zero when the slide fits at the minimum zoom", () => {
+    expect(shortfall(450, 150, 500, 0.6)).toBe(0);
+    expect(shortfall(600, 150, 500, 0.6)).toBe(0);
+  });
+  it("is the missing height when even the minimum zoom overflows", () => {
+    expect(shortfall(440, 150, 500, 0.6)).toBeCloseTo(10);
+  });
+  it("is zero for unmeasurable input", () => {
+    expect(shortfall(0, 0, 0, 0.6)).toBe(0);
+    expect(shortfall(Number.NaN, 10, 100, 0.6)).toBe(0);
   });
 });
