@@ -15,9 +15,8 @@ export const article: HelpArticle = {
     "Accept payment",
     "Decline",
     "Says paid. Check the payment",
-    "Confirm payment received",
+    "Mark paid",
     "Mark paid & start",
-    "Mark as paid",
     "Not paid yet",
     "Payment sent. The stall is checking it.",
     "Tapped by mistake? Undo",
@@ -88,8 +87,8 @@ export const article: HelpArticle = {
       items: [
         "New order, customer says they paid: the ticket shows both View payment proof and Mark paid & start. Tap View payment proof, check it against your bank or paykit, then tap Accept & start. That confirms the payment and starts the order in one tap. Decline sends the claim back to unpaid, and the customer can pay again. If you have already checked the money yourself, Mark paid & start does the same without opening the proof.",
         "New order, no claim yet: only Mark paid & start shows. It confirms payment and starts the order in one tap.",
-        "Order already started, customer says they paid: Confirm payment received. Opening the proof there reads Accept payment instead of Accept & start.",
-        "Order already started, still unpaid: Mark as paid. The ticket shows Not paid yet until you do. Use it when the customer paid you in person.",
+        "Order already started, customer says they paid: Mark paid. Opening the proof there reads Accept payment instead of Accept & start.",
+        "Order already started, still unpaid: Mark paid. The ticket shows Not paid yet until you do. Use it when the customer paid you in person.",
       ],
     },
     {
@@ -105,7 +104,7 @@ export const article: HelpArticle = {
     {
       type: "bullets",
       items: [
-        "A Picked Up order that is still unpaid keeps its Mark as paid or Confirm payment received button, so you can settle it later.",
+        "A Picked Up order that is still unpaid keeps its Mark paid button, so you can settle it later.",
         "A cancelled order never asks for payment.",
         "If paykit cannot be reached, pickup still works and the order stays unpaid. Try the confirm button again when it is back.",
       ],
@@ -120,7 +119,7 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Tap Payment received once you have seen the payment arrive.",
-        "Tap Collect later to skip it. The ticket stays unpaid and keeps its own Mark as paid.",
+        "Tap Collect later to skip it. The ticket stays unpaid and keeps its own Mark paid.",
         "If the QR cannot load, take payment another way, then tap Payment received.",
       ],
     },
