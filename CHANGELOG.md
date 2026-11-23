@@ -23,6 +23,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Landing: a "Vendors on qkit" showcase after the hero (static row for 1-3 vendors, scrolling marquee for 4-11, card grid for 12 or more). The list ships empty, so the page is unchanged until a later change feeds it.
 - Help center: every article ends with "Was this helpful?" (Yes / No, optional "What was missing?" comment on No). Votes are stored per vendor in `qkit.help_feedback` (migration 0122, apply before deploying) and the admin page shows helpful / not helpful counts and the latest No comments next to the stale-article list.
 
 - Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
