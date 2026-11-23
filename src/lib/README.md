@@ -11,7 +11,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 
 ## Contents
 
-- `help/` - `feedback.ts` (Zod `helpFeedbackSchema`, `summarizeHelpFeedback`, a pure mapper from the `help_feedback_counts()` rows and the latest No comments, migration 0123) and `feedback-queries.ts` (`loadMyHelpVote`) for the help article "Was this helpful?" votes in `qkit.help_feedback` (migration 0122).
+- `help/` - `feedback.ts` (Zod `helpFeedbackSchema`, `summarizeHelpFeedback`, a pure mapper from the `help_feedback_counts()` rows and the latest No comments, migration 0124) and `feedback-queries.ts` (`loadMyHelpVote`) for the help article "Was this helpful?" votes in `qkit.help_feedback` (migration 0122).
 - `proof-storage-cleanup.ts` — `drainProofDeletions(limit = 100)`: removes the
   payment-screenshot objects that migration 0119's trigger queued when their
   order was deleted, using the service-role client, and clears the queue rows.

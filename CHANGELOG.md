@@ -24,7 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Admin help panel: vote counts now come from `qkit.help_feedback_counts()` (migration 0123, apply before deploying) and the latest No comments from a five-row query, replacing a scan of up to 5000 votes, so the page cost stays flat as votes grow. Until 0123 is applied the panel hides its feedback section.
+- Admin help panel: vote counts now come from `qkit.help_feedback_counts()` (migration 0124, apply before deploying) and the latest No comments from a five-row query, replacing a scan of up to 5000 votes, so the page cost stays flat as votes grow. Until 0123 is applied the panel hides its feedback section.
 - Repinned `@merqo/ui` to v0.59.1 and moved the landing nav's FAQ and About links into its `links` prop: they sit inline from sm up and inside a burger menu below sm, so the phone bar stays one line (wordmark, burger, Get started or avatar).
 - The terms, privacy and accept-terms pages now use `@merqo/ui`'s `LegalPage` / `legalPageMetadata` and `AcceptTermsPage`. Each page gets a qkit wordmark linking home and a proper title; the accept page keeps its sanitised `next` and runs no legal gate. The local `accept-form.tsx` is removed.
 - Repinned `@merqo/ui` to v0.58.0. The dashboard account menu now shows the vendor's stall name through the shared `accountLabel` chain (stall name, full name, display name, email local part, "Account"), so it matches the landing nav; the "Your stall" fallback is gone.
