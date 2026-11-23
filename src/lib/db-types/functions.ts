@@ -40,6 +40,10 @@ export type DbFunctions = {
     Args: { p_vendor_id: string; p_from: string; p_to: string };
     Returns: number;
   };
+  help_feedback_counts: {
+    Args: Record<string, never>;
+    Returns: { article_slug: string; helpful: number; not_helpful: number }[];
+  };
   purge_order_idempotency_keys: {
     Args: Record<string, never>;
     Returns: number;

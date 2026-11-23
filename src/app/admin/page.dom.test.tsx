@@ -6,6 +6,7 @@ const {
   requireAdmin,
   fixtures,
   from,
+  rpc,
   predicates,
   names,
   audit,
@@ -17,6 +18,7 @@ const {
   requireAdmin: vi.fn(),
   fixtures: {} as Record<string, unknown>,
   from: vi.fn(),
+  rpc: vi.fn(),
   predicates: vi.fn(),
   names: vi.fn(),
   audit: vi.fn(),
@@ -27,7 +29,7 @@ const {
 }));
 vi.mock("@/lib/admin/access", () => ({ requireAdmin }));
 vi.mock("@/lib/supabase/server", () => ({
-  createServerClient: async () => ({ from }),
+  createServerClient: async () => ({ from, rpc }),
   createServiceClient: async () => ({ schema: () => ({ from }) }),
 }));
 vi.mock("@/lib/admin/vendor-names", () => ({ vendorStallNames: names }));
@@ -59,6 +61,10 @@ beforeEach(() => {
   names.mockResolvedValue(new Map([["vendor-a", "Coffee stall"]]));
   for (const key of Object.keys(fixtures)) delete fixtures[key];
   for (const key of Object.keys(failures)) delete failures[key];
+  rpc.mockImplementation(async (fn: string) => ({
+    data: fixtures[fn] ?? null,
+    error: null,
+  }));
   from.mockImplementation((table: string) => {
     const result = { data: fixtures[table] ?? null, error: null };
     let orderIds: string[] | undefined;
@@ -77,6 +83,7 @@ beforeEach(() => {
       gte: () => chain,
       lt: () => chain,
       or: () => chain,
+      not: () => chain,
       range: async (from: number, to: number) => {
         ranges(table, from, to);
         if (failures[table] === from)
@@ -122,6 +129,16 @@ describe("admin overview", () => {
     expect(screen.queryByText(/Help requests/)).not.toBeInTheDocument();
     expect(audit).toHaveBeenCalledWith({ entries: [] });
     expect(from).not.toHaveBeenCalledWith("order_status_events");
+  });
+  it("shows help feedback from the counts function and a bounded comment query", async () => {
+    fixtures.help_feedback_counts = [
+      { article_slug: "getting-started", helpful: 2, not_helpful: 3 },
+    ];
+    fixtures.help_feedback = [];
+    render(await AdminPage());
+    expect(rpc).toHaveBeenCalledWith("help_feedback_counts");
+    expect(predicates).toHaveBeenCalledWith("help_feedback", "helpful", false);
+    expect(screen.getByText(/2 helpful, 3 not helpful/)).toBeInTheDocument();
   });
   it("reports vendor GMV without cancelled orders", async () => {
     const current = new Date().toISOString();
