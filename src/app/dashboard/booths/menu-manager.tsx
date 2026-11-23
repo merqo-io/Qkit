@@ -17,7 +17,16 @@ import { Button } from "@merqo/ui/primitives";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";
-import { saveMenuCategories, saveMenuItems } from "./actions";
+import {
+  saveMenuCategories,
+  saveMenuItems,
+  saveModifierGroups,
+} from "./actions";
+import {
+  libraryGroupDomId,
+  ModifierLibrarySection,
+} from "./modifier-library-section";
+import { expandLinkedGroups, removeLibraryGroup } from "@/lib/modifier-groups";
 import { removeUnsavedImages } from "@/lib/image-upload-adapter";
 import { sanitizeOptionGroups, type MenuItemFormInput } from "@/lib/schemas";
 import {
@@ -29,7 +38,7 @@ import {
   type CsvChoiceRow,
 } from "@/lib/menu-csv";
 import type { Entitlement } from "@/lib/plan";
-import type { MenuCategory } from "@/lib/types";
+import type { MenuCategory, OptionGroup } from "@/lib/types";
 import { isNil } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +51,7 @@ interface Props {
   hasBoothLimit?: boolean;
   initialItems: MenuItemFormInput[];
   initialCategories?: MenuCategory[];
+  initialLibrary?: OptionGroup[];
   // Set when this menu save follows a booth's first-ever creation (booth-form's
   // `?new=1` redirect) -- the vendor has no orderable booth without a menu, so
   // this is the true "you can go live now" moment, not the earlier bare-info save.
@@ -83,16 +93,23 @@ export function MenuManager({
   hasBoothLimit = false,
   initialItems,
   initialCategories = [],
+  initialLibrary = [],
   isNewBooth = false,
 }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<MenuItemFormInput[]>(initialItems);
   const [categories, setCategories] =
     useState<MenuCategory[]>(initialCategories);
+  const [library, setLibrary] = useState<OptionGroup[]>(initialLibrary);
+  const [savedLibrary, setSavedLibrary] = useState(
+    JSON.stringify(initialLibrary),
+  );
+  const libraryDirty = JSON.stringify(library) !== savedLibrary;
+  const { pending: savingLibrary, run: runLibrarySave } = useAsyncAction();
   const [importPreview, setImportPreview] = useState<CsvMenuRow[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pending: saving, run: runSave } = useAsyncAction();
-  const snapshot = JSON.stringify([items, categories]);
+  const snapshot = JSON.stringify([items, categories, library]);
   const [openedWith] = useState(snapshot);
   const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
 
@@ -161,12 +178,51 @@ export function MenuManager({
     );
   }
 
+  function editLibrary(next: OptionGroup[]) {
+    setLibrary(next);
+    setItems((prev) => expandLinkedGroups(prev, next));
+  }
+
+  function removeFromLibrary(id: string) {
+    const result = removeLibraryGroup(library, items, id);
+    setLibrary(result.library);
+    setItems(result.items);
+  }
+
+  function scrollToLibraryGroup(sharedId: string) {
+    const el = document.getElementById(libraryGroupDomId(sharedId));
+    el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    el?.querySelector("input")?.focus({ preventScroll: true });
+  }
+
+  // Items re-expand from the stored library on save, so the library has to
+  // land first or a link to a brand-new group would be dropped.
+  async function persistLibrary(): Promise<boolean> {
+    const sanitized = sanitizeOptionGroups(library) ?? [];
+    const result = await saveModifierGroups(boothId, sanitized);
+    if (!result.success) {
+      toast.error(result.error);
+      return false;
+    }
+    setLibrary(sanitized);
+    setSavedLibrary(JSON.stringify(sanitized));
+    setItems((prev) => expandLinkedGroups(prev, sanitized));
+    return true;
+  }
+
+  function onSaveLibrary() {
+    return runLibrarySave(async () => {
+      if (await persistLibrary()) toast.success("Reusable groups saved");
+    });
+  }
+
   function onSave() {
     const sanitized = items.map((it) => ({
       ...it,
       option_groups: sanitizeOptionGroups(it.option_groups),
     }));
     return runSave(async () => {
+      if (libraryDirty && !(await persistLibrary())) return;
       // Item photos defer their uploads until here, so abandoning the editor
       // leaves nothing in storage.
       let committed;
@@ -329,6 +385,20 @@ export function MenuManager({
         hasBoothLimit={hasBoothLimit}
         categories={categories}
         onCategoriesChange={setCategories}
+        library={library}
+        onLibraryChange={setLibrary}
+        onEditShared={scrollToLibraryGroup}
+      />
+
+      <ModifierLibrarySection
+        library={library}
+        items={items}
+        entitlement={entitlement}
+        dirty={libraryDirty}
+        saving={savingLibrary}
+        onChange={editLibrary}
+        onRemove={removeFromLibrary}
+        onSave={onSaveLibrary}
       />
 
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">

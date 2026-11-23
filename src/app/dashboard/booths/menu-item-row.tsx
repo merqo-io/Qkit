@@ -77,6 +77,9 @@ interface Props {
   onToggleExpand: (id: string) => void;
   onToggleAdvanced: (id: string) => void;
   mutations: MenuMutations;
+  library?: OptionGroup[];
+  onLibraryChange?: (library: OptionGroup[]) => void;
+  onEditShared?: (sharedId: string) => void;
 }
 
 export function MenuItemRow({
@@ -94,6 +97,9 @@ export function MenuItemRow({
   onToggleExpand,
   onToggleAdvanced,
   mutations,
+  library,
+  onLibraryChange,
+  onEditShared,
 }: Props) {
   const {
     update,
@@ -250,6 +256,9 @@ export function MenuItemRow({
                   onChange={(g) => update(index, { option_groups: g })}
                   entitlement={entitlement}
                   itemAllergens={item.allergens ?? []}
+                  library={library}
+                  onLibraryChange={onLibraryChange}
+                  onEditShared={onEditShared}
                 />
               </div>
             )}
