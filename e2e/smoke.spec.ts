@@ -5,7 +5,7 @@ test("landing renders", async ({ page }) => {
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: /Booth ordering,\s*minus the queue/,
+      name: /Take orders,\s*not queues/,
     }),
   ).toBeVisible();
 });
