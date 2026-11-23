@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `GET /api/merqo/vendor-activity` now returns `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null), so merqo can start the free Pro trial at the first order. Additive; existing fields are unchanged.
+
 ### Fixed
 
 - Landing hero carousel: at 960px and up the ticket zoom is now measured (one shared scale, 0.8 down to a 0.6 floor) so the board caption and tickets are no longer clipped between about 960 and 1180px wide.
