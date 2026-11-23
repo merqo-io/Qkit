@@ -69,14 +69,13 @@ export default async function LandingPage() {
                   Scan · order · track
                 </span>
                 <h1 className="font-display mt-[22px] text-balance text-[clamp(44px,6.4vw,80px)] font-semibold leading-[1.02] tracking-[-0.02em]">
-                  Booth ordering, minus the queue.
+                  Take orders, <br />
+                  not queues.
                 </h1>
                 <p className="mt-6 max-w-[34em] text-[clamp(17px,1.6vw,20px)] leading-[1.55] text-muted-foreground">
-                  Customers scan your QR and order from their own phone.{" "}
-                  <strong className="font-semibold text-foreground">
-                    You see every order land on your board
-                  </strong>
-                  , and one tap tells them it&apos;s ready.
+                  Customers scan your QR or open your link, order and pay by
+                  PayNow, straight to you. You run every order from one live
+                  board, at a cart, a stall or from home.
                 </p>
                 <div className="mt-9 flex flex-wrap gap-3">
                   <LandingCta
