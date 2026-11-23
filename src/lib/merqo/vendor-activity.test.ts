@@ -128,4 +128,48 @@ describe("computeVendorActivity", () => {
     );
     expect(result.plan).toBe("pro");
   });
+
+  describe("firstOrderAt", () => {
+    const b = (id: string) => ({
+      id,
+      vendor_id: "v1",
+      created_at: daysAgo(50),
+      is_active: true,
+    });
+    const o = (booth_id: string, days: number, status = "completed") => ({
+      booth_id,
+      status,
+      total_cents: 100,
+      created_at: daysAgo(days),
+    });
+    const run = (
+      booths: ReturnType<typeof b>[],
+      orders: ReturnType<typeof o>[],
+    ) =>
+      computeVendorActivity(
+        vendor,
+        { booths, orders, passExpiresAt: null, hasOpenMessage: false },
+        NOW,
+      ).firstOrderAt;
+
+    it("is null with no orders", () => {
+      expect(run([b("b1")], [])).toBeNull();
+    });
+    it("is the earliest order of a single booth", () => {
+      expect(run([b("b1")], [o("b1", 2), o("b1", 9), o("b1", 4)])).toBe(
+        daysAgo(9),
+      );
+    });
+    it("is the earliest order across several booths", () => {
+      expect(
+        run([b("b1"), b("b2")], [o("b1", 3), o("b2", 12), o("b1", 7)]),
+      ).toBe(daysAgo(12));
+    });
+    it("ignores cancelled orders", () => {
+      expect(run([b("b1")], [o("b1", 20, "cancelled"), o("b1", 5)])).toBe(
+        daysAgo(5),
+      );
+      expect(run([b("b1")], [o("b1", 20, "cancelled")])).toBeNull();
+    });
+  });
 });
