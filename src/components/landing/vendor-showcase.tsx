@@ -1,8 +1,5 @@
 import { CONTAINER } from "@/components/landing/rhythm";
-import {
-  SHOWCASE_VENDORS,
-  type ShowcaseVendor,
-} from "@/components/landing/showcase-vendors";
+import type { ShowcaseVendor } from "@/lib/landing/showcase";
 
 export const SHOWCASE_LAYOUT = { marqueeMin: 4, gridMin: 12 } as const;
 
@@ -66,9 +63,6 @@ function GridCard({ vendor }: { vendor: ShowcaseVendor }) {
       <span className="font-display text-sm font-semibold break-words">
         {vendor.name}
       </span>
-      {vendor.kind ? (
-        <span className="text-xs text-muted-foreground">{vendor.kind}</span>
-      ) : null}
     </li>
   );
 }
@@ -83,9 +77,9 @@ function layoutFor(count: number): "row" | "marquee" | "grid" {
 }
 
 export function VendorShowcase({
-  vendors = SHOWCASE_VENDORS,
+  vendors,
 }: {
-  vendors?: readonly ShowcaseVendor[];
+  vendors: readonly ShowcaseVendor[];
 }) {
   if (vendors.length === 0) return null;
   const mode = layoutFor(vendors.length);
