@@ -37,9 +37,14 @@ export type HelpFeedbackResult =
 
 export type HelpVote = { helpful: boolean; comment: string | null };
 
-export type HelpFeedbackRow = {
+export type HelpFeedbackCountRow = {
   article_slug: string;
-  helpful: boolean;
+  helpful: number;
+  not_helpful: number;
+};
+
+export type HelpFeedbackCommentRow = {
+  article_slug: string;
   comment: string | null;
   updated_at: string;
 };
@@ -49,24 +54,25 @@ export type HelpFeedbackSummary = {
   recentComments: { slug: string; comment: string; at: string }[];
 };
 
-/** Counts per article (most "No" votes first) plus the latest "No" comments. */
+/**
+ * Maps the database's per-article counts and the latest "No" comment rows into
+ * the admin panel's shape: most "No" votes first, newest comments first.
+ */
 export function summarizeHelpFeedback(
-  rows: readonly HelpFeedbackRow[],
+  counts: readonly HelpFeedbackCountRow[],
+  comments: readonly HelpFeedbackCommentRow[],
 ): HelpFeedbackSummary {
-  const counts = new Map<string, { helpful: number; notHelpful: number }>();
-  for (const row of rows) {
-    const c = counts.get(row.article_slug) ?? { helpful: 0, notHelpful: 0 };
-    if (row.helpful) c.helpful += 1;
-    else c.notHelpful += 1;
-    counts.set(row.article_slug, c);
-  }
-  const perArticle = [...counts.entries()]
-    .map(([slug, c]) => ({ slug, ...c }))
+  const perArticle = counts
+    .map((c) => ({
+      slug: c.article_slug,
+      helpful: c.helpful,
+      notHelpful: c.not_helpful,
+    }))
     .sort(
       (a, b) => b.notHelpful - a.notHelpful || a.slug.localeCompare(b.slug),
     );
-  const recentComments = rows
-    .filter((r) => !r.helpful && r.comment)
+  const recentComments = comments
+    .filter((r) => r.comment)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .slice(0, HELP_COMMENTS_SHOWN)
     .map((r) => ({
