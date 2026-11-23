@@ -1,7 +1,7 @@
 "use client";
 
 import { downloadBlob } from "@merqo/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -118,6 +118,14 @@ export function MenuManager({
   );
   const menuDirty = JSON.stringify([items, categories]) !== menuBaseline;
   const busy = saving || savingLibrary;
+  const itemsRef = useRef(items);
+  const categoriesRef = useRef(categories);
+  const baselineRef = useRef(menuBaseline);
+  useEffect(() => {
+    itemsRef.current = items;
+    categoriesRef.current = categories;
+    baselineRef.current = menuBaseline;
+  });
   const confirmLeave = useUnsavedChanges(menuDirty || libraryDirty);
 
   function onExport() {
@@ -187,21 +195,26 @@ export function MenuManager({
 
   // Library edits rewrite linked item copies. Those rewrites are tracked by
   // the library's own dirty flag, so a clean menu stays clean across them.
-  function applyDerivedItems(next: MenuItemFormInput[]) {
-    if (JSON.stringify([items, categories]) === menuBaseline)
-      setMenuBaseline(JSON.stringify([next, categories]));
-    setItems(next);
+  // The rewrite runs on the latest items, not the render that started an
+  // async save, so an item edit made mid-save is not overwritten.
+  function applyDerivedItems(
+    derive: (current: MenuItemFormInput[]) => MenuItemFormInput[],
+  ) {
+    const current = itemsRef.current;
+    const currentCategories = categoriesRef.current;
+    if (JSON.stringify([current, currentCategories]) === baselineRef.current)
+      setMenuBaseline(JSON.stringify([derive(current), currentCategories]));
+    setItems(derive);
   }
 
   function editLibrary(next: OptionGroup[]) {
     setLibrary(next);
-    applyDerivedItems(expandLinkedGroups(items, next));
+    applyDerivedItems((cur) => expandLinkedGroups(cur, next));
   }
 
   function removeFromLibrary(id: string) {
-    const result = removeLibraryGroup(library, items, id);
-    setLibrary(result.library);
-    applyDerivedItems(result.items);
+    setLibrary(removeLibraryGroup(library, items, id).library);
+    applyDerivedItems((cur) => removeLibraryGroup(library, cur, id).items);
   }
 
   function scrollToLibraryGroup(sharedId: string) {
@@ -214,8 +227,7 @@ export function MenuManager({
   // land first or a link to a brand-new group would be dropped.
   async function persistLibrary(): Promise<OptionGroup[] | null> {
     const sanitized = sanitizeOptionGroups(library) ?? [];
-    const expanded = expandLinkedGroups(items, sanitized);
-    if (hasDuplicateGroupLabels(expanded)) {
+    if (hasDuplicateGroupLabels(expandLinkedGroups(items, sanitized))) {
       toast.error(
         "A reusable group has the same name as another group on an item. Rename it, or unlink that item's copy.",
       );
@@ -228,7 +240,7 @@ export function MenuManager({
     }
     setLibrary(sanitized);
     setSavedLibrary(JSON.stringify(sanitized));
-    applyDerivedItems(expanded);
+    applyDerivedItems((cur) => expandLinkedGroups(cur, sanitized));
     return sanitized;
   }
 
@@ -244,7 +256,7 @@ export function MenuManager({
       if (libraryDirty) {
         const saved = await persistLibrary();
         if (!saved) return;
-        source = expandLinkedGroups(items, saved);
+        source = expandLinkedGroups(itemsRef.current, saved);
       }
       const sanitized = source.map((it) => ({
         ...it,

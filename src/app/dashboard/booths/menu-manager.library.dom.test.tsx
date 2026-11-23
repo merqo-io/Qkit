@@ -22,13 +22,32 @@ vi.mock("./actions", () => ({
 vi.mock("@/app/actions/events", () => ({ logEvent: vi.fn() }));
 
 vi.mock("./menu-editor", () => ({
-  MenuEditor: ({ items }: { items: MenuItemFormInput[] }) => (
+  MenuEditor: ({
+    items,
+    onChange,
+  }: {
+    items: MenuItemFormInput[];
+    onChange: (next: MenuItemFormInput[]) => void;
+  }) => (
     <ul>
       {items.map((it) => (
         <li key={it.id} data-testid={`item-${it.id}`}>
+          <span data-testid={`name-${it.id}`}>{it.name}</span>
           {(it.option_groups ?? [])
             .map((g) => `${g.label}:${g.shared_id ?? "own"}`)
             .join(",")}
+          <button
+            type="button"
+            onClick={() =>
+              onChange(
+                items.map((x) =>
+                  x.id === it.id ? { ...x, name: `${x.name}-edited` } : x,
+                ),
+              )
+            }
+          >
+            {`Rename ${it.id}`}
+          </button>
         </li>
       ))}
     </ul>
@@ -186,6 +205,29 @@ describe("MenuManager reusable groups save coordination", () => {
     release({ success: true });
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Save menu" })).toBeEnabled(),
+    );
+  });
+
+  it("keeps an item edit made while a library save is in flight", async () => {
+    const user = userEvent.setup();
+    let release: (v: { success: true }) => void = () => {};
+    saveModifierGroups.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    renderManager();
+    await user.type(screen.getByLabelText("Option group name"), "s");
+    await user.click(
+      screen.getByRole("button", { name: "Save reusable groups" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Rename a" }));
+    release({ success: true });
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+
+    expect(screen.getByTestId("name-a")).toHaveTextContent("a-edited");
+    expect(screen.getByTestId("item-a")).toHaveTextContent(
+      "Sugar levels:lib-sugar",
     );
   });
 
