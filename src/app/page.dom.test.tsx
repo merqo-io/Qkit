@@ -11,6 +11,9 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: { getUser },
   }),
 }));
+vi.mock("@/lib/landing/showcase", () => ({
+  getShowcaseVendors: async () => [],
+}));
 vi.mock("@/lib/landing-nav-user", () => ({
   getLandingNavUser: async (user: { id: string } | null) =>
     user ? { name: "Kopi Corner" } : null,
