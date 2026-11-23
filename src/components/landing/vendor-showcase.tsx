@@ -105,15 +105,15 @@ export function VendorShowcase({
         </h2>
         {mode === "row" ? (
           <ul className="mt-6 flex flex-wrap justify-center gap-3">
-            {vendors.map((vendor) => (
-              <Chip key={vendor.name} vendor={vendor} />
+            {vendors.map((vendor, index) => (
+              <Chip key={`${vendor.name}-${index}`} vendor={vendor} />
             ))}
           </ul>
         ) : null}
         {mode === "grid" ? (
           <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            {vendors.map((vendor) => (
-              <GridCard key={vendor.name} vendor={vendor} />
+            {vendors.map((vendor, index) => (
+              <GridCard key={`${vendor.name}-${index}`} vendor={vendor} />
             ))}
           </ul>
         ) : null}
@@ -125,8 +125,8 @@ export function VendorShowcase({
             className="flex w-max animate-[vendor-marquee_40s_linear_infinite] hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] motion-reduce:w-full motion-reduce:animate-none"
           >
             <ul className={MARQUEE_LIST}>
-              {vendors.map((vendor) => (
-                <Chip key={vendor.name} vendor={vendor} />
+              {vendors.map((vendor, index) => (
+                <Chip key={`${vendor.name}-${index}`} vendor={vendor} />
               ))}
             </ul>
             <ul
@@ -134,8 +134,8 @@ export function VendorShowcase({
               data-marquee-duplicate
               className={`${MARQUEE_LIST} motion-reduce:hidden`}
             >
-              {vendors.map((vendor) => (
-                <Chip key={vendor.name} vendor={vendor} />
+              {vendors.map((vendor, index) => (
+                <Chip key={`${vendor.name}-${index}`} vendor={vendor} />
               ))}
             </ul>
           </div>
