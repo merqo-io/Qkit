@@ -21,6 +21,7 @@ from the Vitest/Playwright tests elsewhere in the repo.
   validated analytics writes, optional shared metrics with preserved failures,
   and the service-role maintenance-banner grant. Uses `no_plan()` so each
   independently named assertion remains visible without a manual test count.
+- `vendor-showcase.test.sql` — anon showcase RPC output (toggled vendors only, trimmed name, https-only logo, booth-name fallback) and the vendor write block on `showcase_on_landing` for `0123`.
 - `board-settings-patch.test.sql` — partial preference merges, caller-only RLS,
   strict patch types, allowed keys and timing limits for `0096`.
 - `booth-creation-cap.test.sql` and `booth-cap-isolation.test.sql` — free booth

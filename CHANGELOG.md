@@ -11,6 +11,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.
 - Vendor board: the payment buttons "Confirm payment received" and "Mark as paid" are now one shorter "Mark paid" label. Help articles, the tour and the README follow; old wording stays a help search keyword.
 
+### Added
+
+- Admin: a "Show on landing page" switch on each vendor's detail page picks which vendors appear in a "Vendors on qkit" showcase, using their profile picture as the logo. Migration 0123 adds `vendors.showcase_on_landing` (admin-only) and the anonymous `get_showcase_vendors()` RPC; a cached `getShowcaseVendors()` loader is ready for the landing page. Toggles are audited.
+
 ### Fixed
 
 - Landing hero: at about 960 to 1100px the payment slide caption was clipped at the bottom of the sample card; the card now grows by the shortfall instead.

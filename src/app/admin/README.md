@@ -9,6 +9,7 @@ Internal admin dashboard, vendor management, activation stats, and support-reque
 - `actions.ts` — `"use server"` module, all admin-only mutations (each starts with `await requireAdmin()` and writes via `createServiceClient()` since RLS scopes normal writes to self):
   - `resolveSupportMessage({ id })` — mark a `kit_slug=qkit` row in the shared `merqo.support_messages` table resolved (via `.schema("merqo")` on the service client — service-role bypasses RLS regardless of schema); audits against the message's `user_id`.
   - `setBanner(input: BannerFormInput)`, updates the single `platform_settings` row (id=1) that drives the site-wide maintenance banner rendered by the root layout (`src/app/layout.tsx`); informational only, never blocks ordering or the dashboard; revalidates `/admin`.
+  - `setVendorShowcase({ id, show })` — set `vendors.showcase_on_landing` (service client; the column is in no vendor's UPDATE grant), audit it as `set_vendor_showcase`, and bust the `showcase-vendors` cache tag with `updateTag`.
   - `recordAudit()` (private) — best-effort insert into `admin_audit`, logged but never blocks the action it records.
 - `actions.test.ts`, Vitest coverage of `resolveSupportMessage` and `setBanner` against mocked Supabase fluent chains (admin_audit/platform_settings/support_messages).
 - `activation-funnel.tsx`, `ActivationFunnelView({ funnel: ActivationFunnel })`. Renders the 4-stage vendor activation funnel (Signed up → Created a booth → Took an order → Paid) as drop-off bars with step-over-step conversion percentages.
