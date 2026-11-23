@@ -26,7 +26,11 @@ import {
   libraryGroupDomId,
   ModifierLibrarySection,
 } from "./modifier-library-section";
-import { expandLinkedGroups, removeLibraryGroup } from "@/lib/modifier-groups";
+import {
+  expandLinkedGroups,
+  hasDuplicateGroupLabels,
+  removeLibraryGroup,
+} from "@/lib/modifier-groups";
 import { removeUnsavedImages } from "@/lib/image-upload-adapter";
 import { sanitizeOptionGroups, type MenuItemFormInput } from "@/lib/schemas";
 import {
@@ -109,9 +113,12 @@ export function MenuManager({
   const [importPreview, setImportPreview] = useState<CsvMenuRow[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pending: saving, run: runSave } = useAsyncAction();
-  const snapshot = JSON.stringify([items, categories, library]);
-  const [openedWith] = useState(snapshot);
-  const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
+  const [menuBaseline, setMenuBaseline] = useState(() =>
+    JSON.stringify([initialItems, initialCategories]),
+  );
+  const menuDirty = JSON.stringify([items, categories]) !== menuBaseline;
+  const busy = saving || savingLibrary;
+  const confirmLeave = useUnsavedChanges(menuDirty || libraryDirty);
 
   function onExport() {
     const csv = items.length === 0 ? menuCsvTemplate() : menuItemsToCsv(items);
@@ -178,15 +185,23 @@ export function MenuManager({
     );
   }
 
+  // Library edits rewrite linked item copies. Those rewrites are tracked by
+  // the library's own dirty flag, so a clean menu stays clean across them.
+  function applyDerivedItems(next: MenuItemFormInput[]) {
+    if (JSON.stringify([items, categories]) === menuBaseline)
+      setMenuBaseline(JSON.stringify([next, categories]));
+    setItems(next);
+  }
+
   function editLibrary(next: OptionGroup[]) {
     setLibrary(next);
-    setItems((prev) => expandLinkedGroups(prev, next));
+    applyDerivedItems(expandLinkedGroups(items, next));
   }
 
   function removeFromLibrary(id: string) {
     const result = removeLibraryGroup(library, items, id);
     setLibrary(result.library);
-    setItems(result.items);
+    applyDerivedItems(result.items);
   }
 
   function scrollToLibraryGroup(sharedId: string) {
@@ -197,17 +212,24 @@ export function MenuManager({
 
   // Items re-expand from the stored library on save, so the library has to
   // land first or a link to a brand-new group would be dropped.
-  async function persistLibrary(): Promise<boolean> {
+  async function persistLibrary(): Promise<OptionGroup[] | null> {
     const sanitized = sanitizeOptionGroups(library) ?? [];
+    const expanded = expandLinkedGroups(items, sanitized);
+    if (hasDuplicateGroupLabels(expanded)) {
+      toast.error(
+        "A reusable group has the same name as another group on an item. Rename it, or unlink that item's copy.",
+      );
+      return null;
+    }
     const result = await saveModifierGroups(boothId, sanitized);
     if (!result.success) {
       toast.error(result.error);
-      return false;
+      return null;
     }
     setLibrary(sanitized);
     setSavedLibrary(JSON.stringify(sanitized));
-    setItems((prev) => expandLinkedGroups(prev, sanitized));
-    return true;
+    applyDerivedItems(expanded);
+    return sanitized;
   }
 
   function onSaveLibrary() {
@@ -217,12 +239,17 @@ export function MenuManager({
   }
 
   function onSave() {
-    const sanitized = items.map((it) => ({
-      ...it,
-      option_groups: sanitizeOptionGroups(it.option_groups),
-    }));
     return runSave(async () => {
-      if (libraryDirty && !(await persistLibrary())) return;
+      let source = items;
+      if (libraryDirty) {
+        const saved = await persistLibrary();
+        if (!saved) return;
+        source = expandLinkedGroups(items, saved);
+      }
+      const sanitized = source.map((it) => ({
+        ...it,
+        option_groups: sanitizeOptionGroups(it.option_groups),
+      }));
       // Item photos defer their uploads until here, so abandoning the editor
       // leaves nothing in storage.
       let committed;
@@ -256,6 +283,7 @@ export function MenuManager({
         toast.error(categoriesResult.error);
         return;
       }
+      setMenuBaseline(JSON.stringify([withPhotos, categories]));
       if (isNewBooth) {
         toast.success("Menu saved. Here's your QR to start taking orders.");
         router.replace(`/dashboard/booths/${boothId}/qr`);
@@ -395,7 +423,7 @@ export function MenuManager({
         items={items}
         entitlement={entitlement}
         dirty={libraryDirty}
-        saving={savingLibrary}
+        saving={busy}
         onChange={editLibrary}
         onRemove={removeFromLibrary}
         onSave={onSaveLibrary}
@@ -406,7 +434,7 @@ export function MenuManager({
           type="button"
           size="lg"
           className="h-12 flex-1 rounded-xl text-base font-semibold"
-          disabled={saving}
+          disabled={busy}
           onClick={onSave}
         >
           {saving ? "Saving…" : "Save menu"}

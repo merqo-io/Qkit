@@ -72,61 +72,55 @@ export function ModifierLibrarySection({
         </p>
       </div>
 
-      <>
-        {library.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No reusable groups yet.
-          </p>
-        )}
-        {library.map((group) => {
-          const count = usageCount(items, group.id);
-          return (
-            <div
-              key={group.id}
-              id={libraryGroupDomId(group.id)}
-              className="space-y-1.5"
-            >
-              <p className="text-xs text-muted-foreground">
-                Used by {itemsLabel(count)}
-                {count > 0 && `. Changes update all ${itemsLabel(count)}.`}
-              </p>
-              <OptionGroupsEditor
-                libraryMode
-                groups={[group]}
-                onChange={(next) =>
-                  onChange(
-                    library.map((g) => (g.id === group.id ? next[0]! : g)),
-                  )
-                }
-                onRemoveGroup={setPendingDelete}
-                entitlement={entitlement}
-                itemAllergens={[]}
-              />
-            </div>
-          );
-        })}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-lg [@media(pointer:coarse)]:min-h-11"
-            disabled={library.length >= MAX_LIBRARY_GROUPS}
-            onClick={addGroup}
+      {library.length === 0 && (
+        <p className="text-sm text-muted-foreground">No reusable groups yet.</p>
+      )}
+      {library.map((group) => {
+        const count = usageCount(items, group.id);
+        return (
+          <div
+            key={group.id}
+            id={libraryGroupDomId(group.id)}
+            className="space-y-1.5"
           >
-            <Plus className="size-3.5" /> New reusable group
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            className="rounded-lg [@media(pointer:coarse)]:min-h-11"
-            disabled={!dirty || saving}
-            onClick={onSave}
-          >
-            {saving ? "Saving…" : "Save reusable groups"}
-          </Button>
-        </div>
-      </>
+            <p className="text-xs text-muted-foreground">
+              Used by {itemsLabel(count)}
+              {count > 0 && `. Changes update all ${itemsLabel(count)}.`}
+            </p>
+            <OptionGroupsEditor
+              libraryMode
+              groups={[group]}
+              onChange={(next) =>
+                onChange(library.map((g) => (g.id === group.id ? next[0]! : g)))
+              }
+              onRemoveGroup={setPendingDelete}
+              entitlement={entitlement}
+              itemAllergens={[]}
+            />
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-lg [@media(pointer:coarse)]:min-h-11"
+          disabled={library.length >= MAX_LIBRARY_GROUPS}
+          onClick={addGroup}
+        >
+          <Plus className="size-3.5" /> New reusable group
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="rounded-lg [@media(pointer:coarse)]:min-h-11"
+          disabled={!dirty || saving}
+          onClick={onSave}
+        >
+          {saving ? "Saving…" : "Save reusable groups"}
+        </Button>
+      </div>
 
       <ConfirmDialog
         open={deleting !== undefined}

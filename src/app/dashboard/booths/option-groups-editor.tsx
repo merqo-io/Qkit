@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Link2, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Button,
@@ -20,7 +20,11 @@ import {
   unlinkGroup,
 } from "@/lib/modifier-groups";
 import { ChoiceRow } from "./option-choice-row";
-import { SavedGroupPicker, SharedGroupCard } from "./saved-group-controls";
+import {
+  SavedGroupPicker,
+  SaveAsReusable,
+  SharedGroupCard,
+} from "./saved-group-controls";
 
 interface Props {
   groups: OptionGroup[];
@@ -327,16 +331,10 @@ export function OptionGroupsEditor({
               </div>
             )}
             {!libraryMode && library && onLibraryChange && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="rounded-lg text-muted-foreground [@media(pointer:coarse)]:min-h-11"
-                disabled={!group.label.trim()}
+              <SaveAsReusable
+                named={group.label.trim().length > 0}
                 onClick={() => saveAsReusable(group.id)}
-              >
-                <Link2 className="size-3.5" /> Save as reusable
-              </Button>
+              />
             )}
           </div>
         );

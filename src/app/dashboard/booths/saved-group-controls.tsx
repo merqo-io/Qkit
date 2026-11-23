@@ -127,3 +127,31 @@ export function SharedGroupCard({
     </div>
   );
 }
+
+export function SaveAsReusable({
+  named,
+  onClick,
+}: {
+  named: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="rounded-lg text-muted-foreground [@media(pointer:coarse)]:min-h-11"
+        disabled={!named}
+        onClick={onClick}
+      >
+        <Link2 className="size-3.5" /> Save as reusable
+      </Button>
+      {!named && (
+        <p className="text-xs text-muted-foreground">
+          Name this group to save it as reusable.
+        </p>
+      )}
+    </div>
+  );
+}

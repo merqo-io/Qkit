@@ -165,3 +165,89 @@ describe("MenuManager reusable groups", () => {
     expect(saveMenuItems).not.toHaveBeenCalled();
   });
 });
+
+describe("MenuManager reusable groups save coordination", () => {
+  it("disables both save buttons while the library save is pending", async () => {
+    const user = userEvent.setup();
+    let release: (v: { success: true }) => void = () => {};
+    saveModifierGroups.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    renderManager();
+    await user.type(screen.getByLabelText("Option group name"), "s");
+    await user.click(
+      screen.getByRole("button", { name: "Save reusable groups" }),
+    );
+
+    expect(screen.getByRole("button", { name: "Save menu" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Saving/ })).toBeDisabled();
+    release({ success: true });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save menu" })).toBeEnabled(),
+    );
+  });
+
+  it("does not ask before leaving after a library-only save", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderManager();
+    await user.type(screen.getByLabelText("Option group name"), "s");
+    await user.click(
+      screen.getByRole("button", { name: "Save reusable groups" }),
+    );
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirm).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it("keeps saving the menu when the library has an empty-label group", async () => {
+    const user = userEvent.setup();
+    renderManager();
+    await user.click(
+      screen.getByRole("button", { name: /New reusable group/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save menu" }));
+
+    await waitFor(() => expect(saveMenuItems).toHaveBeenCalled());
+    expect(saveModifierGroups).toHaveBeenCalledWith(BOOTH_ID, [
+      expect.objectContaining({ label: "Sugar level" }),
+    ]);
+    expect(saveMenuItems.mock.calls[0]![1][0].option_groups).toEqual([
+      expect.objectContaining({ label: "Sugar level", shared_id: "lib-sugar" }),
+    ]);
+  });
+
+  it("blocks a library rename that clashes with a group on an item", async () => {
+    const user = userEvent.setup();
+    render(
+      <MenuManager
+        vendorId="v1"
+        boothId={BOOTH_ID}
+        boothName="Cart"
+        entitlement={PRO}
+        initialLibrary={[SUGAR]}
+        initialItems={[
+          item("a", [
+            { ...SUGAR, id: "ga", shared_id: "lib-sugar" },
+            { id: "own", label: "Size", choices: [{ id: "s", label: "S" }] },
+          ]),
+        ]}
+      />,
+    );
+    const name = screen.getByLabelText("Option group name");
+    await user.clear(name);
+    await user.type(name, "Size");
+    await user.click(
+      screen.getByRole("button", { name: "Save reusable groups" }),
+    );
+
+    expect(toastError).toHaveBeenCalledWith(
+      expect.stringContaining("same name"),
+    );
+    expect(saveModifierGroups).not.toHaveBeenCalled();
+  });
+});
