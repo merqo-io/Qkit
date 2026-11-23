@@ -23,9 +23,22 @@ vi.mock("./pickup-scanner", () => ({
   ),
 }));
 
+const { boothMaybeSingle } = vi.hoisted(() => ({ boothMaybeSingle: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({
+  createServiceClient: () =>
+    Promise.resolve({
+      from: () => ({
+        select: () => ({ eq: () => ({ maybeSingle: boothMaybeSingle }) }),
+      }),
+    }),
+}));
+
 const VALID_BOOTH_ID = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
+  boothMaybeSingle.mockReset().mockResolvedValue({
+    data: { pickup_scan_enabled: true },
+  });
   notFoundMock.mockReset().mockImplementation(() => {
     throw new Error("NEXT_NOT_FOUND");
   });
@@ -50,5 +63,21 @@ describe("PickupPage", () => {
       VALID_BOOTH_ID,
     );
     expect(notFoundMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["switched off", { data: { pickup_scan_enabled: false } }],
+    ["unknown", { data: null }],
+  ])("shows the off message for a booth that is %s", async (_label, row) => {
+    boothMaybeSingle.mockResolvedValue(row);
+    render(
+      await PickupPage({
+        params: Promise.resolve({ boothId: VALID_BOOTH_ID }),
+      }),
+    );
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Self-checkout pickup is off for this booth/),
+    ).toBeInTheDocument();
   });
 });

@@ -8,10 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.
 - `GET /api/merqo/vendor-activity` now returns `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null), so merqo can start the free Pro trial at the first order. Additive; existing fields are unchanged.
 
 ### Changed
 
+- The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
 - Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.
 - Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.
 - Vendor board: the payment buttons "Confirm payment received" and "Mark as paid" are now one shorter "Mark paid" label. Help articles, the tour and the README follow; old wording stays a help search keyword.
