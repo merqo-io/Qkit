@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { resolveSupportMessage, setBanner } from "./actions";
+import { resolveSupportMessage, setBanner, setVendorShowcase } from "./actions";
 
 // Mock the SERVICE client's fluent chains + the admin gate. `from(table)`
 // dispatches per table so each terminal can be driven independently:
@@ -11,7 +11,13 @@ const {
   supportMsgUpdateSingle,
   supportMsgEq,
   platformSettingsEq,
+  updateTagMock,
+  vendorUpdate,
+  vendorSingle,
 } = vi.hoisted(() => ({
+  updateTagMock: vi.fn(),
+  vendorUpdate: vi.fn(),
+  vendorSingle: vi.fn(),
   requireAdminMock: vi.fn(),
   auditInsert: vi.fn(),
   supportMsgUpdateSingle: vi.fn(),
@@ -21,7 +27,10 @@ const {
 
 vi.mock("@/lib/admin/access", () => ({ requireAdmin: requireAdminMock }));
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  updateTag: updateTagMock,
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: () =>
@@ -32,6 +41,15 @@ vi.mock("@/lib/supabase/server", () => ({
             return { insert: auditInsert };
           case "platform_settings":
             return { update: () => ({ eq: platformSettingsEq }) };
+          case "vendors":
+            return {
+              update: (patch: unknown) => {
+                vendorUpdate(patch);
+                return {
+                  eq: () => ({ select: () => ({ maybeSingle: vendorSingle }) }),
+                };
+              },
+            };
           default:
             throw new Error(`unexpected table ${table}`);
         }
@@ -68,6 +86,42 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ data: { user_id: VENDOR }, error: null });
   platformSettingsEq.mockReset().mockResolvedValue({ error: null });
+  updateTagMock.mockReset();
+  vendorUpdate.mockReset();
+  vendorSingle
+    .mockReset()
+    .mockResolvedValue({ data: { id: VENDOR }, error: null });
+});
+
+describe("setVendorShowcase", () => {
+  it("sets the flag, audits it and busts the showcase cache", async () => {
+    const res = await setVendorShowcase({ id: VENDOR, show: true });
+    expect(res).toEqual({ success: true });
+    expect(vendorUpdate).toHaveBeenCalledWith({ showcase_on_landing: true });
+    expect(auditInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        admin_id: ADMIN,
+        action: "set_vendor_showcase",
+        target_id: VENDOR,
+        detail: { showcase_on_landing: true },
+      }),
+    );
+    expect(updateTagMock).toHaveBeenCalledWith("showcase-vendors");
+  });
+
+  it("rejects an invalid id without writing", async () => {
+    const res = await setVendorShowcase({ id: "nope", show: true });
+    expect(res.success).toBe(false);
+    expect(vendorUpdate).not.toHaveBeenCalled();
+  });
+
+  it("fails without auditing when no row matches", async () => {
+    vendorSingle.mockResolvedValue({ data: null, error: null });
+    const res = await setVendorShowcase({ id: VENDOR, show: false });
+    expect(res.success).toBe(false);
+    expect(auditInsert).not.toHaveBeenCalled();
+    expect(updateTagMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("resolveSupportMessage", () => {

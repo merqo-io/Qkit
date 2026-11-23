@@ -232,7 +232,12 @@ export interface Database {
   };
 }
 
-export type Vendor = Database["qkit"]["Tables"]["vendors"]["Row"];
+// showcase_on_landing is admin-only and read by the admin portal alone, so the
+// vendor-facing shape leaves it out and the vendor selects need not list it.
+export type Vendor = Omit<
+  Database["qkit"]["Tables"]["vendors"]["Row"],
+  "showcase_on_landing"
+>;
 export type Order = Database["qkit"]["Tables"]["orders"]["Row"];
 // The vendor board's shape of an order — access_token is the customer's own
 // status-page bearer secret, which the board never reads (least privilege).

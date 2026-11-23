@@ -71,6 +71,8 @@ z.boolean().default(true)` — a vendor-side opt-out for the `ready`-transition
 
 - `help_feedback` (0122): one "Was this helpful?" vote per vendor per help article (`unique (vendor_id, article_slug)`, optional comment up to 500 characters, only collected on a No). A vendor selects, inserts and updates only their own rows; admins select all; no delete policy and no `anon` access. Written with the user session, not the service role. Apply before deploying; the widget hides itself until the table exists.
 
+- `vendors.showcase_on_landing` (0123): admin-only flag choosing which vendors appear in the landing page's "Vendors on qkit" showcase (the owner gets each vendor's permission offline). Vendors cannot write it because `authenticated`'s UPDATE on `vendors` is a column allowlist that omits it; the admin toggle writes it with the service client and audits `set_vendor_showcase`. `qkit.get_showcase_vendors()` (SECURITY DEFINER, `search_path = ''`, EXECUTE for `anon` and `authenticated`) returns only `(name, logo_url)` for toggled vendors: name from the auth profile `display_name` (fallback: oldest booth name), logo from `avatar_url` only when it starts with `https://`. Apply manually before use.
+
 ## Project notes
 
 **paykit checkout cutover (2026-08-11):** qkit's local PayNow QR builder and

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
@@ -14,6 +14,7 @@ import {
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { recordAudit } from "@/lib/audit";
 import { forgetPlatformSettings } from "@/lib/platform-settings";
+import { SHOWCASE_TAG } from "@/lib/landing/showcase-tag";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 
 const resolveMessageSchema = z.object({ id: uuidSchema });
@@ -93,5 +94,48 @@ export async function setBanner(input: BannerFormInput): Promise<ActionResult> {
 
   forgetPlatformSettings();
   revalidatePath("/admin");
+  return ok();
+}
+
+const showcaseSchema = z.object({ id: uuidSchema, show: z.boolean() });
+
+/**
+ * Switch a vendor's presence in the landing page's "Vendors on qkit" showcase.
+ * The vendor's permission is collected offline before this is flipped. Written
+ * with the service client because the column is in no vendor's UPDATE grant.
+ * Admin-only.
+ */
+export async function setVendorShowcase(
+  input: z.infer<typeof showcaseSchema>,
+): Promise<ActionResult> {
+  const { user } = await requireAdmin();
+  const parsed = showcaseSchema.safeParse(input);
+  if (!parsed.success) return fail("Invalid input");
+
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("vendors")
+    .update({ showcase_on_landing: parsed.data.show })
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    console.error(
+      "setVendorShowcase failed",
+      error?.message ?? "no row updated",
+    );
+    return fail("Could not update the landing page setting");
+  }
+
+  await recordAudit({
+    admin_id: user.id,
+    action: "set_vendor_showcase",
+    target_id: parsed.data.id,
+    detail: { showcase_on_landing: parsed.data.show },
+  });
+
+  updateTag(SHOWCASE_TAG);
+  revalidatePath(`/admin/vendors/${parsed.data.id}`);
+  revalidatePath("/admin/vendors");
   return ok();
 }

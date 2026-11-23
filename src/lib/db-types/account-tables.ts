@@ -39,18 +39,21 @@ export type AccountTables = {
       created_at: string;
       tours_seen: ToursSeen;
       board_settings: BoardSettings;
+      showcase_on_landing: boolean;
     };
     Insert: {
       id: string;
       created_at?: string;
       tours_seen?: ToursSeen;
       board_settings?: BoardSettings;
+      showcase_on_landing?: boolean;
     };
     Update: {
       id?: string;
       created_at?: string;
       tours_seen?: ToursSeen;
       board_settings?: BoardSettings;
+      showcase_on_landing?: boolean;
     };
     Relationships: [];
   };

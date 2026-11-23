@@ -31,6 +31,11 @@ vi.mock("../../resolve-message-button", () => ({
     return null;
   },
 }));
+vi.mock("./showcase-toggle", () => ({
+  ShowcaseToggle: ({ initial }: { initial: boolean }) => (
+    <span data-testid="showcase">{String(initial)}</span>
+  ),
+}));
 import VendorPage from "./page";
 
 const renderPage = () =>
@@ -41,7 +46,7 @@ beforeEach(() => {
   gate.mockResolvedValue({ id: "admin" });
   profile.mockResolvedValue({ stall_name: "Coffee stall" });
   for (const key of Object.keys(fixtures)) delete fixtures[key];
-  fixtures.vendors = { id: "vendor-a", created_at };
+  fixtures.vendors = { id: "vendor-a", created_at, showcase_on_landing: true };
   from.mockImplementation((table: string) => {
     const result = {
       data:
@@ -95,6 +100,7 @@ describe("admin vendor detail", () => {
       screen.getByText("No messages from this vendor."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("showcase")).toHaveTextContent("true");
     expect(from).not.toHaveBeenCalledWith("orders");
     expect(predicates).toHaveBeenCalledWith("vendors", "id", "vendor-a");
     expect(predicates).toHaveBeenCalledWith("booths", "vendor_id", "vendor-a");
