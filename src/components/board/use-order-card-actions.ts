@@ -178,7 +178,7 @@ export function useOrderCardActions({
   // Reconciled "Mark paid & start" review action: there's no real scenario
   // where a vendor confirms payment on a still-pending order without also
   // starting it, so one tap does both atomically instead of two separate
-  // taps (Confirm payment received + Start now).
+  // taps (Mark paid + Start now).
   function confirmPaymentAndStartHandler() {
     return run(async () => {
       const res = await confirmPaymentAndStart(order.id);

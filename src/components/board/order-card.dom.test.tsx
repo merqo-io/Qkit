@@ -606,15 +606,11 @@ describe("OrderCard payment", () => {
         { wrapper: TooltipProvider },
       );
       expect(screen.queryByText(/^Paid$/i)).not.toBeInTheDocument();
-      const label =
-        paymentStatus === "claimed"
-          ? /confirm payment received/i
-          : /mark as paid/i;
-      await user.click(screen.getByRole("button", { name: label }));
+      await user.click(screen.getByRole("button", { name: /mark paid/i }));
       expect(confirmOrderPayment).toHaveBeenCalledWith("o1");
       await waitFor(() =>
         expect(
-          screen.queryByRole("button", { name: label }),
+          screen.queryByRole("button", { name: /mark paid/i }),
         ).not.toBeInTheDocument(),
       );
     },
@@ -634,12 +630,10 @@ describe("OrderCard payment", () => {
     await screen.findByRole("button", { name: /undo/i });
     expect(screen.queryByText(/^Paid$/i)).not.toBeInTheDocument();
     expect(confirmOrderPayment).not.toHaveBeenCalled();
-    await user.click(
-      screen.getByRole("button", { name: /confirm payment received/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /mark paid/i }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: /confirm payment received/i }),
+        screen.queryByRole("button", { name: /mark paid/i }),
       ).not.toBeInTheDocument(),
     );
     expect(confirmOrderPayment).toHaveBeenCalledWith("o1");
@@ -651,7 +645,7 @@ describe("OrderCard payment", () => {
     );
     expect(
       screen.queryByRole("button", {
-        name: /confirm payment received|mark as paid/i,
+        name: /mark paid/i,
       }),
     ).not.toBeInTheDocument();
     expect(
@@ -678,24 +672,20 @@ describe("OrderCard payment", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    await user.click(
-      screen.getByRole("button", { name: /confirm payment received/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /mark paid/i }));
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Failed to confirm payment"),
     );
     expect(screen.queryByText(/^Paid$/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /confirm payment received/i }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: /mark paid/i })).toBeEnabled();
   });
 
-  it("shows a Confirm payment button for a claimed order", () => {
+  it("shows a Mark paid button for a claimed order", () => {
     render(<OrderCard order={makeOrder({ payment_status: "claimed" })} />, {
       wrapper: TooltipProvider,
     });
     expect(
-      screen.getByRole("button", { name: /confirm payment/i }),
+      screen.getByRole("button", { name: /mark paid/i }),
     ).toBeInTheDocument();
   });
 
@@ -704,7 +694,7 @@ describe("OrderCard payment", () => {
     render(<OrderCard order={makeOrder({ payment_status: "claimed" })} />, {
       wrapper: TooltipProvider,
     });
-    await user.click(screen.getByRole("button", { name: /confirm payment/i }));
+    await user.click(screen.getByRole("button", { name: /mark paid/i }));
     expect(confirmOrderPayment).toHaveBeenCalledWith("o1");
   });
 
@@ -757,7 +747,7 @@ describe("OrderCard payment", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: /confirm payment received.*\$7\.00/i,
+        name: /mark paid.*\$7\.00/i,
       }),
     ).toBeInTheDocument();
   });
@@ -768,7 +758,7 @@ describe("OrderCard payment", () => {
       { wrapper: TooltipProvider },
     );
     expect(
-      screen.queryByRole("button", { name: /confirm payment/i }),
+      screen.queryByRole("button", { name: /mark paid/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -870,7 +860,7 @@ describe("OrderCard — reconciled payment+start", () => {
       screen.getByRole("button", { name: /mark paid.*start/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /confirm payment received/i }),
+      screen.queryByRole("button", { name: /^mark paid(?! &)/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /start now/i }),

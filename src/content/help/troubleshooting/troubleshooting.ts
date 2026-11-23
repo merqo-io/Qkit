@@ -16,7 +16,7 @@ export const article: HelpArticle = {
     "Accept & start",
     "Accept payment",
     "Decline",
-    "Confirm payment received",
+    "Mark paid",
     "Over plan limit",
     "This booth isn't taking orders right now",
     "This code expired. Please rescan.",
@@ -103,7 +103,7 @@ export const article: HelpArticle = {
         "Open the order and tap View payment proof to see what the customer sent.",
         "Check that the money landed in your account for the right amount.",
         "Tap Accept & start to confirm the payment and start the order, or Decline to send it back to unpaid so the customer can try again. Once the order has been started, the same button reads Accept payment.",
-        "On a started order's ticket, the Confirm payment received button also confirms a claimed payment without opening the proof.",
+        "On a started order's ticket, the Mark paid button also confirms a claimed payment without opening the proof.",
       ],
     },
     {
