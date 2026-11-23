@@ -110,6 +110,7 @@ describe("OptionGroupsEditor saved groups", () => {
       screen.queryByRole("button", { name: /Add saved group/ }),
     ).toBeNull();
     expect(screen.getByText(/1-group limit per item/)).toBeInTheDocument();
+    expect(screen.getByText("See plans")).toBeInTheDocument();
   });
 
   it("calls onEditShared with the library id on Edit for all", async () => {

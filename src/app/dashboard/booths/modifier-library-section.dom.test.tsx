@@ -95,11 +95,11 @@ describe("ModifierLibrarySection", () => {
     expect(props.onSave).toHaveBeenCalled();
   });
 
-  it("is gated behind a plan upgrade on the free plan", () => {
+  it("is usable on the free plan", () => {
     setup({ entitlement: FREE });
-    expect(screen.getByText(/available on paid plans/)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /New reusable group/ }),
-    ).toBeNull();
+      screen.getByRole("button", { name: /New reusable group/ }),
+    ).toBeEnabled();
+    expect(screen.queryByText(/paid plans/)).toBeNull();
   });
 });
