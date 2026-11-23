@@ -6,19 +6,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.
+- Vendor board: the payment buttons "Confirm payment received" and "Mark as paid" are now one shorter "Mark paid" label. Help articles, the tour and the README follow; old wording stays a help search keyword.
+
 ### Fixed
 
+- Landing hero: at about 960 to 1100px the payment slide caption was clipped at the bottom of the sample card; the card now grows by the shortfall instead.
+- Landing hero carousel: at 960px and up the ticket zoom is now measured (one shared scale, 0.8 down to a 0.6 floor) so the board caption and tickets are no longer clipped between about 960 and 1180px wide.
+- Landing hero carousel: the Rush board now shows its amber and red tickets. The cards read their clock once on mount, so seeded ages sat up to 30s behind and Lim (12 min) and Aisha (7 min) never crossed the thresholds. Boards remount on re-seed, and Rush starts just under the thresholds then jumps over them halfway through its view (final state directly with reduced motion). At 960px and up the carousel card now spans exactly the text column (pill row to buttons) instead of setting the row height, with the sample tickets zoomed to 80%. The ready tickets' "Mark Picked Up" drain bar now empties over the board's 7s view (10s window, ready 3s ago) instead of barely moving.
+- Landing hero carousel: the sample tickets are now the board's real `OrderCard` (inert, fed sample orders with times relative to page load) instead of a hand-built copy, so the payment ticket is no longer bloated, ages are real minutes, and "Mark Picked Up" shows its auto-clear drain bar. The payment board's completed ticket is now an active ready one, so each board's "N active" matches what is shown.
 - Landing story: the gap under the Try it devices now matches the closing section's top and bottom padding (about 175px down to about 96px on desktop, 195px to about 58px on phones). The wrapper padding follows the same clamp, the stage's trailing padding is gone, and on phones both devices sit on the bottom of their shared cell, so the shorter tablet leaves its slack above the frame instead of below it.
 - Landing hero carousel: the sample ticket's action button grows with its label instead of clipping "Confirm payment received" on narrow two-column cards; the carousel's outer box is a plain rounded box (a booth, not an order chit, so no zig-zag edges); each slide is top-aligned so the booth header stays put as the ticket count changes.
 - Landing follow-ups: a burst of wheel events over the hero carousel restarts its countdown once; the carousel and the how-it-works story follow the reduced-motion setting live; with reduced motion the desktop story highlights the step in view again and no longer flashes the start state on first paint; the "user guide" link is a 44px tap target; the footer uses the compact two-row layout on phones.
 
 ### Added
 
+- Help center: every article ends with "Was this helpful?" (Yes / No, optional "What was missing?" comment on No). Votes are stored per vendor in `qkit.help_feedback` (migration 0122, apply before deploying) and the admin page shows helpful / not helpful counts and the latest No comments next to the stale-article list.
+
 - Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
 - Public `/faq` page: ten questions in four groups (getting started, day to day, money and payment, cost and pilot), built on `FaqPage` from `@merqo/ui` with FAQPage JSON-LD and no closing line. The nav's FAQ link now opens it and shows at every width, so phones can reach it. To keep the signed-out nav on one line at 320px, "Sign in" now shows from the sm breakpoint up; below it "Get started" opens the login page, which has an "Already have an account? Sign in" switch, and `/faq` gets the nonce CSP like the other public pages.
 
 ### Changed
 
+- Repinned `@merqo/ui` to v0.60.0: the Terms "Fees and billing" section changed and the shared legal version date is bumped, so vendors are asked to accept the updated terms again.
+- Repinned `@merqo/ui` to v0.59.1 and moved the landing nav's FAQ and About links into its `links` prop: they sit inline from sm up and inside a burger menu below sm, so the phone bar stays one line (wordmark, burger, Get started or avatar).
 - The terms, privacy and accept-terms pages now use `@merqo/ui`'s `LegalPage` / `legalPageMetadata` and `AcceptTermsPage`. Each page gets a qkit wordmark linking home and a proper title; the accept page keeps its sanitised `next` and runs no legal gate. The local `accept-form.tsx` is removed.
 - Repinned `@merqo/ui` to v0.58.0. The dashboard account menu now shows the vendor's stall name through the shared `accountLabel` chain (stall name, full name, display name, email local part, "Account"), so it matches the landing nav; the "Your stall" fallback is gone.
 - Repinned `@merqo/ui` to v0.57.0 and mounted its `AppLinkProvider` with `next/link` in `Providers`, so `AccountMenu`, `DashboardNav`, `LoginForm`, `ResetPasswordForm` and `LandingAccountNav` navigate client-side without a `LinkComponent` prop. The prop is dropped from `DashboardNav` and `LandingAccountNav`.

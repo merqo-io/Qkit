@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_HELP_ARTICLES,
   HELP_CATEGORIES,
+  POPULAR_HELP_SLUGS,
   articlesInCategory,
   getPublishedArticle,
   publishedArticles,
@@ -158,6 +159,16 @@ describe("help content drift", () => {
       expect(publishedArticles()).not.toContain(article);
       expect(getPublishedArticle(article.slug)).toBeUndefined();
       expect(articlesInCategory(article.category)).not.toContain(article);
+    }
+  });
+
+  it("lists popular slugs that exist and are published", () => {
+    expect(POPULAR_HELP_SLUGS.length).toBeGreaterThanOrEqual(4);
+    expect(POPULAR_HELP_SLUGS.length).toBeLessThanOrEqual(6);
+    for (const slug of POPULAR_HELP_SLUGS) {
+      const entry = ALL_HELP_ARTICLES.find((a) => a.slug === slug);
+      expect(entry, slug).toBeDefined();
+      expect(entry?.draft, slug).toBeFalsy();
     }
   });
 

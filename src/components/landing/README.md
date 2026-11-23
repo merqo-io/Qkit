@@ -15,14 +15,15 @@ inline mark used on the login page.
   responsive `end`-slot gap live there) and supplies the wordmark (a plain
   `<a href="/#top">`, since `Link` leaves the old hash in the URL bar on a
   fragment-only jump) and the right-side content. "FAQ" and "About"
-  are `Button asChild variant="ghost"` links so they render identically. Signed
+  are passed as plain data through the shell's `links` prop (inline from `sm` up,
+  inside a burger menu below `sm`). Signed
   in (`user` set) renders `@merqo/ui`'s `LandingAccountNav` (Dashboard link plus
   the account menu with sign out, help via `submitLandingSupport` and feedback
   via `submitFeedback`, categories in `SUPPORT_CATEGORY_LABELS`); signed out shows "Sign in" and
   "Get started".
-- Tap targets: every nav control is at least 44x44px below `sm` (FAQ, About and the signed-out links via
+- Tap targets: every nav control is at least 44x44px below `sm` (the signed-out links via
   `h-11 min-w-11`; the Dashboard link and avatar trigger inside
-  `LandingAccountNav` carry their own 44px sizing) and keeps the 32px look from `sm` up.
+  `LandingAccountNav` carry their own 44px sizing) and keeps the 32px look from `sm` up; the shell's burger menu sizes FAQ and About itself.
 - `nav.dom.test.tsx` — signed out has no account menu, signed in has
   Dashboard plus a menu opened by touch whose Sign out calls the action, and FAQ and About
   share the same styling classes.
@@ -36,7 +37,7 @@ inline mark used on the login page.
   `text-primary` accent on the q. Used by the login page's two panels (`lg`
   and `xl`) and the MFA page (`lg`), where the nav shell doesn't apply.
 - `wordmark.test.tsx` — asserts the text, the accent class and the size class.
-- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the hero's sample-board carousel over `LANDING_BOARDS`. Native scroll-snap plus mouse drag, one `setTimeout` countdown (7s) that any click, tap, swipe, drag, wheel or key restarts (a burst of wheel events counts once), so auto-advance never skips a board. Hover and focus pause it, reduced motion switches it off. The carousel and the story read `@merqo/ui`'s `usePrefersReducedMotion`, which follows the OS setting live. It is a labelled carousel region; each dot is a 44px tap target.
+- `hero-preview-carousel.tsx` — `HeroPreviewCarousel()`: the hero's sample-board carousel over `LANDING_BOARDS`. Native scroll-snap plus mouse drag, one `setTimeout` countdown (7s) that any click, tap, swipe, drag, wheel or key restarts (a burst of wheel events counts once), so auto-advance never skips a board. Hover and focus pause it, reduced motion switches it off. The carousel and the story read `@merqo/ui`'s `usePrefersReducedMotion`, which follows the OS setting live. It is a labelled carousel region; each dot is a 44px tap target. Each ticket is the board's real `OrderCard` fed sample rows (so the hero cannot drift from the product), inside an `inert` grid so its buttons never reach a server action while the track still gets mouse drag. Sample times are seeded after mount and re-seeded when a board comes into view, which restarts the "Mark Picked Up" drain bar (a 10s hero window with tickets ready 3s ago, so it empties over the 7s view). The grid is keyed on its seed so cards remount with a fresh clock (`OrderCard`'s `useNow` reads it once on mount). The Rush board starts just under the amber and red thresholds (`startAgeMins`) and jumps over them at half the board's view (reduced motion shows the final ages directly). From 960px the card is absolutely filled into its cell so the text column sets the hero row height (pill row to buttons), and the ticket grid is zoomed by one shared measured scale (`fitScale`, `--hero-zoom` on the track, 0.8 down to a 0.6 floor, recomputed by a `ResizeObserver`) so the tallest board's grid and caption fit without scrolling. When even the 0.6 floor cannot fit (about 960 to 1100px, where the text column is short), `shortfall` gives the missing height and the carousel sets that much extra `min-height` on its in-flow parent cell, so the card grows past the CTA row instead of clipping a caption; the min-height is cleared before each measure so alignment stays exact elsewhere.
 - `rhythm.ts` — the landing's one spacing scale as shared class strings
   (`CONTAINER`, `SECTION_*`, `CHAPTER_*`): 80px then 96px between major
   sections, 40px then 48px each side of a
@@ -44,9 +45,8 @@ inline mark used on the login page.
   landing spacing here instead of writing new padding classes in `page.tsx`.
 - `journey/` — the scroll-and-try journey below the hero (customer, stall and queue chapters, closing call, FAQ rows); see its README.
 - `hero-preview-carousel.dom.test.tsx` — RTL test for the carousel: real ticket parts, closed ticket without footer, the 7s advance, the countdown restart on interaction, no double jump, reduced motion and dot navigation.
-- `landing-boards.ts` — `LANDING_BOARDS`: the five sample boards (Mark Ready, Start, Says paid, Rush, Ready) with their captions.
+- `landing-boards.ts` — `LANDING_BOARDS`: the five sample boards (Mark Ready, Start, Says paid, Rush, Ready) with their captions, every ticket active. `toBoardOrder(sample, seedMs, flipped)` (optional `SampleOrder.startAgeMins` is used until `flipped`) turns a sample into a real `BoardOrder` with timestamps relative to the seed; `SAMPLE_AGING_MIN`, `SAMPLE_OVERDUE_MIN` and `SAMPLE_AUTO_CLEAR_MS` (10s) and `SAMPLE_READY_AGO_SEC` (3s) are the thresholds the hero draws with.
 - `landing-cta.tsx` — `LandingCta({ href, children, variant, event })`: a landing-page call-to-action `Button`+`Link` that fires an optional analytics event (`logEvent`) on click before navigating.
-- `sample-ticket.tsx` — `SampleTicket({ order })`: one hero ticket assembled from the board's own parts (`Ticket`, `TicketItems`, `AttentionLine`, `TicketFooter`, `OrderStatusBadge`, `ticketAttention`) so it cannot drift from `OrderCard`. The wired parts (more menu, buttons) are plain text. A closed ticket has no footer and aligns to the start.
 
 ## Connectivity
 

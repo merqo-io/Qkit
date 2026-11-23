@@ -71,4 +71,32 @@ describe("HelpFreshnessSection", () => {
       screen.getByText(/reviewed in the last 90 days/),
     ).toBeInTheDocument();
   });
+
+  it("shows helpful counts per article and the latest No comments", () => {
+    render(
+      <HelpFreshnessSection
+        now={NOW}
+        articles={[article({ slug: "payments", title: "Payments" })]}
+        feedback={{
+          perArticle: [{ slug: "payments", helpful: 2, notHelpful: 3 }],
+          recentComments: [
+            { slug: "payments", comment: "no QR step", at: "2026-11-02" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("2 helpful, 3 not helpful")).toBeInTheDocument();
+    expect(screen.getByText(/no QR step/)).toBeInTheDocument();
+  });
+
+  it("says so when there are no votes", () => {
+    render(
+      <HelpFreshnessSection
+        now={NOW}
+        articles={[]}
+        feedback={{ perArticle: [], recentComments: [] }}
+      />,
+    );
+    expect(screen.getByText("No votes yet.")).toBeInTheDocument();
+  });
 });

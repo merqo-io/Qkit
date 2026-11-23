@@ -1,8 +1,30 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HeroPreviewCarousel } from "./hero-preview-carousel";
+import {
+  fitScale,
+  HeroPreviewCarousel,
+  shortfall,
+} from "./hero-preview-carousel";
 import { LANDING_BOARDS } from "./landing-boards";
+
+vi.mock("@/app/dashboard/order-advance-actions", () => ({
+  advanceOrder: vi.fn(),
+  revertOrderAdvance: vi.fn(),
+  restoreAutoCompleted: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-payment-actions", () => ({
+  confirmOrderPayment: vi.fn(),
+  confirmPaymentAndStart: vi.fn(),
+  declinePaymentClaim: vi.fn(),
+  revertPaymentAndStart: vi.fn(),
+}));
+vi.mock("@/app/dashboard/order-cancel-actions", () => ({
+  cancelOrder: vi.fn(),
+  bumpOrder: vi.fn(),
+}));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 function mockMatchMedia(initial: boolean) {
   let reduced = initial;
@@ -44,7 +66,7 @@ afterEach(() => {
 });
 
 describe("HeroPreviewCarousel", () => {
-  it("is built from the real ticket parts: attention lines, actions and status", () => {
+  it("renders the board's real order cards for every sample ticket", () => {
     mockMatchMedia(false);
     render(<HeroPreviewCarousel />);
     expect(screen.getAllByText("Not paid yet").length).toBeGreaterThan(0);
@@ -52,17 +74,60 @@ describe("HeroPreviewCarousel", () => {
       screen.getAllByText("Says paid. Check the payment").length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Mark Picked Up").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
+    const tickets = LANDING_BOARDS.flatMap((board) => board.orders);
+    for (const order of tickets)
+      expect(screen.getAllByText(order.name).length).toBeGreaterThan(0);
   });
 
-  it("lets the action button grow so a wrapped label is not clipped", () => {
+  it("puts every ticket control inside an inert subtree, so no action can fire", () => {
     mockMatchMedia(false);
     render(<HeroPreviewCarousel />);
-    const button = screen
-      .getAllByText("Confirm payment received")[0]
-      .closest(".overflow-hidden");
-    expect(button?.classList.contains("min-h-12")).toBe(true);
-    expect(button?.classList.contains("h-12")).toBe(false);
+    const buttons = screen
+      .getAllByRole("button", { hidden: true })
+      .filter((b) => !/^Show sample/.test(b.getAttribute("aria-label") ?? ""));
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons)
+      expect(button.closest("[inert]")).not.toBeNull();
+  });
+
+  it("sizes the card to the hero text column and shrinks tickets at desktop", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    expect(container.firstElementChild).toHaveClass(
+      "min-[960px]:absolute",
+      "min-[960px]:inset-0",
+    );
+    expect(container.querySelector("[inert]")).toHaveClass(
+      "min-[960px]:[zoom:var(--hero-zoom,0.8)]",
+    );
+  });
+
+  it("keeps tickets invisible and unaged until their board is seeded", () => {
+    mockMatchMedia(false);
+    const html = renderToString(<HeroPreviewCarousel />);
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const grids = doc.querySelectorAll("[inert]");
+    expect(grids).toHaveLength(LANDING_BOARDS.length);
+    for (const grid of Array.from(grids)) {
+      expect(grid.classList.contains("invisible")).toBe(true);
+      expect(grid.textContent).not.toMatch(/\d{5}/);
+    }
+  });
+
+  it("shows tickets once seeded", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    for (const grid of Array.from(container.querySelectorAll("[inert]")))
+      expect(grid.classList.contains("invisible")).toBe(false);
+  });
+
+  it("shows only active tickets and a true active count per board", () => {
+    mockMatchMedia(false);
+    render(<HeroPreviewCarousel />);
+    expect(screen.queryByText("Completed")).toBeNull();
+    expect(screen.getAllByText(/^\d+ active$/)).toHaveLength(
+      LANDING_BOARDS.length,
+    );
   });
 
   it("draws the booth box plain and top-aligns every slide", () => {
@@ -76,15 +141,6 @@ describe("HeroPreviewCarousel", () => {
       expect(slide.classList.contains("justify-start")).toBe(true);
       expect(slide.classList.contains("justify-center")).toBe(false);
     }
-  });
-
-  it("gives a closed ticket no footer and aligns it to the start", () => {
-    mockMatchMedia(false);
-    const { container } = render(<HeroPreviewCarousel />);
-    const closed = container.querySelector(".self-start");
-    expect(closed).not.toBeNull();
-    expect(closed?.textContent).toContain("Jun");
-    expect(closed?.querySelector(".h-10")).toBeNull();
   });
 
   it("advances one board after 7 seconds", () => {
@@ -165,5 +221,104 @@ describe("HeroPreviewCarousel", () => {
     expect(screen.getAllByRole("group")).toHaveLength(LANDING_BOARDS.length);
     for (const board of LANDING_BOARDS)
       expect(screen.getByText(board.lead)).toBeInTheDocument();
+  });
+});
+
+describe("ready ticket drain bar", () => {
+  it("runs for what fits one board view, so it visibly empties", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    const bars = container.querySelectorAll<HTMLElement>(".autoclear-bar");
+    expect(bars.length).toBeGreaterThan(0);
+    for (const bar of Array.from(bars)) {
+      const ms = Number.parseFloat(bar.style.animationDuration);
+      expect(ms).toBeGreaterThan(6000);
+      expect(ms).toBeLessThanOrEqual(7000);
+    }
+  });
+});
+
+describe("rush board tone jump", () => {
+  const rushIndex = LANDING_BOARDS.findIndex((b) => b.key === "rush");
+
+  function rushTickets(container: HTMLElement) {
+    const grid = container.querySelectorAll("[inert]")[rushIndex];
+    return {
+      grid,
+      overdue: grid.querySelectorAll(".ticket-overdue"),
+      aging: grid.querySelectorAll(".ticket-aging"),
+    };
+  }
+
+  function showRush() {
+    const dots = screen.getAllByRole("button", { name: /^Show sample/ });
+    fireEvent.click(dots[rushIndex]);
+  }
+
+  it("starts with Lim aging and Aisha fresh, then flips both halfway", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    let t = rushTickets(container);
+    expect(t.overdue).toHaveLength(0);
+    expect(t.aging).toHaveLength(1);
+    wait(3500);
+    t = rushTickets(container);
+    expect(t.overdue).toHaveLength(1);
+    expect(t.aging).toHaveLength(1);
+  });
+
+  it("shows the final state at once with reduced motion", () => {
+    mockMatchMedia(true);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    const t = rushTickets(container);
+    expect(t.overdue).toHaveLength(1);
+    expect(t.aging).toHaveLength(1);
+  });
+
+  it("remounts the cards on re-seed", () => {
+    mockMatchMedia(false);
+    const { container } = render(<HeroPreviewCarousel />);
+    showRush();
+    const before = rushTickets(container).grid;
+    wait(3500);
+    expect(rushTickets(container).grid).not.toBe(before);
+  });
+});
+
+const B = { max: 0.8, min: 0.6 };
+
+describe("fitScale", () => {
+  it("keeps the max when the content already fits", () => {
+    expect(fitScale(600, 150, 300, B)).toBeCloseTo(0.8);
+  });
+
+  it("shrinks until the grid plus the fixed parts fit", () => {
+    expect(fitScale(450, 150, 500, B)).toBeCloseTo(0.6);
+    expect(fitScale(470, 150, 500, B)).toBeCloseTo(0.64);
+  });
+
+  it("never goes below the floor", () => {
+    expect(fitScale(200, 150, 500, B)).toBeCloseTo(0.6);
+  });
+
+  it("falls back to the max when nothing is measurable", () => {
+    expect(fitScale(0, 0, 0, B)).toBeCloseTo(0.8);
+    expect(fitScale(500, 100, 0, B)).toBeCloseTo(0.8);
+  });
+});
+
+describe("shortfall", () => {
+  it("is zero when the slide fits at the minimum zoom", () => {
+    expect(shortfall(450, 150, 500, 0.6)).toBe(0);
+    expect(shortfall(600, 150, 500, 0.6)).toBe(0);
+  });
+  it("is the missing height when even the minimum zoom overflows", () => {
+    expect(shortfall(440, 150, 500, 0.6)).toBeCloseTo(10);
+  });
+  it("is zero for unmeasurable input", () => {
+    expect(shortfall(0, 0, 0, 0.6)).toBe(0);
+    expect(shortfall(Number.NaN, 10, 100, 0.6)).toBe(0);
   });
 });

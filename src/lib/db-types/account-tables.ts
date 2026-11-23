@@ -1,8 +1,38 @@
-// Row/Insert/Update shapes for the vendor, admin, billing and feedback tables.
+// Row/Insert/Update shapes for the vendor, admin, billing feedback and help_feedback tables.
 import type { Tier } from "@/lib/plan";
 import type { BoardSettings, Json, ToursSeen } from "@/lib/types";
 
 export type AccountTables = {
+  help_feedback: {
+    Row: {
+      id: string;
+      vendor_id: string;
+      article_slug: string;
+      helpful: boolean;
+      comment: string | null;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: string;
+      vendor_id?: string;
+      article_slug: string;
+      helpful: boolean;
+      comment?: string | null;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: string;
+      vendor_id?: string;
+      article_slug?: string;
+      helpful?: boolean;
+      comment?: string | null;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Relationships: [];
+  };
   vendors: {
     Row: {
       id: string;
