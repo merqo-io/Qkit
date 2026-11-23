@@ -12,6 +12,9 @@ ALTER TABLE qkit.vendors
 -- falling back to the vendor's oldest booth. The logo is the profile picture
 -- and only an https URL is passed on, so a crafted avatar value can never reach
 -- the landing page as a script or data URL. No ids or emails leave the function.
+-- display_name and avatar_url stay vendor-editable after an admin toggles the
+-- vendor on, so the toggle is the only review step; the name is capped at 80
+-- characters so an edit cannot publish an unbounded string.
 CREATE OR REPLACE FUNCTION qkit.get_showcase_vendors()
 RETURNS TABLE (name text, logo_url text)
 LANGUAGE sql
@@ -19,7 +22,7 @@ SECURITY DEFINER
 STABLE
 SET search_path = ''
 AS $$
-  SELECT s.name, s.logo_url
+  SELECT left(s.name, 80) AS name, s.logo_url
   FROM (
     SELECT
       COALESCE(
@@ -42,7 +45,7 @@ AS $$
     WHERE v.showcase_on_landing
   ) s
   WHERE s.name IS NOT NULL
-  ORDER BY s.name;
+  ORDER BY left(s.name, 80);
 $$;
 
 REVOKE EXECUTE ON FUNCTION qkit.get_showcase_vendors() FROM PUBLIC;
