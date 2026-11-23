@@ -130,10 +130,10 @@ export type PendingUndo = {
 };
 
 /** Dispatch a pending undo to the server action that made the original change. */
-// The payment buttons carry the longest labels on the ticket ("Confirm payment
-// received" plus the amount). On a narrow card, three across on a tablet, one
-// line of that overflowed the button, so these wrap and grow instead: a
-// minimum of the usual height, never a fixed one.
+// The payment buttons carry the longest labels on the ticket (the payment
+// label plus the amount, or "Mark paid & start"). On a narrow card, three
+// across on a tablet, one line of that overflowed the button, so these wrap
+// and grow instead: a minimum of the usual height, never a fixed one.
 const PAYMENT_BUTTON =
   "h-auto min-h-12 w-full rounded-lg bg-status-payment-claimed py-2 text-left text-base leading-tight font-bold whitespace-normal text-white hover:bg-status-payment-claimed/90";
 
@@ -326,7 +326,7 @@ export function TicketActions({
               onClick={onConfirmPayment}
               disabled={updating}
             >
-              <Banknote className="size-5" /> Confirm payment received
+              <Banknote className="size-5" /> Mark paid
               <AmountDue amount={amountDue} />
             </Button>
           </div>
@@ -341,7 +341,7 @@ export function TicketActions({
               onClick={onConfirmPayment}
               disabled={updating}
             >
-              Mark as paid
+              Mark paid
               <AmountDue amount={amountDue} />
             </Button>
           </div>
