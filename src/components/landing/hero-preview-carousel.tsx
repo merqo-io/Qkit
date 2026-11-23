@@ -40,6 +40,20 @@ export function fitScale(
 }
 
 /**
+ * Height a slide lacks when even the `min` zoom cannot fit it in `available`;
+ * zero when it fits. The card grows by this instead of clipping a caption.
+ */
+export function shortfall(
+  available: number,
+  fixed: number,
+  grid: number,
+  min: number,
+): number {
+  if (grid <= 0 || Number.isNaN(grid + available + fixed)) return 0;
+  return Math.max(0, fixed + grid * min - available);
+}
+
+/**
  * The hero's sample boards: native scroll-snap for fingers and trackpads, mouse
  * click-drag on top, and one countdown that moves to the next board. Any touch
  * of the carousel restarts the whole countdown, so a visitor reading a board is
@@ -55,6 +69,7 @@ export function fitScale(
  */
 export function HeroPreviewCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
   const index = useRef(0);
   const paused = useRef(false);
   const reduced = usePrefersReducedMotion();
@@ -73,28 +88,45 @@ export function HeroPreviewCarousel() {
   // One zoom for every board so tickets match across slides. Measured at zoom 1
   // (the only unambiguous reading under CSS zoom), then the variable is set
   // before paint. Below 960px the grid is not zoomed and the card is natural height.
+  // The card is absolute, so it adds no height to its grid cell; when even
+  // ZOOM_MIN cannot fit the tallest slide, the in-flow parent (the cell) gets a
+  // min-height of the card plus the shortfall so the row grows rather than
+  // clipping a caption. The parent's min-height is cleared before measuring so
+  // the reading is always the text column's height; the final value is the same
+  // on every pass, so the ResizeObserver settles instead of oscillating.
   const fit = useCallback(() => {
     const track = trackRef.current;
+    const region = regionRef.current;
+    const cell = region?.parentElement;
     if (!track) return;
+    if (cell) cell.style.minHeight = "";
     if (!window.matchMedia?.("(min-width: 960px)").matches) {
       track.style.removeProperty("--hero-zoom");
       return;
     }
     track.style.setProperty("--hero-zoom", "1");
     let scale = ZOOM_MAX;
+    let lacking = 0;
     for (const slide of Array.from(track.children) as HTMLElement[]) {
       const grid = slide.querySelector<HTMLElement>("[data-hero-grid]");
       if (!grid) continue;
       const gridH = grid.offsetHeight;
+      const fixed = slide.scrollHeight - gridH;
       scale = Math.min(
         scale,
-        fitScale(track.clientHeight, slide.scrollHeight - gridH, gridH, {
+        fitScale(track.clientHeight, fixed, gridH, {
           max: ZOOM_MAX,
           min: ZOOM_MIN,
         }),
       );
+      lacking = Math.max(
+        lacking,
+        shortfall(track.clientHeight, fixed, gridH, ZOOM_MIN),
+      );
     }
     track.style.setProperty("--hero-zoom", String(scale));
+    if (cell && region && lacking > 0)
+      cell.style.minHeight = `${Math.ceil(region.offsetHeight + lacking)}px`;
   }, []);
 
   useEffect(() => {
@@ -222,6 +254,7 @@ export function HeroPreviewCarousel() {
 
   return (
     <div
+      ref={regionRef}
       role="region"
       aria-roledescription="carousel"
       aria-label="Sample order boards"
