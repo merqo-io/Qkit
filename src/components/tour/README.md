@@ -32,7 +32,7 @@ The dashboard's guided tours: qkit's wiring of `@merqo/ui`'s
   description), kept free of any `driver.js` import so it's unit-testable,
   one function per dashboard tour (see `dashboard-tour.tsx`'s `TOURS`
   registry): `ordersTourSteps(isMobile)` covers the full order lifecycle
-  (accept/mark ready/mark picked up/confirm payment), bump and auto-clear,
+  (accept/mark ready/mark picked up/mark paid), bump and auto-clear,
   and walk-up ("New order") orders — not just navigation landmarks; desktop
   spotlights each nav landmark too, mobile spotlights the collapsed hamburger
   menu instead. Its first step's "example order" preview renders the real
