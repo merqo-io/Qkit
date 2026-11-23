@@ -37,7 +37,7 @@ describe("ordersTourSteps", () => {
       expect(steps[0].description).toMatch(/Start now/);
       expect(steps[0].description).toMatch(/Mark Ready/);
       expect(steps[0].description).toMatch(/Mark Picked Up/);
-      expect(steps[0].description).toMatch(/Confirm payment received/);
+      expect(steps[0].description).toMatch(/Mark paid/);
       expect(steps[1].description).toMatch(/bump/i);
       expect(steps[1].description).toMatch(/auto-completes/i);
       expect(steps[2].element).toBe('[data-tour="new-order"]');

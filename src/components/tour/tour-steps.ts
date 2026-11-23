@@ -28,7 +28,7 @@ const DESKTOP: TourStep[] = [
     element: sel("order-board"),
     title: "Your live order board",
     description:
-      "Orders land here the moment a customer taps Order, no refresh needed. Tap Start now to accept one, Mark Ready when it's done, and Mark Picked Up once they collect it. If a customer pays you first, confirm it with Confirm payment received." +
+      "Orders land here the moment a customer taps Order, no refresh needed. Tap Start now to accept one, Mark Ready when it's done, and Mark Picked Up once they collect it. If a customer pays you first, confirm it with Mark paid." +
       `<div class="tour-example"><div class="tour-example-label">Example order</div><div class="tour-example-row" style="margin-top:0.35rem"><strong>No. 118 &middot; Oat Flat White &times;2</strong>${examplePreparingBadge}</div></div>`,
   },
   {

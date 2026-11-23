@@ -35,7 +35,7 @@ type Result = ActionResult<{
  * when there is nothing to collect (the booth takes no payment, the order is
  * free, or staff already marked it paid). Runs after the order exists, so it
  * never throws and never fails the placement: a miss here only means the
- * dialog skips its payment step and the ticket keeps its own "Mark as paid".
+ * dialog skips its payment step and the ticket keeps its own "Mark paid".
  */
 async function pendingPayment(
   supabase: Awaited<ReturnType<typeof createServerClient>>,

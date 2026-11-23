@@ -85,6 +85,10 @@ export type DbFunctions = {
     };
     Returns: boolean;
   };
+  get_showcase_vendors: {
+    Args: Record<string, never>;
+    Returns: { name: string; logo_url: string | null }[];
+  };
   gen_short_code: {
     Args: Record<string, never>;
     Returns: string;

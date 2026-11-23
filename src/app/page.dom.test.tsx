@@ -11,6 +11,9 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: { getUser },
   }),
 }));
+vi.mock("@/lib/landing/showcase", () => ({
+  getShowcaseVendors: async () => [],
+}));
 vi.mock("@/lib/landing-nav-user", () => ({
   getLandingNavUser: async (user: { id: string } | null) =>
     user ? { name: "Kopi Corner" } : null,
@@ -90,7 +93,7 @@ describe("public landing page", () => {
   it("shows the hero, the story section and the closing call with exactly three FAQ rows", async () => {
     const { container } = render(await LandingPage());
     for (const name of [
-      "Booth ordering, minus the queue.",
+      "Take orders, not queues.",
       "What your customer sees. What you see.",
       "Put your menu on it.",
     ])
@@ -148,10 +151,9 @@ describe("public landing page", () => {
   });
   it("makes no readiness, other-kit or company claims", async () => {
     const { container } = render(await LandingPage());
-    const text = (container.textContent ?? "").replace(
-      "Now picture your menu on it.",
-      "",
-    );
+    const text = (container.textContent ?? "")
+      .replace("Now picture your menu on it.", "")
+      .replace("one live board", "");
     expect(text).not.toMatch(
       /\b(live|now|available today|proven|shopkit|reachkit|Pte|GST)\b/i,
     );

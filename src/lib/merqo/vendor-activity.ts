@@ -15,6 +15,7 @@ export type VendorActivity = {
   status: VendorStatus | null;
   metrics: VendorActivityMetric[];
   lastActivityAt: string | null;
+  firstOrderAt?: string | null;
 };
 
 export type VAVendor = { id: string; paid: boolean; created_at: string };
@@ -67,6 +68,12 @@ export function computeVendorActivity(
     (o) => o.status !== "cancelled" && Date.parse(o.created_at) >= cutoff30d,
   );
   const revenue30dCents = orders30d.reduce((sum, o) => sum + o.total_cents, 0);
+  let firstOrderMs = Infinity;
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    const t = Date.parse(o.created_at);
+    if (t < firstOrderMs) firstOrderMs = t;
+  }
   const activeBooths = booths.filter((b) => b.is_active).length;
 
   return {
@@ -79,5 +86,7 @@ export function computeVendorActivity(
       { label: "Booths", value: `${activeBooths}/${booths.length}` },
     ],
     lastActivityAt: health.lastOrderAt,
+    firstOrderAt:
+      firstOrderMs === Infinity ? null : new Date(firstOrderMs).toISOString(),
   };
 }
