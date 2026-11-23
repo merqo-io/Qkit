@@ -81,5 +81,14 @@ reset role;
 select is(jsonb_array_length(modifier_groups), 1, 'vendor B cannot update vendor A modifier_groups')
   from qkit.booths where id = '51000000-0000-0000-0000-0000000000b1';
 
+select ok(has_column_privilege('authenticated','qkit.booths','modifier_groups','UPDATE'),
+  'authenticated can update modifier_groups');
+select ok(has_column_privilege('authenticated','qkit.booths','menu_revision','UPDATE'),
+  'authenticated can update menu_revision');
+select ok(not has_column_privilege('anon','qkit.booths','modifier_groups','UPDATE'),
+  'anon cannot update modifier_groups');
+select ok(not has_column_privilege('anon','qkit.booths','modifier_groups','SELECT'),
+  'anon cannot read modifier_groups');
+
 select * from finish();
 rollback;

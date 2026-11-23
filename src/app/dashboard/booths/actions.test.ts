@@ -83,6 +83,7 @@ const h = vi.hoisted(() => {
     loadEntitlementMock: vi.fn(),
     insertSpy: vi.fn(),
     updateSpy: vi.fn(),
+    updateEqSpy: vi.fn(),
     deleteSpy: vi.fn(),
     neqSpy: vi.fn(),
     removeSpy: vi.fn(),
@@ -135,13 +136,16 @@ vi.mock("@/lib/supabase/server", () => {
         },
         update: (row: unknown) => {
           h.updateSpy(row);
-          return {
-            eq: () => ({
-              select: () => ({
-                maybeSingle: () => Promise.resolve(h.state.updateResult),
-              }),
+          const chain = {
+            eq: (col: string, val: unknown) => {
+              h.updateEqSpy(col, val);
+              return chain;
+            },
+            select: () => ({
+              maybeSingle: () => Promise.resolve(h.state.updateResult),
             }),
           };
+          return chain;
         },
         delete: (opts: unknown) => {
           h.deleteSpy(opts);
@@ -203,6 +207,8 @@ beforeEach(() => {
     .mockResolvedValue({ user: { id: "v1" }, entitlement: ENTITLEMENTS.free });
   h.insertSpy.mockReset();
   h.updateSpy.mockReset();
+  h.updateEqSpy.mockReset();
+  h.state.updateResult = { data: { id: "b-edit" }, error: null };
   h.deleteSpy.mockReset();
   h.neqSpy.mockReset();
   h.removeSpy.mockReset();
@@ -429,7 +435,7 @@ describe("saveMenuItems", () => {
   });
 
   it("returns an error when the update matches no row", async () => {
-    h.state.updateResult = { data: null, error: null };
+    h.state.updateResult = { data: null, error: { message: "boom" } };
     const res = await saveMenuItems(BOOTH_ID, [makeItem()]);
     expect(res).toEqual({ success: false, error: "Could not save menu" });
   });
@@ -464,6 +470,37 @@ describe("saveMenuItems linked modifier groups", () => {
     ]);
   });
 
+  it("fails instead of unlinking copies when the stored library is unreadable", async () => {
+    h.state.prevResult = {
+      data: { menu_items: [], modifier_groups: [{ nonsense: true }] },
+    };
+    const res = await saveMenuItems(BOOTH_ID, [
+      makeItem({ option_groups: [staleCopy] }),
+    ]);
+    expect(res.success).toBe(false);
+    expect(h.updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("is guarded by the revision it read and bumps it", async () => {
+    h.state.prevResult = {
+      data: { menu_items: [], modifier_groups: [], menu_revision: 3 },
+    };
+    await saveMenuItems(BOOTH_ID, [makeItem()]);
+    expect(h.updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ menu_revision: 4 }),
+    );
+    expect(h.updateEqSpy).toHaveBeenCalledWith("menu_revision", 3);
+  });
+
+  it("asks the vendor to reload when another save won the race", async () => {
+    h.state.prevResult = {
+      data: { menu_items: [], modifier_groups: [], menu_revision: 3 },
+    };
+    h.state.updateResult = { data: null, error: null };
+    const res = await saveMenuItems(BOOTH_ID, [makeItem()]);
+    expect(res).toMatchObject({ error: expect.stringContaining("Reload") });
+  });
+
   it("keeps a copy but drops an unknown shared_id", async () => {
     h.state.prevResult = { data: { menu_items: [], modifier_groups: [] } };
     await saveMenuItems(BOOTH_ID, [makeItem({ option_groups: [staleCopy] })]);
@@ -477,7 +514,9 @@ describe("saveMenuItems linked modifier groups", () => {
 describe("saveModifierGroups", () => {
   const storedItem = makeItem({ option_groups: [staleCopy] });
   beforeEach(() => {
-    h.state.prevResult = { data: { menu_items: [storedItem] } };
+    h.state.prevResult = {
+      data: { menu_items: [storedItem], menu_revision: 7 },
+    };
   });
 
   it("rejects an invalid booth id", async () => {
@@ -502,6 +541,7 @@ describe("saveModifierGroups", () => {
     expect(h.updateSpy).toHaveBeenCalledTimes(1);
     expect(h.updateSpy).toHaveBeenCalledWith({
       modifier_groups: [edited],
+      menu_revision: 8,
       menu_items: [
         {
           ...storedItem,
@@ -509,6 +549,7 @@ describe("saveModifierGroups", () => {
         },
       ],
     });
+    expect(h.updateEqSpy).toHaveBeenCalledWith("menu_revision", 7);
   });
 
   it("fails when a renamed library group collides with another group on an item", async () => {
@@ -546,6 +587,34 @@ describe("saveModifierGroups", () => {
       error: "Your plan allows up to 3 customization groups per item.",
     });
     expect(h.updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps unrelated stored fields untouched", async () => {
+    const legacy = {
+      id: "i1",
+      name: "Legacy",
+      stock: 4,
+      legacy_flag: true,
+      option_groups: [staleCopy],
+    };
+    h.state.prevResult = { data: { menu_items: [legacy], menu_revision: 7 } };
+    await saveModifierGroups(BOOTH_ID, [LIB_GROUP]);
+    const row = h.updateSpy.mock.calls[0]![0] as {
+      menu_items: Array<Record<string, unknown>>;
+    };
+    expect(row.menu_items[0]).toMatchObject({
+      name: "Legacy",
+      stock: 4,
+      legacy_flag: true,
+    });
+    expect(row.menu_items[0]).not.toHaveProperty("available");
+  });
+
+  it("asks the vendor to reload when another save won the race", async () => {
+    h.state.updateResult = { data: null, error: null };
+    const res = await saveModifierGroups(BOOTH_ID, [LIB_GROUP]);
+    expect(res.success).toBe(false);
+    expect(res).toMatchObject({ error: expect.stringContaining("Reload") });
   });
 
   it("returns 'Booth not found' for a foreign booth", async () => {

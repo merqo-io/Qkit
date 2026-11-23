@@ -11,7 +11,7 @@ import {
   menuCategoriesSchema,
   menuItemsInputSchema,
   modifierGroupsSchema,
-  parseModifierGroups,
+  optionGroupSchema,
   uuidSchema,
   type BoothFormInput,
   type MenuItemFormInput,
@@ -88,6 +88,19 @@ async function syncPrintLocation(
   } catch (err) {
     console.error(`${context}: registerPrintLocation failed`, err);
   }
+}
+
+const RELOAD_ERROR =
+  "This menu changed in another tab or device. Reload the page and try again.";
+
+/**
+ * The stored library, or null when it is non-empty but unreadable: falling
+ * back to [] would make the next save unlink every linked copy.
+ */
+function parseStoredLibrary(raw: unknown): OptionGroup[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const parsed = modifierGroupsSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -495,27 +508,28 @@ export async function saveMenuItems(
   // RLS scopes this to the vendor's own booths; a foreign id reads null.
   const { data: prev } = await supabase
     .from("booths")
-    .select("menu_items, modifier_groups")
+    .select("menu_items, modifier_groups, menu_revision")
     .eq("id", boothId)
     .maybeSingle();
   if (!prev) return fail("Booth not found");
 
   // Linked copies are re-expanded from the stored library so a stale client
   // can never write a copy that disagrees with it.
-  const menu_items = expandLinkedGroups(
-    stripped,
-    parseModifierGroups(prev.modifier_groups),
-  );
+  const library = parseStoredLibrary(prev.modifier_groups);
+  if (!library) return fail("Could not read modifier groups. Reload and retry");
+  const menu_items = expandLinkedGroups(stripped, library);
   if (hasDuplicateGroupLabels(menu_items))
     return fail("An item has two customization groups with the same name");
 
   const { data: updated, error } = await supabase
     .from("booths")
-    .update({ menu_items })
+    .update({ menu_items, menu_revision: prev.menu_revision + 1 })
     .eq("id", boothId)
+    .eq("menu_revision", prev.menu_revision)
     .select("id")
     .maybeSingle();
-  if (error || !updated) return fail("Could not save menu");
+  if (error) return fail("Could not save menu");
+  if (!updated) return fail(RELOAD_ERROR);
 
   await removeBoothImages(
     supabase,
@@ -524,6 +538,22 @@ export async function saveMenuItems(
   );
   after(() => sweepUnsavedUploads(supabase, user));
   return ok();
+}
+
+type RawItem = { option_groups?: OptionGroup[] };
+
+/** Rewrites only option_groups; every other field of a stored item is kept as is. */
+function expandRawItem(raw: unknown, library: OptionGroup[]): RawItem {
+  if (typeof raw !== "object" || raw === null) return raw as RawItem;
+  const groups = (raw as { option_groups?: unknown }).option_groups;
+  const parsedGroups = z.array(optionGroupSchema).safeParse(groups);
+  if (!parsedGroups.success || !parsedGroups.data.some((g) => g.shared_id))
+    return raw as RawItem;
+  const [expanded] = expandLinkedGroups(
+    [{ option_groups: parsedGroups.data }],
+    library,
+  );
+  return { ...raw, option_groups: expanded?.option_groups };
 }
 
 /**
@@ -545,15 +575,15 @@ export async function saveModifierGroups(
   const supabase = await createServerClient();
   const { data: prev } = await supabase
     .from("booths")
-    .select("menu_items")
+    .select("menu_items, menu_revision")
     .eq("id", boothId)
     .maybeSingle();
   if (!prev) return fail("Booth not found");
+  if (!Array.isArray(prev.menu_items)) return fail("Could not read the menu");
 
-  const stored = menuItemsInputSchema.safeParse(prev.menu_items);
-  if (!stored.success) return fail("Fix the menu before editing groups");
-
-  const menu_items = expandLinkedGroups(stored.data, parsed.data);
+  const menu_items = prev.menu_items.map((raw) =>
+    expandRawItem(raw, parsed.data),
+  );
   if (hasDuplicateGroupLabels(menu_items))
     return fail("An item has two customization groups with the same name");
   const menuCapError = validateMenuCaps(menu_items, entitlement);
@@ -561,11 +591,17 @@ export async function saveModifierGroups(
 
   const { data: updated, error } = await supabase
     .from("booths")
-    .update({ menu_items, modifier_groups: parsed.data })
+    .update({
+      menu_items,
+      modifier_groups: parsed.data,
+      menu_revision: prev.menu_revision + 1,
+    })
     .eq("id", boothId)
+    .eq("menu_revision", prev.menu_revision)
     .select("id")
     .maybeSingle();
-  if (error || !updated) return fail("Could not save modifier groups");
+  if (error) return fail("Could not save modifier groups");
+  if (!updated) return fail(RELOAD_ERROR);
   return ok();
 }
 

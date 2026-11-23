@@ -28,9 +28,17 @@
 --     FROM jsonb_array_elements(menu_items) WITH ORDINALITY AS m(mi, ord)
 --   ), '[]'::jsonb) WHERE jsonb_typeof(menu_items) = 'array';
 --   DROP FUNCTION qkit.backfill_modifier_groups();
---   ALTER TABLE qkit.booths DROP COLUMN modifier_groups;
+--   REVOKE UPDATE (modifier_groups, menu_revision) ON qkit.booths FROM authenticated;
+--   ALTER TABLE qkit.booths DROP COLUMN modifier_groups, DROP COLUMN menu_revision;
+-- menu_revision is bumped by every menu_items / modifier_groups write so two
+-- concurrent saves cannot silently overwrite each other (compare-and-set).
 ALTER TABLE qkit.booths
-  ADD COLUMN modifier_groups jsonb NOT NULL DEFAULT '[]'::jsonb;
+  ADD COLUMN modifier_groups jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN menu_revision bigint NOT NULL DEFAULT 0;
+
+-- 0091 limits UPDATE on booths to a column allowlist; new columns do not
+-- inherit it. Nothing is granted to anon.
+GRANT UPDATE (modifier_groups, menu_revision) ON qkit.booths TO authenticated;
 
 -- Kept as a function (not a one-off DO block) so the pgTAP file can rerun the
 -- backfill on fixtures; nobody but the owner can execute it.
@@ -54,14 +62,14 @@ BEGIN
     SELECT m.ord AS item_ord, g.ord AS group_ord, g.og AS og,
       jsonb_build_object(
         'label', g.og->>'label',
-        'multiple', COALESCE((g.og->>'multiple')::boolean, false),
+        'multiple', COALESCE(g.og->'multiple', 'false'::jsonb),
         'choices', COALESCE((
           SELECT jsonb_agg(jsonb_build_object(
             'label', c.ch->>'label',
-            'price', COALESCE((c.ch->>'price_delta_cents')::int, 0),
-            'cost', COALESCE((c.ch->>'cost_delta_cents')::int, 0),
+            'price', COALESCE(c.ch->'price_delta_cents', '0'::jsonb),
+            'cost', COALESCE(c.ch->'cost_delta_cents', '0'::jsonb),
             'allergens', COALESCE(c.ch->'allergens', '[]'::jsonb),
-            'code', COALESCE(c.ch->>'code', '')
+            'code', COALESCE(c.ch->'code', '""'::jsonb)
           ) ORDER BY c.cord)
           FROM jsonb_array_elements(g.og->'choices') WITH ORDINALITY AS c(ch, cord)
         ), '[]'::jsonb)

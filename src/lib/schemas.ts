@@ -95,7 +95,7 @@ const optionChoiceSchema = z.object({
   code: z.string().trim().max(OPTION_CODE_MAX).optional(),
 });
 
-const optionGroupSchema = z.object({
+export const optionGroupSchema = z.object({
   id: z.string(),
   label: z.string(),
   // false/undefined = single-select; true = multi-select (checkbox).
