@@ -112,9 +112,10 @@ options)`, persists it on every change (`saveCart`), enforces per-item
   "New order" and links to `/order/{boothId}/pay?t=…`, which sends a numbered
   order on to its status page and says when an unpaid one has expired.
 - `menu-item-card.tsx` — `MenuItemCard`: one item on the customer's menu
-  (photo, name, price, allergens, stock note) with "Add" then a stepper for a
-  plain item, or the customizer button and an "N in your order" line for an
-  item with options. Moved out of `order-form.tsx`, which now passes it the
+  (photo only when the item has one, name, price, allergens, stock note) with
+  "Add" then a stepper for a plain item, or the customizer button and an "N in
+  your order" line for an item with at least one option group that has a
+  choice (`itemHasChoices`); empty groups count as plain. Moved out of `order-form.tsx`, which now passes it the
   item's basket and stock state.
 - `allergen-badges.tsx` — `AllergenBadges({ tags })`: icon-only allergen row
   for a menu card (2026-09-01) — one `InfoTooltip` (`@merqo/ui`, `trigger="tap"`

@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The order page shows "Customize" only on items that have something to choose; items with empty option groups get a plain "Add". Items without a photo already render as clean text rows.
+
 ### Added
 
 - The live board now has three columns, Incoming, Preparing and Ready, instead of Incoming and Accepted, so orders waiting for pickup no longer hide among those still being made. Phones and tablets switch between the three with counts; each column has its own empty state.
