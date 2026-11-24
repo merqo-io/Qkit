@@ -31,12 +31,17 @@ function byOrderNumber(number: string) {
 const PREPARING_TILE_OPTS = { selector: '[class*="size-24"]' };
 const READY_TILE_OPTS = { selector: '[class*="size-32"]' };
 
-function renderDisplay(initialOrders: QueueDisplayOrder[]) {
+function renderDisplay(
+  initialOrders: QueueDisplayOrder[],
+  acceptingOrders = true,
+) {
   return render(
     <QueueDisplay
       boothId="b1"
       boothName="Kopi Cart"
       initialOrders={initialOrders}
+      code="abc123"
+      acceptingOrders={acceptingOrders}
     />,
   );
 }
@@ -58,6 +63,24 @@ beforeEach(() => {
 });
 
 describe("QueueDisplay", () => {
+  it("shows the Scan to order label and a QR for an open booth", () => {
+    renderDisplay([PREPARING]);
+
+    expect(screen.getByText("Scan to order")).toBeInTheDocument();
+    expect(screen.getByTitle("Ordering QR code")).toBeInTheDocument();
+    expect(screen.getByText("Preparing")).toBeInTheDocument();
+    expect(screen.getByText("Ready for pickup")).toBeInTheDocument();
+  });
+
+  it("hides the QR and shows a closed note when not taking orders", () => {
+    renderDisplay([], false);
+
+    expect(screen.queryByTitle("Ordering QR code")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Ordering is closed right now"),
+    ).toBeInTheDocument();
+  });
+
   it("groups orders into Preparing and Ready for pickup", () => {
     renderDisplay([PREPARING, READY]);
 

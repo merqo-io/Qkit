@@ -1,9 +1,11 @@
 "use client";
 
 import { cn } from "@merqo/ui/primitives";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import QRCode from "react-qr-code";
 import { Volume2 } from "lucide-react";
 
+import { orderPath } from "@/lib/booth/code";
 import { splitTrailingDigit } from "@/lib/orders";
 import { usePolling } from "@/hooks/use-polling";
 import { ScreenSizeControl } from "@/components/widgets/screen-size-control";
@@ -35,6 +37,8 @@ interface Props {
   boothId: string;
   boothName: string;
   initialOrders: QueueDisplayOrder[];
+  code: string;
+  acceptingOrders: boolean;
 }
 
 /**
@@ -50,7 +54,20 @@ interface Props {
  * vendor has tapped "Enable sound" (Web Audio needs a user gesture to unlock
  * — see ./README.md).
  */
-export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
+export function QueueDisplay({
+  boothId,
+  boothName,
+  initialOrders,
+  code,
+  acceptingOrders,
+}: Props) {
+  // The origin only exists on the client; the server snapshot keeps hydration stable.
+  const origin = useSyncExternalStore(
+    () => () => {},
+    () => window.location.origin,
+    () => null,
+  );
+  const orderUrl = origin ? `${origin}${orderPath(code)}` : null;
   const [orders, setOrders] = useState(initialOrders);
   const [soundEnabled, setSoundEnabled] = useState(false);
   // When each currently-ready order first became ready. State, not a ref —
@@ -152,7 +169,7 @@ export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
 
       <div className="perforation my-6 shrink-0" />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-0 landscape:sm:grid-cols-[1fr_1fr_auto] portrait:sm:grid-rows-[minmax(0,1fr)_auto]">
         <section className="flex min-h-0 flex-col">
           <h2 className="mb-4 shrink-0 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Preparing
@@ -231,6 +248,35 @@ export function QueueDisplay({ boothId, boothName, initialOrders }: Props) {
             </>
           )}
         </section>
+
+        <aside
+          aria-label="Order from your phone"
+          className="flex shrink-0 flex-col items-center justify-center gap-3 text-center sm:col-span-2 landscape:sm:col-span-1 landscape:sm:border-l landscape:sm:border-dashed landscape:sm:border-border landscape:sm:pl-8"
+        >
+          <h2 className="text-lg font-semibold uppercase tracking-[0.18em] text-primary">
+            Scan to order
+          </h2>
+          {acceptingOrders ? (
+            <div className="rounded-2xl bg-white p-4">
+              {orderUrl ? (
+                <QRCode
+                  value={orderUrl}
+                  level="M"
+                  size={256}
+                  title="Ordering QR code"
+                  className="size-40 sm:size-48 2xl:size-64"
+                  style={{ height: "auto", width: undefined }}
+                />
+              ) : (
+                <div className="size-40 sm:size-48 2xl:size-64" />
+              )}
+            </div>
+          ) : (
+            <p className="max-w-48 rounded-2xl border border-dashed border-border px-4 py-6 text-muted-foreground">
+              Ordering is closed right now
+            </p>
+          )}
+        </aside>
       </div>
     </div>
   );

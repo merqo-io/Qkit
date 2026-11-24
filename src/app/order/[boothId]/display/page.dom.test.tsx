@@ -40,13 +40,18 @@ vi.mock("./queue-display", () => ({
     boothId,
     boothName,
     initialOrders,
+    code,
+    acceptingOrders,
   }: {
     boothId: string;
     boothName: string;
     initialOrders: unknown[];
+    code: string;
+    acceptingOrders: boolean;
   }) => (
     <div data-testid="queue-display">
-      {boothId} · {boothName} · {initialOrders.length}
+      {boothId} · {boothName} · {initialOrders.length} · {code} ·{" "}
+      {String(acceptingOrders)}
     </div>
   ),
 }));
@@ -61,7 +66,15 @@ beforeEach(() => {
   counterOpsMock.mockReset().mockResolvedValue(true);
 });
 
-function boothChain(data: { name: string; vendor_id: string } | null) {
+const OPEN_BOOTH = {
+  name: "Kopi Cart",
+  vendor_id: "v1",
+  short_code: "abc123",
+  is_active: true,
+  hours: null,
+};
+
+function boothChain(data: typeof OPEN_BOOTH | null) {
   return {
     select: () => ({
       eq: () => ({
@@ -91,9 +104,7 @@ describe("BoothQueueDisplayPage", () => {
   });
 
   it("renders the queue display for a real booth", async () => {
-    fromMock.mockReturnValue(
-      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
-    );
+    fromMock.mockReturnValue(boothChain(OPEN_BOOTH));
     getBoothQueueDisplay.mockResolvedValue([
       { orderNumber: "1", displayNumber: "001", status: "ready" },
     ]);
@@ -106,14 +117,24 @@ describe("BoothQueueDisplayPage", () => {
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(getBoothQueueDisplay).toHaveBeenCalledWith(BOOTH_ID);
     expect(screen.getByTestId("queue-display")).toHaveTextContent(
-      `${BOOTH_ID} · Kopi Cart · 1`,
+      `${BOOTH_ID} · Kopi Cart · 1 · abc123 · true`,
     );
   });
 
-  it("shows a plain notice, with no queue read, when the plan has no counter ops", async () => {
-    fromMock.mockReturnValue(
-      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
+  it("passes acceptingOrders false for a paused booth", async () => {
+    fromMock.mockReturnValue(boothChain({ ...OPEN_BOOTH, is_active: false }));
+
+    render(
+      await BoothQueueDisplayPage({
+        params: Promise.resolve({ boothId: BOOTH_ID }),
+      }),
     );
+
+    expect(screen.getByTestId("queue-display")).toHaveTextContent("false");
+  });
+
+  it("shows a plain notice, with no queue read, when the plan has no counter ops", async () => {
+    fromMock.mockReturnValue(boothChain(OPEN_BOOTH));
     counterOpsMock.mockResolvedValue(false);
 
     render(
@@ -128,9 +149,7 @@ describe("BoothQueueDisplayPage", () => {
   });
 
   it("degrades to an empty order list when the read fails", async () => {
-    fromMock.mockReturnValue(
-      boothChain({ name: "Kopi Cart", vendor_id: "v1" }),
-    );
+    fromMock.mockReturnValue(boothChain(OPEN_BOOTH));
     getBoothQueueDisplay.mockResolvedValue(null);
 
     const el = await BoothQueueDisplayPage({
