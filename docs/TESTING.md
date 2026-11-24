@@ -21,6 +21,11 @@ Picked Up, with the customer page and the TV screen following). Batch select,
    (auto-starts `pnpm dev`; `E2E_PORT` if 3000 is taken)
    `auth-guard.spec.ts` needs only a booting app; the order specs need the
    coffee-cart seed (the "Kopitiam Cart" booth).
+   `order-concurrency.spec.ts` needs only migrations plus the three Supabase
+   variables (no seed, no browser): it fires concurrent `place_order` RPCs at
+   fresh booths to prove unique numbers, idempotency and the daily cap hold.
+   It skips if the variables are unset or Supabase is unreachable. Run alone:
+   `pnpm test:e2e -- e2e/order-concurrency.spec.ts`.
 
 Mutation testing (Stryker) is scoped to `src/lib` — the pure business logic.
 Components/actions/supabase clients are excluded (I/O- or DOM-bound, low signal).

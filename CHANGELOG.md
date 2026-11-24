@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Tests: `e2e/order-concurrency.spec.ts` drives `place_order` with concurrent anon clients against local Supabase: a 20-order burst, repeated idempotency keys, the last cups under a daily cap, and same-name customers.
 - The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.
 - `GET /api/merqo/vendor-activity` now returns `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null), so merqo can start the free Pro trial at the first order. Additive; existing fields are unchanged.
 
