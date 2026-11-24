@@ -83,7 +83,7 @@ test.describe("place_order under concurrency", () => {
     vendorId = data.user.id;
     const vendor = await admin
       .from("vendors")
-      .insert({ id: vendorId, name: "Concurrency", plan: "pro" });
+      .insert({ id: vendorId, plan: "pro" });
     if (vendor.error) throw new Error(`vendor: ${vendor.error.message}`);
   });
 
