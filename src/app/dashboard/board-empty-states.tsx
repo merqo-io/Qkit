@@ -59,3 +59,11 @@ export function AllCaughtUp() {
 export function NoBoothsState({ loadError }: { loadError: boolean }) {
   return loadError ? <LoadErrorBanner /> : <NoBoothsTicket />;
 }
+
+export function EmptyColumn({ children }: { children: string }) {
+  return (
+    <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+      {children}
+    </p>
+  );
+}

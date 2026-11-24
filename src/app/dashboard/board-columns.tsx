@@ -9,6 +9,7 @@ import {
   type useBatchSelection,
 } from "./board-batch";
 import type { groupVisibleOrders } from "./board-derive";
+import { EmptyColumn } from "./board-empty-states";
 import {
   OrderSection,
   SectionSwitcher,
@@ -18,6 +19,7 @@ import {
 export interface BatchControls {
   selectMode: boolean;
   preparingIds: string[];
+  readyIds: string[];
   batchableIds: string[];
   startableIds: string[];
   advancing: boolean;
@@ -27,13 +29,12 @@ export interface BatchControls {
 }
 
 /**
- * The Accepted column's own controls: catch every order still being made up
- * to ready in one tap (pick-up stays one at a time, or through Select, since
- * customers collect one by one), and Select itself. Both step aside while
- * Select is on; its bar has the controls then.
+ * Preparing's controls: catch every order still being made up to ready in one
+ * tap, and Select. Both step aside while Select is on; its bar has the
+ * controls then.
  */
-function AcceptedAction({ batch }: { batch: BatchControls }) {
-  const { preparingIds, batchableIds, advancing, paymentById } = batch;
+function PreparingAction({ batch }: { batch: BatchControls }) {
+  const { preparingIds, advancing, paymentById } = batch;
   return (
     <div className="flex items-center gap-2">
       {preparingIds.length > 1 && (
@@ -48,7 +49,7 @@ function AcceptedAction({ batch }: { batch: BatchControls }) {
           Mark all {preparingIds.length} ready
         </Button>
       )}
-      {batchableIds.length > 0 && (
+      {preparingIds.length > 0 && (
         <SelectButton onStart={batch.onStartSelect} />
       )}
     </div>
@@ -73,54 +74,65 @@ function StartAllButton({ batch }: { batch: BatchControls }) {
 
 export function BoardColumns({
   incoming,
-  accepted,
+  preparing,
+  ready,
   phoneSection,
   onPhoneSectionChange,
   batch,
   renderCard,
 }: {
   incoming: BoardOrder[];
-  accepted: BoardOrder[];
+  preparing: BoardOrder[];
+  ready: BoardOrder[];
   phoneSection: PhoneSection;
   onPhoneSectionChange: (section: PhoneSection) => void;
   batch: BatchControls;
   renderCard: (order: BoardOrder) => ReactNode;
 }) {
+  const hide = (section: PhoneSection) => phoneSection !== section;
   return (
     <>
-      {incoming.length > 0 && accepted.length > 0 && (
-        <SectionSwitcher
-          value={phoneSection}
-          onChange={onPhoneSectionChange}
-          incomingCount={incoming.length}
-          acceptedCount={accepted.length}
+      <SectionSwitcher
+        value={phoneSection}
+        onChange={onPhoneSectionChange}
+        counts={{
+          incoming: incoming.length,
+          preparing: preparing.length,
+          ready: ready.length,
+        }}
+      />
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <OrderSection
+          label="Incoming"
+          orders={incoming}
+          hiddenOnPhone={hide("incoming")}
+          action={
+            batch.startableIds.length > 1 && <StartAllButton batch={batch} />
+          }
+          empty={<EmptyColumn>No new orders</EmptyColumn>}
+          renderCard={renderCard}
         />
-      )}
-      <div className="grid grid-cols-1 items-start gap-8 sm:grid-cols-2">
-        {incoming.length > 0 && (
-          <OrderSection
-            label="Incoming"
-            orders={incoming}
-            solo={accepted.length === 0}
-            showHeader
-            hiddenOnPhone={accepted.length > 0 && phoneSection !== "incoming"}
-            action={
-              batch.startableIds.length > 1 && <StartAllButton batch={batch} />
-            }
-            renderCard={renderCard}
-          />
-        )}
-        {accepted.length > 0 && (
-          <OrderSection
-            label="Accepted"
-            orders={accepted}
-            solo={incoming.length === 0}
-            showHeader
-            action={!batch.selectMode && <AcceptedAction batch={batch} />}
-            hiddenOnPhone={incoming.length > 0 && phoneSection !== "accepted"}
-            renderCard={renderCard}
-          />
-        )}
+        <OrderSection
+          label="Preparing"
+          orders={preparing}
+          hiddenOnPhone={hide("preparing")}
+          action={!batch.selectMode && <PreparingAction batch={batch} />}
+          empty={<EmptyColumn>Nothing being made</EmptyColumn>}
+          renderCard={renderCard}
+        />
+        <OrderSection
+          label="Ready"
+          orders={ready}
+          hiddenOnPhone={hide("ready")}
+          action={
+            !batch.selectMode &&
+            batch.readyIds.length > 0 && (
+              <SelectButton onStart={batch.onStartSelect} />
+            )
+          }
+          empty={<EmptyColumn>Nothing waiting for pickup</EmptyColumn>}
+          renderCard={renderCard}
+        />
       </div>
     </>
   );
