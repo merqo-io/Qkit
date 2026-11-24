@@ -24,6 +24,8 @@ const FRESH_MS = 5 * 60 * 1000;
 // (tilted, fade-rise) — separate from FRESH_MS above, which controls how
 // long the solid-fill look itself persists.
 const FLASH_MS = 3500;
+const CONTROLS_IDLE_MS = 5000;
+const ACTIVITY_EVENTS = ["mousemove", "pointerdown", "keydown", "focusin"];
 
 // This is a TV screen — no scrolling — so each column caps how many tiles it
 // ever renders rather than overflowing off the bottom. Fixed numbers, not
@@ -68,6 +70,7 @@ export function QueueDisplay({
   const orderUrl = origin ? `${origin}${orderPath(code)}` : null;
   const [orders, setOrders] = useState(initialOrders);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   // When each currently-ready order first became ready. State, not a ref —
   // render must stay pure (no reading refs or calling Date.now() there), so
   // both this and nowMs below are only ever written from effects/handlers.
@@ -83,6 +86,21 @@ export function QueueDisplay({
       initialOrders.map((o) => [o.orderNumber, o.status]),
     ),
   );
+
+  useEffect(() => {
+    let idle: ReturnType<typeof setTimeout>;
+    const wake = () => {
+      setControlsVisible(true);
+      clearTimeout(idle);
+      idle = setTimeout(() => setControlsVisible(false), CONTROLS_IDLE_MS);
+    };
+    wake();
+    for (const e of ACTIVITY_EVENTS) window.addEventListener(e, wake);
+    return () => {
+      clearTimeout(idle);
+      for (const e of ACTIVITY_EVENTS) window.removeEventListener(e, wake);
+    };
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
@@ -144,11 +162,14 @@ export function QueueDisplay({
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">
           {boothName}
         </h1>
-        <div className="flex shrink-0 items-center gap-3">
-          <ScreenSizeControl
-            screen="display"
-            className="opacity-20 transition-opacity focus-within:opacity-100 hover:opacity-100"
-          />
+        <div
+          data-controls-visible={controlsVisible}
+          className={cn(
+            "flex shrink-0 items-center gap-3 motion-safe:transition-opacity motion-safe:duration-500",
+            controlsVisible ? "opacity-100" : "opacity-0",
+          )}
+        >
+          <ScreenSizeControl screen="display" />
           {!soundEnabled && (
             <button
               type="button"
@@ -173,7 +194,16 @@ export function QueueDisplay({
             Preparing
           </h2>
           {preparing.length === 0 ? (
-            <p className="text-muted-foreground">No orders in progress</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+              {ready.length === 0 && (
+                <p className="font-display text-4xl font-semibold sm:text-5xl 2xl:text-6xl">
+                  Orders will appear here
+                </p>
+              )}
+              <p className="text-2xl text-muted-foreground sm:text-3xl">
+                No orders in progress
+              </p>
+            </div>
           ) : (
             <>
               <div className="flex flex-wrap content-start gap-4 overflow-hidden">
@@ -208,7 +238,11 @@ export function QueueDisplay({
             Ready for pickup
           </h2>
           {ready.length === 0 ? (
-            <p className="text-muted-foreground">Nothing ready yet</p>
+            <div className="flex flex-1 items-center justify-center text-center">
+              <p className="text-2xl text-muted-foreground sm:text-3xl">
+                Nothing ready yet
+              </p>
+            </div>
           ) : (
             <>
               <div className="flex flex-wrap content-start gap-6 overflow-hidden">
@@ -251,9 +285,12 @@ export function QueueDisplay({
           aria-label="Order from your phone"
           className="flex shrink-0 flex-col items-center justify-center gap-3 text-center sm:col-span-2 landscape:sm:col-span-1 landscape:sm:border-l landscape:sm:border-dashed landscape:sm:border-border landscape:sm:pl-8"
         >
-          <h2 className="text-lg font-semibold uppercase tracking-[0.18em] text-primary">
-            Scan to order
+          <h2 className="font-display text-3xl font-semibold text-primary 2xl:text-4xl">
+            Order here
           </h2>
+          <p className="max-w-xs text-sm text-muted-foreground 2xl:text-lg">
+            Scan, order and pay by PayNow. We&apos;ll call your number.
+          </p>
           <div className="rounded-2xl bg-white p-4">
             {orderUrl ? (
               <QRCode
