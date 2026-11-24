@@ -73,7 +73,7 @@ test.describe("place_order under concurrency", () => {
     test.skip(reason !== null, reason ?? "");
     admin = newClient(secretKey as string);
 
-    // A pro vendor, so every fresh booth serves (a free vendor serves only its
+    // A qkit-tier vendor, so every fresh booth serves (a free vendor serves only its
     // oldest booth), isolated from the seeded vendor's data.
     const { data, error } = await admin.auth.admin.createUser({
       email: `concurrency-${randomUUID()}@qkit.local`,
@@ -81,10 +81,15 @@ test.describe("place_order under concurrency", () => {
     });
     if (error || !data.user) throw new Error(`createUser: ${error?.message}`);
     vendorId = data.user.id;
-    const vendor = await admin
-      .from("vendors")
-      .insert({ id: vendorId, plan: "pro" });
+    const vendor = await admin.from("vendors").insert({ id: vendorId });
     if (vendor.error) throw new Error(`vendor: ${vendor.error.message}`);
+    const tier = await admin.from("vendor_entitlements").insert({
+      vendor_id: vendorId,
+      tier: "qkit",
+      stats_window: "90d",
+      issued_at: new Date().toISOString(),
+    });
+    if (tier.error) throw new Error(`entitlement: ${tier.error.message}`);
   });
 
   test.afterAll(async () => {
