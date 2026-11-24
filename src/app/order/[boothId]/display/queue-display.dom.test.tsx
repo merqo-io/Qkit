@@ -37,6 +37,7 @@ function renderDisplay(initialOrders: QueueDisplayOrder[]) {
       boothId="b1"
       boothName="Kopi Cart"
       initialOrders={initialOrders}
+      code="abc123"
     />,
   );
 }
@@ -58,6 +59,15 @@ beforeEach(() => {
 });
 
 describe("QueueDisplay", () => {
+  it("shows the Scan to order label and the QR", () => {
+    renderDisplay([PREPARING]);
+
+    expect(screen.getByText("Scan to order")).toBeInTheDocument();
+    expect(screen.getByTitle("Ordering QR code")).toBeInTheDocument();
+    expect(screen.getByText("Preparing")).toBeInTheDocument();
+    expect(screen.getByText("Ready for pickup")).toBeInTheDocument();
+  });
+
   it("groups orders into Preparing and Ready for pickup", () => {
     renderDisplay([PREPARING, READY]);
 

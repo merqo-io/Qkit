@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - The live board now has three columns, Incoming, Preparing and Ready, instead of Incoming and Accepted, so orders waiting for pickup no longer hide among those still being made. Phones and tablets switch between the three with counts; each column has its own empty state.
+- The public TV queue display now shows the booth's ordering QR with a "Scan to order" label, so customers can order from the screen.
 - Docs: the NCS readiness staging matrix now cites automated coverage per row, with a manual staging checklist and known limits. New tests cover payment state staying unchanged through fulfillment and repeated daily numbers across days and booths.
 - Tests: `e2e/order-concurrency.spec.ts` drives `place_order` with concurrent anon clients against local Supabase: a 20-order burst, repeated idempotency keys, the last cups under a daily cap, and same-name customers.
 - The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.

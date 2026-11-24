@@ -25,7 +25,7 @@ export default async function BoothQueueDisplayPage({ params }: Props) {
   const supabase = await createServiceClient();
   const { data: booth } = await supabase
     .from("booths")
-    .select("name, vendor_id")
+    .select("name, vendor_id, short_code")
     .eq("id", boothId)
     .maybeSingle();
   if (!booth) notFound();
@@ -49,6 +49,7 @@ export default async function BoothQueueDisplayPage({ params }: Props) {
       boothId={boothId}
       boothName={booth.name}
       initialOrders={initialOrders}
+      code={booth.short_code}
     />
   );
 }
