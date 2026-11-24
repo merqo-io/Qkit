@@ -681,9 +681,17 @@ describe("OrderCard payment", () => {
   });
 
   it("shows a Mark paid button for a claimed order", () => {
-    render(<OrderCard order={makeOrder({ payment_status: "claimed" })} />, {
-      wrapper: TooltipProvider,
-    });
+    render(
+      <OrderCard
+        order={makeOrder({
+          payment_status: "claimed",
+          created_at: new Date().toISOString(),
+        })}
+      />,
+      {
+        wrapper: TooltipProvider,
+      },
+    );
     expect(
       screen.getByRole("button", { name: /mark paid/i }),
     ).toBeInTheDocument();
@@ -691,9 +699,17 @@ describe("OrderCard payment", () => {
 
   it("confirms payment via the action", async () => {
     const user = userEvent.setup();
-    render(<OrderCard order={makeOrder({ payment_status: "claimed" })} />, {
-      wrapper: TooltipProvider,
-    });
+    render(
+      <OrderCard
+        order={makeOrder({
+          payment_status: "claimed",
+          created_at: new Date().toISOString(),
+        })}
+      />,
+      {
+        wrapper: TooltipProvider,
+      },
+    );
     await user.click(screen.getByRole("button", { name: /mark paid/i }));
     expect(confirmOrderPayment).toHaveBeenCalledWith("o1");
   });
@@ -1445,4 +1461,22 @@ describe("OrderCard waiting time placement", () => {
       }
     },
   );
+});
+
+describe("OrderCard says-paid styling", () => {
+  it("uses the warm primary treatment, not blue", () => {
+    render(
+      <OrderCard
+        order={makeOrder({
+          payment_status: "claimed",
+          created_at: new Date().toISOString(),
+        })}
+      />,
+      { wrapper: TooltipProvider },
+    );
+    const line = screen.getByText("Says paid. Check the payment");
+    expect(line.className).toMatch(/bg-primary/);
+    expect(line.className).not.toMatch(/payment-claimed|blue/);
+    expect(line.closest(".ticket-alert")).not.toBeNull();
+  });
 });
