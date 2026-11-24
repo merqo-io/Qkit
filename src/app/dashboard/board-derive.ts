@@ -28,7 +28,7 @@ export function activeOrders(
 }
 
 /**
- * The visible orders split into the board's two columns and the id groups the
+ * The visible orders split into the board's three columns and the id groups the
  * batch controls act on.
  */
 export function groupVisibleOrders(
@@ -43,10 +43,15 @@ export function groupVisibleOrders(
   const batchableIds = [...preparingIds, ...readyIds];
   // Arrival alone does not accept an order into preparation.
   const incoming = visible.filter(
-    (o) => o.status === "pending" || o.status === "confirmed",
+    (o) =>
+      o.status === "pending" ||
+      o.status === "confirmed" ||
+      o.status === "cancelled",
   );
-  const accepted = visible.filter(
-    (o) => o.status !== "pending" && o.status !== "confirmed",
+  const preparing = visible.filter((o) => o.status === "preparing");
+  // A picked-up order stays in Ready for its undo window.
+  const ready = visible.filter(
+    (o) => o.status === "ready" || o.status === "completed",
   );
   // Incoming orders one tap can start together: nothing to check on them
   // first. An order whose payment is unconfirmed needs a look at its proof,
@@ -75,7 +80,8 @@ export function groupVisibleOrders(
     // What a batch undo hands back to revertOrderAdvance for each order.
     paymentById: new Map(visible.map((o) => [o.id, o.payment_status])),
     incoming,
-    accepted,
+    preparing,
+    ready,
     waitsForArrival,
     startableIds,
   };

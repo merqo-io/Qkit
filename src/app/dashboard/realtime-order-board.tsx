@@ -226,7 +226,8 @@ export function RealtimeOrderBoard({
       ) : (
         <BoardColumns
           incoming={groups.incoming}
-          accepted={groups.accepted}
+          preparing={groups.preparing}
+          ready={groups.ready}
           phoneSection={phoneSection}
           onPhoneSectionChange={setPhoneSection}
           batch={{

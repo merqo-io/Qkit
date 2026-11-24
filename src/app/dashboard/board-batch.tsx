@@ -17,7 +17,7 @@ import type { BoardOrder, PaymentStatus } from "@/lib/types";
 // `pointer: coarse` rule in globals.css raises every one of these to 44px.
 export const BATCH_BUTTON = "rounded-full";
 
-// Opens select mode. It sits in the Accepted column's header, the only column
+// Opens select mode. It sits in the Preparing and Ready headers, the columns
 // a batch acts on, with a tap-to-open hint.
 export function SelectButton({ onStart }: { onStart: () => void }) {
   return (
@@ -31,8 +31,8 @@ export function SelectButton({ onStart }: { onStart: () => void }) {
         Select
       </Button>
       <Hint label="About Select">
-        Tick several accepted orders, or all of them, and mark them ready or
-        picked up in one tap.
+        Tick several preparing or ready orders, or all of them, and mark them
+        ready or picked up in one tap.
       </Hint>
     </div>
   );
