@@ -46,6 +46,29 @@ describe("recent customer orders", () => {
       screen.getByRole("link", { name: /#3 for Customer 0/ }),
     ).toHaveAttribute("href", "/order/booth-a/0001?t=access-token");
   });
+  it("keeps two orders with the same daily number apart by their permanent link", () => {
+    const base = { boothId: "booth-a", customerName: "Ada", token: "t" };
+    read.mockReturnValue([
+      {
+        ...base,
+        orderNumber: "0912",
+        displayNumber: "001",
+        placedAt: Date.parse("2026-10-27T00:05:00+08:00"),
+      },
+      {
+        ...base,
+        orderNumber: "0847",
+        displayNumber: "001",
+        placedAt: Date.parse("2026-10-26T23:55:00+08:00"),
+      },
+    ]);
+    render(<RecentOrders boothId="booth-a" />);
+    const links = screen.getAllByRole("link", { name: /#001 for Ada/ });
+    expect(links.map((l) => l.getAttribute("href"))).toEqual([
+      "/order/booth-a/0912?t=t",
+      "/order/booth-a/0847?t=t",
+    ]);
+  });
   it("links an order still waiting for its number to its pay step", () => {
     read.mockReturnValue([
       {
