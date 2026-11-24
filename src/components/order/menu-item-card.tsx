@@ -5,7 +5,7 @@ import { Button, cn } from "@merqo/ui/primitives";
 
 import { ZoomableImage } from "@/components/widgets/zoomable-image";
 import { AllergenBadges } from "@/components/order/allergen-badges";
-import { formatPrice, menuItemActionLabel } from "@/lib/utils";
+import { formatPrice, itemHasChoices, menuItemActionLabel } from "@/lib/utils";
 
 import type { MenuItem } from "@/lib/types";
 
@@ -69,7 +69,7 @@ export function MenuItemCard({
   onIncrement: () => void;
   onDecrement: () => void;
 }) {
-  const hasOptions = !!item.option_groups && item.option_groups.length > 0;
+  const hasOptions = itemHasChoices(item);
   const soldOut = left !== null && left <= 0;
   let cardTone: string;
   if (soldOut) cardTone = "border-border opacity-60";

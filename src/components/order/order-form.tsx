@@ -10,7 +10,12 @@ import { Ticket } from "@/components/widgets/ticket";
 import { Button } from "@merqo/ui/primitives";
 
 import { placeOrderSchema } from "@/lib/schemas";
-import { count, formatPrice, orderHasPricing } from "@/lib/utils";
+import {
+  count,
+  formatPrice,
+  itemHasChoices,
+  orderHasPricing,
+} from "@/lib/utils";
 import { cartKey, cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";
 import { loadCart, saveCart, clearCart } from "@/lib/cart-storage";
@@ -241,7 +246,7 @@ export function OrderForm({
   }
 
   function onAddClick(item: MenuItem) {
-    if (item.option_groups && item.option_groups.length > 0) {
+    if (itemHasChoices(item)) {
       setCustomizing(item);
     } else {
       addConfigured(item, []);
@@ -263,7 +268,7 @@ export function OrderForm({
   const cartPriced = orderHasPricing(cartItems);
   const sections = groupByCategory(menuItems, menuCategories);
   function renderItemCard(item: MenuItem) {
-    const hasOptions = !!item.option_groups && item.option_groups.length > 0;
+    const hasOptions = itemHasChoices(item);
     // Configured items use the sheet and cart-summary controls.
     const plainKey = cartKey(item.id);
     const plainInCart = hasOptions ? undefined : cart.get(plainKey);
