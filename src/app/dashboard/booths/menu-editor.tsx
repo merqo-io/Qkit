@@ -33,7 +33,7 @@ import {
 } from "./menu-order";
 import { canAddMenuItem, type Entitlement } from "@/lib/plan";
 import type { MenuItemFormInput } from "@/lib/schemas";
-import type { MenuCategory } from "@/lib/types";
+import type { MenuCategory, OptionGroup } from "@/lib/types";
 
 const MAX_CATEGORIES = 40;
 
@@ -45,6 +45,9 @@ interface Props {
   hasBoothLimit?: boolean;
   categories?: MenuCategory[];
   onCategoriesChange?: (categories: MenuCategory[]) => void;
+  library?: OptionGroup[];
+  onLibraryChange?: (library: OptionGroup[]) => void;
+  onEditShared?: (sharedId: string) => void;
 }
 
 export function MenuEditor({
@@ -55,6 +58,9 @@ export function MenuEditor({
   hasBoothLimit = false,
   categories = [],
   onCategoriesChange = () => {},
+  library,
+  onLibraryChange,
+  onEditShared,
 }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Separate collapse state from "Customization" — allergens are a distinct
@@ -204,6 +210,9 @@ export function MenuEditor({
         onToggleExpand={toggleExpand}
         onToggleAdvanced={toggleAdvanced}
         mutations={mutations}
+        library={library}
+        onLibraryChange={onLibraryChange}
+        onEditShared={onEditShared}
       />
     );
   }

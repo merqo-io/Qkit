@@ -6,7 +6,7 @@ export const article: HelpArticle = {
   title: "Menu and stock",
   summary:
     "Set up items, the daily item limit, basket holds and the per-order item limit.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-23",
   uiLabels: [
     "Add item",
     "Add section",
@@ -17,6 +17,7 @@ export const article: HelpArticle = {
     "Duplicate",
     "Remove",
     "Save menu",
+    "Reusable modifier groups",
     "Import CSV",
     "Export CSV",
     "Download template",
@@ -29,6 +30,7 @@ export const article: HelpArticle = {
   covers: [
     "src/app/dashboard/booths/menu-manager.tsx",
     "src/app/dashboard/booths/menu-editor.tsx",
+    "src/app/dashboard/booths/modifier-library-section.tsx",
     "src/app/dashboard/booths/menu-item-fields.tsx",
     "src/app/dashboard/booths/booth-form.tsx",
     "src/app/dashboard/booths/actions.ts",
@@ -60,6 +62,11 @@ export const article: HelpArticle = {
         "Cost is private. It only feeds your profit stats and customers never see it.",
         "Items can have option choices such as size or toppings, set from the item's Customization area.",
       ],
+    },
+    { type: "heading", level: 2, text: "Reusable modifier groups" },
+    {
+      type: "paragraph",
+      text: "If many items share the same choices, such as Sugar level, build the group once under Reusable modifier groups on the menu page, then use Add saved group on each item. Edit the group there and every item that uses it updates. Unlink turns an item's copy into its own group, and Save as reusable turns one of an item's groups into a shared one. Deleting a reusable group keeps its choices on the items that used it.",
     },
     {
       type: "note",

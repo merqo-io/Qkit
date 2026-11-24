@@ -136,5 +136,14 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
   `menu-item-allergens.tsx` is its collapsible allergen section and
   `menu-item-row.tsx` renders one item card and `menu-section-group.tsx` the
   named sections and the "No section" group.
+- Reusable modifier groups: `modifier-library-section.tsx` is the menu page's
+  library section (list, edit, "Used by N items", delete with a confirm that
+  states how many items it unlinks; open to every plan, the per-item cap applies on attach).
+  `option-groups-editor.tsx` edits an item's groups (and the library entries,
+  via `libraryMode`), `option-choice-row.tsx` is one choice row and
+  `saved-group-controls.tsx` the "Add saved group" picker and the read-only
+  Shared card (Edit for all, Unlink). `menu-manager.tsx` owns the library state,
+  saves it with `saveModifierGroups` before the items, and re-expands linked
+  item copies as the library is edited.
 
 The confirm dialogs in `booth-danger-zone.tsx` and `close-booth-control.tsx`, the row menu in `menu-item-row.tsx` (capped to the available height, scrolls) and the toggle groups in `option-groups-editor.tsx` use the `AlertDialog*`, `DropdownMenu*` and `ToggleGroup*` primitives from `@merqo/ui/primitives`.

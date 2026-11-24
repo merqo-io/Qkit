@@ -144,9 +144,8 @@ export function useMenuMutations({
   }
 
   // Deep-cloned (structuredClone) so editing the copy's nested option groups
-  // never mutates the original — qkit has no shared/live-linked modifier
-  // groups yet, so a duplicate is always a fully independent starting point,
-  // never a reference.
+  // never mutates the original. A linked group keeps its shared_id, so the
+  // copy stays linked to the same library entry.
   function duplicateItem(index: number) {
     if (!canAddMenuItem(entitlement, items.length)) return;
     const source = items[index];
