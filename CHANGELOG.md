@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The vendor board "Mark paid" buttons are now warm deep amber instead of blue, matching the rest of the kopitiam palette in light and dark themes.
 - The order page shows "Customize" only on items that have something to choose; items with empty option groups get a plain "Add". Items without a photo already render as clean text rows.
 
 ### Added
