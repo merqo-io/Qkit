@@ -103,7 +103,6 @@ describe("public landing page", () => {
     expect(container.querySelectorAll("details[data-faq-row]")).toHaveLength(3);
     expect(screen.queryByText(/Up and running in three steps/)).toBeNull();
     expect(screen.queryByText("What qkit does")).toBeNull();
-    expect(screen.queryByText(/Built in Singapore/)).toBeNull();
   });
   it("drops the trust line and the dark pain band", async () => {
     render(await LandingPage());
@@ -117,7 +116,9 @@ describe("public landing page", () => {
   });
   it("puts the status row, then the kicker pill, ahead of the headline", async () => {
     render(await LandingPage());
-    const pilot = screen.getByText("Piloting");
+    const pilot = screen.getByText(
+      "Built in Singapore for event carts and stalls",
+    );
     const kicker = screen.getByText(/Scan · order · track/);
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(
@@ -127,27 +128,36 @@ describe("public landing page", () => {
       kicker.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
-  it("shows the pilot badge and keeps open signup", async () => {
+  it("shows the built-in-Singapore line and keeps open signup", async () => {
     render(await LandingPage());
-    expect(screen.getByText("Piloting")).toBeInTheDocument();
-    expect(screen.getByText("Running with a few vendors")).toBeInTheDocument();
+    expect(screen.queryByText("Piloting")).toBeNull();
+    expect(
+      screen.getByText("Built in Singapore for event carts and stalls"),
+    ).toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: "Get started" }).length,
     ).toBeGreaterThan(0);
   });
-  it("shows the free-during-pilot line with its 30-day notice condition", async () => {
-    render(await LandingPage());
-    const line =
-      "Free during the pilot. If we start charging, you'll get at least 30 days' notice first.";
-    expect(screen.getAllByText(line).length).toBeGreaterThan(0);
-  });
-  it("shows no prices, plan names or day-pass copy", async () => {
+  it("shows the pilot line and both after-pilot prices", async () => {
     const { container } = render(await LandingPage());
     const text = container.textContent ?? "";
-    expect(text).not.toContain("$");
-    expect(text).not.toMatch(/\bPro\b/);
-    expect(text).not.toMatch(/event pass|monthly|day pass|beta|free plan/i);
+    expect(
+      screen.getByText(
+        "Free while we pilot. These are the prices after, with 30 days' notice.",
+      ),
+    ).toBeInTheDocument();
+    expect(text).toContain("S$14 to S$28 per event");
+    expect(text).toContain("15c a cup");
+    expect(text).toContain("S$19.90/month");
+    expect(text).not.toContain("Free during the pilot");
     expect(text).not.toContain("—");
+  });
+  it("promises a 10-minute setup and PayNow in the sub-line", async () => {
+    render(await LandingPage());
+    expect(
+      screen.getByText(/Setup takes about 10 minutes/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/PayNow, straight to you/)).toBeInTheDocument();
   });
   it("makes no readiness, other-kit or company claims", async () => {
     const { container } = render(await LandingPage());

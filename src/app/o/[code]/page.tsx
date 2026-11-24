@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { z } from "zod";
 // eslint-disable-next-line no-restricted-imports -- anonymous customer flow; the order token or booth id is the credential
 import { createServerClient, createServiceClient } from "@/lib/supabase/server";
@@ -101,12 +103,22 @@ async function loadPaysInPerson(boothId: string): Promise<boolean> {
   }
 }
 
+const fetchBoothForOrder = cache(async (code: string) => {
+  const supabase = await createServerClient();
+  return supabase.rpc("get_booth_for_order", { p_short_code: code });
+});
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { code } = await params;
+  const { data, error } = await fetchBoothForOrder(code);
+  const parsed = boothForOrder.safeParse(data);
+  return { title: !error && parsed.success ? parsed.data.name : "Order" };
+}
+
 export default async function OrderEntryPage({ params }: Props) {
   const { code } = await params;
   const supabase = await createServerClient();
-  const { data, error } = await supabase.rpc("get_booth_for_order", {
-    p_short_code: code,
-  });
+  const { data, error } = await fetchBoothForOrder(code);
   // A DB/RPC error is NOT the same as an unresolved code: the code may be valid
   // and telling the customer to rescan sends them in a loop. Log it and show the
   // transient-error screen instead of "QR expired".

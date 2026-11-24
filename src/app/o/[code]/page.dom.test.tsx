@@ -35,7 +35,7 @@ vi.mock("@/components/order/expired-code", () => ({
 vi.mock("@/components/widgets/media-image", () => ({
   MediaImage: () => <span>Booth image</span>,
 }));
-import OrderEntryPage from "./page";
+import OrderEntryPage, { generateMetadata } from "./page";
 const entry = () =>
   OrderEntryPage({ params: Promise.resolve({ code: "qr-code" }) });
 const booth = {
@@ -245,5 +245,20 @@ describe("Powered by Merqo line", () => {
   it("is hidden otherwise", async () => {
     render(await entry());
     expect(screen.queryByText("Powered by Merqo")).toBeNull();
+  });
+});
+describe("order page title", () => {
+  const title = () =>
+    generateMetadata({ params: Promise.resolve({ code: "qr-code" }) });
+  it("is the booth name", async () => {
+    expect(await title()).toEqual({ title: "Coffee" });
+  });
+  it("falls back to Order for an unknown code", async () => {
+    rpc.mockReset().mockResolvedValue({ data: null, error: null });
+    expect(await title()).toEqual({ title: "Order" });
+  });
+  it("falls back to Order on an RPC error", async () => {
+    rpc.mockReset().mockResolvedValue({ data: booth, error: { message: "x" } });
+    expect(await title()).toEqual({ title: "Order" });
   });
 });

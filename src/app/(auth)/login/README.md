@@ -6,6 +6,7 @@ Vendor sign-in page — combines email/password sign-in, sign-up, Google OAuth, 
 
 ## Contents
 
+- `layout.tsx` — exports `metadata` (title "Sign in"); passes children through.
 - `page.tsx` — default-exports `LoginPage`, which wraps `LoginForm` in a `Suspense` boundary (needed for `useSearchParams`). `LoginForm` (`"use client"`):
   - Reads `?mode=signup` from the URL to pick the initial `Mode` (`"signin"` | `"signup"`), toggled thereafter by a text button with a 44px touch target and focus ring.
   - `loginSchema` (`@/lib/schemas`) + `react-hook-form`/`zodResolver` validate the `email`/`password` fields.

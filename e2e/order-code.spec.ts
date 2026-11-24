@@ -8,7 +8,9 @@ const CODE = "e2eKopitiam01";
 test.describe("order entry code", () => {
   test("valid code renders the order page", async ({ page }) => {
     await page.goto(`/o/${CODE}`);
-    await expect(page.getByText("Kopitiam Cart")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Kopitiam Cart" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Customize" }).first(),
     ).toBeVisible();

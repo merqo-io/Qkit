@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The landing page now shows the after-pilot prices (Event Pass S$14 to S$28 per event at 15c a cup, Pro S$19.90/month) with one short free-pilot line, and the hero promises a 10-minute setup and PayNow. The PILOTING badge is replaced by a Singapore line, order 0042 is Priya in both demos, and pages get their own tab titles (booth name on the order page, Dashboard, Sign in).
 - The public TV queue display is easier to read from across a stall: a large "Orders will appear here" empty state, an "Order here" prompt beside the QR, and the text-size and sound controls fade out when idle and return on any touch, mouse move or key press.
 - The live board now has three columns, Incoming, Preparing and Ready, instead of Incoming and Accepted, so orders waiting for pickup no longer hide among those still being made. Phones and tablets switch between the three with counts; each column has its own empty state.
 - The public TV queue display now shows the booth's ordering QR with a "Scan to order" label, so customers can order from the screen.
