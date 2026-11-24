@@ -100,7 +100,7 @@ the current (non-legacy) customer ordering entry point.
   regression proving placement never calls `createPrintJob` or changes
   `print_status`. Print eligibility and terminal-state guards are tested in
   `notify.test.ts`; confirmation and Start dispatch have their own action tests.
-- `page.tsx` — `OrderEntryPage` (route entry, `revalidate=0`): renders the
+- `page.tsx` — `generateMetadata` titles the tab with the booth name ("Order" for unknown codes or RPC errors), sharing a React-cached `get_booth_for_order` call with `OrderEntryPage` (route entry, `revalidate=0`): renders the
   "Powered by Merqo" line under the form when `showPoweredByMerqoForBooth`
   says the vendor is on Free (hidden on any failure); resolves the
   booth via `get_booth_for_order(p_short_code)` (public-safe — omits

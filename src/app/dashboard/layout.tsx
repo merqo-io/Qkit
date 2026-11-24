@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { accountLabel } from "@merqo/ui";
 import { createServerClient } from "@/lib/supabase/server";
@@ -7,6 +8,8 @@ import { requireCurrentLegalAcceptance } from "@/lib/legal-gate";
 import { DashboardNav } from "./dashboard-nav";
 import { DashboardTour } from "@/components/tour/dashboard-tour";
 import { SiteFooter } from "@/components/widgets/site-footer";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardLayout({
   children,

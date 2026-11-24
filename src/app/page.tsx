@@ -7,7 +7,7 @@ import { getLandingNavUser } from "@/lib/landing-nav-user";
 import { SiteFooter } from "@/components/widgets/site-footer";
 import { LandingCta } from "@/components/landing/landing-cta";
 import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel";
-import { BackToTop, FaqRows, type FaqRow } from "@merqo/ui";
+import { BackToTop, ElevatedCard, FaqRows, type FaqRow } from "@merqo/ui";
 import { ScanLine } from "lucide-react";
 import { TryIt } from "@/components/landing/journey/try-it";
 import { VendorShowcase } from "@/components/landing/vendor-showcase";
@@ -17,9 +17,22 @@ import { CONTAINER } from "@/components/landing/rhythm";
 
 export const revalidate = 0;
 
-// The charge condition must stay beside the free claim, so both are one string.
-const PRICING_LINE =
-  "Free during the pilot. If we start charging, you'll get at least 30 days' notice first.";
+const PRICING = {
+  pilotLine:
+    "Free while we pilot. These are the prices after, with 30 days' notice.",
+  eventPass: {
+    name: "Event Pass",
+    price: "S$14 to S$28 per event",
+    unit: "15c a cup",
+    detail: "Pro features for one event, up to 2 days.",
+  },
+  pro: {
+    name: "Pro",
+    price: "S$19.90/month",
+    unit: null,
+    detail: "Pro features, every day you sell.",
+  },
+};
 
 // Payment answer rests on the code: the customer marks an order as paid on
 // the pay page, the ticket then reads "Says paid. Check the payment", and
@@ -58,14 +71,9 @@ export default async function LandingPage() {
           <div className={CONTAINER}>
             <div className="grid items-stretch gap-10 min-[960px]:grid-cols-[1.05fr_1fr] min-[960px]:gap-16">
               <div className="flex min-w-0 flex-col">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <span className="rounded-full border-[1.5px] border-primary/40 px-3 py-[3px] text-xs font-bold uppercase tracking-[0.16em] text-primary">
-                    Piloting
-                  </span>
-                  <span className="text-[15px] text-muted-foreground">
-                    Running with a few vendors
-                  </span>
-                </div>
+                <p className="text-[15px] text-muted-foreground">
+                  Built in Singapore for event carts and stalls
+                </p>
                 <span className="mt-3.5 inline-flex items-center gap-2 self-start rounded-full bg-primary/12 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                   <ScanLine className="size-3.5" aria-hidden="true" />
                   Scan · order · track
@@ -76,8 +84,9 @@ export default async function LandingPage() {
                 </h1>
                 <p className="mt-6 max-w-[34em] text-[clamp(17px,1.6vw,20px)] leading-[1.55] text-muted-foreground">
                   Customers scan your QR or open your link, order and pay by
-                  PayNow, straight to you. You run every order from one live
-                  board, at a cart, a stall or from home.
+                  PayNow, straight to you. Setup takes about 10 minutes. You run
+                  every order from one live board, at a cart, a stall or from
+                  home.
                 </p>
                 <div className="mt-9 flex flex-wrap gap-3">
                   <LandingCta
@@ -119,8 +128,26 @@ export default async function LandingPage() {
                   Put your menu on it.
                 </h2>
                 <p className="mt-[18px] max-w-[30em] text-lg text-muted-foreground">
-                  {PRICING_LINE}
+                  {PRICING.pilotLine}
                 </p>
+                <div className="mt-6 grid max-w-[30em] gap-3 min-[480px]:grid-cols-2">
+                  {[PRICING.eventPass, PRICING.pro].map((plan) => (
+                    <ElevatedCard key={plan.name} className="space-y-1 p-4">
+                      <p className="text-sm font-semibold text-muted-foreground">
+                        {plan.name}
+                      </p>
+                      <p className="text-xl font-semibold">{plan.price}</p>
+                      {plan.unit && (
+                        <p className="text-sm font-semibold text-primary">
+                          {plan.unit}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {plan.detail}
+                      </p>
+                    </ElevatedCard>
+                  ))}
+                </div>
                 <div className="mt-7">
                   <LandingCta
                     href={primaryHref}
