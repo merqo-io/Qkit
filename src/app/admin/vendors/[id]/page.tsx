@@ -16,6 +16,7 @@ import { formatPrice, MS_PER_DAY } from "@/lib/utils";
 import { Stat } from "../../stat";
 import { StatusChip } from "../../vendor-status";
 import { ResolveMessageButton } from "../../resolve-message-button";
+import { ShowcaseToggle } from "./showcase-toggle";
 
 export const revalidate = 0;
 
@@ -66,7 +67,7 @@ export default async function AdminVendorDetailPage({
   const [vendorRes, booths, entitlementRes, messages] = await Promise.all([
     supabase
       .from("vendors")
-      .select("id, created_at")
+      .select("id, created_at, showcase_on_landing")
       .eq("id", id)
       .maybeSingle(),
     readAllRows((from, to) =>
@@ -243,6 +244,13 @@ export default async function AdminVendorDetailPage({
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Landing page
+        </h2>
+        <ShowcaseToggle vendorId={id} initial={vendor.showcase_on_landing} />
       </section>
 
       <section className="space-y-3">

@@ -9,6 +9,7 @@ import { confirmCollection } from "./collect-actions";
 const {
   createServiceClientMock,
   ordersMaybeSingle,
+  boothMaybeSingle,
   readEqMock,
   update,
   writeSelect,
@@ -17,6 +18,7 @@ const {
   recordOrderStatusEventMock,
 } = vi.hoisted(() => {
   const ordersMaybeSingle = vi.fn();
+  const boothMaybeSingle = vi.fn();
   const readEqMock = vi.fn();
   const writeSelect = vi.fn();
   const update = vi.fn(() => ({
@@ -32,10 +34,17 @@ const {
     };
     return node;
   };
-  const from = () => ({ select: ordersSelect, update });
+  const boothSelect = () => ({
+    eq: () => ({ maybeSingle: boothMaybeSingle }),
+  });
+  const from = (table: string) =>
+    table === "booths"
+      ? { select: boothSelect }
+      : { select: ordersSelect, update };
   return {
     createServiceClientMock: vi.fn(() => Promise.resolve({ from })),
     ordersMaybeSingle,
+    boothMaybeSingle,
     readEqMock,
     update,
     writeSelect,
@@ -65,6 +74,9 @@ beforeEach(() => {
   createServiceClientMock.mockClear();
   update.mockClear();
   readEqMock.mockClear();
+  boothMaybeSingle
+    .mockReset()
+    .mockResolvedValue({ data: { pickup_scan_enabled: true } });
   ordersMaybeSingle.mockReset().mockResolvedValue({
     data: { id: "o1", status: "ready", payment_status: "claimed" },
   });
@@ -104,6 +116,20 @@ describe("confirmCollection", () => {
         to_status: "completed",
       }),
     );
+  });
+
+  it.each([
+    ["off", { data: { pickup_scan_enabled: false } }],
+    ["missing", { data: null }],
+  ])("refuses when the booth switch is %s", async (_label, row) => {
+    boothMaybeSingle.mockResolvedValue(row);
+    const result = await confirmCollection(BOOTH, ORDER, TOKEN);
+    expect(result).toEqual({
+      success: false,
+      error: "Self-checkout pickup is off for this booth.",
+    });
+    expect(ordersMaybeSingle).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("refuses a not-ready order without erroring", async () => {

@@ -784,4 +784,54 @@ describe("BoothForm self-checkout pickup", () => {
       [],
     );
   });
+
+  it("shows the kiosk link and copy button only for a saved booth with the switch on", async () => {
+    const user = userEvent.setup();
+    const saved = {
+      boothId: BOOTH_ID,
+      name: "Ice Cream Cart",
+      image_url: null,
+      is_active: true,
+      hours: null,
+      menuItemCount: 0,
+      takes_payment: false,
+      social_links: null,
+      requires_arrival_confirm: false,
+      walkup_default: false,
+      print_enabled: false,
+      pickup_scan_enabled: false,
+      paykit_booking_id: null,
+      daily_cup_cap: null,
+    };
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
+        initial={saved}
+      />,
+    );
+    expect(
+      screen.queryByRole("link", { name: /open kiosk/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("switch", { name: SWITCH }));
+    expect(screen.getByRole("link", { name: /open kiosk/i })).toHaveAttribute(
+      "href",
+      `/order/${BOOTH_ID}/pickup`,
+    );
+    expect(
+      screen.getByRole("button", { name: /copy link/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no kiosk link for an unsaved booth even with the switch on", async () => {
+    const user = userEvent.setup();
+    renderNewBooth();
+    await user.click(screen.getByRole("switch", { name: SWITCH }));
+    expect(
+      screen.queryByRole("link", { name: /open kiosk/i }),
+    ).not.toBeInTheDocument();
+  });
 });

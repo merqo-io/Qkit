@@ -60,5 +60,26 @@ select throws_ok($$ insert into qkit.help_feedback (vendor_id, article_slug, hel
   '42501', null, 'anon cannot insert');
 reset role;
 
+insert into qkit.help_feedback (vendor_id, article_slug, helpful)
+  values ('30000000-0000-0000-0000-000000000002', 'payments', false);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"30000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
+select results_eq(
+  $$ select article_slug, helpful, not_helpful from qkit.help_feedback_counts() order by article_slug $$,
+  $$ values ('getting-started'::text, 2::bigint, 0::bigint), ('payments'::text, 1::bigint, 1::bigint) $$,
+  'help_feedback_counts: an admin sees counts across all vendors');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"30000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
+select results_eq(
+  $$ select article_slug, helpful, not_helpful from qkit.help_feedback_counts() order by article_slug $$,
+  $$ values ('getting-started'::text, 1::bigint, 0::bigint), ('payments'::text, 0::bigint, 1::bigint) $$,
+  'help_feedback_counts: a vendor counts only their own votes');
+reset role;
+
+select ok(not has_function_privilege('anon', 'qkit.help_feedback_counts()', 'EXECUTE'), 'anon cannot execute help_feedback_counts');
+select ok(has_function_privilege('authenticated', 'qkit.help_feedback_counts()', 'EXECUTE'), 'authenticated can execute help_feedback_counts');
+
 select * from finish();
 rollback;

@@ -13,7 +13,9 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
  * `completed`. Authorized purely by the scanned token — same trust level as
  * every other customer order action, see ../pickup/README.md. Distinguishes
  * "not ready yet" from "already collected" (a double-scan) from a genuinely
- * invalid booth/order/token so the kiosk can show the right message.
+ * invalid booth/order/token so the kiosk can show the right message. Refuses
+ * outright when the booth's `pickup_scan_enabled` switch is off, so a
+ * disabled booth cannot be collected through a still-valid token.
  */
 export async function confirmCollection(
   boothId: string,
@@ -29,6 +31,14 @@ export async function confirmCollection(
   const ip = clientIp(await headers());
   const allowed = await rateLimit(`collect:${boothId}:${ip}`, 20, 60);
   if (!allowed) return fail("Too many attempts -- wait a moment.");
+
+  const { data: booth } = await supabase
+    .from("booths")
+    .select("pickup_scan_enabled")
+    .eq("id", boothId)
+    .maybeSingle();
+  if (!booth?.pickup_scan_enabled)
+    return fail("Self-checkout pickup is off for this booth.");
 
   const { data: order } = await supabase
     .from("orders")

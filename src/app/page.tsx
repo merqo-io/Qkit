@@ -10,6 +10,8 @@ import { HeroPreviewCarousel } from "@/components/landing/hero-preview-carousel"
 import { BackToTop, FaqRows, type FaqRow } from "@merqo/ui";
 import { ScanLine } from "lucide-react";
 import { TryIt } from "@/components/landing/journey/try-it";
+import { VendorShowcase } from "@/components/landing/vendor-showcase";
+import { getShowcaseVendors } from "@/lib/landing/showcase";
 import { createServerClient } from "@/lib/supabase/server";
 import { CONTAINER } from "@/components/landing/rhythm";
 
@@ -101,6 +103,8 @@ export default async function LandingPage() {
             </div>
           </div>
         </section>
+
+        <VendorShowcase vendors={await getShowcaseVendors()} />
 
         <TryIt />
 

@@ -48,6 +48,9 @@ inline mark used on the login page.
 - `landing-boards.ts` — `LANDING_BOARDS`: the five sample boards (Mark Ready, Start, Says paid, Rush, Ready) with their captions, every ticket active. `toBoardOrder(sample, seedMs, flipped)` (optional `SampleOrder.startAgeMins` is used until `flipped`) turns a sample into a real `BoardOrder` with timestamps relative to the seed; `SAMPLE_AGING_MIN`, `SAMPLE_OVERDUE_MIN` and `SAMPLE_AUTO_CLEAR_MS` (10s) and `SAMPLE_READY_AGO_SEC` (3s) are the thresholds the hero draws with.
 - `landing-cta.tsx` — `LandingCta({ href, children, variant, event })`: a landing-page call-to-action `Button`+`Link` that fires an optional analytics event (`logEvent`) on click before navigating.
 
+- `vendor-showcase.tsx` — `VendorShowcase({ vendors })`: a server component fed by `getShowcaseVendors()` in `app/page.tsx` (the `ShowcaseVendor` type lives in `lib/landing/showcase.ts`), the "Vendors on qkit" section between the hero and `TryIt`. Layout follows the count via `SHOWCASE_LAYOUT` (`marqueeMin` 4, `gridMin` 12): a centred row of chips for 1-3, a CSS marquee (`vendor-marquee` in `globals.css`, two identical lists, the second `aria-hidden`, paused on hover and focus, static and wrapped under reduced motion) for 4-11, a card grid for 12 or more. Logos are plain `<img>` (profile pictures can live on any host); no logo gives an initials chip. Returns null for an empty list.
+- `vendor-showcase.dom.test.tsx` — empty, row, marquee duplicate, grid, logo vs initials.
+
 ## Connectivity
 
 `nav.tsx`'s `Nav` is rendered by both

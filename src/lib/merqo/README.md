@@ -55,7 +55,9 @@ notifyRef)`/`notifyCustomer(vendorId, notifyRef, message)`/
 passExpiresAt, hasOpenMessage }, nowMs)`: pure aggregation behind `GET
 /api/merqo/vendor-activity` — orders/revenue (30d) and booth counts, plus a
   `status` delegated to `admin-vendor-health.ts`'s `buildVendorHealth` so it
-  matches the admin console's own triage rather than re-deriving it.
+  matches the admin console's own triage rather than re-deriving it, and a
+  `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or
+  null) that merqo uses to start the free Pro trial.
 - `vendor-profile.test.ts` — tests the RPC call shape (schema/function
   name, args) and that a Postgres error surfaces as a thrown `Error` with the
   underlying message.

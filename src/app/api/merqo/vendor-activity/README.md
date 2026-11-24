@@ -6,7 +6,7 @@ Endpoint reporting one vendor's richer cross-kit activity snapshot to
 merqo's admin `/admin/vendors/[email]` detail page — plan, health triage
 status, a few labeled metrics, and last-activity timestamp — looked up by
 email. Generalizes `../vendor-status`'s `{active, plan}` shape into the
-shared `{active, plan, status, metrics, lastActivityAt}` contract every
+shared `{active, plan, status, metrics, lastActivityAt}` plus an additive `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null) contract every
 kit implements; see
 `docs/business/2026-08-26-cross-kit-vendor-activity-design.md` (outside
 this repo) for the cross-kit design.

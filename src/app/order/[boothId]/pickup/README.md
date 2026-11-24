@@ -30,14 +30,14 @@ never mistaken for one.
 
 - `page.tsx` — `PickupPage` (route entry, `revalidate=0`): validates
   `boothId` as a UUID (`notFound()` otherwise, same gate as `../display/
-page.tsx`), then renders `PickupScanner`. No booth-existence read (unlike
-  `../display/page.tsx`) — an unknown-but-well-formed booth id just shows an
-  idle scanner that will fail every scan at the `confirmCollection` layer,
-  which is enough since this page has no vendor-facing content to protect.
+page.tsx`), then reads the booth's `pickup_scan_enabled` flag (service client, that one
+  column) and renders `PickupScanner` only when it is `true`. A switched-off
+  or unknown booth shows "Self-checkout pickup is off for this booth. Ask
+  staff for your order." instead.
 - `page.dom.test.tsx` — RTL test rendering `PickupPage` directly, with
   `PickupScanner` stubbed (own dedicated test file): the `notFound()` branch
-  for an invalid booth id, and that a valid one renders the scanner with the
-  booth id passed through.
+  for an invalid booth id, the scanner (with the booth id passed through) for
+  an enabled booth, and the off message for a disabled or unknown one.
 - `pickup-scanner.tsx` — `PickupScanner({ boothId })` client component: a
   single auto-focused text input (re-focused on blur, since nothing else on
   this page should ever hold focus) that parses an Enter-terminated scan via
@@ -61,9 +61,11 @@ page.tsx`), then renders `PickupScanner`. No booth-existence read (unlike
 ## Connectivity
 
 Reached by whoever mounts the tablet at the pickup shelf, typed at by a
-paired Bluetooth HID scanner — no in-app link points here (it's set up
-once, out of band, not navigated to from any button). Calls
-`confirmCollection` in `../[orderNumber]/collect-actions.ts`, which flips
+paired Bluetooth HID scanner. The booth form's "Self-checkout pickup" switch
+(`@/app/dashboard/booths/pickup-kiosk-link.tsx`) shows this URL with "Open
+kiosk" and "Copy link" once the switch is on for a saved booth. Calls
+`confirmCollection` in `../[orderNumber]/collect-actions.ts`, which first
+refuses when the booth's `pickup_scan_enabled` is off, then flips
 the scanned order from `ready` to `completed` (via `buildAdvancePatch` and
 `recordOrderStatusEvent`, `actor: null` since there's no authenticated
 user) — the same terminal transition the vendor board's own "Mark Picked

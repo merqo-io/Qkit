@@ -11,7 +11,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
 
 ## Contents
 
-- `help/` - `feedback.ts` (Zod `helpFeedbackSchema`, `summarizeHelpFeedback`) and `feedback-queries.ts` (`loadMyHelpVote`) for the help article "Was this helpful?" votes in `qkit.help_feedback` (migration 0122).
+- `help/` - `feedback.ts` (Zod `helpFeedbackSchema`, `summarizeHelpFeedback`, a pure mapper from the `help_feedback_counts()` rows and the latest No comments, migration 0124) and `feedback-queries.ts` (`loadMyHelpVote`) for the help article "Was this helpful?" votes in `qkit.help_feedback` (migration 0122).
 - `proof-storage-cleanup.ts` — `drainProofDeletions(limit = 100)`: removes the
   payment-screenshot objects that migration 0119's trigger queued when their
   order was deleted, using the service-role client, and clears the queue rows.
@@ -22,6 +22,7 @@ and cross-kit HTTP/RPC adapters retain their own platform dependencies.
   (`ok` is false on a queue read or clear error or a caught exception); the
   cron route turns `failed > 0` or `!ok` into a 500, while `deleteBooth` runs it
   best-effort and ignores the result.
+- `landing/showcase.ts` — `getShowcaseVendors()`: the admin-curated "Vendors on qkit" list (`{ name, logoUrl }[]`) from the anon `get_showcase_vendors` RPC through a cookie-less publishable-key client, Zod-parsed (bad rows dropped), cached an hour under the `showcase-vendors` tag, `[]` on any error. `landing/showcase.test.ts` covers parsing and the error paths.
 - `landing-nav-user.ts` — `getLandingNavUser(user)`: the public nav's `NavUser`, named after the vendor's stall via `loadEntitlement()` and `toNavUser` from `@merqo/ui`; falls back to the auth-user name when the vendor read fails.
 - `landing-nav-user.test.ts` — tests the stall name, the no-vendor-row fallback, the failed-read fallback and the signed-out null.
 - `action-result.ts` — `ActionResult<T>` discriminated union plus the `ok(data?)` and `fail(error)` constructors; build Server Action results with these, never `{ success }` literals (import them, a `"use server"` file cannot re-export them)

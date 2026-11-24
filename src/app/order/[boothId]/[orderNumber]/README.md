@@ -20,7 +20,9 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   the self-checkout pickup kiosk's server action (`../pickup/`). Token-gated
   and rate-limited like the other customer actions (20/60s per IP+booth — a
   busier limit than the payment actions since a kiosk can legitimately fire
-  many scans in a shift). Distinguishes three non-error outcomes a `ready`
+  many scans in a shift). Refuses with "Self-checkout pickup is off for this
+  booth." when the booth's `pickup_scan_enabled` is false or the booth is
+  missing (checked before the order read). Distinguishes three non-error outcomes a `ready`
   order can already be in: `"Not ready yet."` (still `preparing`/etc.),
   `"Already collected."` (a double-scan, `status === "completed"`), and a
   successful `{ success: true, status: "completed" }` for the one legal
@@ -30,7 +32,7 @@ surfaces a loyalty "earn a stamp" link once the order completes.
   `recordOrderStatusEvent` with `actor: null` (no authenticated user at an
   unattended kiosk, unlike every other caller of that function).
 - `collect-actions.test.ts` — unit tests for the ready/not-ready/already-
-  completed/invalid-ref/rate-limited branches, plus the update-race
+  completed/invalid-ref/rate-limited/switch-off branches, plus the update-race
   ("Order changed") and update-error paths.
 - `earn-link.tsx` — `EarnLink({ orderId, vendorId, loopkitBaseUrl })` (async
   server component): asks `getEarnOffer` (`@/lib/loopkit/earn-offer`, a

@@ -40,6 +40,10 @@ export type DbFunctions = {
     Args: { p_vendor_id: string; p_from: string; p_to: string };
     Returns: number;
   };
+  help_feedback_counts: {
+    Args: Record<string, never>;
+    Returns: { article_slug: string; helpful: number; not_helpful: number }[];
+  };
   purge_order_idempotency_keys: {
     Args: Record<string, never>;
     Returns: number;
@@ -80,6 +84,10 @@ export type DbFunctions = {
       p_issued_at: string;
     };
     Returns: boolean;
+  };
+  get_showcase_vendors: {
+    Args: Record<string, never>;
+    Returns: { name: string; logo_url: string | null }[];
   };
   gen_short_code: {
     Args: Record<string, never>;

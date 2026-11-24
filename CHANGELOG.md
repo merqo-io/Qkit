@@ -6,10 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.
+- `GET /api/merqo/vendor-activity` now returns `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null), so merqo can start the free Pro trial at the first order. Additive; existing fields are unchanged.
+
 ### Changed
 
+- The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
+- Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.
 - Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.
 - Vendor board: the payment buttons "Confirm payment received" and "Mark as paid" are now one shorter "Mark paid" label. Help articles, the tour and the README follow; old wording stays a help search keyword.
+
+### Added
+
+- Admin: a "Show on landing page" switch on each vendor's detail page picks which vendors appear in a "Vendors on qkit" showcase, using their profile picture as the logo. Migration 0123 adds `vendors.showcase_on_landing` (admin-only) and the anonymous `get_showcase_vendors()` RPC; a cached `getShowcaseVendors()` loader is ready for the landing page. Toggles are audited.
 
 ### Fixed
 
@@ -23,6 +34,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Landing: a "Vendors on qkit" showcase after the hero (static row for 1-3 vendors, scrolling marquee for 4-11, card grid for 12 or more). The list ships empty, so the page is unchanged until a later change feeds it.
 - Help center: every article ends with "Was this helpful?" (Yes / No, optional "What was missing?" comment on No). Votes are stored per vendor in `qkit.help_feedback` (migration 0122, apply before deploying) and the admin page shows helpful / not helpful counts and the latest No comments next to the stale-article list.
 
 - Signup and the reset-password form now name the rule a weak password broke (too short, missing character types, or found in a data breach) instead of showing the raw server message. Both forms also get a "Password requirements" info hint (the reset form's old "at least 8 characters" helper line is replaced by it).
@@ -30,6 +42,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Admin help panel: vote counts now come from `qkit.help_feedback_counts()` (migration 0124, apply before deploying) and the latest No comments from a five-row query, replacing a scan of up to 5000 votes, so the page cost stays flat as votes grow. Until 0123 is applied the panel hides its feedback section.
 - Repinned `@merqo/ui` to v0.60.0: the Terms "Fees and billing" section changed and the shared legal version date is bumped, so vendors are asked to accept the updated terms again.
 - Repinned `@merqo/ui` to v0.59.1 and moved the landing nav's FAQ and About links into its `links` prop: they sit inline from sm up and inside a burger menu below sm, so the phone bar stays one line (wordmark, burger, Get started or avatar).
 - The terms, privacy and accept-terms pages now use `@merqo/ui`'s `LegalPage` / `legalPageMetadata` and `AcceptTermsPage`. Each page gets a qkit wordmark linking home and a proper title; the accept page keeps its sanitised `next` and runs no legal gate. The local `accept-form.tsx` is removed.
