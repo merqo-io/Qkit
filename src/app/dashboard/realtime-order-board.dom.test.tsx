@@ -414,11 +414,14 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       screen.queryByRole("button", { name: /start all/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Accepted (1)" }),
+      screen.getByRole("button", { name: "Preparing (1)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ready (0)" }),
     ).toBeInTheDocument();
   });
 
-  it("offers both sections with their counts, so neither can be missed", () => {
+  it("offers all three sections with their counts, so neither can be missed", () => {
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
@@ -431,7 +434,7 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       screen.getByRole("button", { name: "Incoming (1)" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("button", { name: "Accepted (1)" }),
+      screen.getByRole("button", { name: "Preparing (1)" }),
     ).toHaveAttribute("aria-pressed", "false");
   });
 
@@ -445,13 +448,13 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    await user.click(screen.getByRole("button", { name: "Accepted (1)" }));
+    await user.click(screen.getByRole("button", { name: "Preparing (1)" }));
     expect(
-      screen.getByRole("button", { name: "Accepted (1)" }),
+      screen.getByRole("button", { name: "Preparing (1)" }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("does not offer a switch when only one section has orders", () => {
+  it("keeps all three sections on offer when only one has orders", () => {
     render(
       <RealtimeOrderBoard
         booths={BOOTHS}
@@ -460,9 +463,8 @@ describe("RealtimeOrderBoard phone section switcher", () => {
       />,
       { wrapper: TooltipProvider },
     );
-    expect(
-      screen.queryByRole("group", { name: "Which orders to show" }),
-    ).not.toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "Which orders to show" });
+    expect(within(group).getAllByRole("button")).toHaveLength(3);
   });
 });
 
@@ -1232,7 +1234,7 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
       { wrapper: TooltipProvider },
     );
 
-    await user.click(screen.getByRole("button", { name: /^select$/i }));
+    await user.click(screen.getAllByRole("button", { name: /^select$/i })[0]);
     await user.click(screen.getByRole("button", { name: "Select all" }));
     // Nothing happens until the vendor reads the counts and confirms one.
     expect(advanceOrder).not.toHaveBeenCalled();
@@ -1269,8 +1271,8 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
     // Nothing left ticked: select mode ends.
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: /^select$/i }),
-      ).toBeInTheDocument(),
+        screen.getAllByRole("button", { name: /^select$/i }),
+      ).not.toHaveLength(0),
     );
   });
 
@@ -1526,31 +1528,32 @@ describe("RealtimeOrderBoard batch mark-ready", () => {
   });
 });
 
-describe("RealtimeOrderBoard Accepted header", () => {
-  function renderBoard(orders: BoardOrder[]) {
-    render(
-      <RealtimeOrderBoard
-        booths={BOOTHS}
-        initialOrders={orders}
-        boardSettings={DEFAULT_BOARD_SETTINGS}
-      />,
-      { wrapper: TooltipProvider },
-    );
-  }
-  const acceptedHeader = () =>
-    screen.getByRole("heading", { name: /^Accepted \(\d+\)$/ })
+function renderBoard(orders: BoardOrder[]) {
+  render(
+    <RealtimeOrderBoard
+      booths={BOOTHS}
+      initialOrders={orders}
+      boardSettings={DEFAULT_BOARD_SETTINGS}
+    />,
+    { wrapper: TooltipProvider },
+  );
+}
+
+describe("RealtimeOrderBoard Preparing header", () => {
+  const preparingHeader = () =>
+    screen.getByRole("heading", { name: /^Preparing \(\d+\)$/ })
       .parentElement as HTMLElement;
 
-  it("puts Select in the Accepted header, the only section it acts on", () => {
+  it("puts Select in the Preparing header", () => {
     renderBoard([
       order({ id: "o1", order_number: "0001", status: "pending" }),
       order({ id: "o2", order_number: "0002", status: "preparing" }),
     ]);
     expect(
-      within(acceptedHeader()).getByRole("button", { name: /^select$/i }),
+      within(preparingHeader()).getByRole("button", { name: /^select$/i }),
     ).toBeInTheDocument();
     expect(
-      within(acceptedHeader()).getByRole("button", { name: "About Select" }),
+      within(preparingHeader()).getByRole("button", { name: "About Select" }),
     ).toBeInTheDocument();
   });
 
@@ -1567,7 +1570,7 @@ describe("RealtimeOrderBoard Accepted header", () => {
     ]);
 
     await user.click(
-      within(acceptedHeader()).getByRole("button", {
+      within(preparingHeader()).getByRole("button", {
         name: "Mark all 2 ready",
       }),
     );
@@ -1624,47 +1627,50 @@ describe("RealtimeOrderBoard Accepted header", () => {
   });
 });
 
-describe("RealtimeOrderBoard incoming/accepted split", () => {
-  it("groups a pending order under Incoming, separate from an accepted one", () => {
-    render(
-      <RealtimeOrderBoard
-        booths={BOOTHS}
-        initialOrders={[
-          order({ id: "o1", order_number: "0001", status: "pending" }),
-          order({ id: "o2", order_number: "0002", status: "preparing" }),
-        ]}
-        boardSettings={DEFAULT_BOARD_SETTINGS}
-      />,
-      { wrapper: TooltipProvider },
-    );
-
-    // Each label appears twice now: the section heading, and the phone-only
-    // SectionSwitcher tab. Query the headings specifically.
+describe("RealtimeOrderBoard three-column split", () => {
+  it("puts pending, preparing and ready orders in their own columns", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "pending" }),
+      order({ id: "o2", order_number: "0002", status: "confirmed" }),
+      order({ id: "o3", order_number: "0003", status: "preparing" }),
+      order({ id: "o4", order_number: "0004", status: "ready" }),
+    ]);
     expect(
-      screen.getByRole("heading", { name: "Incoming (1)" }),
+      screen.getByRole("heading", { name: "Incoming (2)" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Accepted (1)" }),
+      screen.getByRole("heading", { name: "Preparing (1)" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /start now/i }),
+      screen.getByRole("heading", { name: "Ready (1)" }),
     ).toBeInTheDocument();
   });
 
-  it("keeps the Accepted header when every order is accepted, since Select lives there", () => {
-    render(
-      <RealtimeOrderBoard
-        booths={BOOTHS}
-        initialOrders={[order({ id: "o1", status: "preparing" })]}
-        boardSettings={DEFAULT_BOARD_SETTINGS}
-      />,
-      { wrapper: TooltipProvider },
-    );
-
-    expect(screen.queryByText(/^Incoming/)).not.toBeInTheDocument();
+  it("keeps every column, with an empty state, when only one has orders", () => {
+    renderBoard([order({ id: "o1", status: "preparing" })]);
     expect(
-      screen.getByRole("heading", { name: "Accepted (1)" }),
+      screen.getByRole("heading", { name: "Incoming (0)" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("No new orders")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Ready (0)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Nothing waiting for pickup")).toBeInTheDocument();
+  });
+
+  it("offers Select in the Ready header and no bulk mark-ready there", () => {
+    renderBoard([
+      order({ id: "o1", order_number: "0001", status: "ready" }),
+      order({ id: "o2", order_number: "0002", status: "ready" }),
+    ]);
+    const header = screen.getByRole("heading", { name: "Ready (2)" })
+      .parentElement as HTMLElement;
+    expect(
+      within(header).getByRole("button", { name: /^select$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^mark all/i }),
+    ).not.toBeInTheDocument();
   });
 });
 

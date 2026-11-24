@@ -5,7 +5,7 @@ export const article: HelpArticle = {
   category: "getting-started",
   title: "Getting started",
   summary: "Build your first booth, print the QR and take your first order.",
-  reviewed: "2026-11-11",
+  reviewed: "2026-11-24",
   uiLabels: [
     "Create account",
     "Continue with Google",
@@ -24,7 +24,8 @@ export const article: HelpArticle = {
     "Regenerate QR",
     "Resume booth",
     "Incoming",
-    "Accepted",
+    "Preparing",
+    "Ready",
   ],
   covers: [
     "src/app/(auth)/login/page.tsx",
@@ -134,7 +135,7 @@ export const article: HelpArticle = {
       items: [
         "Scan your own QR on a phone and place a test order.",
         "Open your dashboard. The order shows up on the board under Incoming straight away, with no refresh.",
-        "Once you start an order it moves under Accepted. From there you mark it ready, then picked up.",
+        "Once you start an order it moves under Preparing. Mark it ready and it moves under Ready, then mark it picked up.",
       ],
     },
     {

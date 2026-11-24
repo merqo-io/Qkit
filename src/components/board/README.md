@@ -109,7 +109,9 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   disabled once already bumped.
   In multi-booth view, a full-width banner above the header shows the booth
   name next to a `boothColor()` dot. One "attention wash" background at a
-  time, prioritized overdue > payment-claimed > aging. The footer's elapsed
+  time, prioritized overdue > payment-claimed > aging; payment-claimed is a
+  primary-coloured border on a plain card plus a filled primary attention line,
+  never a blue wash; its "Mark paid" buttons use the deep-amber `status-payment-claimed` token. The footer's elapsed
   "Nm" label and the aging tone come from `useNow`, which is `null` until
   mount, so the card SSRs with no label and a "fresh" tone and fills both in on
   the client (no hydration text mismatch). A closed card whose

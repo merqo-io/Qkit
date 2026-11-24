@@ -109,11 +109,11 @@ export const LANDING_BOARDS: LandingBoardData[] = [
     title: "Kopitiam Cart",
     lead: "Mark Ready.",
     caption:
-      "Ada's kopi is done. Her ticket also tells you she hasn't paid yet.",
+      "Priya's kopi is done. Her ticket also tells you she hasn't paid yet.",
     orders: [
       {
         number: "0042",
-        name: "Ada",
+        name: "Priya",
         status: "preparing",
         ageMins: 4,
         payment: "pending",

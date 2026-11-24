@@ -6,11 +6,12 @@ export const article: HelpArticle = {
   title: "Running a service",
   summary:
     "Work the live board, log walk-up orders, restart the count and show the TV screen.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-24",
   uiLabels: [
     "Live orders",
     "Incoming",
-    "Accepted",
+    "Preparing",
+    "Ready",
     "Start now",
     "Start all",
     "Mark Ready",
@@ -61,8 +62,8 @@ export const article: HelpArticle = {
       type: "bullets",
       items: [
         "Incoming holds orders you have not started yet.",
-        "Accepted holds orders you have started, from being made through to ready for collection.",
-        "On a phone, when both lists have orders, switch between them with the tabs at the top.",
+        "Preparing holds orders you have started and are making. Ready holds orders waiting for collection.",
+        "On a phone or tablet, switch between the three lists with the tabs at the top.",
         "With more than one booth, filter the board by booth and sort by order age.",
       ],
     },
@@ -139,7 +140,7 @@ export const article: HelpArticle = {
       type: "steps",
       items: [
         "Tap Select on the board. A bar appears along the bottom.",
-        "Tick the accepted orders you want, or tap Select all. Tap Clear all to untick everything.",
+        "Tick the preparing or ready orders you want, or tap Select all. Tap Clear all to untick everything.",
         "Tap Mark N Ready for ones still being made, or Mark N Picked Up for ones already ready. N is the number of ticked orders the button will move. With nothing ticked the button reads Pick orders.",
         "A message confirms how many moved and carries an Undo button for a few seconds.",
       ],

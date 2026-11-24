@@ -35,7 +35,10 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "qkit | Take orders, not queues",
+  title: {
+    default: "qkit | Take orders, not queues",
+    template: "%s | qkit",
+  },
   description:
     "Customers scan your QR or open your link, order and pay by PayNow. You run every order from one live board.",
   // iOS standalone PWA chrome (status bar + home-screen title).

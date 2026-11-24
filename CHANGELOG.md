@@ -6,8 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The vendor board "Mark paid" buttons are now warm deep amber instead of blue, matching the rest of the kopitiam palette in light and dark themes.
+- The order page shows "Customize" only on items that have something to choose; items with empty option groups get a plain "Add". Items without a photo already render as clean text rows.
+
 ### Added
 
+- The landing page now shows the after-pilot prices (Event Pass S$14 to S$28 per event at 15c a cup, Pro S$19.90/month) with one short free-pilot line, and the hero promises a 10-minute setup and PayNow. The PILOTING badge is replaced by a Singapore line, order 0042 is Priya in both demos, and pages get their own tab titles (booth name on the order page, Dashboard, Sign in).
+- The public TV queue display is easier to read from across a stall: a large "Orders will appear here" empty state, an "Order here" prompt beside the QR, and the text-size and sound controls fade out when idle and return on any touch, mouse move or key press.
+- The live board now has three columns, Incoming, Preparing and Ready, instead of Incoming and Accepted, so orders waiting for pickup no longer hide among those still being made. Phones and tablets switch between the three with counts; each column has its own empty state.
+- The public TV queue display now shows the booth's ordering QR with a "Scan to order" label, so customers can order from the screen.
 - Docs: the NCS readiness staging matrix now cites automated coverage per row, with a manual staging checklist and known limits. New tests cover payment state staying unchanged through fulfillment and repeated daily numbers across days and booths.
 - Tests: `e2e/order-concurrency.spec.ts` drives `place_order` with concurrent anon clients against local Supabase: a 20-order burst, repeated idempotency keys, the last cups under a daily cap, and same-name customers.
 - The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.
@@ -15,6 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Board: a ticket that says it was paid now keeps a plain card with the warm primary border and an amber label, instead of turning the whole card blue.
 - The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
 - Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.
 - Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.

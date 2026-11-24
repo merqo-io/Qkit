@@ -50,8 +50,12 @@ notice.
   invalid boothId and a missing booth, and that a real booth's name/id/
   initial orders reach `QueueDisplay` as props.
 - `queue-display.tsx` — `QueueDisplay({ boothId, boothName, initialOrders })`
-  client component: carries a faint `ScreenSizeControl` (`display` key) in the
-  header, brightening on hover or focus; polls `getBoothQueueDisplay` every 5s (`usePolling`,
+  client component: carries the `ScreenSizeControl` (`display` key) and the
+  "Enable sound" button in a header group that fades out after 5s without
+  mousemove, pointerdown, keydown or focusin and returns on any of them
+  (stays focusable while hidden; the fade only animates under
+  `motion-safe`). An empty board shows "Orders will appear here" at display
+  size, with larger per-column empty lines; polls `getBoothQueueDisplay` every 5s (`usePolling`,
   same 5s cadence as `../[orderNumber]/order-status-poller.tsx` — no
   realtime here either, same rationale). Diffs each poll against the
   previous status snapshot (seeded from `initialOrders` on mount, so
@@ -128,6 +132,13 @@ notice.
   `null`) keeping the last good state instead of clearing the screen,
   each column's own render cap plus its "+N more" line, and that a
   fresh tile keeps its server position rather than moving to the front.
+  An "Order here" panel with a one-line PayNow prompt (`aside`) carries the booth's ordering QR, built from
+  `orderPath(code)` on the client origin, the same URL as the dashboard QR
+  poster, so a regenerated short code is picked up on the next load. It is a
+  third column on landscape screens and a bottom row on portrait, so it never
+  covers Preparing or Ready. It is always shown: the page loads once and a TV
+  stays on for hours, so the order page owns the closed and paused states.
+
 - `loading.tsx` — deliberately plain dark screen with one pulsing bar while the service-client queries run; this is a venue TV, so no shaped skeleton. It sits here, not in `[boothId]/`, so it does not wrap the order status or pickup pages.
 - `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative bar.
 

@@ -63,6 +63,13 @@ export function formatOptions(options?: { choice: string }[] | null): string {
 
 /** Label for a menu item's add/customize button, shared by the customer
  *  order form and the vendor's walk-up order dialog. */
+/** True when at least one option group offers a choice; empty groups give the customer nothing to pick. */
+export function itemHasChoices(item: {
+  option_groups?: { choices: unknown[] }[];
+}): boolean {
+  return (item.option_groups ?? []).some((g) => g.choices.length > 0);
+}
+
 export function menuItemActionLabel(
   soldOut: boolean,
   hasOptions: boolean,
