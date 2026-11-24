@@ -19,6 +19,7 @@ import {
 export interface BatchControls {
   selectMode: boolean;
   preparingIds: string[];
+  readyIds: string[];
   batchableIds: string[];
   startableIds: string[];
   advancing: boolean;
@@ -125,7 +126,9 @@ export function BoardColumns({
           hiddenOnPhone={hide("ready")}
           action={
             !batch.selectMode &&
-            ready.length > 0 && <SelectButton onStart={batch.onStartSelect} />
+            batch.readyIds.length > 0 && (
+              <SelectButton onStart={batch.onStartSelect} />
+            )
           }
           empty={<EmptyColumn>Nothing waiting for pickup</EmptyColumn>}
           renderCard={renderCard}
