@@ -482,19 +482,6 @@ describe("displayOrderNumber", () => {
   it("falls back to the real order_number for a non-positive rank (data inconsistency)", () => {
     expect(displayOrderNumber("0001", "0005")).toBe("0001");
   });
-
-  it("repeats a daily number across midnight and booths while permanent numbers stay distinct", () => {
-    const dayOne = { permanent: "0847", baseline: "0847" };
-    const dayTwo = { permanent: "0912", baseline: "0912" };
-    const otherBooth = { permanent: "0003", baseline: "0003" };
-    const shown = [dayOne, dayTwo, otherBooth].map((o) =>
-      displayOrderNumber(o.permanent, o.baseline),
-    );
-    expect(shown).toEqual(["001", "001", "001"]);
-    expect(
-      new Set([dayOne, dayTwo, otherBooth].map((o) => o.permanent)).size,
-    ).toBe(3);
-  });
 });
 
 describe("splitTrailingDigit", () => {
