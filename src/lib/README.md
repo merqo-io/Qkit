@@ -554,6 +554,7 @@ boolean`, migration 0080 — orders, booth_item_sold —
   (a real CodeQL finding: remote property injection).
 - `tour-ids.test.ts` — asserts every `TOUR_IDS` entry parses and an
   arbitrary string (including `"__proto__"`) is rejected.
+- `modifier-groups.ts` — pure helpers for the booth modifier group library (`booths.modifier_groups`): `expandLinkedGroups` refreshes every inline copy carrying a `shared_id`, `linkGroup`, `unlinkGroup`, `usageCount`, `removeLibraryGroup`, `promoteToLibrary` and `hasDuplicateGroupLabels`. Unit-tested; no I/O.
 - `ticket.ts` — what the order ticket prints, kept pure so it is unit-tested
   apart from the card: `buildOptionCodes(menuItems)` (a booth's short codes
   keyed by item, group and choice label, since an order stores labels),

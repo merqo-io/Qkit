@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { webcrypto } from "node:crypto";
@@ -684,6 +690,65 @@ describe("OrderForm cart", () => {
       storage.mockRestore();
     },
   );
+
+  it("places one order when Place order is tapped twice before a re-render", async () => {
+    let resolve!: (v: unknown) => void;
+    placeOrder.mockImplementationOnce(() => new Promise((r) => (resolve = r)));
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Your name"), "Ada");
+    const button = within(dialog).getByRole("button", { name: /Place order/ });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(placeOrder).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(placeOrder).toHaveBeenCalledTimes(1);
+    resolve({
+      success: true,
+      orderNumber: "0042",
+      boothId: "b1",
+      accessToken: "tok42",
+    });
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith("/order/b1/0042?t=tok42"),
+    );
+    expect(placeOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses one key across retries when sessionStorage reads and writes both throw", async () => {
+    placeOrder
+      .mockRejectedValueOnce(new Error("Lost response"))
+      .mockRejectedValueOnce(new Error("Lost retry"));
+    const blocked = () => {
+      throw new DOMException("Blocked", "SecurityError");
+    };
+    const getItem = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(blocked);
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(blocked);
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Your name"), "Ada");
+    await user.click(
+      within(dialog).getByRole("button", { name: /Place order/ }),
+    );
+    await waitFor(() => expect(placeOrder).toHaveBeenCalledTimes(2));
+    await user.click(
+      within(dialog).getByRole("button", { name: /Place order/ }),
+    );
+    await waitFor(() => expect(placeOrder).toHaveBeenCalledTimes(3));
+    expect(new Set(placeOrder.mock.calls.map((call) => call[2])).size).toBe(1);
+    getItem.mockRestore();
+    setItem.mockRestore();
+  });
 
   it("renders the phone field as optional and submits successfully when left blank", async () => {
     const user = userEvent.setup();

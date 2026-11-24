@@ -1,37 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Settings2,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Button,
-  Checkbox,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Input,
-  Label,
   ToggleGroup,
   ToggleGroupItem,
 } from "@merqo/ui/primitives";
 
-import { OPTION_CODE_MAX, suggestOptionCode } from "@/lib/ticket";
 import { ProLock } from "@/components/widgets/pro-lock";
 import { canHaveOptionGroups, type Entitlement } from "@/lib/plan";
-import { ALLERGEN_TAGS, type AllergenTag } from "@/lib/schemas";
+import type { AllergenTag } from "@/lib/schemas";
 import type { OptionChoice, OptionGroup } from "@/lib/types";
-import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
-import { MoneyInput } from "@merqo/ui";
+import {
+  linkGroup,
+  promoteToLibrary,
+  unlinkGroup,
+} from "@/lib/modifier-groups";
+import { ChoiceRow } from "./option-choice-row";
+import {
+  SavedGroupPicker,
+  SaveAsReusable,
+  SharedGroupCard,
+} from "./saved-group-controls";
 
 interface Props {
   groups: OptionGroup[];
@@ -40,23 +33,15 @@ interface Props {
   // The item's own fixed allergens — for the "customer sees" preview below,
   // same union item-customizer.tsx computes at order time.
   itemAllergens: AllergenTag[];
-}
-
-function hasAdvancedSet(choice: OptionChoice): boolean {
-  return (
-    (choice.cost_delta_cents !== null &&
-      choice.cost_delta_cents !== undefined) ||
-    (choice.allergens?.length ?? 0) > 0 ||
-    Boolean(choice.code)
-  );
-}
-
-// Same union logic as item-customizer.tsx's live customer-facing badge.
-function effectiveAllergens(
-  itemAllergens: AllergenTag[],
-  choiceAllergens: AllergenTag[] | undefined,
-): AllergenTag[] {
-  return Array.from(new Set([...itemAllergens, ...(choiceAllergens ?? [])]));
+  // Booth-wide reusable groups. Set on an item's editor, they enable the
+  // "Add saved group" picker and "Save as reusable".
+  library?: OptionGroup[];
+  onLibraryChange?: (library: OptionGroup[]) => void;
+  onEditShared?: (sharedId: string) => void;
+  // Library mode: the caller owns removal (it needs a confirm) and adds groups
+  // itself, so the per-item cap and the add button do not apply.
+  onRemoveGroup?: (groupId: string) => void;
+  libraryMode?: boolean;
 }
 
 /**
@@ -69,7 +54,13 @@ export function OptionGroupsEditor({
   onChange,
   entitlement,
   itemAllergens,
+  library,
+  onLibraryChange,
+  onEditShared,
+  onRemoveGroup,
+  libraryMode = false,
 }: Props) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   // Advanced (cost + allergens) opens in a modal, one at a time — an
   // accordion here left every previously-opened choice's panel expanded
   // underneath the next, which got unreadable fast.
@@ -91,7 +82,8 @@ export function OptionGroupsEditor({
 
   // canHaveOptionGroups(count) asks "may an item carry `count` groups?" — so the
   // cap is hit when adding one more (groups.length + 1) is not allowed.
-  const atGroupCap = !canHaveOptionGroups(entitlement, groups.length + 1);
+  const atGroupCap =
+    !libraryMode && !canHaveOptionGroups(entitlement, groups.length + 1);
   function updateGroup(gi: number, patch: Partial<OptionGroup>) {
     onChange(groups.map((g, i) => (i === gi ? { ...g, ...patch } : g)));
   }
@@ -109,8 +101,51 @@ export function OptionGroupsEditor({
   }
 
   function removeGroup(gi: number) {
+    if (onRemoveGroup) {
+      onRemoveGroup(groups[gi]!.id);
+      return;
+    }
     onChange(groups.filter((_, i) => i !== gi));
   }
+
+  function attach(sharedId: string) {
+    if (!library) return;
+    const result = linkGroup(
+      { option_groups: groups },
+      library,
+      sharedId,
+      crypto.randomUUID(),
+    );
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onChange(result.value.option_groups ?? groups);
+    setPickerOpen(false);
+  }
+
+  function detach(groupId: string) {
+    onChange(unlinkGroup({ option_groups: groups }, groupId).option_groups!);
+  }
+
+  function saveAsReusable(groupId: string) {
+    if (!library || !onLibraryChange) return;
+    const result = promoteToLibrary(
+      library,
+      { option_groups: groups },
+      groupId,
+      crypto.randomUUID(),
+    );
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onLibraryChange(result.value.library);
+    onChange(result.value.item.option_groups ?? groups);
+    toast.success("Saved to reusable groups");
+  }
+
+  const labelsOnItem = new Set(groups.map((g) => g.label.trim().toLowerCase()));
 
   function updateChoiceLabel(gi: number, ci: number, label: string) {
     const group = groups[gi];
@@ -169,6 +204,16 @@ export function OptionGroupsEditor({
   return (
     <div className="space-y-3">
       {groups.map((group, gi) => {
+        if (group.shared_id !== undefined && !libraryMode) {
+          return (
+            <SharedGroupCard
+              key={group.id}
+              group={group}
+              onEditForAll={() => onEditShared?.(group.shared_id!)}
+              onUnlink={() => detach(group.id)}
+            />
+          );
+        }
         const isCollapsed = collapsedGroups.has(group.id);
         return (
           <div
@@ -285,18 +330,25 @@ export function OptionGroupsEditor({
                 </Button>
               </div>
             )}
+            {!libraryMode && library && onLibraryChange && (
+              <SaveAsReusable
+                named={group.label.trim().length > 0}
+                onClick={() => saveAsReusable(group.id)}
+              />
+            )}
           </div>
         );
       })}
 
-      {atGroupCap ? (
+      {!libraryMode && atGroupCap && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>
             {entitlement.maxOptionGroupsPerItem}-group limit per item.
           </span>
           <ProLock feature="option_groups" label="See plans" />
         </div>
-      ) : (
+      )}
+      {!libraryMode && !atGroupCap && (
         <Button
           type="button"
           variant="outline"
@@ -307,188 +359,15 @@ export function OptionGroupsEditor({
           <Plus className="size-3.5" /> Add option group
         </Button>
       )}
-    </div>
-  );
-}
-
-function ChoiceRow({
-  choice,
-  disableRemove,
-  itemAllergens,
-  isAdvancedOpen,
-  onAdvancedOpenChange,
-  onLabelChange,
-  onPriceChange,
-  onCostChange,
-  onCodeChange,
-  onAllergenToggle,
-  onRemove,
-}: {
-  choice: OptionChoice;
-  disableRemove: boolean;
-  itemAllergens: AllergenTag[];
-  isAdvancedOpen: boolean;
-  onAdvancedOpenChange: (open: boolean) => void;
-  onLabelChange: (label: string) => void;
-  onPriceChange: (cents: number | undefined) => void;
-  onCostChange: (cents: number | undefined) => void;
-  onCodeChange: (code: string) => void;
-  onAllergenToggle: (tag: AllergenTag, checked: boolean) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row">
-      <Input
-        placeholder="Choice (e.g. Small)"
-        aria-label="Choice name"
-        value={choice.label}
-        onChange={(e) => onLabelChange(e.target.value)}
-        className="rounded-lg bg-background"
-      />
-      <div className="flex gap-2">
-        {/* Price matters to every vendor, always visible, not behind the
-            Advanced dialog. Grows on mobile (fills the row beside the two
-            fixed icon buttons instead of cramping into a fixed 7rem);
-            pinned back to that width at sm:+, where it sits after the
-            choice-name input. */}
-        <div className="relative min-w-[6rem] flex-1 sm:w-28 sm:flex-none">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            $
-          </span>
-          <MoneyInput
-            placeholder="Price (opt.)"
-            aria-label={`Extra price for ${choice.label || "this choice"}`}
-            cents={choice.price_delta_cents}
-            onCommit={onPriceChange}
-            className="rounded-lg bg-background pl-6"
-          />
-        </div>
-        <Dialog open={isAdvancedOpen} onOpenChange={onAdvancedOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="relative shrink-0 rounded-lg bg-background text-muted-foreground"
-              aria-label={`Advanced options for ${choice.label || "this choice"}`}
-            >
-              <Settings2 className="size-4" />
-              {hasAdvancedSet(choice) && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-primary"
-                />
-              )}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Advanced: {choice.label || "Choice"}</DialogTitle>
-              <DialogDescription>
-                A short code for the order ticket, plus extra cost and allergens
-                only when this choice is picked.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor={`code-${choice.id}`} className="text-sm">
-                  Short code on the order ticket
-                </Label>
-                <Input
-                  id={`code-${choice.id}`}
-                  value={choice.code ?? ""}
-                  onChange={(e) => onCodeChange(e.target.value)}
-                  maxLength={OPTION_CODE_MAX}
-                  placeholder={suggestOptionCode(choice.label) || "e.g. LS"}
-                  autoCapitalize="characters"
-                  className="w-32 rounded-lg font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your own shorthand, so a ticket reads quickly. Leave it blank
-                  and the ticket prints the choice in full.
-                </p>
-              </div>
-              <div className="relative w-32">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  $
-                </span>
-                <MoneyInput
-                  placeholder="Cost (opt.)"
-                  aria-label={`Extra cost of ${choice.label || "this choice"}`}
-                  cents={choice.cost_delta_cents}
-                  onCommit={onCostChange}
-                  className="rounded-lg pl-6"
-                />
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {ALLERGEN_TAGS.map((tag) => (
-                  <label
-                    key={tag}
-                    className="flex items-center gap-1.5 text-xs capitalize"
-                  >
-                    <Checkbox
-                      checked={(choice.allergens ?? []).includes(tag)}
-                      onCheckedChange={(checked) =>
-                        onAllergenToggle(tag, checked === true)
-                      }
-                    />
-                    <span aria-hidden="true">{ALLERGEN_ICONS[tag]}</span>
-                    {tag}
-                  </label>
-                ))}
-              </div>
-              {(() => {
-                const effective = effectiveAllergens(
-                  itemAllergens,
-                  choice.allergens,
-                );
-                return (
-                  effective.length > 0 && (
-                    <div className="space-y-1 border-t border-border/60 pt-3">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Customer sees when picked:
-                      </p>
-                      <div
-                        role="status"
-                        aria-label="Contains allergens"
-                        className="flex flex-wrap gap-1.5"
-                      >
-                        {effective.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-status-cancelled/40 bg-status-cancelled/10 px-2 py-0.5 text-xs font-medium capitalize text-status-cancelled"
-                          >
-                            <span aria-hidden="true">
-                              {ALLERGEN_ICONS[tag]}
-                            </span>{" "}
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                );
-              })()}
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button">Done</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="shrink-0 rounded-lg bg-background text-muted-foreground hover:text-destructive"
-          onClick={onRemove}
-          aria-label="Remove choice"
-          disabled={disableRemove}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
+      {!libraryMode && library && library.length > 0 && !atGroupCap && (
+        <SavedGroupPicker
+          library={library}
+          takenLabels={labelsOnItem}
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          onPick={attach}
+        />
+      )}
     </div>
   );
 }

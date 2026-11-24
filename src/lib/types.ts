@@ -164,6 +164,9 @@ export type OptionGroup = {
   // (checkbox, zero or more). A multi group emits several SelectedOption rows.
   multiple?: boolean;
   choices: OptionChoice[];
+  // Id of the booth library entry (`booths.modifier_groups`) this inline group
+  // is a full copy of. Unset = item-only. Orders still read the inline copy.
+  shared_id?: string;
 };
 export type SelectedOption = { group: string; choice: string };
 

@@ -176,4 +176,6 @@ are what stash the reorder handoff `OrderForm` reads on mount.
 - `powered-by-merqo.dom.test.tsx`: tests the link target.
 - `use-order-submission.ts`: the place-order flow with its one network retry,
   the saved pending attempt that lets a lost response be recovered, and the
-  recent-orders write and redirect.
+  recent-orders write and redirect. A synchronous in-flight guard drops a
+  second tap, and the attempt key lives in a ref so storage failures can't
+  mint a second key.

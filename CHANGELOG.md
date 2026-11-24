@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Docs: the NCS readiness staging matrix now cites automated coverage per row, with a manual staging checklist and known limits. New tests cover payment state staying unchanged through fulfillment and repeated daily numbers across days and booths.
+- Tests: `e2e/order-concurrency.spec.ts` drives `place_order` with concurrent anon clients against local Supabase: a 20-order burst, repeated idempotency keys, the last cups under a daily cap, and same-name customers.
 - The booth form shows the self-checkout pickup kiosk link (open and copy) once the switch is on for a saved booth.
 - `GET /api/merqo/vendor-activity` now returns `firstOrderAt` (earliest non-cancelled order across the vendor's booths, or null), so merqo can start the free Pro trial at the first order. Additive; existing fields are unchanged.
 
@@ -24,6 +26,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Customer order form: tapping Place order twice in quick succession could submit twice, and with browser storage blocked each tap minted a new idempotency key. A synchronous in-flight guard now ignores the second tap, and the attempt key is held in memory so retries reuse it.
+
 - Landing hero: at about 960 to 1100px the payment slide caption was clipped at the bottom of the sample card; the card now grows by the shortfall instead.
 - Landing hero carousel: at 960px and up the ticket zoom is now measured (one shared scale, 0.8 down to a 0.6 floor) so the board caption and tickets are no longer clipped between about 960 and 1180px wide.
 - Landing hero carousel: the Rush board now shows its amber and red tickets. The cards read their clock once on mount, so seeded ages sat up to 30s behind and Lim (12 min) and Aisha (7 min) never crossed the thresholds. Boards remount on re-seed, and Rush starts just under the thresholds then jumps over them halfway through its view (final state directly with reduced motion). At 960px and up the carousel card now spans exactly the text column (pill row to buttons) instead of setting the row height, with the sample tickets zoomed to 80%. The ready tickets' "Mark Picked Up" drain bar now empties over the board's 7s view (10s window, ready 3s ago) instead of barely moving.
@@ -33,6 +37,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Landing follow-ups: a burst of wheel events over the hero carousel restarts its countdown once; the carousel and the how-it-works story follow the reduced-motion setting live; with reduced motion the desktop story highlights the step in view again and no longer flashes the start state on first paint; the "user guide" link is a 44px tap target; the footer uses the compact two-row layout on phones.
 
 ### Added
+
+- Menu: booths now have a reusable modifier group library (`booths.modifier_groups`, migration 0125). A group linked to the library carries `shared_id` and is refreshed from it on every save; the migration promotes groups repeated identically across items. Data layer only, no UI yet. Apply the migration before deploying.
+
+- Menu: reusable modifier groups. Define a group once (for example Sugar level), add it to many items from "Add saved group", and edit it in one place; "Unlink" turns an item's copy back into its own group and "Save as reusable" promotes one.
 
 - Landing: a "Vendors on qkit" showcase after the hero (static row for 1-3 vendors, scrolling marquee for 4-11, card grid for 12 or more). The list ships empty, so the page is unchanged until a later change feeds it.
 - Help center: every article ends with "Was this helpful?" (Yes / No, optional "What was missing?" comment on No). Votes are stored per vendor in `qkit.help_feedback` (migration 0122, apply before deploying) and the admin page shows helpful / not helpful counts and the latest No comments next to the stale-article list.

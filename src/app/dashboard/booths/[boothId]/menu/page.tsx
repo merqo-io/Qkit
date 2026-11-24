@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
-import { parseMenuCategories, parseMenuItems } from "@/lib/schemas";
+import {
+  parseMenuCategories,
+  parseMenuItems,
+  parseModifierGroups,
+} from "@/lib/schemas";
 import { MenuManager } from "../../menu-manager";
 
 export const revalidate = 0;
@@ -20,7 +24,9 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
   // RLS scopes this to the vendor's own booths; a foreign id returns null.
   const { data: booth } = await supabase
     .from("booths")
-    .select("id, name, menu_items, menu_categories, daily_cup_cap")
+    .select(
+      "id, name, menu_items, menu_categories, modifier_groups, daily_cup_cap",
+    )
     .eq("id", boothId)
     .maybeSingle();
 
@@ -40,6 +46,7 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
     category: m.category,
   }));
   const categories = parseMenuCategories(booth.menu_categories);
+  const library = parseModifierGroups(booth.modifier_groups);
 
   return (
     <MenuManager
@@ -52,6 +59,7 @@ export default async function BoothMenuPage({ params, searchParams }: Props) {
       }
       initialItems={items}
       initialCategories={categories}
+      initialLibrary={library}
       isNewBooth={isNewParam === "1"}
     />
   );

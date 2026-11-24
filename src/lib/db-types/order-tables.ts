@@ -16,6 +16,8 @@ export type OrderTables = {
       name: string;
       menu_items: Json;
       menu_categories: Json;
+      modifier_groups: Json;
+      menu_revision: number;
       is_active: boolean;
       image_url: string | null;
       hours: Json | null;
@@ -40,6 +42,8 @@ export type OrderTables = {
       name: string;
       menu_items?: Json;
       menu_categories?: Json;
+      modifier_groups?: Json;
+      menu_revision?: number;
       is_active?: boolean;
       image_url?: string | null;
       hours?: Json | null;
@@ -64,6 +68,8 @@ export type OrderTables = {
       name?: string;
       menu_items?: Json;
       menu_categories?: Json;
+      modifier_groups?: Json;
+      menu_revision?: number;
       is_active?: boolean;
       image_url?: string | null;
       hours?: Json | null;
