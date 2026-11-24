@@ -1078,6 +1078,58 @@ describe("confirmOrderPayment", () => {
   });
 });
 
+describe("fulfillment leaves payment state alone", () => {
+  const writtenPatches = () =>
+    update.mock.calls.map(
+      (call: unknown[]) => call[0] as Record<string, unknown>,
+    );
+
+  it.each([
+    ["pending", "pending"],
+    ["pending", "claimed"],
+    ["preparing", "not_required"],
+    ["ready", "claimed"],
+  ] as const)(
+    "advancing %s with %s payment writes no payment fields",
+    async (status, paymentStatus) => {
+      maybeSingle.mockResolvedValue({
+        data: { id: ID, status, payment_status: paymentStatus },
+      });
+      const res = await advanceOrder(ID);
+      expect(res.success).toBe(true);
+      expect(update).toHaveBeenCalledTimes(1);
+      for (const patch of writtenPatches()) {
+        expect(Object.keys(patch).filter((k) => k.includes("payment"))).toEqual(
+          [],
+        );
+      }
+      expect(confirmCheckoutMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("undoing a completion writes no payment fields", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "completed", payment_status: "claimed" },
+    });
+    const res = await revertOrderAdvance(ID, "ready", "completed", "claimed");
+    expect(res.success).toBe(true);
+    for (const patch of writtenPatches()) {
+      expect(Object.keys(patch).filter((k) => k.includes("payment"))).toEqual(
+        [],
+      );
+    }
+  });
+
+  it("cancelling writes only the status", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: ID, status: "preparing", payment_status: "claimed" },
+    });
+    const res = await cancelOrder(ID);
+    expect(res.success).toBe(true);
+    expect(writtenPatches()).toEqual([{ status: "cancelled" }]);
+  });
+});
+
 describe("cancelOrder", () => {
   it("cancels a live order", async () => {
     maybeSingle.mockResolvedValue({
