@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueueDisplay } from "./queue-display";
 import type { QueueDisplayOrder } from "./actions";
@@ -59,10 +59,13 @@ beforeEach(() => {
 });
 
 describe("QueueDisplay", () => {
-  it("shows the Scan to order label and the QR", () => {
+  it("shows the Order here headline, prompt line and the QR", () => {
     renderDisplay([PREPARING]);
 
-    expect(screen.getByText("Scan to order")).toBeInTheDocument();
+    expect(screen.getByText("Order here")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Scan, order and pay by PayNow/),
+    ).toBeInTheDocument();
     expect(screen.getByTitle("Ordering QR code")).toBeInTheDocument();
     expect(screen.getByText("Preparing")).toBeInTheDocument();
     expect(screen.getByText("Ready for pickup")).toBeInTheDocument();
@@ -80,8 +83,53 @@ describe("QueueDisplay", () => {
   it("shows an empty-state line for each group with nothing in it", () => {
     renderDisplay([]);
 
-    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
+    expect(screen.queryByText("No orders in progress")).toBeNull();
     expect(screen.getByText("Nothing ready yet")).toBeInTheDocument();
+    expect(screen.getByText("Orders will appear here")).toBeInTheDocument();
+  });
+
+  it("keeps the Preparing empty line when only Preparing is empty", () => {
+    renderDisplay([READY]);
+
+    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
+  });
+
+  it("drops the big empty headline once any order exists", () => {
+    renderDisplay([READY]);
+
+    expect(screen.queryByText("Orders will appear here")).toBeNull();
+    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
+  });
+
+  it("hides vendor controls after idle and shows them again on interaction", () => {
+    vi.useFakeTimers();
+    try {
+      renderDisplay([]);
+      const wrapper = () =>
+        screen.getByRole("button", { name: /enable sound/i }).parentElement!;
+
+      expect(wrapper()).toHaveAttribute("data-controls-visible", "true");
+      act(() => {
+        vi.advanceTimersByTime(5100);
+      });
+      expect(wrapper()).toHaveAttribute("data-controls-visible", "false");
+
+      act(() => {
+        window.dispatchEvent(new Event("mousemove"));
+      });
+      expect(wrapper()).toHaveAttribute("data-controls-visible", "true");
+
+      act(() => {
+        vi.advanceTimersByTime(5100);
+      });
+      expect(wrapper()).toHaveAttribute("data-controls-visible", "false");
+      act(() => {
+        window.dispatchEvent(new Event("focusin"));
+      });
+      expect(wrapper()).toHaveAttribute("data-controls-visible", "true");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("polls on mount and reflects updated order data", async () => {
