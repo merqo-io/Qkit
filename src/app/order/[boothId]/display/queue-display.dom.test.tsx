@@ -83,15 +83,22 @@ describe("QueueDisplay", () => {
   it("shows an empty-state line for each group with nothing in it", () => {
     renderDisplay([]);
 
-    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
+    expect(screen.queryByText("No orders in progress")).toBeNull();
     expect(screen.getByText("Nothing ready yet")).toBeInTheDocument();
     expect(screen.getByText("Orders will appear here")).toBeInTheDocument();
+  });
+
+  it("keeps the Preparing empty line when only Preparing is empty", () => {
+    renderDisplay([READY]);
+
+    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
   });
 
   it("drops the big empty headline once any order exists", () => {
     renderDisplay([READY]);
 
     expect(screen.queryByText("Orders will appear here")).toBeNull();
+    expect(screen.getByText("No orders in progress")).toBeInTheDocument();
   });
 
   it("hides vendor controls after idle and shows them again on interaction", () => {

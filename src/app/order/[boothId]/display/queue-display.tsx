@@ -195,14 +195,15 @@ export function QueueDisplay({
           </h2>
           {preparing.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-              {ready.length === 0 && (
+              {ready.length === 0 ? (
                 <p className="font-display text-4xl font-semibold sm:text-5xl 2xl:text-6xl">
                   Orders will appear here
                 </p>
+              ) : (
+                <p className="text-2xl text-muted-foreground sm:text-3xl">
+                  No orders in progress
+                </p>
               )}
-              <p className="text-2xl text-muted-foreground sm:text-3xl">
-                No orders in progress
-              </p>
             </div>
           ) : (
             <>
@@ -289,7 +290,7 @@ export function QueueDisplay({
             Order here
           </h2>
           <p className="max-w-xs text-sm text-muted-foreground 2xl:text-lg">
-            Scan, order and pay by PayNow. We&apos;ll call your number.
+            Scan, order and pay by PayNow. Watch for your number here.
           </p>
           <div className="rounded-2xl bg-white p-4">
             {orderUrl ? (
