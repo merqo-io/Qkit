@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { placeOrder } from "@/app/o/[code]/actions";
@@ -100,13 +100,20 @@ export function useOrderSubmission({
   // Why the last attempt to place the order failed. Shown in the checkout
   // sheet beside the button, so it stays put until the customer acts on it.
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [unresolvedSubmit, setUnresolvedSubmit] = useState<PendingOrder | null>(
-    null,
-  );
+  // A ref, not state: the attempt's key must be readable by the very next tap
+  // and must survive sessionStorage being unavailable, so a retry reuses it.
+  const unresolvedSubmit = useRef<PendingOrder | null>(null);
+  const setUnresolvedSubmit = (attempt: PendingOrder | null) => {
+    unresolvedSubmit.current = attempt;
+  };
+  // Synchronous guard: `submitting` only disables the button after a re-render,
+  // so two taps in the same frame would both get through without this.
+  const inFlight = useRef(false);
 
   usePendingOrderNotice(boothId);
 
   async function onSubmit(formData: CheckoutFormValues) {
+    if (inFlight.current) return;
     if (closed) {
       toast.error("This booth is closed right now");
       return;
@@ -115,6 +122,17 @@ export function useOrderSubmission({
       toast.error("Add at least one item to your order");
       return;
     }
+    inFlight.current = true;
+    let placed = false;
+    try {
+      placed = await submitOrder(formData);
+    } finally {
+      // Held after success so a tap during navigation can't place a second order.
+      if (!placed) inFlight.current = false;
+    }
+  }
+
+  async function submitOrder(formData: CheckoutFormValues): Promise<boolean> {
     setSubmitting(true);
     setSubmitError(null);
 
@@ -125,13 +143,13 @@ export function useOrderSubmission({
     };
     const idem = await prepareOrderAttempt(
       boothId,
-      unresolvedSubmit,
+      unresolvedSubmit.current,
       setUnresolvedSubmit,
       input,
     );
     if (idem === null) {
       setSubmitting(false);
-      return;
+      return false;
     }
     // One retry on a transient network failure (patchy event-site signal) so a
     // dropped request doesn't lose the order. The DB order number is atomic, so
@@ -154,7 +172,7 @@ export function useOrderSubmission({
           "We couldn't confirm whether your order went through. Keep this page open and retry with the same details to recover it.",
         );
         setSubmitting(false);
-        return;
+        return false;
       }
     }
 
@@ -172,7 +190,7 @@ export function useOrderSubmission({
         result.error ?? "The order did not go through. Try again.",
       );
       setSubmitting(false);
-      return;
+      return false;
     }
 
     // Order placed — the persisted cart has served its purpose; drop it so
@@ -208,6 +226,7 @@ export function useOrderSubmission({
     } else {
       router.push(`/order/${result.boothId}/pay?t=${result.accessToken}`);
     }
+    return true;
   }
 
   return { submitting, submitError, onSubmit };

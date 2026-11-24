@@ -24,6 +24,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Customer order form: tapping Place order twice in quick succession could submit twice, and with browser storage blocked each tap minted a new idempotency key. A synchronous in-flight guard now ignores the second tap, and the attempt key is held in memory so retries reuse it.
+
 - Landing hero: at about 960 to 1100px the payment slide caption was clipped at the bottom of the sample card; the card now grows by the shortfall instead.
 - Landing hero carousel: at 960px and up the ticket zoom is now measured (one shared scale, 0.8 down to a 0.6 floor) so the board caption and tickets are no longer clipped between about 960 and 1180px wide.
 - Landing hero carousel: the Rush board now shows its amber and red tickets. The cards read their clock once on mount, so seeded ages sat up to 30s behind and Lim (12 min) and Aisha (7 min) never crossed the thresholds. Boards remount on re-seed, and Rush starts just under the thresholds then jumps over them halfway through its view (final state directly with reduced motion). At 960px and up the carousel card now spans exactly the text column (pill row to buttons) instead of setting the row height, with the sample tickets zoomed to 80%. The ready tickets' "Mark Picked Up" drain bar now empties over the board's 7s view (10s window, ready 3s ago) instead of barely moving.
