@@ -132,9 +132,8 @@ notice.
   `orderPath(code)` on the client origin, the same URL as the dashboard QR
   poster, so a regenerated short code is picked up on the next load. It is a
   third column on landscape screens and a bottom row on portrait, so it never
-  covers Preparing or Ready. `page.tsx` passes `acceptingOrders` (active and
-  inside opening hours); when false the QR is replaced by a closed note.
-  The over-plan-limit pause is not checked here, only `is_active` and hours.
+  covers Preparing or Ready. It is always shown: the page loads once and a TV
+  stays on for hours, so the order page owns the closed and paused states.
 
 - `loading.tsx` — deliberately plain dark screen with one pulsing bar while the service-client queries run; this is a venue TV, so no shaped skeleton. It sits here, not in `[boothId]/`, so it does not wrap the order status or pickup pages.
 - `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative bar.

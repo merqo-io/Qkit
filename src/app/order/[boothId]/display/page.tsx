@@ -3,9 +3,8 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getBoothQueueDisplay } from "./actions";
 import { QueueDisplay } from "./queue-display";
-import { parseBoothHours, uuidSchema } from "@/lib/schemas";
+import { uuidSchema } from "@/lib/schemas";
 import { vendorHasCounterOps } from "@/lib/counter-ops";
-import { isBoothOpen } from "@/lib/hours";
 
 export const revalidate = 0;
 
@@ -26,7 +25,7 @@ export default async function BoothQueueDisplayPage({ params }: Props) {
   const supabase = await createServiceClient();
   const { data: booth } = await supabase
     .from("booths")
-    .select("name, vendor_id, short_code, is_active, hours")
+    .select("name, vendor_id, short_code")
     .eq("id", boothId)
     .maybeSingle();
   if (!booth) notFound();
@@ -51,10 +50,6 @@ export default async function BoothQueueDisplayPage({ params }: Props) {
       boothName={booth.name}
       initialOrders={initialOrders}
       code={booth.short_code}
-      acceptingOrders={isBoothOpen(
-        { is_active: booth.is_active, hours: parseBoothHours(booth.hours) },
-        new Date().toISOString(),
-      )}
     />
   );
 }

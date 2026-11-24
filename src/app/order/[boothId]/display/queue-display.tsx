@@ -38,7 +38,6 @@ interface Props {
   boothName: string;
   initialOrders: QueueDisplayOrder[];
   code: string;
-  acceptingOrders: boolean;
 }
 
 /**
@@ -59,7 +58,6 @@ export function QueueDisplay({
   boothName,
   initialOrders,
   code,
-  acceptingOrders,
 }: Props) {
   // The origin only exists on the client; the server snapshot keeps hydration stable.
   const origin = useSyncExternalStore(
@@ -256,26 +254,20 @@ export function QueueDisplay({
           <h2 className="text-lg font-semibold uppercase tracking-[0.18em] text-primary">
             Scan to order
           </h2>
-          {acceptingOrders ? (
-            <div className="rounded-2xl bg-white p-4">
-              {orderUrl ? (
-                <QRCode
-                  value={orderUrl}
-                  level="M"
-                  size={256}
-                  title="Ordering QR code"
-                  className="size-40 sm:size-48 2xl:size-64"
-                  style={{ height: "auto", width: undefined }}
-                />
-              ) : (
-                <div className="size-40 sm:size-48 2xl:size-64" />
-              )}
-            </div>
-          ) : (
-            <p className="max-w-48 rounded-2xl border border-dashed border-border px-4 py-6 text-muted-foreground">
-              Ordering is closed right now
-            </p>
-          )}
+          <div className="rounded-2xl bg-white p-4">
+            {orderUrl ? (
+              <QRCode
+                value={orderUrl}
+                level="M"
+                size={256}
+                title="Ordering QR code"
+                className="size-40 sm:size-48 2xl:size-64"
+                style={{ height: "auto", width: undefined }}
+              />
+            ) : (
+              <div className="size-40 sm:size-48 2xl:size-64" />
+            )}
+          </div>
         </aside>
       </div>
     </div>
