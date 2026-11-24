@@ -56,8 +56,8 @@
   --status-completed: oklch(0.5 0.012 60);
   --status-cancelled: oklch(0.58 0.2 27);
   --status-aging: oklch(0.65 0.19 55);
-  /* same blue as .ticket-alert's "says-paid" wash — the actionable,
-     needs-your-confirmation payment state. Dark enough for the white label
+  /* The actionable, needs-your-confirmation payment state (buttons only; the
+     card itself uses the primary border). Dark enough for the white label
      of the button filled with it. */
   --status-payment-claimed: oklch(0.52 0.13 245);
   --status-payment-confirmed: oklch(0.58 0.15 154.6);
@@ -237,10 +237,9 @@ html::-webkit-scrollbar {
    so they beat .ticket's own unlayered background — and a full-card background
    (rather than a border) so the colour reaches up into the scalloped receipt
    top edge instead of being broken by it. One wash at a time, by priority:
-   overdue (red) > says-paid (blue) > aging (amber). */
+   overdue (red) > says-paid (primary border on a plain card) > aging (amber wash). */
 .ticket-alert {
-  background: oklch(0.925 0.05 245);
-  border-color: oklch(0.55 0.15 245);
+  border-color: var(--color-primary);
 }
 .ticket-aging {
   background: oklch(0.94 0.07 85);
@@ -249,10 +248,6 @@ html::-webkit-scrollbar {
 .ticket-overdue {
   background: oklch(0.935 0.06 27);
   border-color: oklch(0.56 0.21 27);
-}
-.dark .ticket-alert {
-  background: oklch(0.33 0.06 245);
-  border-color: oklch(0.6 0.13 245);
 }
 .dark .ticket-aging {
   background: oklch(0.32 0.05 80);
