@@ -37,6 +37,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Menu: booths now have a reusable modifier group library (`booths.modifier_groups`, migration 0125). A group linked to the library carries `shared_id` and is refreshed from it on every save; the migration promotes groups repeated identically across items. Data layer only, no UI yet. Apply the migration before deploying.
+
 - Landing: a "Vendors on qkit" showcase after the hero (static row for 1-3 vendors, scrolling marquee for 4-11, card grid for 12 or more). The list ships empty, so the page is unchanged until a later change feeds it.
 - Help center: every article ends with "Was this helpful?" (Yes / No, optional "What was missing?" comment on No). Votes are stored per vendor in `qkit.help_feedback` (migration 0122, apply before deploying) and the admin page shows helpful / not helpful counts and the latest No comments next to the stale-article list.
 
