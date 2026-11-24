@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Board: a ticket that says it was paid now keeps a plain card with the warm primary border and an amber label, instead of turning the whole card blue.
 - The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
 - Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.
 - Landing hero: the headline is now "Take orders, not queues." with a subtitle that covers carts, stalls and home businesses, and the page title and description match.

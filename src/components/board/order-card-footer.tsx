@@ -124,7 +124,7 @@ export function AttentionLine({ attention }: { attention: TicketAttention }) {
       className={cn(
         "mx-4 mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm leading-tight font-semibold",
         attention.tone === "action"
-          ? "bg-status-payment-claimed text-white"
+          ? "bg-primary text-primary-foreground"
           : "bg-foreground/[0.06] text-foreground",
       )}
     >
