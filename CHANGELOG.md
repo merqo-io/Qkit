@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Creating a booth is one short screen: only Name & photo and Hours & availability show. On an existing booth, Order flow, Limits, Menu, Payment, Printing, Pickup and Social links sit behind a collapsed "More settings" control, which opens by itself when a setting inside it fails validation. A new booth is still saved with the same defaults for the settings it no longer shows.
+
 ### Added
 
 - The booth form explains Name & photo, Opening hours and Social links with tap-to-open hints, and the Pickup hint now says when to turn the kiosk on.

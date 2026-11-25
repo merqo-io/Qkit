@@ -73,6 +73,49 @@ const NO_SETUP = { state: "none" } as const;
 const PAYNOW_SETUP = { state: "paynow", name: "Cart" } as const;
 const BOOTH_ID = "00000000-0000-4000-8000-000000000001";
 
+const EDIT_BASE = {
+  boothId: BOOTH_ID,
+  name: "Ice Cream Cart",
+  image_url: null,
+  is_active: true,
+  hours: null,
+  menuItemCount: 0,
+  takes_payment: false,
+  social_links: null,
+  requires_arrival_confirm: false,
+  walkup_default: false,
+  print_enabled: false,
+  pickup_scan_enabled: false,
+  paykit_booking_id: null,
+  daily_cup_cap: null,
+};
+
+type Initial = NonNullable<Parameters<typeof BoothForm>[0]["initial"]>;
+
+async function renderEdit(
+  overrides: Partial<Initial> = {},
+  options: {
+    entitlement?: Entitlement;
+    paymentSetup?: Parameters<typeof BoothForm>[0]["paymentSetup"];
+    expand?: boolean;
+  } = {},
+) {
+  const user = userEvent.setup();
+  render(
+    <BoothForm
+      vendorId="v1"
+      entitlement={options.entitlement ?? ENTITLEMENT}
+      vendorSocialLinks={{}}
+      paymentSetup={options.paymentSetup ?? NO_SETUP}
+      initial={{ ...EDIT_BASE, ...overrides }}
+    />,
+  );
+  if (options.expand !== false) {
+    await user.click(screen.getByRole("button", { name: "More settings" }));
+  }
+  return user;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   saveBooth.mockResolvedValue({ success: true, boothId: "b1" });
@@ -101,7 +144,7 @@ describe("BoothForm walk-up-default toggle", () => {
     expect(screen.getByRole("button", { name: /save booth/i })).toBeEnabled();
     expect(routerReplace).not.toHaveBeenCalled();
   });
-  it("starts off for a plain new booth and submits walkup_default: false", async () => {
+  it("submits walkup_default: false", async () => {
     const user = userEvent.setup();
     render(
       <BoothForm
@@ -111,9 +154,6 @@ describe("BoothForm walk-up-default toggle", () => {
         paymentSetup={NO_SETUP}
       />,
     );
-    const toggle = screen.getByRole("switch", { name: TOGGLE_LABEL });
-    expect(toggle).not.toBeChecked();
-
     await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -124,16 +164,7 @@ describe("BoothForm walk-up-default toggle", () => {
   });
 
   it("toggling it on submits walkup_default: true", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit();
     await user.click(screen.getByRole("switch", { name: TOGGLE_LABEL }));
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -143,7 +174,8 @@ describe("BoothForm walk-up-default toggle", () => {
     );
   });
 
-  it("starts pre-checked (and shows a Recommended badge) in event mode", () => {
+  it("is pre-set in event mode and still submitted while the create form hides it", async () => {
+    const user = userEvent.setup();
     render(
       <BoothForm
         vendorId="v1"
@@ -153,65 +185,26 @@ describe("BoothForm walk-up-default toggle", () => {
         eventMode
       />,
     );
-    expect(screen.getByRole("switch", { name: TOGGLE_LABEL })).toBeChecked();
-    expect(screen.getByText("Recommended")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("switch", { name: TOGGLE_LABEL }),
+    ).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+    expect(saveBooth).toHaveBeenCalledWith(
+      expect.objectContaining({ walkup_default: true }),
+      [],
+    );
   });
 
-  it("reflects a persisted true value when editing an existing booth", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: true,
-          print_enabled: false,
-          paykit_booking_id: null,
-          daily_cup_cap: null,
-        }}
-      />,
-    );
+  it("reflects a persisted true value when editing an existing booth", async () => {
+    await renderEdit({ walkup_default: true });
     expect(screen.getByRole("switch", { name: TOGGLE_LABEL })).toBeChecked();
-    // No Recommended badge outside the dedicated event-mode create flow.
     expect(screen.queryByText("Recommended")).not.toBeInTheDocument();
   });
 
   it("persists an edit turning it off", async () => {
     saveBooth.mockResolvedValue({ success: true, boothId: BOOTH_ID });
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: true,
-          print_enabled: false,
-          paykit_booking_id: null,
-          daily_cup_cap: null,
-        }}
-      />,
-    );
+    const user = await renderEdit({ walkup_default: true });
     await user.click(screen.getByRole("switch", { name: TOGGLE_LABEL }));
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -228,15 +221,8 @@ describe("BoothForm payment switch", () => {
     return screen.getByRole("button", { name: "takes payment" });
   }
 
-  it("hands the Payment section what paykit holds and opens a new booth off", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={PAYNOW_SETUP}
-      />,
-    );
+  it("hands the Payment section what paykit holds", async () => {
+    await renderEdit({}, { paymentSetup: PAYNOW_SETUP });
 
     expect(paymentButton()).toHaveAttribute("data-setup", "paynow");
     expect(paymentButton()).toHaveAttribute("aria-pressed", "false");
@@ -246,16 +232,7 @@ describe("BoothForm payment switch", () => {
     ["left off", false],
     ["switched on", true],
   ])("submits the switch %s, and no payment detail", async (_, on) => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={PAYNOW_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit({}, { paymentSetup: PAYNOW_SETUP });
     if (on) await user.click(paymentButton());
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -266,30 +243,8 @@ describe("BoothForm payment switch", () => {
     expect(saveBooth.mock.calls[0][0]).not.toHaveProperty("payment");
   });
 
-  it("opens an existing booth on its stored setting", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={PAYNOW_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: true,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: false,
-          print_enabled: false,
-          paykit_booking_id: null,
-          daily_cup_cap: null,
-        }}
-      />,
-    );
+  it("opens an existing booth on its stored setting", async () => {
+    await renderEdit({ takes_payment: true }, { paymentSetup: PAYNOW_SETUP });
 
     expect(paymentButton()).toHaveAttribute("aria-pressed", "true");
   });
@@ -297,15 +252,7 @@ describe("BoothForm payment switch", () => {
 
 describe("BoothForm paykit booking id", () => {
   it("is hidden while walk-up default is off, and appears once toggled on", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
+    const user = await renderEdit();
     expect(
       screen.queryByLabelText("Paykit booking ID"),
     ).not.toBeInTheDocument();
@@ -315,16 +262,7 @@ describe("BoothForm paykit booking id", () => {
   });
 
   it("submits the typed booking id alongside the rest of the form", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit();
     await user.click(screen.getByRole("switch", { name: TOGGLE_LABEL }));
     await user.type(screen.getByLabelText("Paykit booking ID"), "book-42");
     await user.click(screen.getByRole("button", { name: /save booth/i }));
@@ -335,60 +273,32 @@ describe("BoothForm paykit booking id", () => {
     );
   });
 
-  it("prefills from an existing booth and shows its fetched status", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: true,
-          print_enabled: false,
-          paykit_booking_id: "book-42",
-          daily_cup_cap: null,
-          bookingStatus: {
-            bookingId: "book-42",
-            status: "fully_paid",
-            eventDate: "2026-09-01",
-            depositAmountCents: 20000,
-            balanceAmountCents: 30000,
-            totalAmountCents: 50000,
-            depositConfirmed: true,
-            balanceConfirmed: true,
-          },
-        }}
-      />,
-    );
+  it("prefills from an existing booth and shows its fetched status", async () => {
+    await renderEdit({
+      walkup_default: true,
+      paykit_booking_id: "book-42",
+      bookingStatus: {
+        bookingId: "book-42",
+        status: "fully_paid",
+        eventDate: "2026-09-01",
+        depositAmountCents: 20000,
+        balanceAmountCents: 30000,
+        totalAmountCents: 50000,
+        depositConfirmed: true,
+        balanceConfirmed: true,
+      },
+    });
     expect(screen.getByLabelText("Paykit booking ID")).toHaveValue("book-42");
     expect(screen.getByText("Fully paid")).toBeInTheDocument();
   });
 });
 
 describe("BoothForm menu section", () => {
-  it("shows a hint instead of a link for a brand-new, unsaved booth", () => {
-    // With stock caps, so the only link the form could carry is the menu one
-    // (a plan without them shows an upgrade link on the daily total).
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={{ ...ENTITLEMENT, stockCaps: true }}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
+  it("shows no menu section on the create form", () => {
+    renderNewBooth({ ...ENTITLEMENT, stockCaps: true });
     expect(
-      screen.getByText("Save this booth to start building its menu."),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Menu" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
@@ -446,30 +356,8 @@ describe("BoothForm menu section", () => {
     );
   });
 
-  it("links to the menu-manager page with the item count, for an existing booth", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 4,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: false,
-          print_enabled: false,
-          paykit_booking_id: null,
-          daily_cup_cap: null,
-        }}
-      />,
-    );
+  it("links to the menu-manager page with the item count, for an existing booth", async () => {
+    await renderEdit({ menuItemCount: 4 });
     const link = screen.getByRole("link", { name: /4 items/ });
     expect(link).toHaveAttribute("href", `/dashboard/booths/${BOOTH_ID}/menu`);
   });
@@ -479,16 +367,7 @@ describe("BoothForm per-order item limit", () => {
   const LIMIT_LABEL = "Max items per order";
 
   it("submits null when left blank, meaning no limit", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit();
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
     expect(saveBooth).toHaveBeenCalledWith(
@@ -498,16 +377,7 @@ describe("BoothForm per-order item limit", () => {
   });
 
   it("submits the number the vendor typed, on a plan without stock caps too", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit();
     await user.type(screen.getByLabelText(LIMIT_LABEL), "4");
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -517,48 +387,16 @@ describe("BoothForm per-order item limit", () => {
     );
   });
 
-  it("locks the booth's daily total on a plan without stock caps", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
+  it("locks the booth's daily total on a plan without stock caps", async () => {
+    await renderEdit();
     expect(screen.queryByLabelText("Daily item limit")).not.toBeInTheDocument();
     expect(screen.getByText("Daily item limit")).toBeInTheDocument();
   });
 });
 
 describe("BoothForm daily limit on a plan without stock caps", () => {
-  const initial = {
-    boothId: BOOTH_ID,
-    name: "Ice Cream Cart",
-    image_url: null,
-    is_active: true,
-    hours: null,
-    menuItemCount: 0,
-    takes_payment: false,
-    social_links: null,
-    requires_arrival_confirm: false,
-    walkup_default: false,
-    print_enabled: false,
-    paykit_booking_id: null,
-    daily_cup_cap: 200,
-  };
-
   it("shows a limit that is already set, and keeps it on save", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={initial}
-      />,
-    );
+    const user = await renderEdit({ daily_cup_cap: 200 });
     expect(screen.getByText("Set to 200")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /save booth/i }));
@@ -569,16 +407,7 @@ describe("BoothForm daily limit on a plan without stock caps", () => {
   });
 
   it("lets the vendor remove it", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={initial}
-      />,
-    );
+    const user = await renderEdit({ daily_cup_cap: 200 });
     await user.click(screen.getByRole("button", { name: "Remove limit" }));
     expect(screen.queryByText("Set to 200")).not.toBeInTheDocument();
 
@@ -598,16 +427,7 @@ describe("BoothForm daily cup cap", () => {
   };
 
   it("submits null when left blank, meaning no limit", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT_WITH_CAPS}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit({}, { entitlement: ENTITLEMENT_WITH_CAPS });
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
     expect(saveBooth).toHaveBeenCalledWith(
@@ -617,16 +437,7 @@ describe("BoothForm daily cup cap", () => {
   });
 
   it("submits the number the vendor typed", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT_WITH_CAPS}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-      />,
-    );
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    const user = await renderEdit({}, { entitlement: ENTITLEMENT_WITH_CAPS });
     await user.type(screen.getByLabelText(CAP_LABEL), "200");
     await user.click(screen.getByRole("button", { name: /save booth/i }));
 
@@ -636,29 +447,10 @@ describe("BoothForm daily cup cap", () => {
     );
   });
 
-  it("prefills a booth's saved cap when editing", () => {
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT_WITH_CAPS}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: false,
-          print_enabled: false,
-          paykit_booking_id: null,
-          daily_cup_cap: 200,
-        }}
-      />,
+  it("prefills a booth's saved cap when editing", async () => {
+    await renderEdit(
+      { daily_cup_cap: 200 },
+      { entitlement: ENTITLEMENT_WITH_CAPS },
     );
     expect(screen.getByLabelText(CAP_LABEL)).toHaveValue(200);
     expect(
@@ -668,8 +460,8 @@ describe("BoothForm daily cup cap", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers no new service for a booth with no saved limit", () => {
-    renderNewBooth(ENTITLEMENT_WITH_CAPS);
+  it("offers no new service for a booth with no saved limit", async () => {
+    await renderEdit({}, { entitlement: ENTITLEMENT_WITH_CAPS });
     expect(
       screen.queryByRole("button", { name: "Start new service" }),
     ).not.toBeInTheDocument();
@@ -695,8 +487,8 @@ function sectionTitled(title: string): HTMLElement {
 }
 
 describe("BoothForm layout", () => {
-  it("puts both item limits in their own Limits card, out of Order flow", () => {
-    renderNewBooth({ ...ENTITLEMENT, stockCaps: true });
+  it("puts both item limits in their own Limits card, out of Order flow", async () => {
+    await renderEdit({}, { entitlement: { ...ENTITLEMENT, stockCaps: true } });
     const limits = sectionTitled("Limits");
     expect(
       within(limits).getByLabelText("Daily item limit"),
@@ -716,8 +508,7 @@ describe("BoothForm layout", () => {
   });
 
   it("keeps each row's explanation behind a tap-to-open hint", async () => {
-    const user = userEvent.setup();
-    renderNewBooth();
+    const user = await renderEdit();
     expect(screen.queryByText(/like ice cream/i)).not.toBeInTheDocument();
 
     await user.click(
@@ -727,12 +518,125 @@ describe("BoothForm layout", () => {
   });
 });
 
+describe("BoothForm short create form", () => {
+  const HIDDEN_HEADINGS = [
+    "Order flow",
+    "Limits",
+    "Menu",
+    "Payment",
+    "Printing",
+    "Pickup",
+    "Social links",
+  ];
+
+  it("renders only Name & photo and Hours & availability, with one Save", () => {
+    renderNewBooth({ ...ENTITLEMENT, stockCaps: true });
+    expect(
+      screen.getByRole("heading", { name: "Name & photo" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Hours & availability" }),
+    ).toBeInTheDocument();
+    for (const name of HIDDEN_HEADINGS) {
+      expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    }
+    expect(
+      screen.queryByRole("button", { name: "More settings" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /save booth/i })).toHaveLength(
+      1,
+    );
+  });
+
+  it("submits the same defaults for the fields it no longer shows", async () => {
+    const user = userEvent.setup();
+    renderNewBooth({ ...ENTITLEMENT, stockCaps: true });
+    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+
+    expect(saveBooth).toHaveBeenCalledWith(
+      {
+        boothId: undefined,
+        menu_categories: [],
+        name: "Ice Cream Cart",
+        image_url: null,
+        is_active: true,
+        hours: null,
+        takes_payment: false,
+        social_links: null,
+        requires_arrival_confirm: false,
+        walkup_default: false,
+        print_enabled: false,
+        pickup_scan_enabled: false,
+        paykit_booking_id: null,
+        daily_cup_cap: null,
+        max_items_per_order: null,
+      },
+      [],
+    );
+  });
+});
+
+describe("BoothForm More settings on edit", () => {
+  it("keeps the rest collapsed behind a labelled, expandable control", async () => {
+    const user = await renderEdit({}, { expand: false });
+    const toggle = screen.getByRole("button", { name: "More settings" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("heading", { name: "Name & photo" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Payment" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    for (const name of [
+      "Order flow",
+      "Menu",
+      "Payment",
+      "Printing",
+      "Pickup",
+      "Social links",
+    ]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("keeps values changed inside it when collapsed again before saving", async () => {
+    const user = await renderEdit({}, { paymentSetup: PAYNOW_SETUP });
+    await user.click(screen.getByRole("button", { name: "takes payment" }));
+    await user.click(screen.getByRole("button", { name: "More settings" }));
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+
+    expect(saveBooth).toHaveBeenCalledWith(
+      expect.objectContaining({ takes_payment: true }),
+      [],
+    );
+  });
+
+  it("opens when the save is rejected for a field inside it", async () => {
+    const user = await renderEdit({}, { expand: false });
+    await user.click(screen.getByRole("button", { name: "More settings" }));
+    await user.type(screen.getByLabelText("Max items per order"), "0");
+    await user.click(screen.getByRole("button", { name: "More settings" }));
+    expect(
+      screen.getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+    expect(saveBooth).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
 describe("BoothForm self-checkout pickup", () => {
   const SWITCH = "Self-checkout pickup";
 
-  it("has its own Pickup card and starts off for a new booth", async () => {
-    const user = userEvent.setup();
-    renderNewBooth();
+  it("has its own Pickup card and starts off", async () => {
+    const user = await renderEdit();
     const counter = sectionTitled("Pickup");
     expect(
       within(sectionTitled("Printing")).queryByRole("switch", { name: SWITCH }),
@@ -740,7 +644,6 @@ describe("BoothForm self-checkout pickup", () => {
     const toggle = within(counter).getByRole("switch", { name: SWITCH });
     expect(toggle).not.toBeChecked();
 
-    await user.type(screen.getByLabelText("Booth name"), "Ice Cream Cart");
     await user.click(screen.getByRole("button", { name: /save booth/i }));
     expect(saveBooth).toHaveBeenCalledWith(
       expect.objectContaining({ pickup_scan_enabled: false }),
@@ -749,31 +652,7 @@ describe("BoothForm self-checkout pickup", () => {
   });
 
   it("opens on the booth's saved value and saves a change", async () => {
-    const user = userEvent.setup();
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={{
-          boothId: BOOTH_ID,
-          name: "Ice Cream Cart",
-          image_url: null,
-          is_active: true,
-          hours: null,
-          menuItemCount: 0,
-          takes_payment: false,
-          social_links: null,
-          requires_arrival_confirm: false,
-          walkup_default: false,
-          print_enabled: false,
-          pickup_scan_enabled: true,
-          paykit_booking_id: null,
-          daily_cup_cap: null,
-        }}
-      />,
-    );
+    const user = await renderEdit({ pickup_scan_enabled: true });
     const toggle = screen.getByRole("switch", { name: SWITCH });
     expect(toggle).toBeChecked();
 
@@ -785,33 +664,8 @@ describe("BoothForm self-checkout pickup", () => {
     );
   });
 
-  it("shows the kiosk link and copy button only for a saved booth with the switch on", async () => {
-    const user = userEvent.setup();
-    const saved = {
-      boothId: BOOTH_ID,
-      name: "Ice Cream Cart",
-      image_url: null,
-      is_active: true,
-      hours: null,
-      menuItemCount: 0,
-      takes_payment: false,
-      social_links: null,
-      requires_arrival_confirm: false,
-      walkup_default: false,
-      print_enabled: false,
-      pickup_scan_enabled: false,
-      paykit_booking_id: null,
-      daily_cup_cap: null,
-    };
-    render(
-      <BoothForm
-        vendorId="v1"
-        entitlement={ENTITLEMENT}
-        vendorSocialLinks={{}}
-        paymentSetup={NO_SETUP}
-        initial={saved}
-      />,
-    );
+  it("shows the kiosk link and copy button only with the switch on", async () => {
+    const user = await renderEdit();
     expect(
       screen.queryByRole("link", { name: /open kiosk/i }),
     ).not.toBeInTheDocument();
@@ -825,57 +679,33 @@ describe("BoothForm self-checkout pickup", () => {
       screen.getByRole("button", { name: /copy link/i }),
     ).toBeInTheDocument();
   });
-
-  it("shows no kiosk link for an unsaved booth even with the switch on", async () => {
-    const user = userEvent.setup();
-    renderNewBooth();
-    await user.click(screen.getByRole("switch", { name: SWITCH }));
-    expect(
-      screen.queryByRole("link", { name: /open kiosk/i }),
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe("BoothForm section hints", () => {
-  const EDIT_INITIAL = {
-    boothId: BOOTH_ID,
-    name: "Ice Cream Cart",
-    image_url: null,
-    is_active: true,
-    hours: null,
-    menuItemCount: 0,
-    takes_payment: false,
-    social_links: null,
-    requires_arrival_confirm: false,
-    walkup_default: false,
-    print_enabled: false,
-    paykit_booking_id: null,
-    daily_cup_cap: null,
-  };
-  const HINTS = [
+  const CREATE_HINTS = [
     ["About name and photo", /banner photo show at the top/i],
     ["About hours", /only while the booth is open/i],
-    ["About self-checkout pickup", /pickup shelf/i],
   ] as const;
 
-  it.each(["create", "edit"] as const)(
-    "opens each hint to its text in %s mode",
-    async (mode) => {
-      const user = userEvent.setup();
-      render(
-        <BoothForm
-          vendorId="v1"
-          entitlement={ENTITLEMENT}
-          vendorSocialLinks={{}}
-          paymentSetup={NO_SETUP}
-          initial={mode === "edit" ? EDIT_INITIAL : undefined}
-        />,
-      );
-      for (const [label, text] of HINTS) {
-        await user.click(screen.getByRole("button", { name: label }));
-        expect(await screen.findByText(text)).toBeInTheDocument();
-        await user.keyboard("{Escape}");
-      }
-    },
-  );
+  it("opens each hint to its text in create mode", async () => {
+    const user = userEvent.setup();
+    renderNewBooth();
+    for (const [label, text] of CREATE_HINTS) {
+      await user.click(screen.getByRole("button", { name: label }));
+      expect(await screen.findByText(text)).toBeInTheDocument();
+      await user.keyboard("{Escape}");
+    }
+  });
+
+  it("opens each hint, including pickup, in edit mode", async () => {
+    const user = await renderEdit();
+    for (const [label, text] of [
+      ...CREATE_HINTS,
+      ["About self-checkout pickup", /pickup shelf/i],
+    ] as const) {
+      await user.click(screen.getByRole("button", { name: label }));
+      expect(await screen.findByText(text)).toBeInTheDocument();
+      await user.keyboard("{Escape}");
+    }
+  });
 });
