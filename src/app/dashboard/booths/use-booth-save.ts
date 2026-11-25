@@ -113,7 +113,8 @@ export function useBoothSave(
       const parsed = boothFormSchema.safeParse(candidate);
       if (!parsed.success) {
         void removeUnsavedImages(committed.uploaded);
-        onInvalid?.(String(parsed.error.issues[0]?.path[0] ?? ""));
+        const field = parsed.error.issues[0]?.path[0];
+        if (field !== undefined) onInvalid?.(String(field));
         toast.error(parsed.error.issues[0]?.message ?? "Check the form");
         return;
       }

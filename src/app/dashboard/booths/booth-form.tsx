@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,10 +41,6 @@ import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 import type { BookingStatus } from "@/lib/paykit/client";
 
 const TOP_BLOCK_FIELDS = new Set(["name", "image_url", "hours", "is_active"]);
-
-// Browsers cannot show a native validation bubble on a control inside a hidden
-// container, so a rejected number in More settings has to open it first.
-const TOP_BLOCK_IDS = new Set(["booth-name"]);
 
 interface Props {
   vendorId: string;
@@ -88,10 +84,12 @@ interface Props {
 function MoreSettings({
   open,
   onToggle,
+  panelRef,
   children,
 }: {
   open: boolean;
   onToggle: () => void;
+  panelRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
 }) {
   const panelId = useId();
@@ -109,7 +107,7 @@ function MoreSettings({
           className={`size-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
-      <div id={panelId} hidden={!open}>
+      <div id={panelId} ref={panelRef} hidden={!open}>
         {children}
       </div>
     </>
@@ -207,6 +205,7 @@ export function BoothForm({
   const { deleting, onDelete } = useBoothDelete(initial?.boothId);
   const isEdit = Boolean(initial?.boothId);
   const [moreOpen, setMoreOpen] = useState(false);
+  const morePanelRef = useRef<HTMLDivElement>(null);
   const { saving, onSubmit } = useBoothSave(
     initial?.boothId,
     {
@@ -259,7 +258,11 @@ export function BoothForm({
     <form
       onSubmit={onSubmit}
       onInvalidCapture={(e) => {
-        if (!TOP_BLOCK_IDS.has((e.target as HTMLElement).id)) setMoreOpen(true);
+        // A hidden control cannot show its native validation bubble, so only
+        // a rejected control inside the collapsed panel has to open it.
+        const t = e.target;
+        if (t instanceof Node && morePanelRef.current?.contains(t))
+          setMoreOpen(true);
       }}
       className="space-y-8"
     >
@@ -363,10 +366,18 @@ export function BoothForm({
         </Section>
       </div>
 
+      {!isEdit && walkupDefault && (
+        <p className="text-sm text-muted-foreground">
+          Walk-up entry is on for this event booth. Change it in More settings
+          after you save.
+        </p>
+      )}
+
       {isEdit ? (
         <div className="space-y-5">
           <MoreSettings
             open={moreOpen}
+            panelRef={morePanelRef}
             onToggle={() => setMoreOpen((open) => !open)}
           >
             <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2 md:items-start">

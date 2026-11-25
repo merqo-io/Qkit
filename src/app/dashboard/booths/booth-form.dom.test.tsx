@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BoothForm } from "./booth-form";
 import type { Entitlement } from "@/lib/plan";
+import { boothFormSchema } from "@/lib/schemas";
 
 const { saveBooth, deleteBooth } = vi.hoisted(() => ({
   saveBooth: vi.fn(),
@@ -707,5 +714,70 @@ describe("BoothForm section hints", () => {
       expect(await screen.findByText(text)).toBeInTheDocument();
       await user.keyboard("{Escape}");
     }
+  });
+});
+
+describe("BoothForm More settings opening rules", () => {
+  const moreToggle = () =>
+    screen.getByRole("button", { name: "More settings" });
+
+  it("opens for a native-invalid control inside the collapsed panel", async () => {
+    await renderEdit({}, { expand: false });
+    const hidden = document
+      .getElementById(moreToggle().getAttribute("aria-controls") ?? "")
+      ?.querySelector("input");
+    if (!hidden) throw new Error("no input in the panel");
+    fireEvent.invalid(hidden);
+    expect(moreToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("stays closed for an empty name", async () => {
+    await renderEdit({}, { expand: false });
+    fireEvent.invalid(screen.getByLabelText("Booth name"));
+    expect(moreToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("stays closed for an invalid top-block control other than the name", async () => {
+    await renderEdit({}, { expand: false });
+    const control = sectionTitled("Hours & availability").querySelector(
+      "input, button",
+    );
+    if (!control) throw new Error("no hours control");
+    fireEvent.invalid(control);
+    expect(moreToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("stays closed for a form-level validation error with no field path", async () => {
+    const user = await renderEdit({}, { expand: false });
+    const spy = vi.spyOn(boothFormSchema, "safeParse").mockReturnValueOnce({
+      success: false,
+      error: { issues: [{ code: "custom", path: [], message: "Bad form" }] },
+    } as unknown as ReturnType<typeof boothFormSchema.safeParse>);
+    await user.click(screen.getByRole("button", { name: /save booth/i }));
+    expect(saveBooth).not.toHaveBeenCalled();
+    expect(moreToggle()).toHaveAttribute("aria-expanded", "false");
+    spy.mockRestore();
+  });
+});
+
+describe("BoothForm event-mode create note", () => {
+  const NOTE = /walk-up entry is on for this event booth/i;
+
+  it("shows in event mode", () => {
+    render(
+      <BoothForm
+        vendorId="v1"
+        entitlement={ENTITLEMENT}
+        vendorSocialLinks={{}}
+        paymentSetup={NO_SETUP}
+        eventMode
+      />,
+    );
+    expect(screen.getByText(NOTE)).toBeInTheDocument();
+  });
+
+  it("is absent in the normal create mode", () => {
+    renderNewBooth();
+    expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
   });
 });
