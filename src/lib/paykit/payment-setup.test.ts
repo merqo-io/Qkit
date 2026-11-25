@@ -45,7 +45,17 @@ describe("vendorPaymentSetup", () => {
     [
       "a PayNow config with no payee name",
       { kind: "paynow", mobile: "+6591234567" },
-      { state: "paynow", name: "" },
+      { state: "none" },
+    ],
+    [
+      "a PayNow config with a payee but no UEN or mobile",
+      { kind: "paynow", payeeName: "Kopitiam Cart" },
+      { state: "none" },
+    ],
+    [
+      "a PayNow config with a payee and a mobile number",
+      { kind: "paynow", payeeName: "Kopitiam Cart", mobile: "+6591234567" },
+      { state: "paynow", name: "Kopitiam Cart" },
     ],
     [
       "a payment link",

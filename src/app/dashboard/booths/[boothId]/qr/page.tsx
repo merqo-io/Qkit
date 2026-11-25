@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { requireEntitledVendor } from "@/lib/supabase/get-entitlement";
 import { servableBoothIds, isBoothPaused } from "@/lib/booth/access";
@@ -5,18 +6,25 @@ import { createServerClient } from "@/lib/supabase/server";
 import { parseMenuItems } from "@/lib/schemas";
 import { vendorPaymentSetup } from "@/lib/paykit/payment-setup";
 import { BoothQrPoster } from "./booth-qr-poster";
-import { GoLiveCard, type PaymentStep } from "./go-live-card";
-
-const PAYKIT_FALLBACK_URL = "https://paykit.merqo.io";
-
-function paymentStepOf(
-  state: Awaited<ReturnType<typeof vendorPaymentSetup>>["state"],
-): PaymentStep {
-  if (state === "unreachable") return "unknown";
-  return state === "none" ? "missing" : "ready";
-}
+import { paykitSetupUrl } from "@/lib/paykit/setup-url";
+import { requestOrigin } from "@/lib/request-origin";
+import { GoLiveCard, PaymentRow } from "./go-live-card";
+import { paymentStepOf } from "./payment-step";
 
 export const revalidate = 0;
+
+async function LivePaymentRow({
+  vendorId,
+  paymentUrl,
+}: {
+  vendorId: string;
+  paymentUrl: string;
+}) {
+  const setup = await vendorPaymentSetup(vendorId);
+  return (
+    <PaymentRow payment={paymentStepOf(setup.state)} paymentUrl={paymentUrl} />
+  );
+}
 
 interface Props {
   params: Promise<{ boothId: string }>;
@@ -41,8 +49,10 @@ export default async function BoothQrPage({ params }: Props) {
   );
 
   const menuReady = parseMenuItems(booth.menu_items).some((m) => m.available);
-  const paymentSetup = await vendorPaymentSetup(vendor.id);
-  const paykitBase = process.env.NEXT_PUBLIC_PAYKIT_URL ?? PAYKIT_FALLBACK_URL;
+  const origin = await requestOrigin();
+  const paymentUrl = paykitSetupUrl(
+    origin ? `${origin}/dashboard/booths/${booth.id}/qr` : null,
+  );
 
   return (
     <BoothQrPoster
@@ -57,8 +67,15 @@ export default async function BoothQrPage({ params }: Props) {
           boothId={booth.id}
           code={booth.short_code}
           menuReady={menuReady}
-          payment={paymentStepOf(paymentSetup.state)}
-          paymentUrl={new URL("/dashboard/config", paykitBase).href}
+          paymentRow={
+            <Suspense
+              fallback={
+                <PaymentRow payment="checking" paymentUrl={paymentUrl} />
+              }
+            >
+              <LivePaymentRow vendorId={vendor.id} paymentUrl={paymentUrl} />
+            </Suspense>
+          }
         />
       }
     />

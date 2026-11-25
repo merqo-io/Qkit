@@ -7,6 +7,10 @@ import type { PaymentKind } from "@/lib/types";
  * label of a payment link or QR image). The details themselves (UEN, mobile
  * number, link, image) are entered and kept in paykit, and never come here.
  *
+ * A config only counts when it can take a payment: PayNow needs a payee name
+ * and a UEN or mobile number, a pointer needs a link or QR image. A half-saved
+ * config reads as `none`.
+ *
  * `unreachable` is a different answer from `none`: paykit did not say, so
  * nothing may be concluded about what is on file.
  */
@@ -26,7 +30,12 @@ export async function vendorPaymentSetup(
 
   const d = result.data;
   if (!d.hasConfig) return { state: "none" };
-  if (d.kind === "paynow") return { state: "paynow", name: d.payeeName ?? "" };
+  if (d.kind === "paynow") {
+    const usable = Boolean(d.payeeName) && Boolean(d.uen || d.mobile);
+    return usable
+      ? { state: "paynow", name: d.payeeName ?? "" }
+      : { state: "none" };
+  }
   if (d.kind !== "pointer") return { state: "none" };
   if (d.url) return { state: "link", name: d.label ?? "" };
   if (d.qrImageUrl) return { state: "image", name: d.label ?? "" };

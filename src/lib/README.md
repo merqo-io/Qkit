@@ -373,7 +373,7 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
 - `qkit-paykit-auth.test.ts` — tests the unset, empty, missing-header,
   wrong-scheme, mismatched, different-length and matching cases, and that the
   printkit callback secret is not accepted.
-- `request-origin.ts` — `requestOrigin()`: this app's own origin from the request's `host` header (or `x-forwarded-host`, only when it also passes the allowlist of localhost, `.merqo.io` and `.vercel.app`), `null` when neither does. Used for the order status page's QR address and as the `return_url` origin sent to paykit.
+- `request-origin.ts` — `requestOrigin()`: this app's own origin from the request's `host` header (or `x-forwarded-host`, only when it also passes the allowlist of localhost, `.merqo.io` and `.vercel.app`), `null` when neither does. Used for the order status page's QR address, as the `return_url` origin sent to paykit, and for the `return_to` on the Go live card's paykit link. Defaults to `http` for a localhost host with no `x-forwarded-proto`, `https` otherwise.
 - `rate-limit.ts` — `clientIp(headers)` (best-effort, spoofable fairness key —
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
