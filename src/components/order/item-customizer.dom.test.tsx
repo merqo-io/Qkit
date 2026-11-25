@@ -55,14 +55,14 @@ describe("ItemCustomizer running total", () => {
     const user = userEvent.setup();
     renderCustomizer();
     await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
-    expect(screen.getByText("+$1.00", FOOTER_TOTAL)).toBeInTheDocument();
+    expect(screen.getByText("+S$1.00", FOOTER_TOTAL)).toBeInTheDocument();
   });
 
   it("replaces rather than adds when switching within a single-select group", async () => {
     const user = userEvent.setup();
     renderCustomizer();
     await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
-    expect(screen.getByText("+$1.00", FOOTER_TOTAL)).toBeInTheDocument();
+    expect(screen.getByText("+S$1.00", FOOTER_TOTAL)).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Regular" }));
     expect(screen.queryByText(/^\+\$\d/, FOOTER_TOTAL)).not.toBeInTheDocument();
   });
@@ -72,8 +72,8 @@ describe("ItemCustomizer running total", () => {
     renderCustomizer();
     await user.click(screen.getByRole("radio", { name: /Oat Milk/ }));
     await user.click(screen.getByRole("button", { name: /Extra Shot/ }));
-    // Oat Milk (+$1.00) + Extra Shot (+$0.80) = +$1.80.
-    expect(screen.getByText("+$1.80", FOOTER_TOTAL)).toBeInTheDocument();
+    // Oat Milk (+S$1.00) + Extra Shot (+S$0.80) = +S$1.80.
+    expect(screen.getByText("+S$1.80", FOOTER_TOTAL)).toBeInTheDocument();
   });
 });
 
@@ -81,10 +81,10 @@ describe("ItemCustomizer choice prices", () => {
   it("shows what a priced choice adds on the choice itself, before it is picked", () => {
     renderCustomizer();
     expect(
-      screen.getByRole("radio", { name: "Oat Milk +$1.00" }),
+      screen.getByRole("radio", { name: "Oat Milk +S$1.00" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Extra Shot +$0.80" }),
+      screen.getByRole("button", { name: "Extra Shot +S$0.80" }),
     ).toBeInTheDocument();
   });
 

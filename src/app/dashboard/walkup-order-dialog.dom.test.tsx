@@ -274,7 +274,7 @@ describe("WalkupOrderDialog", () => {
     expect(
       screen.getByRole("heading", { name: "Collect payment for order #0009" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("$3.50")).toBeInTheDocument();
+    expect(screen.getByText("S$3.50")).toBeInTheDocument();
     expect(
       screen.getByText(/amount is already filled in/i),
     ).toBeInTheDocument();

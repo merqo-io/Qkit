@@ -1,11 +1,12 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { Minus, Plus } from "lucide-react";
 import { Button, cn } from "@merqo/ui/primitives";
 
 import { ZoomableImage } from "@/components/widgets/zoomable-image";
 import { AllergenBadges } from "@/components/order/allergen-badges";
-import { formatPrice, itemHasChoices, menuItemActionLabel } from "@/lib/utils";
+import { itemHasChoices, menuItemActionLabel } from "@/lib/utils";
 
 import type { MenuItem } from "@/lib/types";
 
@@ -100,7 +101,7 @@ export function MenuItemCard({
           )}
           {item.price_cents !== null && item.price_cents !== undefined && (
             <p className="mt-1 font-mono text-sm font-semibold text-primary">
-              {formatPrice(item.price_cents)}
+              <Money cents={item.price_cents} />
             </p>
           )}
           <AllergenBadges tags={item.allergens ?? []} />

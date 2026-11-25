@@ -117,7 +117,7 @@ describe("OrderForm cart", () => {
     expect(screen.getByText("Your order")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: /Continue · 1 item · \$3\.50/,
+        name: /Continue · 1 item · S\$3\.50/,
       }),
     ).toBeEnabled();
   });
@@ -148,10 +148,10 @@ describe("OrderForm cart", () => {
     await user.click(screen.getByText("Your order")); // expand the collapsed summary
     await user.click(screen.getByRole("button", { name: "Increase Kopi" }));
 
-    // 2 × $3.50 = $7.00 in the submit bar.
+    // 2 × S$3.50 = S$7.00 in the submit bar.
     expect(
       screen.getByRole("button", {
-        name: /Continue · 2 items · \$7\.00/,
+        name: /Continue · 2 items · S\$7\.00/,
       }),
     ).toBeInTheDocument();
 
@@ -197,14 +197,14 @@ describe("OrderForm cart", () => {
     await user.click(screen.getByRole("button", { name: "Customize" }));
     await user.click(screen.getByRole("button", { name: "stub-confirm" }));
 
-    // Teh is $3.00 base + $1.00 for the priced "Iced" choice = $4.00 — both
+    // Teh is S$3.00 base + S$1.00 for the priced "Iced" choice = S$4.00 — both
     // the cart line price and the order total reflect it (expand to see them).
     await user.click(screen.getByText("Your order"));
     const cart = screen.getByText("Your order").closest("section")!;
-    expect(within(cart).getAllByText("$4.00")).toHaveLength(2);
+    expect(within(cart).getAllByText("S$4.00")).toHaveLength(2);
     expect(
       screen.getByRole("button", {
-        name: /Continue · 1 item · \$4\.00/,
+        name: /Continue · 1 item · S\$4\.00/,
       }),
     ).toBeEnabled();
   });
@@ -387,11 +387,11 @@ describe("OrderForm cart", () => {
     const user = userEvent.setup();
     renderForm();
 
-    // Cart prefilled (2 × $3.50), name filled, seed consumed (read-once).
+    // Cart prefilled (2 × S$3.50), name filled, seed consumed (read-once).
     expect(await screen.findByText("Your order")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: /Continue · 2 items · \$7\.00/,
+        name: /Continue · 2 items · S\$7\.00/,
       }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem("qkit:reorder:b1")).toBeNull();
@@ -416,11 +416,11 @@ describe("OrderForm cart", () => {
     );
     renderForm();
 
-    // Restored (2 × $3.50), and the first empty render did NOT wipe storage.
+    // Restored (2 × S$3.50), and the first empty render did NOT wipe storage.
     expect(await screen.findByText("Your order")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: /Continue · 2 items · \$7\.00/,
+        name: /Continue · 2 items · S\$7\.00/,
       }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem("qkit:cart:b1")).not.toBeNull();
@@ -1051,7 +1051,7 @@ describe("OrderForm booth limits and basket holds", () => {
     ).toBeInTheDocument();
     expect(toast.error).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole("button", { name: /Continue · 2 items · \$7\.00/ }),
+      screen.getByRole("button", { name: /Continue · 2 items · S\$7\.00/ }),
     );
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Your name"), "Ada");
@@ -1098,7 +1098,7 @@ describe("OrderForm booth limits and basket holds", () => {
     await user.click(screen.getByRole("button", { name: "Customize" }));
     await user.click(screen.getByRole("button", { name: "stub-confirm" }));
     expect(
-      screen.getByRole("button", { name: /Continue · 1 item · \$4\.00/ }),
+      screen.getByRole("button", { name: /Continue · 1 item · S\$4\.00/ }),
     ).toBeEnabled();
   });
 
@@ -1130,7 +1130,7 @@ describe("OrderForm booth limits and basket holds", () => {
     );
     expect(screen.getByText("1 left")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Continue · 1 item · \$3\.50/ }),
+      screen.getByRole("button", { name: /Continue · 1 item · S\$3\.50/ }),
     ).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Add one Kopi" }));
     expect(toast.error).toHaveBeenCalledWith("Only 1 left");
@@ -1323,7 +1323,7 @@ describe("OrderForm stock notice", () => {
       "This stall takes up to 1 item per order.",
     );
     expect(
-      screen.getByRole("button", { name: /Continue · 1 item · \$3\.50/ }),
+      screen.getByRole("button", { name: /Continue · 1 item · S\$3\.50/ }),
     ).toBeEnabled();
   });
 });

@@ -50,7 +50,7 @@ describe("KpiRow", () => {
         trends
       />,
     );
-    expect(screen.getByText("$100.00")).toBeInTheDocument();
+    expect(screen.getByText("S$100.00")).toBeInTheDocument();
     expect(screen.getByText("25%")).toBeInTheDocument(); // up
     expect(screen.getByText("10%")).toBeInTheDocument(); // down, abs value
     const fulfilled = screen.getByText("Fulfilled");
@@ -70,7 +70,7 @@ describe("KpiRow", () => {
 
   it("gives the revenue figure the whole row on a phone", () => {
     render(<KpiRow summary={summary()} deltas={null} trends />);
-    // Half a row is about 118px of text there, which cut "$1,804.80" short.
+    // Half a row is about 118px of text there, which cut "S$1,804.80" short.
     expect(screen.getByText("Revenue").closest("button")).toHaveClass(
       "col-span-2",
       "sm:col-span-1",
@@ -155,7 +155,7 @@ describe("MarginTable", () => {
     );
     expect(screen.getByText(/72%/)).toBeInTheDocument(); // gross margin header
     expect(screen.getByText("Kopi")).toBeInTheDocument();
-    expect(screen.getByText("$3.00")).toBeInTheDocument(); // Kopi profit
+    expect(screen.getByText("S$3.00")).toBeInTheDocument(); // Kopi profit
     expect(screen.getByText("75%")).toBeInTheDocument(); // Kopi margin 300/400
     // Kopi (300) ranks above Teh (60).
     const rows = screen.getAllByRole("row");
@@ -306,7 +306,7 @@ describe("StatsView", () => {
       />,
     );
     // Lifetime numbers ride as "all time" captions, distinct from the range KPIs.
-    expect(screen.getByText("$12,345.00 all time")).toBeInTheDocument();
+    expect(screen.getByText("S$12,345.00 all time")).toBeInTheDocument();
     expect(screen.getByText("512 all time")).toBeInTheDocument();
   });
 

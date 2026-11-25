@@ -425,7 +425,7 @@ describe("placeOrder", () => {
       expect(notifyVendor).toHaveBeenCalledTimes(1);
       const [vendorId, message] = notifyVendor.mock.calls[0];
       expect(vendorId).toBe("vendor-1");
-      expect(message).toBe("New order #0007 · $7.00");
+      expect(message).toBe("New order #0007 · S$7.00");
     });
 
     it("names the order by the day's ticket number when daily reset is on", async () => {
@@ -458,7 +458,7 @@ describe("placeOrder", () => {
       expect(res).toMatchObject({ success: true, orderNumber: "0007" });
       expect(notifyVendor).toHaveBeenCalledWith(
         "vendor-1",
-        "New order #003 · $7.00",
+        "New order #003 · S$7.00",
       );
     });
 
@@ -481,7 +481,7 @@ describe("placeOrder", () => {
 
       expect(notifyVendor).toHaveBeenCalledWith(
         "vendor-1",
-        "New order #0007 · $7.00",
+        "New order #0007 · S$7.00",
       );
     });
 

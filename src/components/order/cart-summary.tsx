@@ -1,10 +1,11 @@
 "use client";
 
+import { Money, formatMoney } from "@merqo/ui";
 import { ChevronDown, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button, cn } from "@merqo/ui/primitives";
 
 import { Ticket } from "@/components/widgets/ticket";
-import { count, formatOptions, formatPrice } from "@/lib/utils";
+import { count, formatOptions } from "@/lib/utils";
 
 import type { useCart } from "@/hooks/use-cart";
 
@@ -43,7 +44,7 @@ export function CartSummary({
         </span>
         <span className="flex items-center gap-2 font-mono text-sm font-semibold">
           {count(itemCount, "item")}
-          {cartPriced && ` · ${formatPrice(total)}`}
+          {cartPriced && ` · ${formatMoney(total)}`}
           <ChevronDown
             className={cn(
               "size-4 text-muted-foreground transition-transform",
@@ -73,7 +74,7 @@ export function CartSummary({
                     {item.price_cents !== null &&
                       item.price_cents !== undefined && (
                         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                          {formatPrice(item.price_cents * item.quantity)}
+                          <Money cents={item.price_cents * item.quantity} />
                         </p>
                       )}
                   </div>
@@ -113,7 +114,7 @@ export function CartSummary({
                   Total
                 </span>
                 <span className="font-mono text-lg font-bold">
-                  {formatPrice(total)}
+                  <Money cents={total} />
                 </span>
               </div>
             </>

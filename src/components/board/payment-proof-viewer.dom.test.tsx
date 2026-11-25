@@ -51,7 +51,7 @@ describe("PaymentProofViewer", () => {
     render(<PaymentProofViewer orderId="order-1" expectedAmountCents={550} />);
     expect(
       await screen.findByText(
-        "Amount matches $5.50. Verify payment in your payment app.",
+        "Amount matches S$5.50. Verify payment in your payment app.",
       ),
     ).toBeInTheDocument();
   });

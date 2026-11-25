@@ -155,7 +155,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     expect((await response.json()).metrics).toEqual(
       expect.arrayContaining([
         { label: "Orders (30d)", value: "3" },
-        { label: "Revenue (30d)", value: "$3.00" },
+        { label: "Revenue (30d)", value: "S$3.00" },
       ]),
     );
   });
@@ -238,7 +238,7 @@ describe("GET /api/merqo/vendor-activity", () => {
     expect(body.metrics).toEqual(
       expect.arrayContaining([
         { label: "Orders (30d)", value: "1" },
-        { label: "Revenue (30d)", value: "$15.00" },
+        { label: "Revenue (30d)", value: "S$15.00" },
       ]),
     );
     expect(body.lastActivityAt).not.toBeNull();

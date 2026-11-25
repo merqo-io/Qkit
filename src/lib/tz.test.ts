@@ -4,7 +4,6 @@ import {
   sgtMinutes,
   sgtWeekday,
   shortDay,
-  shortDateTime,
   sgtClock,
   sgtWeekdayTime,
   sgtStartOfDayIso,
@@ -55,11 +54,6 @@ describe("tz (Asia/Singapore)", () => {
     expect(shortDay(Date.parse("2026-06-07T05:00:00Z"))).toBe("7 Jun");
     // 17:00Z 11 Jun -> 01:00 SGT 12 Jun (rolls to next day in SGT).
     expect(shortDay(Date.parse("2026-06-11T17:00:00Z"))).toBe("12 Jun");
-  });
-
-  it("formats a short SGT date + time", () => {
-    // 05:00Z 7 Jun -> 13:00 SGT -> "7 Jun, 1:00 pm" (date + 12h time).
-    expect(shortDateTime("2026-06-07T05:00:00Z")).toMatch(/^7 Jun,.*1:00/);
   });
 
   it("formats a deterministic SGT wall-clock (hydration-safe)", () => {

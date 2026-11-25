@@ -1,12 +1,13 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@merqo/ui/primitives";
 
 import { cartKey } from "@/lib/cart";
 import type { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
-import { formatPrice, itemHasChoices, menuItemActionLabel } from "@/lib/utils";
+import { itemHasChoices, menuItemActionLabel } from "@/lib/utils";
 import type { MenuItem } from "@/lib/types";
 
 function MenuMessage({ children }: { children: string }) {
@@ -44,7 +45,7 @@ function MenuItemCard({
         <p className="truncate text-sm font-medium">{item.name}</p>
         {item.price_cents !== null && item.price_cents !== undefined && (
           <p className="font-mono text-xs text-muted-foreground">
-            {formatPrice(item.price_cents)}
+            <Money cents={item.price_cents} />
           </p>
         )}
         {left !== null && (

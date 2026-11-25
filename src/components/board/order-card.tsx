@@ -1,10 +1,11 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import { cn } from "@merqo/ui/primitives";
 import { useState, type MouseEvent, memo, useMemo } from "react";
 import { Ticket } from "@/components/widgets/ticket";
 import { parseOrderItems } from "@/lib/schemas";
-import { formatPrice, orderHasPricing } from "@/lib/utils";
+import { orderHasPricing } from "@/lib/utils";
 
 import { isTerminal, type AgeTone } from "@/lib/orders";
 import { ticketAttention, type OptionCodes } from "@/lib/ticket";
@@ -68,7 +69,7 @@ function ticketWash(closed: boolean, tone: AgeTone, payStatus: string) {
 // order can only be refunded off-platform, and the server action rejects the
 // cancel too.
 function dueLabel(priced: boolean, totalCents: number) {
-  return priced ? formatPrice(totalCents) : null;
+  return priced ? formatMoney(totalCents) : null;
 }
 
 function cancelAllowed(

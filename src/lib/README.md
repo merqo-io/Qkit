@@ -566,7 +566,7 @@ boolean`, migration 0080 — orders, booth_item_sold —
 - `tz.ts` — Singapore-only wall-clock helpers built on cached
   `Intl.DateTimeFormat` instances: `sgtHour`/`sgtMinutes`/`sgtWeekday`,
   `WEEKDAY_ORDER`/`WEEKDAY_LABELS`, display formatters `shortDay`/
-  `sgtClock`/`sgtWeekdayTime`/`shortDateTime`, and `sgtStartOfDayIso` (the UTC
+  `sgtClock`/`sgtWeekdayTime` (full date+time display comes from `@merqo/ui` `formatDateTime`/`<Timestamp>`), and `sgtStartOfDayIso` (the UTC
   instant for SGT midnight of a given moment — the query boundary for
   "today" in SGT, e.g. the daily order-number reset baseline and the
   completed-orders page's default "Today" filter) and `sgtYesterdayStartIso`
@@ -577,8 +577,8 @@ boolean`, migration 0080 — orders, booth_item_sold —
   against fixed ISO instants, `sgtStartOfDayIso`'s day-boundary rollover and `sgtYesterdayStartIso`.
 - `utils.ts` — formatters (`cn` comes from `@merqo/ui/primitives`; the form
   classes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` come from `@merqo/ui`),
-  `MS_PER_HOUR`/`MS_PER_DAY`,
-  `formatPrice`, `centsToDollarString`, `parseDollarsToCents` (keystroke-level
+  `MS_PER_HOUR`/`MS_PER_DAY` (money display comes from `@merqo/ui` `formatMoney`/`<Money>`: "S$12.50"),
+  `centsToDollarString`, `parseDollarsToCents` (keystroke-level
   validation for money inputs), `orderHasPricing`, `count` (pluralized noun),
   `formatOptions`, `menuItemActionLabel` (a menu item's add/customize button
   label — sold out / customize / add — shared by the customer order form and

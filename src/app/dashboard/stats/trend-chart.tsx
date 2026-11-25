@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import {
   Area,
   AreaChart,
@@ -8,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatPrice } from "@/lib/utils";
 import { shortDay } from "@/lib/tz";
 import type { SeriesPoint } from "@/lib/stats";
 import { RANGE_LABEL } from "./chart-format";
@@ -86,7 +86,7 @@ export function TrendChart({
           <Tooltip
             cursor={{ stroke: "var(--color-border)" }}
             formatter={(value, _name, item) => [
-              `${formatPrice(Number(value))} · ${ordersOf(item?.payload)} orders`,
+              `${formatMoney(Number(value))} · ${ordersOf(item?.payload)} orders`,
               "",
             ]}
             labelFormatter={(label) => shortDay(Number(label))}

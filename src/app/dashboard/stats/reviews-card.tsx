@@ -2,8 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Timestamp } from "@merqo/ui";
 import { Star } from "lucide-react";
-import { shortDateTime } from "@/lib/tz";
 import type { BoothReviews, ReviewSummary } from "@/lib/reviews";
 import { EYEBROW_CLASS } from "@/lib/utils";
 
@@ -112,7 +112,7 @@ function BoothDetail({ summary }: { summary: ReviewSummary }) {
                   <span />
                 )}
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {shortDateTime(r.created_at)}
+                  <Timestamp value={r.created_at} variant="datetime" />
                 </span>
               </div>
               {r.message && <p className="whitespace-pre-line">{r.message}</p>}

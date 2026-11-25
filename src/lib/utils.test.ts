@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   count,
   formatOptions,
-  formatPrice,
   orderHasPricing,
   parseDollarsToCents,
 } from "./utils";
@@ -28,18 +27,6 @@ describe("cn", () => {
   it("handles falsy values", () => {
     // eslint-disable-next-line sonarjs/no-redundant-boolean -- the literal `false` is deliberate here: it's simulating a real falsy conditional-classname arg (e.g. `cond && "b"`), the exact case being tested
     expect(cn("a", false && "b", undefined, "c")).toBe("a c");
-  });
-});
-
-describe("formatPrice", () => {
-  it("formats 1000 cents as SGD 10", () => {
-    const result = formatPrice(1000);
-    expect(result).toContain("10");
-    expect(result).toContain("$");
-  });
-
-  it("formats 0 as $0", () => {
-    expect(formatPrice(0)).toContain("0");
   });
 });
 

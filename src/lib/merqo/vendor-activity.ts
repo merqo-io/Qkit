@@ -1,4 +1,5 @@
-import { formatPrice, MS_PER_DAY } from "@/lib/utils";
+import { formatMoney } from "@merqo/ui";
+import { MS_PER_DAY } from "@/lib/utils";
 import {
   buildVendorHealth,
   type BoothLite,
@@ -82,7 +83,7 @@ export function computeVendorActivity(
     status: health.status,
     metrics: [
       { label: "Orders (30d)", value: String(orders30d.length) },
-      { label: "Revenue (30d)", value: formatPrice(revenue30dCents) },
+      { label: "Revenue (30d)", value: formatMoney(revenue30dCents) },
       { label: "Booths", value: `${activeBooths}/${booths.length}` },
     ],
     lastActivityAt: health.lastOrderAt,

@@ -7,7 +7,7 @@ pickup status.
 ## Stack
 
 Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4, shadcn/Radix,
-React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.60.0)
+React Hook Form, Zod, Supabase Auth/Postgres/Realtime, and the shared `@merqo/ui` (pinned at v0.61.0)
 package. Use `package.json` and `pnpm-lock.yaml` for exact versions.
 The app runs Next.js 16.4.6, which clears GHSA-mfr8-8qww-v76h.
 

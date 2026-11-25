@@ -30,6 +30,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared `@merqo/ui` is now v0.61.0. Prices everywhere (customer order flow, vendor board, walk-up, stats, admin, Telegram order alert, landing demo) now read "S$12.50" instead of "$12.50", and review and order timestamps now include the year ("7 Jun 2026, 2:30 pm"), both from the shared `Money`, `formatMoney` and `Timestamp`. The local `formatPrice` and `shortDateTime` helpers are removed.
 - Board: a ticket that says it was paid now keeps a plain card with the warm primary border and an amber label, instead of turning the whole card blue.
 - The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
 - Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.

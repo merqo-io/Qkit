@@ -6,7 +6,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { OrderStatus } from "@/lib/types";
 import OrderStatusPage from "./page";
-import { shortDateTime } from "@/lib/tz";
+import { formatDateTime } from "@merqo/ui";
 
 const { notFoundMock, redirectMock, headersMock, poweredBy } = vi.hoisted(
   () => ({
@@ -223,7 +223,7 @@ describe("OrderStatusPage — reopened older order", () => {
     expect(screen.getByText("This is not today's order")).toBeInTheDocument();
     // The date in full, so staff handed this screen can see it is not
     // today's, and a customer cannot present it as a current order.
-    expect(screen.getByText(shortDateTime(LAST_MONTH))).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime(LAST_MONTH))).toBeInTheDocument();
   });
 
   it("strikes the number through, so it cannot pass for a live one", async () => {
