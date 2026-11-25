@@ -75,6 +75,20 @@ describe("useBoothSave navigation", () => {
     expect(result.current.saving).toBe(true);
   });
 
+  it("does not hard-navigate when the form unmounts before the deadline", async () => {
+    const { result, unmount } = renderHook(() =>
+      useBoothSave(undefined, VALUES),
+    );
+    await act(async () => {
+      void result.current.onSubmit(submit);
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    unmount();
+    await vi.advanceTimersByTimeAsync(NAVIGATION_TIMEOUT_MS * 2);
+    expect(toastError).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
   it("edit saves fall back to the booth list", async () => {
     const { result } = renderHook(() =>
       useBoothSave("00000000-0000-4000-8000-000000000009", VALUES),
