@@ -91,12 +91,12 @@ export const article: HelpArticle = {
     { type: "heading", level: 2, text: "Add your menu" },
     {
       type: "paragraph",
-      text: "Saving a new booth takes you straight to its menu page.",
+      text: "Saving a new booth takes you straight to its menu page. With an empty menu, tap Start with a sample menu to add Kopi, Teh and Milo in one tap, then change their names and prices or delete them. Nothing is added until you tap it.",
     },
     {
       type: "steps",
       items: [
-        "Tap Add item, then fill in the Item name. Price is optional: leave it blank for a booth that only runs a queue.",
+        "Or tap Add item, then fill in the Item name. Price is optional: leave it blank for a booth that only runs a queue.",
         "Repeat for each item. You can also add sections, or import a whole menu from a CSV file.",
         "Tap Save menu. For a new booth this takes you to the booth's QR page.",
       ],
@@ -108,6 +108,10 @@ export const article: HelpArticle = {
     },
 
     { type: "heading", level: 2, text: "Print or display the QR" },
+    {
+      type: "paragraph",
+      text: "Above the poster, the Go live card ticks off Menu ready and Payment set up from your real setup, and has a button to open your booth page for a test order.",
+    },
     {
       type: "paragraph",
       text: "The QR page shows a poster headed Scan to order, with your booth name, the code, and the link in text for anyone who cannot scan.",
