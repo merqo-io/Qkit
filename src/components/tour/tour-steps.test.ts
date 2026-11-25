@@ -88,9 +88,9 @@ describe("boothsTourSteps", () => {
     expect(steps[0].description.length).toBeGreaterThan(0);
   });
 
-  it("mentions the menu is required and payment/printing/booking are optional", () => {
+  it("points at the setup checklist in under two sentences", () => {
     const description = boothsTourSteps()[0].description;
-    expect(description).toMatch(/menu/i);
-    expect(description).toMatch(/optional/i);
+    expect(description).toMatch(/checklist/i);
+    expect(description.split(/[.!?]\s/).length).toBeLessThanOrEqual(2);
   });
 });

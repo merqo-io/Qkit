@@ -610,6 +610,44 @@ describe("BoothForm More settings on edit", () => {
     }
   });
 
+  it("opens and scrolls to Payment when the page is reached with #payment", async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    window.location.hash = "#payment";
+    try {
+      await renderEdit({}, { expand: false });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "More settings" }),
+        ).toHaveAttribute("aria-expanded", "true"),
+      );
+      await waitFor(() => expect(scroll).toHaveBeenCalled());
+      expect(scroll.mock.contexts[0]).toHaveProperty("id", "payment");
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
+  it("opens and scrolls to Payment on a later hashchange to #payment", async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    try {
+      await renderEdit({}, { expand: false });
+      expect(
+        screen.getByRole("button", { name: "More settings" }),
+      ).toHaveAttribute("aria-expanded", "false");
+      window.location.hash = "#payment";
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "More settings" }),
+        ).toHaveAttribute("aria-expanded", "true"),
+      );
+      await waitFor(() => expect(scroll).toHaveBeenCalled());
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
   it("keeps values changed inside it when collapsed again before saving", async () => {
     const user = await renderEdit({}, { paymentSetup: PAYNOW_SETUP });
     await user.click(screen.getByRole("button", { name: "takes payment" }));

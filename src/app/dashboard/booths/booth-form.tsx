@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +13,6 @@ import {
   ScanLine,
   ClipboardList,
   ArrowRight,
-  ChevronDown,
 } from "lucide-react";
 import { Button, Checkbox, Input, Label, Switch } from "@merqo/ui/primitives";
 
@@ -34,6 +33,8 @@ import { Hint } from "@/components/widgets/hint";
 import { BoothDangerZone } from "./booth-danger-zone";
 import { BoothLimitsSection } from "./booth-limits-section";
 import { useBoothDelete, useBoothSave } from "./use-booth-save";
+import { usePaymentDeepLink } from "./use-payment-deep-link";
+import { MoreSettings } from "./more-settings";
 import type { Entitlement } from "@/lib/plan";
 import type { BoothHours } from "@/lib/hours";
 import type { SocialLinks } from "@/lib/types";
@@ -79,39 +80,6 @@ interface Props {
     // mean here.
     bookingStatus?: BookingStatus | null;
   };
-}
-
-function MoreSettings({
-  open,
-  onToggle,
-  panelRef,
-  children,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  panelRef: RefObject<HTMLDivElement | null>;
-  children: ReactNode;
-}) {
-  const panelId = useId();
-  return (
-    <>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={onToggle}
-        className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-border bg-card px-6 py-3 text-left text-base font-semibold hover:border-primary/40"
-      >
-        More settings
-        <ChevronDown
-          className={`size-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-      <div id={panelId} ref={panelRef} hidden={!open}>
-        {children}
-      </div>
-    </>
-  );
 }
 
 function MenuLink({ boothId, count }: { boothId: string; count: number }) {
@@ -206,6 +174,7 @@ export function BoothForm({
   const isEdit = Boolean(initial?.boothId);
   const [moreOpen, setMoreOpen] = useState(false);
   const morePanelRef = useRef<HTMLDivElement>(null);
+  const paymentRef = usePaymentDeepLink(isEdit, moreOpen, setMoreOpen);
   const { saving, onSubmit } = useBoothSave(
     initial?.boothId,
     {
@@ -456,19 +425,21 @@ export function BoothForm({
                   ) : null}
                 </Section>
 
-                <Section
-                  icon={<Wallet className="size-5" />}
-                  eyebrow="How you get paid"
-                  title="Payment"
-                  description="Optional, but skip it and customers have no way to pay through qkit. You'd collect payment in person instead."
-                >
-                  <PaymentSection
-                    setup={paymentSetup}
-                    value={takesPayment}
-                    onChange={setTakesPayment}
-                    isNewBooth={!initial?.boothId}
-                  />
-                </Section>
+                <div ref={paymentRef} id="payment" className="scroll-mt-20">
+                  <Section
+                    icon={<Wallet className="size-5" />}
+                    eyebrow="How you get paid"
+                    title="Payment"
+                    description="Optional, but skip it and customers have no way to pay through qkit. You'd collect payment in person instead."
+                  >
+                    <PaymentSection
+                      setup={paymentSetup}
+                      value={takesPayment}
+                      onChange={setTakesPayment}
+                      isNewBooth={!initial?.boothId}
+                    />
+                  </Section>
+                </div>
 
                 <Section
                   icon={<Printer className="size-5" />}

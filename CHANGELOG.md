@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A setup checklist on the dashboard shows each step (booth, menu, payment, go live, test order, optional TV), which are done, and a link to the next one. It hides when the steps are done or when you tap Hide. The booths tour now points at it.
 - The booth form explains Name & photo, Opening hours and Social links with tap-to-open hints, and the Pickup hint now says when to turn the kiosk on.
 
 ### Fixed

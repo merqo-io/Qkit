@@ -64,6 +64,9 @@ The authenticated vendor area — a shared header/nav shell wrapping the live or
 - `board-columns.tsx` — `BoardColumns` (Incoming, Preparing and Ready with their batch actions: Start all on Incoming, Mark all ready and Select on Preparing, Select on Ready) and `BoardSelectionBar`.
 - `board-card-renderer.tsx` — `renderBoardCard`: builds one `OrderCard` from the board's shared state.
 - `board-booth-dialog.tsx` — `BoothStatusDialog`: the multi-booth pause/resume dialog.
+- `setup-checklist-data.ts` — server helpers for the checklist: `checklistBoothOf` (the earliest booth as plain props) and `vendorHasOrders` (the board's unfinished orders, else a one-row check across all orders).
+- `setup-checklist.tsx` — `SetupChecklist({ booth, hasOrders })`: the slim collapsible setup card above the board (progress, the next step, a Hide control, all steps on expand). State comes from `deriveChecklist`; browser-only flags (payment skipped, hidden) are read after mount. Renders nothing with no booth (the board's no-booths ticket owns step 1 and `?mode=event`), once steps 1 to 5 are done, or when the vendor hides it. The payment skip shows beside the next step only while the list is collapsed.
+- `setup-checklist.dom.test.tsx` — no booth renders nothing, partial progress, skipped payment, existing vendor with orders, hidden state and unavailable localStorage.
 - `board-empty-states.tsx` — the no-booths, all-caught-up and disconnected states, plus `EmptyColumn` for an empty board column.
 - `board-derive.ts` — pure derivations: the active order list, the Incoming/Preparing/Ready split and batch id groups, the walk-up start booth.
 - `use-away-badge.ts` — `useAwayBadge`: the tab-title count of new orders that arrived while the tab was hidden.

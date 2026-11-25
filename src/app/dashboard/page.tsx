@@ -10,7 +10,9 @@ import { readKeysetRows } from "@/lib/supabase/read-keyset";
 import type { NumberingState } from "@/lib/daily-order-number";
 import { numberingStateForOwnBooths } from "@/lib/own-booth-numbering";
 import { sgtStartOfDayIso } from "@/lib/tz";
+import { checklistBoothOf, vendorHasOrders } from "./setup-checklist-data";
 import { RealtimeOrderBoard } from "./realtime-order-board";
+import { SetupChecklist } from "./setup-checklist";
 import type { BoardOrder } from "@/lib/types";
 
 export const revalidate = 0;
@@ -54,7 +56,7 @@ export default async function DashboardPage() {
   const boothQuery = supabase
     .from("booths")
     .select(
-      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm, cap_reset_at, created_at",
+      "id, name, is_active, hours, walkup_default, daily_cup_cap, menu_items, requires_arrival_confirm, cap_reset_at, created_at, payment",
     )
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: true })
@@ -135,6 +137,14 @@ export default async function DashboardPage() {
     }
   }
 
+  const hasOrders = await vendorHasOrders(
+    supabase,
+    boothIds,
+    orders.length > 0,
+    Boolean(ordersErr),
+  );
+  const checklistBooth = checklistBoothOf(booths[0], boothViews[0]);
+
   // A read error must not masquerade as an empty board — a vendor could think
   // the queue is clear when it isn't. Surface a retry banner instead.
   const loadError = Boolean(boothErr) || Boolean(ordersErr);
@@ -151,16 +161,21 @@ export default async function DashboardPage() {
   const baselinesDayStart = sgtStartOfDayIso();
 
   return (
-    <RealtimeOrderBoard
-      booths={boothViews}
-      initialOrders={orders}
-      boardSettings={vendor.board_settings}
-      loadError={loadError}
-      numbersDegraded={Boolean(degraded)}
-      dailyOrderNumberBaselines={dailyOrderNumberBaselines}
-      baselinesDayStart={baselinesDayStart}
-      serviceStarts={serviceStarts}
-      optionCodes={optionCodes}
-    />
+    <>
+      {boothErr ? null : (
+        <SetupChecklist booth={checklistBooth} hasOrders={hasOrders} />
+      )}
+      <RealtimeOrderBoard
+        booths={boothViews}
+        initialOrders={orders}
+        boardSettings={vendor.board_settings}
+        loadError={loadError}
+        numbersDegraded={Boolean(degraded)}
+        dailyOrderNumberBaselines={dailyOrderNumberBaselines}
+        baselinesDayStart={baselinesDayStart}
+        serviceStarts={serviceStarts}
+        optionCodes={optionCodes}
+      />
+    </>
   );
 }
