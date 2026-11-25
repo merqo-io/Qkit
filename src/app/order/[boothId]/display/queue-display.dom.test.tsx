@@ -139,6 +139,16 @@ describe("QueueDisplay", () => {
     });
   });
 
+  it("tells customers to check their phone in the Ready column", () => {
+    renderDisplay([PREPARING]);
+    const ready = screen.getByText("Ready for pickup").closest("section")!;
+    expect(
+      within(ready).getByText(
+        "See your number? Check your phone, then collect.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("groups orders into Preparing and Ready for pickup", () => {
     renderDisplay([PREPARING, READY]);
 

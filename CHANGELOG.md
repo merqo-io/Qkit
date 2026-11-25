@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - A new vendor can finish PayNow setup from the Go live card without getting lost: the paykit link carries `return_to` for the booth's QR page and opens in the same tab, the payment row loads behind a "Checking payment..." placeholder so the QR page no longer waits on paykit, an unreachable paykit reads "Check payment in paykit", and a PayNow config only counts as set up with a payee name and a UEN or mobile. The new-booth form tells the vendor to save first and set payment from the Go live card.
+- The demo recorder's `setup` scene (Instagram Ep 2) follows the new onboarding: add booth, sample menu, Go live card, QR, test order on the board. Scenes can set their own end card line, and plan chips are hidden on camera.
 - Saving a new booth no longer risks sitting on "Saving..." forever: if the next page has not loaded after 12 seconds, the app opens it with a full page load and shows a short notice.
 - The vendor walk-up order grid follows the same rule as the order page: "Customize" only on items with real choices, so items with empty option groups add straight to the order (follow-up to #436).
 - The demo recorder works against the current UI again: the legal gate cache no longer rejects the demo account, split scenes no longer open on a blank vendor pane, the booth form's Printing card is hidden on camera, `tv-screen` runs on the qkit tier, and `DEMO_BROWSER_CHANNEL` selects an installed browser.
@@ -17,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The TV queue display's Ready column now says "See your number? Check your phone, then collect.", so vendors do not need to call out numbers.
 - The public TV queue display has a "Hide QR" / "Show QR" control beside the text-size and sound controls. Hiding the ordering QR gives the order columns the full width; the choice is remembered per booth on that device.
 - Onboarding: an empty menu now offers "Start with a sample menu", one tap that adds Kopi, Teh and Milo as normal editable items (never added automatically, never twice, and within the plan's item cap). The booth QR page gets a "Go live" card showing Menu ready and Payment set up, with a button that opens your booth page for a test order.
 - The landing page now shows the after-pilot prices (Event Pass S$14 to S$28 per event at 15c a cup, Pro S$19.90/month) with one short free-pilot line, and the hero promises a 10-minute setup and PayNow. The PILOTING badge is replaced by a Singapore line, order 0042 is Priya in both demos, and pages get their own tab titles (booth name on the order page, Dashboard, Sign in).

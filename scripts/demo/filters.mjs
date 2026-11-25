@@ -139,6 +139,7 @@ export function buildVideoGraph({
   fontPath,
   durS,
   outroS,
+  outroLine = "Run your booth, watch orders land live",
 }) {
   const graph = [];
   const caps = items.map((it, i) => drawtext(it, textPaths[i], fontPath));
@@ -207,7 +208,7 @@ export function buildVideoGraph({
       `drawtext=fontfile='${fontPath}':text='qkit':fontsize=148:` +
       `fontcolor=white:x=(w-text_w)/2:y=h/2-160,` +
       `drawtext=fontfile='${fontPath}':` +
-      `text='Run your booth, watch orders land live':` +
+      `text='${outroLine}':` +
       `fontsize=44:fontcolor=0xCBBFB0:x=(w-text_w)/2:y=h/2+40,` +
       `fade=t=in:st=0:d=0.7[vout]`,
     `[vmain][vout]concat=n=2:v=1:a=0[v]`,

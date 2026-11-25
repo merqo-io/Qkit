@@ -137,6 +137,7 @@ function main() {
         fontPath: ffEscapePath(FONT),
         durS,
         outroS: OUTRO_S,
+        outroLine: meta.endLine || undefined,
       }),
       ...buildAudioGraph({
         popSec,
