@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The booth form explains Name & photo, Opening hours and Social links with tap-to-open hints, and the Pickup hint now says when to turn the kiosk on.
+
 ### Fixed
 
 - The demo recorder's `setup` scene (Instagram Ep 2) follows the new onboarding: add booth, sample menu, Go live card, QR, test order on the board. Scenes can set their own end card line, and plan chips are hidden on camera.

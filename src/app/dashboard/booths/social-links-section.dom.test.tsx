@@ -54,4 +54,21 @@ describe("SocialLinksSection", () => {
     );
     expect(onChange).toHaveBeenCalledWith(null);
   });
+
+  it("opens a hint saying where the links show to customers", async () => {
+    const user = userEvent.setup();
+    render(
+      <SocialLinksSection
+        value={null}
+        onChange={() => {}}
+        vendorDefaults={{}}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "About social links" }),
+    );
+    expect(
+      await screen.findByText(/order status page after they order/i),
+    ).toBeInTheDocument();
+  });
 });
