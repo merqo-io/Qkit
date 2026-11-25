@@ -106,6 +106,7 @@ const state = {
   videos: [],
   popMs: 0,
   t0: 0,
+  mode: "",
   baseUrl: "",
 };
 const now = () => Date.now() - state.t0;
@@ -183,6 +184,18 @@ function newPageDefaults(page) {
   page.setDefaultTimeout(45000);
 }
 
+// Label printing and plan upsells must never show on camera; the booth form
+// renders them inline, so the recording page hides the Printing card.
+const HIDE_OFF_CAMERA_SCRIPT = `
+setInterval(() => {
+  for (const el of document.querySelectorAll("section h2, section h3")) {
+    if (el.textContent.trim() === "Printing") {
+      el.closest("section").style.display = "none";
+    }
+  }
+}, 150);
+`;
+
 /** A recorded context. startMs is when its video begins on the scene clock. */
 async function openRecorded(browser, sceneDir, role, opts = {}) {
   const viewport = opts.viewport ?? PHONE;
@@ -193,6 +206,7 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
     recordVideo: { dir: sceneDir, size: viewport },
   });
   await context.addInitScript(CURSOR_SCRIPT);
+  await context.addInitScript(HIDE_OFF_CAMERA_SCRIPT);
   // The scene clock starts at the first recorded context, so unrecorded setup
   // never shows up as blank lead-in; later contexts get a positive offset.
   if (state.videos.length === 0) state.t0 = Date.now();
@@ -561,31 +575,44 @@ async function openBoard(page) {
   await page
     .getByRole("button", { name: "New order" })
     .waitFor({ timeout: 30000 });
+  await dismissTour(page);
   await pause(page, 900);
+  const entry = state.videos.find((v) => v.page === page);
+  if (entry && state.mode === "split") entry.readyMs = now();
 }
 
 /** On a phone only one of Incoming/Accepted shows; flip to the one with this ticket. */
 async function revealTicket(page, name) {
-  const card = ticket(page, name);
-  await card.waitFor({ state: "attached", timeout: 30000 });
-  // The hidden tab's card stays in the DOM, so the card locator can resolve to
-  // a visible ancestor; the customer's name is the reliable visibility signal.
-  const heading = page.getByText(name, { exact: true }).first();
-  if (await heading.isVisible()) return;
+  const heading = ticket(page, name).getByText(name, { exact: true }).first();
   const tabs = page
     .getByRole("group", { name: "Which orders to show" })
     .getByRole("button");
-  const count = await tabs.count();
-  for (let i = 0; i < count; i++) {
-    await tabs.nth(i).click();
-    const shown = await heading
-      .waitFor({ state: "visible", timeout: 2000 })
-      .then(
-        () => true,
-        () => false,
-      );
-    if (shown) return;
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if (await heading.isVisible()) return;
+    const count = await tabs.count();
+    for (let i = 0; i < count; i++) {
+      await tabs.nth(i).click();
+      const shown = await heading
+        .waitFor({ state: "visible", timeout: 1500 })
+        .then(
+          () => true,
+          () => false,
+        );
+      if (shown) return;
+    }
+    await pause(page, 500);
   }
+  throw new Error(`Ticket for ${name} never appeared on the board`);
+}
+
+/** Flip the phone's Incoming/Preparing/Ready tab; a no-op where the tabs don't exist. */
+async function showTab(page, label) {
+  const tab = page
+    .getByRole("group", { name: "Which orders to show" })
+    .getByRole("button", { name: label });
+  if (await tab.count()) await glideClick(page, tab);
+  await pause(page, 400);
 }
 
 async function tapTicket(page, name, label) {
@@ -985,6 +1012,7 @@ async function batchScene({ browser, scene, dir }) {
     await beat(1600);
   });
   await step(C.ready, async () => {
+    await showTab(page, /^Preparing/);
     await glideClick(
       page,
       page.getByRole("button", { name: /^Mark all \d+ ready/ }),
@@ -992,7 +1020,11 @@ async function batchScene({ browser, scene, dir }) {
     await beat(1800);
   });
   await step(C.pickup, async () => {
-    await glideClick(page, page.getByRole("button", { name: "Select" }));
+    await showTab(page, /^Ready/);
+    await glideClick(
+      page,
+      page.getByRole("button", { name: "Select", exact: true }),
+    );
     await beat(500);
     await glideClick(page, page.getByRole("button", { name: "Select all" }));
     await beat(600);
@@ -1109,6 +1141,7 @@ async function imHereScene({ browser, scene, dir }) {
     await beat(1200);
   });
   await step(C.start, async () => {
+    await revealTicket(board, CUSTOMER);
     await ticket(board, CUSTOMER)
       .getByRole("button", { name: "Mark Ready" })
       .waitFor({ state: "visible", timeout: 30000 });
@@ -1225,8 +1258,10 @@ async function main() {
   // headless for validation. recordVideo captures either way.
   const browser = await chromium.launch({
     headless: process.env.DEMO_HEADLESS === "1",
+    channel: process.env.DEMO_BROWSER_CHANNEL || undefined,
   });
   try {
+    state.mode = scene.mode;
     await run({ browser, scene, dir });
     const videos = await finishRecording(dir);
     fs.writeFileSync(
@@ -1247,6 +1282,15 @@ async function main() {
     console.log(`\n✓ Recorded ${videos.map((v) => v.file).join(", ")}`);
     console.log(`✓ ${state.steps.length} captioned beats, steps.json`);
     console.log(`Next: node scripts/demo/compose.mjs --scene ${scene.name}\n`);
+  } catch (err) {
+    for (const [i, context] of browser.contexts().entries()) {
+      for (const [j, page] of context.pages().entries()) {
+        const shot = path.join(dir, `failure-${i}-${j}.png`);
+        await page.screenshot({ path: shot }).catch(() => {});
+        console.error(`Failure screenshot: ${page.url()} -> ${shot}`);
+      }
+    }
+    throw err;
   } finally {
     await browser.close();
   }

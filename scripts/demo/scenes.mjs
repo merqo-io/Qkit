@@ -92,6 +92,7 @@ export const SCENES = [
     episode: 5,
     mode: "single",
     status: "implemented",
+    pro: true,
     hook: "Turn an old iPad into a pickup screen",
     captions: {
       open: "Open the pickup screen",

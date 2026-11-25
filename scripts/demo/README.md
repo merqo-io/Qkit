@@ -30,7 +30,7 @@ exit non-zero with the list.
 | `setup`       | 2       | single | implemented   | Sign up, stall name, menu, QR, all on camera.                                                                           |
 | `paynow`      | 3       | split  | live-verified | Runs against the paykit mock (`pnpm demo:paykit`). The mock pay page mirrors paykit (QR, screenshot upload, I've paid). |
 | `status`      | 4       | split  | implemented   | Two orders seeded ahead, so "orders ahead of you" shows.                                                                |
-| `tv-screen`   | 5       | single | implemented   | Landscape 1280x720 pickup screen.                                                                                       |
+| `tv-screen`   | 5       | single | implemented   | Landscape 1280x720 pickup screen. Needs the qkit tier; see `DEMO_DB_URL`.                                               |
 | `options`     | 6       | single | implemented   | Milk and Sugar options, then the ticket.                                                                                |
 | `walk-up`     | 7       | split  | implemented   | QR order, then New order for a walk-up.                                                                                 |
 | `batch`       | 8       | single | implemented   | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                      |
@@ -163,6 +163,12 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
   `ArgumentError ... out of range` on subscribe and the ticket never appears;
   `supabase stop` then `supabase start` on a current CLI, or a fresh volume,
   fixes it. Apply any newer migrations with `pnpm exec supabase migration up`.
+- A failed beat saves `failure-*.png` of every open page into `out/<scene>/`.
+- `DEMO_BROWSER_CHANNEL=msedge` (or `chrome`) launches an installed browser when the Playwright download will not start.
+- Run `pnpm demo:merqo` for every scene, not only `come-back`: its legal-status answer keeps the demo vendor past the gate once the cached acceptance from `reset.sql` ages out (5 minutes).
+- After `supabase db reset`, apply `supabase/seed/e2e-merqo-stub.sql` (the board needs the merqo schema stub) and restart the stack's realtime container if tickets do not pop.
+- The booth form's Printing card is hidden in recorded contexts, so label printing never shows on camera.
+- The board dismisses its first-visit tour popover on arrival and flips the phone's Incoming/Preparing/Ready tab to find a ticket.
 - A new booth's menu is built on its own page after the first save, so the
   recorder saves the booth, then adds items on `/menu` and lands on the QR page.
 
