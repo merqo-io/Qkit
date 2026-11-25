@@ -431,6 +431,9 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
   (including cell-quoting of values containing commas/quotes/newlines).
 - `download.ts` — `downloadBlob(blob, filename)`: saves a Blob through a transient anchor; the one place that creates and revokes the object URL (CSV exports, QR poster PNG).
 - `download.test.ts` — tests the anchor click, filename and URL revoke.
+- `setup-checklist.ts` — `deriveChecklist({ booth, hasOrders, flags })`: pure derivation of the dashboard setup checklist (six steps, five required) from the earliest booth, whether any order exists and the browser flags.
+- `setup-checklist.test.ts` — each step's done rule, the skipped-payment and orders shortcuts, and the optional TV step.
+- `setup-checklist-storage.ts` — try/catch localStorage reads and writes for the checklist flags (payment skipped, QR seen, TV opened) and its Hide state.
 - `schemas.ts` — the Zod schema library for every form/action/JSONB boundary:
   `loginSchema`, `vendorSchema`, `menuItemFormSchema`/`menuItemSchema`,
   `optionGroupSchema`/`sanitizeOptionGroups`, `boothHoursSchema`/

@@ -10,6 +10,7 @@ import { paykitSetupUrl } from "@/lib/paykit/setup-url";
 import { requestOrigin } from "@/lib/request-origin";
 import { GoLiveCard, PaymentRow } from "./go-live-card";
 import { paymentStepOf } from "./payment-step";
+import { MarkQrViewed } from "./mark-qr-viewed";
 
 export const revalidate = 0;
 
@@ -55,29 +56,32 @@ export default async function BoothQrPage({ params }: Props) {
   );
 
   return (
-    <BoothQrPoster
-      boothId={booth.id}
-      name={booth.name}
-      isActive={booth.is_active}
-      overLimit={overLimit}
-      maxBooths={entitlement.maxBooths}
-      code={booth.short_code}
-      goLive={
-        <GoLiveCard
-          boothId={booth.id}
-          code={booth.short_code}
-          menuReady={menuReady}
-          paymentRow={
-            <Suspense
-              fallback={
-                <PaymentRow payment="checking" paymentUrl={paymentUrl} />
-              }
-            >
-              <LivePaymentRow vendorId={vendor.id} paymentUrl={paymentUrl} />
-            </Suspense>
-          }
-        />
-      }
-    />
+    <>
+      <MarkQrViewed boothId={booth.id} />
+      <BoothQrPoster
+        boothId={booth.id}
+        name={booth.name}
+        isActive={booth.is_active}
+        overLimit={overLimit}
+        maxBooths={entitlement.maxBooths}
+        code={booth.short_code}
+        goLive={
+          <GoLiveCard
+            boothId={booth.id}
+            code={booth.short_code}
+            menuReady={menuReady}
+            paymentRow={
+              <Suspense
+                fallback={
+                  <PaymentRow payment="checking" paymentUrl={paymentUrl} />
+                }
+              >
+                <LivePaymentRow vendorId={vendor.id} paymentUrl={paymentUrl} />
+              </Suspense>
+            }
+          />
+        }
+      />
+    </>
   );
 }

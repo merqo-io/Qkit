@@ -610,6 +610,24 @@ describe("BoothForm More settings on edit", () => {
     }
   });
 
+  it("opens and scrolls to Payment when the page is reached with #payment", async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    window.location.hash = "#payment";
+    try {
+      await renderEdit({}, { expand: false });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "More settings" }),
+        ).toHaveAttribute("aria-expanded", "true"),
+      );
+      await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+      expect(scroll.mock.contexts[0]).toHaveProperty("id", "payment");
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
   it("keeps values changed inside it when collapsed again before saving", async () => {
     const user = await renderEdit({}, { paymentSetup: PAYNOW_SETUP });
     await user.click(screen.getByRole("button", { name: "takes payment" }));
