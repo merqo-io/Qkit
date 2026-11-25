@@ -16,6 +16,7 @@ import {
 import {
   readChecklistHidden,
   readSetupFlag,
+  readTvOpened,
   subscribeSetupStorage,
   writeChecklistHidden,
   writeSetupFlag,
@@ -35,7 +36,7 @@ function readSnapshot(boothId: string | null): Snapshot {
       ? {
           paymentSkipped: readSetupFlag("payment-skipped", boothId),
           qrViewed: readSetupFlag("qr-viewed", boothId),
-          tvOpened: readSetupFlag("tv-opened", boothId),
+          tvOpened: readTvOpened(),
         }
       : NO_FLAGS,
   };
@@ -149,17 +150,12 @@ export function SetupChecklist({
   const [expanded, setExpanded] = useState(false);
   const stored = useStoredSetup(boothId);
 
-  if (!stored || stored.hidden) return null;
+  if (!booth || !stored || stored.hidden) return null;
 
   const state = deriveChecklist({ booth, hasOrders, flags: stored.flags });
   if (state.allRequiredDone) return null;
 
-  const noBooth = booth === null;
-  const open = noBooth || expanded;
-  const skipPayment = () => {
-    if (!boothId) return;
-    writeSetupFlag("payment-skipped", boothId);
-  };
+  const skipPayment = () => writeSetupFlag("payment-skipped", booth.id);
 
   return (
     <section
@@ -170,37 +166,35 @@ export function SetupChecklist({
         <p className="text-sm font-semibold">
           Setup: {state.requiredDone} of {state.requiredTotal} done
         </p>
-        {!noBooth && state.next ? (
+        {state.next ? (
           <>
             <span className="text-sm text-muted-foreground">
               Next: {state.next.detail}
             </span>
             <StepAction item={state.next} />
-            {state.next.key === "payment" ? (
+            {state.next.key === "payment" && !expanded ? (
               <SkipPayment onSkip={skipPayment} />
             ) : null}
           </>
         ) : null}
         <span className="ml-auto flex items-center gap-1">
-          {noBooth ? null : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn("rounded-lg", TOUCH)}
-              aria-expanded={expanded}
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? "Fewer steps" : "All steps"}
-              <ChevronDown
-                aria-hidden
-                className={cn(
-                  "size-4 transition-transform",
-                  expanded && "rotate-180",
-                )}
-              />
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn("rounded-lg", TOUCH)}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "Fewer steps" : "All steps"}
+            <ChevronDown
+              aria-hidden
+              className={cn(
+                "size-4 transition-transform",
+                expanded && "rotate-180",
+              )}
+            />
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -212,7 +206,7 @@ export function SetupChecklist({
           </Button>
         </span>
       </div>
-      {open ? (
+      {expanded ? (
         <ol className="mt-1.5 border-t border-border pt-1.5">
           {state.items.map((item) => (
             <ItemRow key={item.key} item={item} onSkipPayment={skipPayment} />

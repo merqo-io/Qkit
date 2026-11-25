@@ -23,12 +23,11 @@ afterEach(() => {
 });
 
 describe("SetupChecklist", () => {
-  it("lists the whole path with no booth and drops the next-step row", () => {
-    render(<SetupChecklist booth={null} hasOrders={false} />);
-    expect(screen.getByText("Setup: 0 of 5 done")).toBeTruthy();
-    expect(screen.getByText("Create a booth")).toBeTruthy();
-    expect(screen.getByText("Place a test order")).toBeTruthy();
-    expect(screen.queryByText(/^Next:/)).toBeNull();
+  it("renders nothing with no booth, leaving the empty state to the board", () => {
+    const { container } = render(
+      <SetupChecklist booth={null} hasOrders={false} />,
+    );
+    expect(container.textContent).toBe("");
   });
 
   it("shows progress and the single next step for a partly set up booth", () => {
@@ -58,6 +57,16 @@ describe("SetupChecklist", () => {
     );
     expect(screen.getByText("Setup: 3 of 5 done")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Go live" })).toBeTruthy();
+  });
+
+  it("offers the payment skip once, not again in the expanded list", () => {
+    render(
+      <SetupChecklist booth={booth({ menuItemCount: 2 })} hasOrders={false} />,
+    );
+    const skip = { name: "Skip, take payment at the counter" };
+    expect(screen.getAllByRole("button", skip)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /All steps/ }));
+    expect(screen.getAllByRole("button", skip)).toHaveLength(1);
   });
 
   it("reads a skipped payment saved earlier", () => {

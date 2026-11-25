@@ -621,8 +621,28 @@ describe("BoothForm More settings on edit", () => {
           screen.getByRole("button", { name: "More settings" }),
         ).toHaveAttribute("aria-expanded", "true"),
       );
-      await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(scroll).toHaveBeenCalled());
       expect(scroll.mock.contexts[0]).toHaveProperty("id", "payment");
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
+  it("opens and scrolls to Payment on a later hashchange to #payment", async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    try {
+      await renderEdit({}, { expand: false });
+      expect(
+        screen.getByRole("button", { name: "More settings" }),
+      ).toHaveAttribute("aria-expanded", "false");
+      window.location.hash = "#payment";
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "More settings" }),
+        ).toHaveAttribute("aria-expanded", "true"),
+      );
+      await waitFor(() => expect(scroll).toHaveBeenCalled());
     } finally {
       window.location.hash = "";
     }

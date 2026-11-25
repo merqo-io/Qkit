@@ -1,8 +1,9 @@
-export type SetupFlag = "payment-skipped" | "qr-viewed" | "tv-opened";
+export type SetupFlag = "payment-skipped" | "qr-viewed";
 
 const PREFIX = "qkit:setup:";
 const CHANGE_EVENT = "qkit:setup-change";
 export const HIDDEN_KEY = `${PREFIX}hidden`;
+export const TV_OPENED_KEY = `${PREFIX}tv-opened`;
 
 /** Keeps a choice for this page load when storage refuses the write. */
 const memory = new Set<string>();
@@ -36,6 +37,25 @@ export function readSetupFlag(flag: SetupFlag, boothId: string): boolean {
 export function writeSetupFlag(flag: SetupFlag, boothId: string): void {
   try {
     remember(flagKey(flag, boothId));
+  } catch {
+    return;
+  } finally {
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }
+}
+
+/** The TV step is one setup per vendor, so it is not keyed by booth. */
+export function readTvOpened(): boolean {
+  try {
+    return isSet(TV_OPENED_KEY);
+  } catch {
+    return false;
+  }
+}
+
+export function writeTvOpened(): void {
+  try {
+    remember(TV_OPENED_KEY);
   } catch {
     return;
   } finally {

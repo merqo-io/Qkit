@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { ExternalLink, Tv } from "lucide-react";
 import { toast } from "sonner";
-import { writeSetupFlag } from "@/lib/setup-checklist-storage";
+import { writeTvOpened } from "@/lib/setup-checklist-storage";
 import { CopyButton } from "@merqo/ui";
 import {
   Button,
@@ -120,7 +120,7 @@ export function CustomerScreenButton({
     booths.find((b) => b.id === (chosenId ?? defaultBoothId)) ?? booths[0];
   const boothId = booth?.id;
   useEffect(() => {
-    if (open && boothId) writeSetupFlag("tv-opened", boothId);
+    if (open && boothId) writeTvOpened();
   }, [open, boothId]);
   if (booths.length === 0) return null;
 
