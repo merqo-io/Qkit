@@ -67,7 +67,7 @@ export const SCENES = [
     episode: 3,
     mode: "split",
     status: "implemented",
-    hook: "Grab takes 30%. We take 0.",
+    hook: "0% commission. PayNow goes straight to you.",
     captions: {
       pay: "Customer pays you by PayNow",
       proof: "Sends the payment screenshot",

@@ -61,10 +61,54 @@ const MULTI_BOOTHS = ["Coffee Cart", "Juice Bar", "Waffle Stand"];
 const CUSTOMER = "Priya";
 const WALK_IN = "Marcus";
 const PAYING_CUSTOMER = "Hana";
-const CROWD = ["Aiden", "Bea", "Chen", "Dina", "Eli", "Faye", "Gus", "Hugo"];
+const CROWD = [
+  "Aiden",
+  "Bea",
+  "Chen",
+  "Dina",
+  "Eli",
+  "Faye",
+  "Gus",
+  "Hugo",
+  "Ivy",
+  "Jun",
+  "Kai",
+  "Lena",
+  "Mei",
+  "Noah",
+  "Omar",
+  "Pia",
+  "Quin",
+  "Raj",
+  "Sana",
+  "Tom",
+  "Uma",
+  "Vik",
+  "Wen",
+  "Xia",
+  "Yara",
+  "Zane",
+  "Abby",
+  "Ben",
+  "Cleo",
+  "Dev",
+  "Esme",
+  "Finn",
+  "Gia",
+  "Hana",
+  "Ian",
+  "Jade",
+  "Ken",
+  "Liv",
+  "Max",
+  "Nia",
+];
+const CROWD_PARALLEL = 4;
 
 const PHONE = { width: 390, height: 844 };
-const TV = { width: 1280, height: 720 };
+// The pickup screen is shown portrait so its text stays large once the clip is
+// scaled to a phone; a landscape frame shrinks to a thin strip.
+const TV = { width: 640, height: 880 };
 const CURSOR_SCRIPT = `
   (() => {
     const add = () => {
@@ -186,7 +230,17 @@ function newPageDefaults(page) {
 
 // Label printing and plan upsells must never show on camera; the booth form
 // renders them inline, so the recording page hides the Printing card.
+// The in-flight "Saving…" label is swapped for the idle one the moment React
+// writes it, so a save never shows its transient state.
 const HIDE_OFF_CAMERA_SCRIPT = `
+new MutationObserver(() => {
+  const walker = document.createTreeWalker(document.body ?? document, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue === "Saving…") {
+      n.nodeValue = location.pathname.endsWith("/menu") ? "Save menu" : "Save booth";
+    }
+  }
+}).observe(document, { childList: true, subtree: true, characterData: true });
 setInterval(() => {
   for (const el of document.querySelectorAll("section h2, section h3")) {
     if (el.textContent.trim() === "Printing") {
@@ -194,6 +248,14 @@ setInterval(() => {
     }
   }
 }, 150);
+`;
+
+// Transparent rather than display:none so waits on toast text still resolve.
+// An adopted stylesheet, because the app's CSP blocks injected <style> tags.
+const HIDE_TOASTS_SCRIPT = `
+const sheet = new CSSStyleSheet();
+sheet.replaceSync("[data-sonner-toaster], [data-sonner-toast] { opacity: 0 !important; pointer-events: none !important; }");
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
 `;
 
 /** A recorded context. startMs is when its video begins on the scene clock. */
@@ -207,6 +269,7 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
   });
   await context.addInitScript(CURSOR_SCRIPT);
   await context.addInitScript(HIDE_OFF_CAMERA_SCRIPT);
+  if (opts.hideToasts) await context.addInitScript(HIDE_TOASTS_SCRIPT);
   // The scene clock starts at the first recorded context, so unrecorded setup
   // never shows up as blank lead-in; later contexts get a positive offset.
   if (state.videos.length === 0) state.t0 = Date.now();
@@ -997,9 +1060,16 @@ async function walkUpScene({ browser, scene, dir }) {
 async function batchScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  for (const name of CROWD) await backgroundOrder(browser, seed.boothId, name);
+  for (let i = 0; i < CROWD.length; i += CROWD_PARALLEL) {
+    await Promise.all(
+      CROWD.slice(i, i + CROWD_PARALLEL).map((name) =>
+        backgroundOrder(browser, seed.boothId, name),
+      ),
+    );
+  }
   const page = await openRecorded(browser, dir, "main", {
     storageState: seed.storageState,
+    hideToasts: true,
   });
   await openBoard(page);
 
@@ -1009,7 +1079,8 @@ async function batchScene({ browser, scene, dir }) {
   });
   await step(C.start, async () => {
     await glideClick(page, page.getByRole("button", { name: /^Start all/ }));
-    await beat(1600);
+    await page.getByRole("button", { name: /^Incoming \(0\)/ }).waitFor();
+    await beat(1200);
   });
   await step(C.ready, async () => {
     await showTab(page, /^Preparing/);
@@ -1017,7 +1088,8 @@ async function batchScene({ browser, scene, dir }) {
       page,
       page.getByRole("button", { name: /^Mark all \d+ ready/ }),
     );
-    await beat(1800);
+    await page.getByRole("button", { name: /^Preparing \(0\)/ }).waitFor();
+    await beat(1200);
   });
   await step(C.pickup, async () => {
     await showTab(page, /^Ready/);
@@ -1028,10 +1100,10 @@ async function batchScene({ browser, scene, dir }) {
     await beat(500);
     await glideClick(page, page.getByRole("button", { name: "Select all" }));
     await beat(600);
-    await glideClick(
-      page,
-      page.getByRole("button", { name: /^Mark \d+ Picked Up/ }),
-    );
+    const pickedUp = page.getByRole("button", { name: /^Mark \d+ Picked Up/ });
+    await pickedUp.and(page.locator(":enabled")).waitFor();
+    await glideClick(page, pickedUp);
+    await page.getByText("All caught up").waitFor();
     await beat(1800);
   });
 }
@@ -1156,7 +1228,7 @@ async function comeBackScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
   runDemoSql("seed-socials.sql");
-  const page = await openRecorded(browser, dir, "main");
+  const page = await openRecorded(browser, dir, "main", { hideToasts: true });
 
   await step(C.footer, async () => {
     await customerOrder(page, seed.boothId, { name: CUSTOMER });

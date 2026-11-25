@@ -12,6 +12,9 @@ const PANEL_BORDER = "0x3a3128";
 
 const HOOK = { fontsize: 62, maxChars: 24, y: 64, lineHeight: 78 };
 const STEP = { fontsize: 52, maxChars: 28, y: 1540, lineHeight: 74 };
+// A single recording sits in its own band between the hook and the step
+// captions so no caption ever covers app UI.
+export const SINGLE = { top: 290, h: 1290, border: 8, stepY: 1620 };
 // Consecutive steps share an exact boundary and between() is inclusive on both
 // ends, so without a gap the boundary frame would draw two captions at once.
 const CAPTION_GAP_S = 0.15;
@@ -86,7 +89,9 @@ export function captionItems(meta, durS) {
       items.push({
         text,
         ...STEP,
-        y: STEP.y + i * STEP.lineHeight,
+        y:
+          (meta.mode === "single" ? SINGLE.stepY : STEP.y) +
+          i * STEP.lineHeight,
         start,
         end,
       });
@@ -188,8 +193,9 @@ export function buildVideoGraph({
     graph.push(
       finish(
         `[0:v]fps=${FPS},` +
-          `scale=${CANVAS_W}:${CANVAS_H}:force_original_aspect_ratio=decrease,` +
-          `pad=${CANVAS_W}:${CANVAS_H}:(ow-iw)/2:(oh-ih)/2:color=${BG},setsar=1,` +
+          `scale=${CANVAS_W - SINGLE.border * 2}:${SINGLE.h - SINGLE.border * 2}:force_original_aspect_ratio=decrease,` +
+          `pad=iw+${SINGLE.border * 2}:ih+${SINGLE.border * 2}:${SINGLE.border}:${SINGLE.border}:color=${PANEL_BORDER},` +
+          `pad=${CANVAS_W}:${CANVAS_H}:(ow-iw)/2:${SINGLE.top}:color=${BG},setsar=1,` +
           `${timeline(v)},`,
         [],
       ),
