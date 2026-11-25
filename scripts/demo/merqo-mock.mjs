@@ -1,9 +1,10 @@
 import http from "node:http";
 
-// Stand-in for the three merqo endpoints qkit calls over HTTP
+// Stand-in for the merqo endpoints qkit calls over HTTP
 // (src/lib/merqo/customer-notify.ts), so the order page can render the
 // "Get notified on Telegram" beat on a local stack. The vendor socials need no
-// mock: they are read from the database, not over HTTP.
+// mock: they are read from the database, not over HTTP. legal-status answers
+// "current" once the cached acceptance in reset.sql ages past its 5 minute TTL.
 
 const MERQO_MOCK_PORT = 4320;
 const MERQO_MOCK_SECRET = "demo-merqo-secret";
@@ -26,6 +27,12 @@ function startMerqoMock() {
     };
     if (req.headers.authorization !== `Bearer ${MERQO_MOCK_SECRET}`) {
       return send(401, { error: "unauthorized" });
+    }
+    if (
+      req.method === "GET" &&
+      req.url?.startsWith("/api/merqo/legal-status")
+    ) {
+      return send(200, { terms: "9999-12-31", privacy: "9999-12-31" });
     }
     if (
       req.method === "POST" &&

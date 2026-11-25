@@ -23,22 +23,22 @@ alone, so a caption or layout change never needs a re-record.
 `node scripts/demo/record.mjs --list` prints this table. Unknown scene names
 exit non-zero with the list.
 
-| Scene         | Episode | Layout | Status        | Notes                                                                                                                   |
-| ------------- | ------- | ------ | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `tour`        | none    | single | live-verified | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                              |
-| `live-pop`    | 1       | split  | implemented   | Customer orders, ticket pops on the board, chime.                                                                       |
-| `setup`       | 2       | single | implemented   | Sign up, stall name, menu, QR, all on camera.                                                                           |
-| `paynow`      | 3       | split  | live-verified | Runs against the paykit mock (`pnpm demo:paykit`). The mock pay page mirrors paykit (QR, screenshot upload, I've paid). |
-| `status`      | 4       | split  | implemented   | Two orders seeded ahead, so "orders ahead of you" shows.                                                                |
-| `tv-screen`   | 5       | single | implemented   | Landscape 1280x720 pickup screen.                                                                                       |
-| `options`     | 6       | single | implemented   | Milk and Sugar options, then the ticket.                                                                                |
-| `walk-up`     | 7       | split  | implemented   | QR order, then New order for a walk-up.                                                                                 |
-| `batch`       | 8       | single | implemented   | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                      |
-| `sold-out`    | 9       | single | implemented   | Needs the qkit tier (stock limits); see `DEMO_DB_URL`.                                                                  |
-| `stats`       | 10      | single | implemented   | Free plan only: no history, trends or margin.                                                                           |
-| `multi-booth` | 11      | single | implemented   | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                      |
-| `im-here`     | 12      | split  | implemented   | Booth set to hold prep until arrival.                                                                                   |
-| `come-back`   | 13      | single | live-verified | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`.                            |
+| Scene         | Episode | Layout | Status        | Notes                                                                                                                     |
+| ------------- | ------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `tour`        | none    | single | live-verified | Full flow. Payment beats run against the paykit mock (`pnpm demo:paykit`).                                                |
+| `live-pop`    | 1       | split  | implemented   | Customer orders, ticket pops on the board, chime.                                                                         |
+| `setup`       | 2       | single | implemented   | Sign up, stall name, menu, QR, all on camera.                                                                             |
+| `paynow`      | 3       | split  | live-verified | Runs against the paykit mock (`pnpm demo:paykit`). The mock pay page mirrors paykit (QR, screenshot upload, I've paid).   |
+| `status`      | 4       | split  | implemented   | Two orders seeded ahead, so "orders ahead of you" shows.                                                                  |
+| `tv-screen`   | 5       | single | implemented   | Portrait 640x880 pickup screen (landscape shrinks to unreadable text on a phone). Needs the qkit tier; see `DEMO_DB_URL`. |
+| `options`     | 6       | single | implemented   | Milk and Sugar options, then the ticket.                                                                                  |
+| `walk-up`     | 7       | split  | implemented   | QR order, then New order for a walk-up.                                                                                   |
+| `batch`       | 8       | single | implemented   | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                        |
+| `sold-out`    | 9       | single | implemented   | Needs the qkit tier (stock limits); see `DEMO_DB_URL`.                                                                    |
+| `stats`       | 10      | single | implemented   | Free plan only: no history, trends or margin.                                                                             |
+| `multi-booth` | 11      | single | implemented   | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                        |
+| `im-here`     | 12      | split  | implemented   | Booth set to hold prep until arrival.                                                                                     |
+| `come-back`   | 13      | single | live-verified | Needs `pnpm demo:merqo` and a dev server with its env; socials seeded by `seed-socials.sql`.                              |
 
 Never on camera: label or sticker printing, iOS web-push prompts, loopkit
 loyalty stamps, card payments.
@@ -48,18 +48,19 @@ scene except `tour` and `setup`, so the clip opens on the interesting part.
 
 ## Files
 
-| File                  | Does                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| `scenes.mjs`          | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                      |
-| `filters.mjs`         | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                       |
-| `reset.sql`           | Wipes the fixed demo account so each run starts identical                                          |
-| `grant-qkit-tier.sql` | Gives the demo vendor the qkit tier; run by `record.mjs` only for scenes that show a gated feature |
-| `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                              |
-| `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                        |
-| `seed-socials.sql`    | Gives the demo booth social links for the `come-back` footer; run by `record.mjs`                  |
-| `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                |
-| `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                          |
-| `out/`                | Generated artifacts (git-ignored)                                                                  |
+| File                  | Does                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `scenes.mjs`          | Scene registry (hook and captions), argument parsing, caption wrapping. Pure.                          |
+| `filters.mjs`         | ffmpeg filtergraph builders: single and split layout, captions, chime. Pure.                           |
+| `reset.sql`           | Wipes the fixed demo account so each run starts identical                                              |
+| `grant-qkit-tier.sql` | Gives the demo vendor the qkit tier; run by `record.mjs` only for scenes that show a gated feature     |
+| `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                                  |
+| `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                            |
+| `seed-socials.sql`    | Gives the demo booth social links for the `come-back` footer; run by `record.mjs`                      |
+| `trailer.mjs`         | Cuts `out/tour-trailer.mp4` (about 28s) from the composed live-pop, paynow, status and tv-screen clips |
+| `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                    |
+| `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                              |
+| `out/`                | Generated artifacts (git-ignored)                                                                      |
 
 ## Prerequisites
 
@@ -105,6 +106,17 @@ node scripts/demo/compose.mjs --scene live-pop
 
 Omit `--scene` for the full `tour`. Run `reset.sql` before every record, since
 each scene signs the demo account up itself.
+
+## Single mode and trailer
+
+Single scenes sit in their own band (`SINGLE` in `filters.mjs`) between the hook
+and the step captions, so captions never cover app UI. The batch and come-back
+scenes hide toasts (`hideToasts`, an adopted stylesheet because the CSP blocks
+injected `<style>`), and a "Saving…" label is swapped for its idle text so a save
+never shows its transient state. batch seeds 40 orders four at a time and waits
+for each bulk action to settle, so it runs about a minute.
+After composing live-pop, paynow, status and tv-screen, `node scripts/demo/trailer.mjs`
+cuts the trailer from them.
 
 ## Split mode
 
@@ -163,6 +175,12 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
   `ArgumentError ... out of range` on subscribe and the ticket never appears;
   `supabase stop` then `supabase start` on a current CLI, or a fresh volume,
   fixes it. Apply any newer migrations with `pnpm exec supabase migration up`.
+- A failed beat saves `failure-*.png` of every open page into `out/<scene>/`.
+- `DEMO_BROWSER_CHANNEL=msedge` (or `chrome`) launches an installed browser when the Playwright download will not start.
+- Run `pnpm demo:merqo` for every scene, not only `come-back`: its legal-status answer keeps the demo vendor past the gate once the cached acceptance from `reset.sql` ages out (5 minutes).
+- After `supabase db reset`, apply `supabase/seed/e2e-merqo-stub.sql` (the board needs the merqo schema stub) and restart the stack's realtime container if tickets do not pop.
+- The booth form's Printing card is hidden in recorded contexts, so label printing never shows on camera.
+- The board dismisses its first-visit tour popover on arrival and flips the phone's Incoming/Preparing/Ready tab to find a ticket.
 - A new booth's menu is built on its own page after the first save, so the
   recorder saves the booth, then adds items on `/menu` and lands on the QR page.
 
