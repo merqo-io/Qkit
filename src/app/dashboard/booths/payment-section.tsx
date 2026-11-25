@@ -5,10 +5,7 @@ import { Switch } from "@merqo/ui/primitives";
 
 import { SettingRow } from "./setting-row";
 import type { PaymentSetup } from "@/lib/paykit/payment-setup";
-
-// Mirrors src/lib/paykit/client.ts's fallback — duplicated since this is a
-// client component reading NEXT_PUBLIC_* directly.
-const PAYKIT_FALLBACK_URL = "https://paykit.merqo.io";
+import { paykitSetupUrl } from "@/lib/paykit/setup-url";
 
 function neverChanges() {
   return () => {};
@@ -27,10 +24,7 @@ function currentPage(): string {
  */
 function useSetupUrl(): string {
   const returnTo = useSyncExternalStore(neverChanges, currentPage, () => null);
-  const base = process.env.NEXT_PUBLIC_PAYKIT_URL ?? PAYKIT_FALLBACK_URL;
-  const url = new URL("/dashboard/config", base);
-  if (returnTo) url.searchParams.set("return_to", returnTo);
-  return url.href;
+  return paykitSetupUrl(returnTo);
 }
 
 function summaryOf(setup: PaymentSetup): string {
@@ -64,11 +58,13 @@ export function PaymentSection({
   setup,
   value,
   onChange,
+  isNewBooth = false,
 }: {
   // What paykit holds for this vendor, read when the page was rendered.
   setup: PaymentSetup;
   value: boolean;
   onChange: (next: boolean) => void;
+  isNewBooth?: boolean;
 }) {
   const setupUrl = useSetupUrl();
   // With nothing on file there is nothing to take payment with. When paykit
@@ -94,16 +90,23 @@ export function PaymentSection({
 
       <p className="px-1 text-sm text-muted-foreground">{summaryOf(setup)}</p>
 
-      <p className="px-1 text-sm">
-        <a
-          href={setupUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-primary hover:underline"
-        >
-          {linkTextOf(setup)}
-        </a>
-      </p>
+      {isNewBooth ? (
+        <p className="px-1 text-sm text-muted-foreground">
+          Save this booth first. Then set up or change payment from the Go live
+          card on its QR page.
+        </p>
+      ) : (
+        <p className="px-1 text-sm">
+          <a
+            href={setupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            {linkTextOf(setup)}
+          </a>
+        </p>
+      )}
     </div>
   );
 }

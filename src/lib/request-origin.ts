@@ -34,6 +34,8 @@ export async function requestOrigin(): Promise<string | null> {
     trustedHost = forwardedHost;
 
   if (!trustedHost) return null;
-  const proto = h.get("x-forwarded-proto") ?? "https";
+  const hostname = trustedHost.split(":")[0];
+  const local = hostname === "localhost" || hostname === "127.0.0.1";
+  const proto = h.get("x-forwarded-proto") ?? (local ? "http" : "https");
   return `${proto}://${trustedHost}`;
 }

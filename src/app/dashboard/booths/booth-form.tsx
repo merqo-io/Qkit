@@ -375,6 +375,7 @@ export function BoothForm({
               setup={paymentSetup}
               value={takesPayment}
               onChange={setTakesPayment}
+              isNewBooth={!initial?.boothId}
             />
           </Section>
 

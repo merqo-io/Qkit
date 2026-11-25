@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A new vendor can finish PayNow setup from the Go live card without getting lost: the paykit link carries `return_to` for the booth's QR page and opens in the same tab, the payment row loads behind a "Checking payment..." placeholder so the QR page no longer waits on paykit, an unreachable paykit reads "Check payment in paykit", and a PayNow config only counts as set up with a payee name and a UEN or mobile. The new-booth form tells the vendor to save first and set payment from the Go live card.
+
 - The demo recorder works against the current UI again: the legal gate cache no longer rejects the demo account, split scenes no longer open on a blank vendor pane, the booth form's Printing card is hidden on camera, `tv-screen` runs on the qkit tier, and `DEMO_BROWSER_CHANNEL` selects an installed browser.
 - The vendor board "Mark paid" buttons are now warm deep amber instead of blue, matching the rest of the kopitiam palette in light and dark themes.
 - The order page shows "Customize" only on items that have something to choose; items with empty option groups get a plain "Add". Items without a photo already render as clean text rows.
