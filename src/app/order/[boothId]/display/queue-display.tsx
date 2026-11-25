@@ -3,7 +3,7 @@
 import { cn } from "@merqo/ui/primitives";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import QRCode from "react-qr-code";
-import { Volume2 } from "lucide-react";
+import { QrCode, Volume2 } from "lucide-react";
 
 import { orderPath } from "@/lib/booth/code";
 import { splitTrailingDigit } from "@/lib/orders";
@@ -26,6 +26,27 @@ const FRESH_MS = 5 * 60 * 1000;
 const FLASH_MS = 3500;
 const CONTROLS_IDLE_MS = 5000;
 const ACTIVITY_EVENTS = ["mousemove", "pointerdown", "keydown", "focusin"];
+
+function qrHiddenKey(boothId: string): string {
+  return `qkit.display.qrHidden.${boothId}`;
+}
+
+function readQrHidden(boothId: string): boolean {
+  try {
+    return window.localStorage.getItem(qrHiddenKey(boothId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeQrHidden(boothId: string, hidden: boolean): void {
+  try {
+    if (hidden) window.localStorage.setItem(qrHiddenKey(boothId), "1");
+    else window.localStorage.removeItem(qrHiddenKey(boothId));
+  } catch {
+    return;
+  }
+}
 
 // This is a TV screen — no scrolling — so each column caps how many tiles it
 // ever renders rather than overflowing off the bottom. Fixed numbers, not
@@ -71,6 +92,7 @@ export function QueueDisplay({
   const [orders, setOrders] = useState(initialOrders);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [qrHidden, setQrHidden] = useState(false);
   // When each currently-ready order first became ready. State, not a ref —
   // render must stay pure (no reading refs or calling Date.now() there), so
   // both this and nowMs below are only ever written from effects/handlers.
@@ -101,6 +123,11 @@ export function QueueDisplay({
       for (const e of ACTIVITY_EVENTS) window.removeEventListener(e, wake);
     };
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after mount
+    setQrHidden(readQrHidden(boothId));
+  }, [boothId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is only readable after mount
@@ -170,6 +197,20 @@ export function QueueDisplay({
           )}
         >
           <ScreenSizeControl screen="display" />
+          <button
+            type="button"
+            aria-pressed={qrHidden}
+            aria-label={qrHidden ? "Show QR code" : "Hide QR code"}
+            onClick={() => {
+              const next = !qrHidden;
+              setQrHidden(next);
+              writeQrHidden(boothId, next);
+            }}
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground"
+          >
+            <QrCode className="size-4" />
+            {qrHidden ? "Show QR" : "Hide QR"}
+          </button>
           {!soundEnabled && (
             <button
               type="button"
@@ -188,7 +229,13 @@ export function QueueDisplay({
 
       <div className="perforation my-6 shrink-0" />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-0 landscape:sm:grid-cols-[1fr_1fr_auto] portrait:sm:grid-rows-[minmax(0,1fr)_auto]">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-0",
+          !qrHidden &&
+            "landscape:sm:grid-cols-[1fr_1fr_auto] portrait:sm:grid-rows-[minmax(0,1fr)_auto]",
+        )}
+      >
         <section className="flex min-h-0 flex-col">
           <h2 className="mb-4 shrink-0 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Preparing
@@ -282,31 +329,33 @@ export function QueueDisplay({
           )}
         </section>
 
-        <aside
-          aria-label="Order from your phone"
-          className="flex shrink-0 flex-col items-center justify-center gap-3 text-center sm:col-span-2 landscape:sm:col-span-1 landscape:sm:border-l landscape:sm:border-dashed landscape:sm:border-border landscape:sm:pl-8"
-        >
-          <h2 className="font-display text-3xl font-semibold text-primary 2xl:text-4xl">
-            Order here
-          </h2>
-          <p className="max-w-xs text-sm text-muted-foreground 2xl:text-lg">
-            Scan, order and pay by PayNow. Watch for your number here.
-          </p>
-          <div className="rounded-2xl bg-white p-4">
-            {orderUrl ? (
-              <QRCode
-                value={orderUrl}
-                level="M"
-                size={256}
-                title="Ordering QR code"
-                className="size-40 sm:size-48 2xl:size-64"
-                style={{ height: "auto", width: undefined }}
-              />
-            ) : (
-              <div className="size-40 sm:size-48 2xl:size-64" />
-            )}
-          </div>
-        </aside>
+        {!qrHidden && (
+          <aside
+            aria-label="Order from your phone"
+            className="flex shrink-0 flex-col items-center justify-center gap-3 text-center sm:col-span-2 landscape:sm:col-span-1 landscape:sm:border-l landscape:sm:border-dashed landscape:sm:border-border landscape:sm:pl-8"
+          >
+            <h2 className="font-display text-3xl font-semibold text-primary 2xl:text-4xl">
+              Order here
+            </h2>
+            <p className="max-w-xs text-sm text-muted-foreground 2xl:text-lg">
+              Scan, order and pay by PayNow. Watch for your number here.
+            </p>
+            <div className="rounded-2xl bg-white p-4">
+              {orderUrl ? (
+                <QRCode
+                  value={orderUrl}
+                  level="M"
+                  size={256}
+                  title="Ordering QR code"
+                  className="size-40 sm:size-48 2xl:size-64"
+                  style={{ height: "auto", width: undefined }}
+                />
+              ) : (
+                <div className="size-40 sm:size-48 2xl:size-64" />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );
