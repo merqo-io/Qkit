@@ -7,6 +7,8 @@ per-booth colours and image paths.
 
 ## Contents
 
+- `sample-menu.test.ts` — tests the sample drinks, their fresh ids and that they pass the menu item schema.
+- `sample-menu.ts` — `sampleMenuItems()`: the three starter drinks (Kopi, Teh, Milo) with fresh ids that the empty-menu "Start with a sample menu" button adds.
 - `servable-parity.test.ts` — runs `servableBoothIds` over `supabase/tests/fixtures/booth-servable.json` and checks the pgTAP file `booth-servable-parity.test.sql` embeds the same fixture, so the TS and SQL `booth_servable` cannot drift.
 - `access.test.ts` — tests serveability under free vs. unlimited
   entitlements and the "paused" classification.

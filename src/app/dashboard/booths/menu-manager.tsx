@@ -17,6 +17,7 @@ import { Button } from "@merqo/ui/primitives";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";
+import { SampleMenuPrompt } from "./sample-menu-prompt";
 import {
   saveMenuCategories,
   saveMenuItems,
@@ -415,6 +416,17 @@ export function MenuManager({
             </Button>
           </div>
         </div>
+      )}
+
+      {items.length === 0 && (
+        <SampleMenuPrompt
+          boothId={boothId}
+          disabled={busy}
+          onAdded={(added) => {
+            setItems(added);
+            setMenuBaseline(JSON.stringify([added, categories]));
+          }}
+        />
       )}
 
       <MenuEditor

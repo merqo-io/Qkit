@@ -9,6 +9,7 @@ import {
   toggleBoothActive,
   deleteBooth,
 } from "./actions";
+import { seedSampleMenu } from "./seed-sample-menu";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
@@ -438,6 +439,88 @@ describe("saveMenuItems", () => {
     h.state.updateResult = { data: null, error: { message: "boom" } };
     const res = await saveMenuItems(BOOTH_ID, [makeItem()]);
     expect(res).toEqual({ success: false, error: "Could not save menu" });
+  });
+});
+
+describe("seedSampleMenu", () => {
+  beforeEach(() => {
+    h.state.prevResult = { data: { menu_items: [], menu_revision: 4 } };
+  });
+
+  it("adds Kopi, Teh and Milo to an empty booth", async () => {
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res.success).toBe(true);
+    const row = h.updateSpy.mock.calls[0]![0] as {
+      menu_items: Array<{ name: string; price_cents: number }>;
+      menu_revision: number;
+    };
+    expect(row.menu_items.map((i) => [i.name, i.price_cents])).toEqual([
+      ["Kopi", 180],
+      ["Teh", 180],
+      ["Milo", 220],
+    ]);
+    expect(row.menu_revision).toBe(5);
+    expect(h.updateEqSpy).toHaveBeenCalledWith("menu_revision", 4);
+    expect(res.success && res.items).toHaveLength(3);
+  });
+
+  it("refuses a booth that already has items", async () => {
+    h.state.prevResult = {
+      data: { menu_items: [{ id: "i1", name: "Coffee" }], menu_revision: 1 },
+    };
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res).toEqual({
+      success: false,
+      error: "This booth already has menu items",
+    });
+    expect(h.updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses a second request that lost the revision race", async () => {
+    h.state.updateResult = { data: null, error: null };
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res.success).toBe(false);
+  });
+
+  it("refuses an unauthenticated caller", async () => {
+    h.loadEntitlementMock.mockResolvedValue({
+      user: null,
+      entitlement: ENTITLEMENTS.free,
+    });
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res).toEqual({ success: false, error: "Not authenticated" });
+    expect(h.updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses a plan whose item cap is below three", async () => {
+    h.loadEntitlementMock.mockResolvedValue({
+      user: { id: "v1" },
+      entitlement: { ...ENTITLEMENTS.free, maxMenuItems: 2 },
+    });
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res).toEqual({
+      success: false,
+      error: "Your plan allows up to 2 menu items. Remove some to add more.",
+    });
+    expect(h.updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid booth id", async () => {
+    const res = await seedSampleMenu("nope");
+
+    expect(res).toEqual({ success: false, error: "Invalid booth" });
+  });
+
+  it("returns 'Booth not found' for a booth the vendor does not own", async () => {
+    h.state.prevResult = { data: null };
+    const res = await seedSampleMenu(BOOTH_ID);
+
+    expect(res).toEqual({ success: false, error: "Booth not found" });
   });
 });
 

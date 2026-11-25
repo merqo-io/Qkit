@@ -6,11 +6,15 @@ import { MenuManager } from "./menu-manager";
 import type { Entitlement } from "@/lib/plan";
 import type { MenuItemFormInput } from "@/lib/schemas";
 
-const { saveMenuItems, saveMenuCategories } = vi.hoisted(() => ({
-  saveMenuItems: vi.fn(),
-  saveMenuCategories: vi.fn(),
-}));
+const { saveMenuItems, saveMenuCategories, seedSampleMenu } = vi.hoisted(
+  () => ({
+    saveMenuItems: vi.fn(),
+    saveMenuCategories: vi.fn(),
+    seedSampleMenu: vi.fn(),
+  }),
+);
 vi.mock("./actions", () => ({ saveMenuItems, saveMenuCategories }));
+vi.mock("./seed-sample-menu", () => ({ seedSampleMenu }));
 
 // MenuEditor's own add/edit/remove/reorder behavior is covered by
 // menu-editor.dom.test.tsx — stub it here to a plain list so this file stays
@@ -205,6 +209,54 @@ describe("MenuManager save", () => {
       ),
     );
     expect(routerReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe("MenuManager sample menu", () => {
+  it("offers the sample menu on an empty menu and hides it once items exist", async () => {
+    const user = userEvent.setup();
+    const added = [
+      makeItem({ id: "s1", name: "Kopi" }),
+      makeItem({ id: "s2", name: "Teh" }),
+      makeItem({ id: "s3", name: "Milo" }),
+    ];
+    seedSampleMenu.mockResolvedValue({ success: true, items: added });
+    render(
+      <MenuManager
+        vendorId="v1"
+        boothId={BOOTH_ID}
+        boothName="Kopitiam Cart"
+        entitlement={ENTITLEMENT}
+        initialItems={[]}
+        isNewBooth
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Start with a sample menu" }),
+    );
+
+    await waitFor(() => expect(screen.getByText("Milo")).toBeInTheDocument());
+    expect(seedSampleMenu).toHaveBeenCalledWith(BOOTH_ID);
+    expect(
+      screen.queryByRole("button", { name: "Start with a sample menu" }),
+    ).toBeNull();
+  });
+
+  it("does not offer the sample menu when the booth has items", () => {
+    render(
+      <MenuManager
+        vendorId="v1"
+        boothId={BOOTH_ID}
+        boothName="Kopitiam Cart"
+        entitlement={ENTITLEMENT}
+        initialItems={[makeItem()]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Start with a sample menu" }),
+    ).toBeNull();
   });
 });
 
