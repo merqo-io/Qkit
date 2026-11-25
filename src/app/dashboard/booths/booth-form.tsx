@@ -29,6 +29,7 @@ import { BookingStatusSection } from "./booking-status-section";
 import { CloseBoothControl } from "./close-booth-control";
 import { PickupKioskLink } from "./pickup-kiosk-link";
 import { SettingRow } from "./setting-row";
+import { Hint } from "@/components/widgets/hint";
 import { BoothDangerZone } from "./booth-danger-zone";
 import { BoothLimitsSection } from "./booth-limits-section";
 import { useBoothDelete, useBoothSave } from "./use-booth-save";
@@ -199,12 +200,19 @@ export function BoothForm({
             description="Your booth's name and banner image."
           >
             <div className="space-y-2.5">
-              <Label
-                htmlFor="booth-name"
-                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-              >
-                Booth name
-              </Label>
+              <div className="flex items-center">
+                <Label
+                  htmlFor="booth-name"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  Booth name
+                </Label>
+                <Hint label="About name and photo">
+                  Your name and banner photo show at the top of the booth page
+                  customers open from your QR. The name also prints on the QR
+                  poster.
+                </Hint>
+              </div>
               <Input
                 id="booth-name"
                 value={name}
@@ -267,6 +275,14 @@ export function BoothForm({
               </label>
             )}
 
+            <p className="flex items-center text-sm font-medium">
+              Opening hours
+              <Hint label="About hours">
+                Customers can order only while the booth is open and inside
+                these hours. Use one time every day, or set different times for
+                each day.
+              </Hint>
+            </p>
             <WorkingHoursEditor
               value={hours}
               onChange={setHours}
@@ -401,7 +417,7 @@ export function BoothForm({
           >
             <SettingRow
               label="Self-checkout pickup"
-              hint="A ready order's status page shows a QR. The customer scans it at this booth's pickup kiosk and the order is marked picked up, without staff tapping it."
+              hint="A kiosk tablet at your counter where customers scan their own ready order and it is marked picked up. Turn it on when you have a pickup shelf and no one to hand orders over."
               hintLabel="About self-checkout pickup"
             >
               <Switch

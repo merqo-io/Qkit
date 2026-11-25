@@ -27,7 +27,8 @@ free-plan total-booth cap under concurrent writes.
 `BoothForm` composes hours, order-flow, limits, payment, printing and pickup,
 booking and social link editors. Each setting is a `SettingRow`
 (`setting-row.tsx`): a short label with a tap-to-open hint on the left, its
-control in one right-hand column. Order flow holds arrival hold and walk-up
+control in one right-hand column. Name & photo, hours and social links, which
+have no switch row, carry the same `Hint` beside their own label. Order flow holds arrival hold and walk-up
 default; Limits holds the daily item limit and the per-order limit; Printing
 holds printkit printing; Pickup holds the booth's own self-checkout pickup switch
 (`booths.pickup_scan_enabled`, migration 0104, which gates the pickup QR on the

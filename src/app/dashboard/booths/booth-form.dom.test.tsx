@@ -835,3 +835,47 @@ describe("BoothForm self-checkout pickup", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("BoothForm section hints", () => {
+  const EDIT_INITIAL = {
+    boothId: BOOTH_ID,
+    name: "Ice Cream Cart",
+    image_url: null,
+    is_active: true,
+    hours: null,
+    menuItemCount: 0,
+    takes_payment: false,
+    social_links: null,
+    requires_arrival_confirm: false,
+    walkup_default: false,
+    print_enabled: false,
+    paykit_booking_id: null,
+    daily_cup_cap: null,
+  };
+  const HINTS = [
+    ["About name and photo", /banner photo show at the top/i],
+    ["About hours", /only while the booth is open/i],
+    ["About self-checkout pickup", /pickup shelf/i],
+  ] as const;
+
+  it.each(["create", "edit"] as const)(
+    "opens each hint to its text in %s mode",
+    async (mode) => {
+      const user = userEvent.setup();
+      render(
+        <BoothForm
+          vendorId="v1"
+          entitlement={ENTITLEMENT}
+          vendorSocialLinks={{}}
+          paymentSetup={NO_SETUP}
+          initial={mode === "edit" ? EDIT_INITIAL : undefined}
+        />,
+      );
+      for (const [label, text] of HINTS) {
+        await user.click(screen.getByRole("button", { name: label }));
+        expect(await screen.findByText(text)).toBeInTheDocument();
+        await user.keyboard("{Escape}");
+      }
+    },
+  );
+});
