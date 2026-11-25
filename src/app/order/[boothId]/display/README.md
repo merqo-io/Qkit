@@ -176,3 +176,6 @@ orders completing between pages cannot hide the next order. A later-page failure
 returns no replacement snapshot, so polling preserves the last complete display.
 
 [[boothId]](../README.md)
+
+The Ready column carries a one-line, shrink-0 "See your number? Check your
+phone, then collect." under its heading, so staff need not call numbers out.

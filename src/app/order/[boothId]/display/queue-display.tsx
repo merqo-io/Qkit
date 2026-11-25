@@ -285,6 +285,9 @@ export function QueueDisplay({
           <h2 className="mb-4 shrink-0 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Ready for pickup
           </h2>
+          <p className="mb-4 shrink-0 truncate text-xl text-muted-foreground sm:text-2xl">
+            See your number? Check your phone, then collect.
+          </p>
           {ready.length === 0 ? (
             <div className="flex flex-1 items-center justify-center text-center">
               <p className="text-2xl text-muted-foreground sm:text-3xl">
