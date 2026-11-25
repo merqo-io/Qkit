@@ -129,21 +129,6 @@ export function sgtWeekdayTime(iso: string): string {
   return SGT_WEEKDAY_TIME_FORMAT.format(new Date(iso));
 }
 
-// Cached: short date + time in SGT, e.g. "7 Jun, 2:30 pm" — for review timestamps.
-const SGT_DATETIME_FORMAT = new Intl.DateTimeFormat("en-GB", {
-  timeZone: BOOTH_TZ,
-  day: "numeric",
-  month: "short",
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true,
-});
-
-/** Format an ISO instant as a short SGT date+time like "7 Jun, 2:30 pm". */
-export function shortDateTime(iso: string): string {
-  return SGT_DATETIME_FORMAT.format(new Date(iso));
-}
-
 // Cached: SGT calendar date as an ISO-sortable "YYYY-MM-DD" string — used to
 // find the boundary of "today" in SGT regardless of the server's own tz.
 const SGT_YMD_FORMAT = new Intl.DateTimeFormat("en-CA", {

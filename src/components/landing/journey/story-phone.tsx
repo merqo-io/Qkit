@@ -1,5 +1,6 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { Check } from "lucide-react";
 
 import { cn } from "@merqo/ui/primitives";
@@ -9,7 +10,6 @@ import {
   WaitEstimate,
 } from "@/app/order/[boothId]/[orderNumber]/order-status-parts";
 import { statusCopy } from "@/app/order/[boothId]/[orderNumber]/order-status-copy";
-import { formatPrice } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 import { Cue } from "./story-cue";
 import {
@@ -70,7 +70,7 @@ function Menu({
                   )}
                 </p>
                 <p className="font-mono text-xs text-muted-foreground">
-                  {formatPrice(m.cents)}
+                  <Money cents={m.cents} />
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -123,7 +123,7 @@ function Menu({
         >
           <span>
             {count} item{count === 1 ? "" : "s"} ·{" "}
-            {formatPrice(totalCents(state))}
+            <Money cents={totalCents(state)} />
           </span>
           <span>Place order</span>
         </button>
@@ -198,7 +198,7 @@ function Status({ state }: { state: StoryState }) {
               {m.option ? ` (${m.option})` : ""}
             </span>
             <span className="shrink-0 font-mono text-muted-foreground">
-              {formatPrice(state.qty[m.key] * m.cents)}
+              <Money cents={state.qty[m.key] * m.cents} />
             </span>
           </li>
         ))}

@@ -67,8 +67,8 @@ describe("BookingStatusSection", () => {
       />,
     );
     expect(screen.getByText("Deposit paid")).toBeInTheDocument();
-    expect(screen.getByText(/Deposit \$200\.00/)).toBeInTheDocument();
-    expect(screen.getByText(/Balance \$300\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Deposit S\$200\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Balance S\$300\.00/)).toBeInTheDocument();
     expect(screen.getByText("Paid")).toBeInTheDocument();
     expect(screen.getByText("Not yet paid")).toBeInTheDocument();
   });

@@ -1,8 +1,8 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import { Input, Label } from "@merqo/ui/primitives";
 
-import { formatPrice } from "@/lib/utils";
 import type { BookingStatus } from "@/lib/paykit/client";
 
 const STATUS_LABEL: Record<BookingStatus["status"], string> = {
@@ -93,11 +93,11 @@ export function BookingStatusSection({
             </span>
           </div>
           <div className="flex items-center justify-between gap-2 text-muted-foreground">
-            <span>Deposit {formatPrice(status.depositAmountCents)}</span>
+            <span>Deposit {formatMoney(status.depositAmountCents)}</span>
             <PaidMark paid={status.depositConfirmed} />
           </div>
           <div className="flex items-center justify-between gap-2 text-muted-foreground">
-            <span>Balance {formatPrice(status.balanceAmountCents)}</span>
+            <span>Balance {formatMoney(status.balanceAmountCents)}</span>
             <PaidMark paid={status.balanceConfirmed} />
           </div>
         </div>

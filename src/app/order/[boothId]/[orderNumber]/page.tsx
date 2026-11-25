@@ -1,3 +1,4 @@
+import { Timestamp, formatMoney } from "@merqo/ui";
 import { cn } from "@merqo/ui/primitives";
 import { notFound, redirect } from "next/navigation";
 import { requestOrigin } from "@/lib/request-origin";
@@ -11,12 +12,7 @@ import {
   type VendorProfile,
 } from "@/lib/merqo/vendor-profile";
 import { Ticket } from "@/components/widgets/ticket";
-import {
-  formatOptions,
-  formatPrice,
-  orderHasPricing,
-  EYEBROW_CLASS,
-} from "@/lib/utils";
+import { formatOptions, orderHasPricing, EYEBROW_CLASS } from "@/lib/utils";
 
 import {
   orderBoothIdSchema,
@@ -28,7 +24,6 @@ import {
 } from "@/lib/schemas";
 import { isStaleOrderView, isTerminal } from "@/lib/orders";
 import { resolveOrderDisplay } from "@/lib/order-display";
-import { shortDateTime } from "@/lib/tz";
 import { FeedbackForm } from "@/components/widgets/feedback-form";
 import { ReorderButton } from "@/components/order/reorder-button";
 import { OrderStatusPoller } from "./order-status-poller";
@@ -81,12 +76,16 @@ function PastOrderStamp({
       <dl className="space-y-0.5 text-sm">
         <div className="flex justify-center gap-1.5">
           <dt className="text-muted-foreground">Placed</dt>
-          <dd className="font-medium">{shortDateTime(placedAt)}</dd>
+          <dd className="font-medium">
+            <Timestamp value={placedAt} variant="datetime" />
+          </dd>
         </div>
         {kind === "completed" && completedAt && (
           <div className="flex justify-center gap-1.5">
             <dt className="text-muted-foreground">Collected</dt>
-            <dd className="font-medium">{shortDateTime(completedAt)}</dd>
+            <dd className="font-medium">
+              <Timestamp value={completedAt} variant="datetime" />
+            </dd>
           </div>
         )}
       </dl>
@@ -175,7 +174,7 @@ function OrderLines({
               <span className="shrink-0 font-mono text-muted-foreground">
                 {item.price_cents === null || item.price_cents === undefined
                   ? "Free"
-                  : formatPrice(item.price_cents * item.quantity)}
+                  : formatMoney(item.price_cents * item.quantity)}
               </span>
             )}
           </div>
@@ -189,7 +188,7 @@ function OrderLines({
       {priced && (
         <div className="mt-1 flex justify-between border-t border-border/60 pt-3 font-semibold">
           <span>Total</span>
-          <span className="font-mono">{formatPrice(totalCents)}</span>
+          <span className="font-mono">{formatMoney(totalCents)}</span>
         </div>
       )}
       {payAtCounter && (

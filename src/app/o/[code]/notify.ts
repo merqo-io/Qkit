@@ -12,6 +12,7 @@
 
 // eslint-disable-next-line no-restricted-imports -- vendor alert runs for an anonymous customer order, outside any vendor session
 import { createServiceClient } from "@/lib/supabase/server";
+import { formatMoney } from "@merqo/ui";
 import { notifyVendor } from "@/lib/merqo/customer-notify";
 import { orderLabels } from "@/lib/printkit/labels";
 import { createPrintJob } from "@/lib/printkit/client";
@@ -50,9 +51,7 @@ export async function notifyVendorTelegram(
       .eq("booth_id", boothId)
       .eq("order_number", orderNumber)
       .maybeSingle();
-    const totalLabel = order
-      ? ` · $${(order.total_cents / 100).toFixed(2)}`
-      : "";
+    const totalLabel = order ? ` · ${formatMoney(order.total_cents)}` : "";
 
     // The ticket's number, not the permanent one: the alert read "#0847" for
     // a ticket on the board reading "#002".

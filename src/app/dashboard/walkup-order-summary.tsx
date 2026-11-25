@@ -1,10 +1,11 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button, Input, Label } from "@merqo/ui/primitives";
 
 import type { useCart } from "@/hooks/use-cart";
-import { count, formatOptions, formatPrice } from "@/lib/utils";
+import { count, formatOptions } from "@/lib/utils";
 
 function CartLines({
   entries,
@@ -66,7 +67,7 @@ function CartLines({
             Total
           </span>
           <span className="font-mono text-lg font-bold">
-            {formatPrice(total)}
+            <Money cents={total} />
           </span>
         </div>
       )}

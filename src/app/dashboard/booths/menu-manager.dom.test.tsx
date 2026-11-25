@@ -341,7 +341,7 @@ describe("MenuManager CSV import", () => {
     await user.upload(screen.getByLabelText("Import CSV"), csvFile(csv));
 
     expect(
-      await screen.findByText("Kopi O (Local black coffee) $1.80"),
+      await screen.findByText("Kopi O (Local black coffee) S$1.80"),
     ).toBeInTheDocument();
   });
 
@@ -361,7 +361,7 @@ describe("MenuManager CSV import", () => {
     await user.upload(screen.getByLabelText("Import CSV"), csvFile(csv));
 
     expect(
-      await screen.findByText("Kopi O $1.80 (cost $0.60)"),
+      await screen.findByText("Kopi O S$1.80 (cost S$0.60)"),
     ).toBeInTheDocument();
   });
 

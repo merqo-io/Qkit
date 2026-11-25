@@ -1,7 +1,7 @@
 "use client";
 
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
-import { DataCollectionNotice } from "@merqo/ui";
+import { DataCollectionNotice, Money } from "@merqo/ui";
 import {
   Button,
   Input,
@@ -15,7 +15,7 @@ import {
   SheetTitle,
 } from "@merqo/ui/primitives";
 
-import { formatOptions, formatPrice } from "@/lib/utils";
+import { formatOptions } from "@/lib/utils";
 import type { useCart } from "@/hooks/use-cart";
 
 export type CheckoutFormValues = {
@@ -115,7 +115,7 @@ export function CheckoutSheet({
                     {item.price_cents !== null &&
                       item.price_cents !== undefined && (
                         <span className="shrink-0 font-mono text-muted-foreground">
-                          {formatPrice(item.price_cents * item.quantity)}
+                          <Money cents={item.price_cents * item.quantity} />
                         </span>
                       )}
                   </div>
@@ -130,7 +130,7 @@ export function CheckoutSheet({
                     Total
                   </span>
                   <span className="font-mono text-sm font-semibold">
-                    {formatPrice(total)}
+                    <Money cents={total} />
                   </span>
                 </div>
                 {paysInPerson && total > 0 && (

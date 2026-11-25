@@ -1,5 +1,6 @@
 "use client";
 
+import { Money, Timestamp, formatMoney } from "@merqo/ui";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -28,10 +29,9 @@ import {
 } from "@merqo/ui/primitives";
 
 import { parseOrderItems } from "@/lib/schemas";
-import { formatPrice, isNil } from "@/lib/utils";
+import { isNil } from "@/lib/utils";
 import { ADVANCE, isTerminal, needsPaymentReview } from "@/lib/orders";
 import { ticketOptions, type OptionCodes } from "@/lib/ticket";
-import { shortDateTime } from "@/lib/tz";
 import type { BoardOrder, OrderStatus, PaymentStatus } from "@/lib/types";
 
 // Only needed once a vendor opens a claimed order's proof, so it is kept out
@@ -229,7 +229,7 @@ export function TicketItems({
                 <span className="shrink-0 font-mono text-sm text-muted-foreground">
                   {item.price_cents === null || item.price_cents === undefined
                     ? "Free"
-                    : formatPrice(item.price_cents * item.quantity)}
+                    : formatMoney(item.price_cents * item.quantity)}
                 </span>
               )}
             </div>
@@ -429,10 +429,12 @@ export function TicketActions({
 
       {showDate && (
         <div className="flex items-baseline justify-between border-t border-border/60 px-4 py-2.5 font-mono text-xs text-muted-foreground">
-          <span>{shortDateTime(order.created_at)}</span>
+          <span>
+            <Timestamp value={order.created_at} variant="datetime" />
+          </span>
           {priced && (
             <span className="text-sm font-bold text-foreground">
-              {formatPrice(order.total_cents)}
+              <Money cents={order.total_cents} />
             </span>
           )}
         </div>

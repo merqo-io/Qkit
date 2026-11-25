@@ -5,8 +5,7 @@
 // functions — non-serializable props that would throw if this stayed a Server
 // Component and passed them across the server→client boundary.
 
-import { DataTable, type DataTableColumn } from "@merqo/ui";
-import { formatPrice } from "@/lib/utils";
+import { DataTable, type DataTableColumn, formatMoney } from "@merqo/ui";
 import type { StatsSummary, TopItem } from "@/lib/stats";
 
 const columns: DataTableColumn<TopItem>[] = [
@@ -26,8 +25,9 @@ const columns: DataTableColumn<TopItem>[] = [
   },
   {
     header: "Profit",
-    cell: (i) => formatPrice(i.profit_cents),
-    className: "text-right font-mono tabular-nums",
+    cell: (i) => formatMoney(i.profit_cents),
+    align: "end",
+    className: "font-mono",
   },
   {
     header: "Margin",
@@ -69,7 +69,7 @@ export function MarginTable({ summary }: { summary: StatsSummary }) {
           <span className="font-mono font-semibold text-foreground">
             {Math.round(gm.marginPct)}%
           </span>{" "}
-          · {formatPrice(gm.profit_cents)} profit
+          · {formatMoney(gm.profit_cents)} profit
         </p>
       </div>
 

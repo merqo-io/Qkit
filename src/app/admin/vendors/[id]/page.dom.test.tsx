@@ -151,7 +151,7 @@ describe("admin vendor detail", () => {
       { booth_id: "a", status: "cancelled", total_cents: 9000, created_at },
     ];
     render(await renderPage());
-    expect(screen.getByText("$6.00")).toBeInTheDocument();
+    expect(screen.getByText("S$6.00")).toBeInTheDocument();
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(screen.getByText("0d ago")).toBeInTheDocument();
     expect(screen.getByText("Pro (founder)")).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe("admin vendor detail", () => {
       },
     ];
     render(await renderPage());
-    expect(screen.getByText("$0.00")).toBeInTheDocument();
+    expect(screen.getByText("S$0.00")).toBeInTheDocument();
     expect(resolve).not.toHaveBeenCalled();
   });
 });
