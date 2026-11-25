@@ -247,6 +247,11 @@ setInterval(() => {
       el.closest("section").style.display = "none";
     }
   }
+  for (const el of document.querySelectorAll("button, span, a, div, p")) {
+    if (el.querySelectorAll("*").length <= 3 && /^(Starter|Pro|Plus)$/.test(el.textContent.trim())) {
+      el.style.visibility = "hidden";
+    }
+  }
 }, 150);
 `;
 
@@ -849,17 +854,102 @@ async function tourScene({ browser, scene, dir }) {
 
 async function setupScene({ browser, scene, dir }) {
   const C = scene.captions;
-  const page = await openRecorded(browser, dir, "main");
-  await step(C.signup, () => signUp(page));
-  await step(C.stall, async () => {
-    await nameStall(page);
-    await dismissTour(page);
+  // The vendor is already signed in with a named stall: sign-up and onboarding
+  // are not the story of "live in 5 minutes", so they run unrecorded.
+  const seed = await openFast(browser);
+  await signUp(seed.page);
+  await nameStall(seed.page);
+  await dismissTour(seed.page);
+  // First-visit tours are remembered per browser; visiting these pages here
+  // keeps their popovers out of the recorded clip.
+  for (const route of ["/dashboard/booths", "/dashboard/booths/new"]) {
+    await seed.page.goto(`${state.baseUrl}${route}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await dismissTour(seed.page);
+  }
+  const storageState = await seed.context.storageState();
+  await seed.context.close();
+
+  const page = await openRecorded(browser, dir, "main", {
+    storageState,
+    hideToasts: true,
   });
-  await step(C.menu, () => createBooth(page, { viaLink: true }));
+  await page.goto(`${state.baseUrl}/dashboard`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page.getByRole("link", { name: /Add your first booth/ }).waitFor();
+  await beat(500);
+  const first = state.videos.find((v) => v.page === page);
+  if (first) first.readyMs = now();
+  await beat(400);
+
+  let boothId = "";
+  await step(C.booth, async () => {
+    await glideClick(
+      page,
+      page.getByRole("link", { name: /Add your first booth/ }),
+    );
+    await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
+    await pause(page, 700);
+    if (await tourPopover(page).isVisible()) await dismissTour(page);
+    await slowType(page, page.locator("#booth-name"), STALL);
+    const save = page.getByRole("button", { name: /Save booth/ });
+    await center(page, save);
+    await glideClick(page, save);
+    await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
+      timeout: 15000,
+    });
+    boothId =
+      page.url().match(/\/dashboard\/booths\/([0-9a-f-]{36})\/menu/i)?.[1] ??
+      "";
+    if (!boothId)
+      throw new Error("Could not read the new booth id from the URL.");
+    await pause(page, 600);
+    if (await tourPopover(page).isVisible()) await dismissTour(page);
+    await pause(page, 600);
+  });
+  await step(C.sample, async () => {
+    await glideClick(
+      page,
+      page.getByRole("button", { name: "Start with a sample menu" }),
+    );
+    await page
+      .getByRole("button", { name: "Start with a sample menu" })
+      .waitFor({ state: "hidden", timeout: 15000 });
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    await pause(page, 3000);
+  });
+  await step(C.golive, async () => {
+    const saveMenu = page.getByRole("button", { name: "Save menu" });
+    await center(page, saveMenu);
+    await glideClick(page, saveMenu);
+    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+      timeout: 15000,
+    });
+    await page.getByRole("region", { name: "Go live" }).waitFor();
+    await pause(page, 2200);
+  });
   await step(C.qr, async () => {
-    await beat(400);
-    await beat(2200);
+    await scrollPage(page, 420);
+    await pause(page, 2200);
   });
+
+  await backgroundOrder(browser, boothId, CUSTOMER);
+  let popped;
+  await step(C.order, async () => {
+    popped = ticket(page, CUSTOMER);
+    await page.goto(`${state.baseUrl}/dashboard`, {
+      waitUntil: "domcontentloaded",
+    });
+    await popped.waitFor({ state: "attached", timeout: 30000 }).catch(() => {});
+    markPop();
+    await revealTicket(page, CUSTOMER);
+    await pause(page, 2600);
+  });
+  console.log(
+    `Recorded flow, real elapsed (DEMO_SPEED=${SPEED}): ${((state.steps.at(-1).endMs - state.steps[0].startMs) / 1000).toFixed(1)}s`,
+  );
 }
 
 async function livePopScene({ browser, scene, dir }) {
@@ -1343,6 +1433,7 @@ async function main() {
           scene: scene.name,
           mode: scene.mode,
           hook: scene.hook,
+          endLine: scene.endLine ?? null,
           popMs: state.popMs,
           videos,
           steps: state.steps,
