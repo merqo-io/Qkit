@@ -20,7 +20,12 @@ import { ItemCustomizer } from "@/components/order/item-customizer";
 import { cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
-import { count, formatPrice, orderHasPricing } from "@/lib/utils";
+import {
+  count,
+  formatPrice,
+  itemHasChoices,
+  orderHasPricing,
+} from "@/lib/utils";
 import { placeOrderSchema, type PlaceOrderInput } from "@/lib/schemas";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder, type WalkupPayment } from "./walkup-actions";
@@ -196,7 +201,7 @@ export function WalkupOrderDialog({
   }
 
   function onAddClick(item: MenuItem) {
-    if (item.option_groups && item.option_groups.length > 0) {
+    if (itemHasChoices(item)) {
       setCustomizing(item);
     } else {
       addConfigured(item, []);
