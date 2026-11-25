@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import { Download, Printer } from "lucide-react";
@@ -26,6 +26,7 @@ interface Props {
   overLimit: boolean;
   maxBooths: number | null;
   code: string;
+  goLive?: ReactNode;
 }
 
 function slugify(value: string): string {
@@ -46,6 +47,7 @@ export function BoothQrPoster({
   overLimit,
   maxBooths,
   code,
+  goLive,
 }: Props) {
   const qrRef = useRef<HTMLDivElement>(null);
   // origin is only known on the client. useSyncExternalStore returns the server
@@ -96,6 +98,8 @@ export function BoothQrPoster({
           LinkComponent={Link}
         />
       </div>
+
+      {goLive && <div className="mb-5 print:hidden">{goLive}</div>}
 
       <Ticket shadow="none" className="bg-card p-8 text-center">
         <p className={EYEBROW_CLASS}>Scan to order</p>

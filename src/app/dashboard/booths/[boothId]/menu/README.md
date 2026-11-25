@@ -15,6 +15,8 @@ menu_categories, modifier_groups`) RLS-scoped (foreign id → `null` → `notFou
   (from `../../menu-manager`) pre-filled with the booth's items and category
   sections and the booth's reusable modifier groups (`parseModifierGroups`).
 
+The empty-menu "Start with a sample menu" button is rendered by `MenuManager` (see `../../sample-menu-prompt.tsx`).
+
 ## Connectivity
 
 Reached from `booth-form.tsx`'s "Manage menu" link (only once a booth has a
