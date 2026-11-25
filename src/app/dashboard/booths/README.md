@@ -127,7 +127,7 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
 - `pickup-kiosk-link.tsx` — `PickupKioskLink({ boothId })`: the booth form's kiosk URL (`/order/{boothId}/pickup`) with "Open kiosk" and "Copy link", shown when the self-checkout pickup switch is on for a saved booth.
 - `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard; its menu prompt for an unsaved booth is the shared `EmptyState`.
   `use-booth-save.ts` owns `useBoothSave` (Zod parse, image commit,
-  `saveBooth`) and `useBoothDelete`. `booth-limits-section.tsx` renders the
+  `saveBooth`, then `router.replace` with a 12 s hard-navigation fallback so a stalled next page never leaves "Saving..." stuck) and `useBoothDelete`. `use-booth-save.dom.test.tsx` tests the fallback. `booth-limits-section.tsx` renders the
   Limits card (daily item limit, per-order limit, Start new service with a one-line explainer, shown when a daily or per-item Sold-out limit is saved) and
   `booth-danger-zone.tsx` the delete confirmation.
 - `seed-sample-menu.ts` — `seedSampleMenu(boothId)` server action behind the sample-menu button.

@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Saving a new booth no longer risks sitting on "Saving..." forever: if the next page has not loaded after 12 seconds, the app opens it with a full page load and shows a short notice.
 - The vendor walk-up order grid follows the same rule as the order page: "Customize" only on items with real choices, so items with empty option groups add straight to the order (follow-up to #436).
 - The demo recorder works against the current UI again: the legal gate cache no longer rejects the demo account, split scenes no longer open on a blank vendor pane, the booth form's Printing card is hidden on camera, `tv-screen` runs on the qkit tier, and `DEMO_BROWSER_CHANNEL` selects an installed browser.
 - The vendor board "Mark paid" buttons are now warm deep amber instead of blue, matching the rest of the kopitiam palette in light and dark themes.
