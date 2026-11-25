@@ -7,7 +7,8 @@ import { OrderCard } from "./order-card";
 import { buildOptionCodes } from "@/lib/ticket";
 import { TooltipProvider } from "@merqo/ui/primitives";
 
-import { sgtClock, shortDateTime } from "@/lib/tz";
+import { formatDateTime } from "@merqo/ui";
+import { sgtClock } from "@/lib/tz";
 import type { BoardOrder } from "@/lib/types";
 
 // The card delegates mutations to server actions (order-*-actions.ts). We mock
@@ -155,15 +156,15 @@ describe("OrderCard", () => {
     expect(screen.getByText(/Kopi/)).toBeInTheDocument();
     // Whoever is making the order needs the number, the name and the drinks.
     // What it cost is the history list's business.
-    expect(screen.queryByText("$7.00")).not.toBeInTheDocument();
+    expect(screen.queryByText("S$7.00")).not.toBeInTheDocument();
   });
 
   it("shows each line's price and the total in the history view", () => {
     render(<OrderCard order={makeOrder()} showDate />, {
       wrapper: TooltipProvider,
     });
-    // Line total (350×2) and order total both read $7.00.
-    expect(screen.getAllByText("$7.00")).toHaveLength(2);
+    // Line total (350×2) and order total both read S$7.00.
+    expect(screen.getAllByText("S$7.00")).toHaveLength(2);
   });
 
   it("shows displayNumber instead of the real order_number when supplied", () => {
@@ -189,7 +190,7 @@ describe("OrderCard", () => {
       screen.queryByText(sgtClock(order.created_at)),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(shortDateTime(order.created_at)),
+      screen.queryByText(formatDateTime(order.created_at)),
     ).not.toBeInTheDocument();
 
     rerender(
@@ -198,11 +199,11 @@ describe("OrderCard", () => {
       </TooltipProvider>,
     );
     expect(
-      screen.getByText(shortDateTime(order.created_at)),
+      screen.getByText(formatDateTime(order.created_at)),
     ).toBeInTheDocument();
   });
 
-  it("shows Free (not $0.00) for an unpriced item in an otherwise-priced order", () => {
+  it("shows Free (not S$0.00) for an unpriced item in an otherwise-priced order", () => {
     render(
       <OrderCard
         order={makeOrder({
@@ -217,7 +218,7 @@ describe("OrderCard", () => {
       { wrapper: TooltipProvider },
     );
     expect(screen.getByText("Free")).toBeInTheDocument();
-    expect(screen.queryByText("$0.00")).not.toBeInTheDocument();
+    expect(screen.queryByText("S$0.00")).not.toBeInTheDocument();
   });
 
   it("shows every customisation with nothing to open", () => {
@@ -763,7 +764,7 @@ describe("OrderCard payment", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: /mark paid.*\$7\.00/i,
+        name: /mark paid.*S\$7\.00/i,
       }),
     ).toBeInTheDocument();
   });

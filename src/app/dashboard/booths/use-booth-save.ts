@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { commitPendingImages, PendingImageUploadError } from "@merqo/ui";
@@ -42,11 +43,43 @@ async function commitImages(values: (string | null)[]) {
   }
 }
 
+export const NAVIGATION_TIMEOUT_MS = 12_000;
+
+/**
+ * `navigatingAway()` never resolves, so a navigation that stalls (a slow or
+ * failed RSC render of the next page) would leave the button on "Saving..."
+ * forever. Past the deadline the saved booth is reached with a full page load.
+ * The deadline is cancelled when the form unmounts (navigation landed), so a
+ * successful save never triggers the fallback on the next page.
+ * The button is not released: a create has no boothId yet, so a retry would
+ * insert a duplicate booth.
+ */
+async function awaitNavigation(
+  href: string,
+  timerRef: { current: ReturnType<typeof setTimeout> | undefined },
+) {
+  const stalled = new Promise<"stalled">((resolve) => {
+    timerRef.current = setTimeout(
+      () => resolve("stalled"),
+      NAVIGATION_TIMEOUT_MS,
+    );
+  });
+  await Promise.race([navigatingAway(), stalled]);
+  toast.error("The next page is slow to load. Opening it again.");
+  window.location.assign(href);
+  await navigatingAway();
+}
+
 export function useBoothSave(
   boothId: string | undefined,
   values: BoothFormValues,
+  onInvalid?: (field: string) => void,
 ) {
   const router = useRouter();
+  const deadlineRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(() => () => clearTimeout(deadlineRef.current), []);
   const { pending: saving, run: runSave } = useAsyncAction(
     "Could not save the booth. Refresh to check its status before retrying.",
   );
@@ -80,6 +113,8 @@ export function useBoothSave(
       const parsed = boothFormSchema.safeParse(candidate);
       if (!parsed.success) {
         void removeUnsavedImages(committed.uploaded);
+        const field = parsed.error.issues[0]?.path[0];
+        if (field !== undefined) onInvalid?.(String(field));
         toast.error(parsed.error.issues[0]?.message ?? "Check the form");
         return;
       }
@@ -94,12 +129,11 @@ export function useBoothSave(
       // (same bug as onboarding). The list is revalidate=0 so it refetches on nav.
       // A fresh create goes straight to the menu page — saveMenuItems needs a
       // real boothId, which only exists after this first save.
-      router.replace(
-        isCreate
-          ? `/dashboard/booths/${result.boothId}/menu?new=1`
-          : "/dashboard/booths",
-      );
-      await navigatingAway();
+      const href = isCreate
+        ? `/dashboard/booths/${result.boothId}/menu?new=1`
+        : "/dashboard/booths";
+      router.replace(href);
+      await awaitNavigation(href, deadlineRef);
     });
   }
 

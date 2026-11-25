@@ -1,12 +1,13 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@merqo/ui/primitives";
 
 import { cartKey } from "@/lib/cart";
 import type { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
-import { formatPrice, menuItemActionLabel } from "@/lib/utils";
+import { itemHasChoices, menuItemActionLabel } from "@/lib/utils";
 import type { MenuItem } from "@/lib/types";
 
 function MenuMessage({ children }: { children: string }) {
@@ -30,7 +31,7 @@ function MenuItemCard({
   onIncrement: () => void;
   onAddClick: () => void;
 }) {
-  const hasOptions = !!item.option_groups && item.option_groups.length > 0;
+  const hasOptions = itemHasChoices(item);
   const soldOut = left !== null && left <= 0;
   let cardTone: string;
   if (soldOut) cardTone = "border-border opacity-60";
@@ -44,7 +45,7 @@ function MenuItemCard({
         <p className="truncate text-sm font-medium">{item.name}</p>
         {item.price_cents !== null && item.price_cents !== undefined && (
           <p className="font-mono text-xs text-muted-foreground">
-            {formatPrice(item.price_cents)}
+            <Money cents={item.price_cents} />
           </p>
         )}
         {left !== null && (
@@ -130,8 +131,7 @@ export function WalkupMenuSection({
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-2">
       {menuItems.map((item) => {
-        const hasOptions =
-          !!item.option_groups && item.option_groups.length > 0;
+        const hasOptions = itemHasChoices(item);
         const plainKey = cartKey(item.id);
         return (
           <MenuItemCard

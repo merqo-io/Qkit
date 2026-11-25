@@ -204,7 +204,7 @@ describe("admin overview", () => {
       },
     ];
     render(await AdminPage());
-    expect(screen.getByText("$6.00")).toBeInTheDocument();
+    expect(screen.getByText("S$6.00")).toBeInTheDocument();
     expect(audit).toHaveBeenCalledWith({
       entries: [
         expect.objectContaining({ detail: "to: pro" }),

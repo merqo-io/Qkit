@@ -1,8 +1,7 @@
 import { cn } from "@merqo/ui/primitives";
-import { formatPrice } from "@/lib/utils";
 
 import type { StatsSummary } from "@/lib/stats";
-import { StatCard, DeltaPill } from "@merqo/ui";
+import { StatCard, DeltaPill, formatMoney } from "@merqo/ui";
 import { StatBreakdownTile, type BreakdownRow } from "./stat-breakdown";
 import { WIDE_ON_PHONE } from "./tile-layout";
 
@@ -107,7 +106,7 @@ export function KpiRow({
     .filter((i) => i.revenue_cents > 0)
     .sort((a, b) => b.revenue_cents - a.revenue_cents)
     .slice(0, 6)
-    .map((i) => ({ label: i.label, value: formatPrice(i.revenue_cents) }));
+    .map((i) => ({ label: i.label, value: formatMoney(i.revenue_cents) }));
   const orderRows: BreakdownRow[] = [...summary.topItems]
     .filter((i) => i.quantity > 0)
     .sort((a, b) => b.quantity - a.quantity)
@@ -118,7 +117,7 @@ export function KpiRow({
   // a brand-new vendor with no all-time orders).
   const showAllTime = allTime !== undefined && allTime.orders > 0;
   const revenueCaption = showAllTime
-    ? `${formatPrice(allTime.revenue_cents)} all time`
+    ? `${formatMoney(allTime.revenue_cents)} all time`
     : undefined;
   const ordersCaption = showAllTime ? `${allTime.orders} all time` : undefined;
 
@@ -137,7 +136,7 @@ export function KpiRow({
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       <StatBreakdownTile
         label="Revenue"
-        value={formatPrice(summary.revenue_cents)}
+        value={formatMoney(summary.revenue_cents)}
         caption={revenueCaption}
         rows={revenueRows}
         breakdownLabel="Revenue by item"
@@ -157,7 +156,7 @@ export function KpiRow({
       />
       <StatTile
         label="Avg order"
-        value={formatPrice(summary.aov_cents)}
+        value={formatMoney(summary.aov_cents)}
         delta={deltas?.aov}
         index={2}
       />
@@ -173,7 +172,7 @@ export function KpiRow({
           {summary.refundCount > 0 && (
             <StatTile
               label="Refunds"
-              value={formatPrice(summary.refunds_cents)}
+              value={formatMoney(summary.refunds_cents)}
               index={4}
             />
           )}

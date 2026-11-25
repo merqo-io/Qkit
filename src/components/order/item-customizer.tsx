@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import { useState } from "react";
 import {
   Button,
@@ -15,7 +16,6 @@ import {
 } from "@merqo/ui/primitives";
 
 import { MediaImage } from "@/components/widgets/media-image";
-import { formatPrice } from "@/lib/utils";
 
 import { ALLERGEN_ICONS } from "@/lib/allergen-icons";
 import type { MenuItem, SelectedOption } from "@/lib/types";
@@ -36,7 +36,7 @@ function ChoicePrice({ cents }: { cents?: number | null }) {
     <>
       {" "}
       <span className="ml-1 font-mono text-xs opacity-80">
-        +{formatPrice(cents)}
+        +{formatMoney(cents)}
       </span>
     </>
   );
@@ -254,7 +254,7 @@ function CustomizerBody({
             server-side from the stored menu, never trusts this. */}
         {priceDelta > 0 && (
           <p className="text-center text-sm font-semibold text-primary">
-            +{formatPrice(priceDelta)}
+            +{formatMoney(priceDelta)}
           </p>
         )}
         <Button

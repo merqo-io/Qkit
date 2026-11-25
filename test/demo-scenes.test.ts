@@ -10,6 +10,7 @@ import {
   wrapCaption,
 } from "../scripts/demo/scenes.mjs";
 import {
+  SINGLE,
   SPLIT,
   buildAudioGraph,
   buildVideoGraph,
@@ -151,6 +152,22 @@ describe("compose filtergraph", () => {
     expect(graph).toContain(`overlay=x=${panelX(1)}:y=${SPLIT.top}`);
     expect(graph).toContain("s=1080x1920");
     expect(graph).toContain("[v]");
+  });
+
+  it("keeps a single recording in its own band clear of the captions", () => {
+    const items = captionItems({ ...meta, mode: "single" }, 10);
+    const graph = buildVideoGraph({
+      mode: "single",
+      videos: [{ role: "main", startMs: 0, viewport }],
+      items,
+      textPaths: items.map((_, i) => `/tmp/c${i}.txt`),
+      fontPath: "/f.ttf",
+      durS: 10,
+      outroS: 2.8,
+    }).join(";");
+    expect(graph).toContain(`:(ow-iw)/2:${SINGLE.top}:`);
+    const step = items.find((i) => i.text.startsWith("Customer"));
+    expect(step?.y).toBeGreaterThanOrEqual(SINGLE.top + SINGLE.h);
   });
 
   it("drops the warm-up up to the settled mark and keeps frames aligned", () => {

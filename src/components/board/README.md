@@ -57,7 +57,7 @@ selected, onToggleSelect })`. Item options start expanded, not collapsed behind
   since all three shared the identical pill class fingerprint before this
   extraction), an aging
   clock (`orderAgeTone`, ticks every 30s) moved to the footer beside the
-  arrival timestamp (`sgtClock`, bare time — or `shortDateTime`, date+time,
+  arrival timestamp (`sgtClock`, bare time — or `<Timestamp variant="datetime">`, date+time,
   when `showDate` is set, for the completed-orders history list where every
   card isn't from today), expandable item options, and the advance/cancel/
   confirm-payment action buttons wired to the `@/app/dashboard/order-*-actions` files. A

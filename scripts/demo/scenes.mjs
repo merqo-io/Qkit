@@ -55,11 +55,13 @@ export const SCENES = [
     mode: "single",
     status: "implemented",
     hook: "I set up QR ordering before my coffee went cold",
+    endLine: "Free to start",
     captions: {
-      signup: "Sign up",
-      stall: "Name your stall",
-      menu: "Add your menu",
-      qr: "Print your QR",
+      booth: "Add your booth",
+      sample: "Tap for a sample menu",
+      golive: "Check your Go live list",
+      qr: "Customers scan this QR",
+      order: "Their order lands live",
     },
   },
   {
@@ -67,7 +69,7 @@ export const SCENES = [
     episode: 3,
     mode: "split",
     status: "implemented",
-    hook: "Grab takes 30%. We take 0.",
+    hook: "0% commission. PayNow goes straight to you.",
     captions: {
       pay: "Customer pays you by PayNow",
       proof: "Sends the payment screenshot",
@@ -92,6 +94,7 @@ export const SCENES = [
     episode: 5,
     mode: "single",
     status: "implemented",
+    pro: true,
     hook: "Turn an old iPad into a pickup screen",
     captions: {
       open: "Open the pickup screen",

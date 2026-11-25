@@ -2,7 +2,7 @@ import { cn } from "@merqo/ui/primitives";
 import { readAllRows } from "@/lib/supabase/read-all";
 import { notFound } from "next/navigation";
 import { Check, Circle } from "lucide-react";
-import { BackButton, EmptyState } from "@merqo/ui";
+import { BackButton, EmptyState, formatMoney } from "@merqo/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/access";
 // eslint-disable-next-line no-restricted-imports -- admin reads rows across vendors that RLS hides; gated by requireAdmin
@@ -11,7 +11,7 @@ import { getOrCreateVendorProfile } from "@/lib/merqo/vendor-profile";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
 import { TIER_LABEL, resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { buildVendorHealth, passHoursLeft } from "@/lib/admin/vendor-health";
-import { formatPrice, MS_PER_DAY } from "@/lib/utils";
+import { MS_PER_DAY } from "@/lib/utils";
 
 import { Stat } from "../../stat";
 import { StatusChip } from "../../vendor-status";
@@ -180,7 +180,7 @@ export default async function AdminVendorDetailPage({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Orders" value={health.orderCount} delay={0} />
-        <Stat label="Revenue" value={formatPrice(revenue)} delay={60} />
+        <Stat label="Revenue" value={formatMoney(revenue)} delay={60} />
         <Stat
           label="Booths"
           value={`${boothRows.filter((b) => b.is_active).length}/${boothRows.length}`}

@@ -136,8 +136,14 @@ notice.
   `orderPath(code)` on the client origin, the same URL as the dashboard QR
   poster, so a regenerated short code is picked up on the next load. It is a
   third column on landscape screens and a bottom row on portrait, so it never
-  covers Preparing or Ready. It is always shown: the page loads once and a TV
-  stays on for hours, so the order page owns the closed and paused states.
+  covers Preparing or Ready. It is shown by default; a "Hide QR" / "Show QR"
+  toggle in the auto-fading control group removes the whole panel (headline,
+  prompt and QR) so the two columns take the space, for vendors who only want
+  the QR as a starter. The choice is kept per booth on that device in
+  `localStorage` (`qkit.display.qrHidden.<boothId>`), read after mount so
+  hydration matches, with every storage access in try/catch. The page loads
+  once and a TV stays on for hours, so the order page owns the closed and
+  paused states.
 
 - `loading.tsx` — deliberately plain dark screen with one pulsing bar while the service-client queries run; this is a venue TV, so no shaped skeleton. It sits here, not in `[boothId]/`, so it does not wrap the order status or pickup pages.
 - `loading.dom.test.tsx` — status role, accessible "Loading" label and the hidden decorative bar.
@@ -170,3 +176,6 @@ orders completing between pages cannot hide the next order. A later-page failure
 returns no replacement snapshot, so polling preserves the last complete display.
 
 [[boothId]](../README.md)
+
+The Ready column carries a one-line, shrink-0 "See your number? Check your
+phone, then collect." under its heading, so staff need not call numbers out.

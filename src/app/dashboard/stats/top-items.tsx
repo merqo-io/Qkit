@@ -10,8 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { SegmentedControl } from "@merqo/ui";
-import { formatPrice } from "@/lib/utils";
+import { SegmentedControl, formatMoney } from "@merqo/ui";
 import type { TopItem } from "@/lib/stats";
 
 type Metric = "quantity" | "revenue_cents";
@@ -76,7 +75,7 @@ export function TopItems({
           <Tooltip
             cursor={{ fill: "var(--color-muted)", opacity: 0.3 }}
             formatter={(value, _name, item) => [
-              `${item?.payload?.quantity ?? value} sold · ${formatPrice(revenueCents(item?.payload))}`,
+              `${item?.payload?.quantity ?? value} sold · ${formatMoney(revenueCents(item?.payload))}`,
               "",
             ]}
             labelFormatter={(label) => String(label)}

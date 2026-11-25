@@ -18,8 +18,8 @@ The live review list keeps its explicit 500-row recent limit.
   text per range key), `rangeCaption(range)` (KPI-strip caption, e.g.
   `"24h"` → `"today and yesterday"`, `"event"` → `"this event"`), `hourLabel(h, {long})`
   (`"9a"`/`"9am"`), `fmtWait(seconds)` (compact `"4.2m"`/`"45s"` for axes),
-  `waitClock(seconds)` (readable `"4m 12s"` for KPI cards).
-- `chart-format.test.ts` — unit tests for `hourLabel` and `fmtWait` edge
+  `waitClock(seconds)` (readable `"4m 12s"` for KPI cards), `shortMoney(cents)` (`"S$8"`/`"S$1.2k"` revenue axis ticks; `formatMoney` has no compact form).
+- `chart-format.test.ts` — unit tests for `hourLabel`, `fmtWait` and `shortMoney` edge
   cases (midnight/noon, sub-minute vs. minute+ rounding).
 - `export-button.tsx` — `ExportButton({ summary, range, boothId })`: builds a
   `SalesSummaryV1` via `@/lib/sales-summary` and downloads it as a CSV blob

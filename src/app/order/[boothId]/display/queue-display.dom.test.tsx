@@ -71,6 +71,84 @@ describe("QueueDisplay", () => {
     expect(screen.getByText("Ready for pickup")).toBeInTheDocument();
   });
 
+  describe("QR toggle", () => {
+    const KEY = "qkit.display.qrHidden.b1";
+
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("shows the QR by default with a Hide QR code control", () => {
+      renderDisplay([PREPARING]);
+
+      const toggle = screen.getByRole("button", { name: "Hide QR code" });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByTitle("Ordering QR code")).toBeInTheDocument();
+    });
+
+    it("hides the QR block, remembers it, and shows it again", async () => {
+      const user = userEvent.setup();
+      renderDisplay([PREPARING]);
+
+      await user.click(screen.getByRole("button", { name: "Hide QR code" }));
+
+      expect(screen.queryByText("Order here")).toBeNull();
+      expect(screen.queryByTitle("Ordering QR code")).toBeNull();
+      expect(window.localStorage.getItem(KEY)).toBe("1");
+      const toggle = screen.getByRole("button", { name: "Show QR code" });
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+      await user.click(toggle);
+
+      expect(screen.getByText("Order here")).toBeInTheDocument();
+      expect(window.localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it("restores a stored hidden state after mount", async () => {
+      window.localStorage.setItem(KEY, "1");
+      renderDisplay([PREPARING]);
+
+      await waitFor(() =>
+        expect(screen.queryByTitle("Ordering QR code")).toBeNull(),
+      );
+      expect(
+        screen.getByRole("button", { name: "Show QR code" }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not crash when storage throws", async () => {
+      const user = userEvent.setup();
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("denied");
+      });
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("denied");
+      });
+      vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+        throw new Error("denied");
+      });
+      try {
+        renderDisplay([PREPARING]);
+        expect(screen.getByTitle("Ordering QR code")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Hide QR code" }));
+        expect(screen.queryByTitle("Ordering QR code")).toBeNull();
+      } finally {
+        vi.restoreAllMocks();
+      }
+    });
+  });
+
+  it("tells customers to check their phone in the Ready column", () => {
+    renderDisplay([PREPARING]);
+    const ready = screen.getByText("Ready for pickup").closest("section")!;
+    expect(
+      within(ready).getByText(
+        "See your number? Check your phone, then collect.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("groups orders into Preparing and Ready for pickup", () => {
     renderDisplay([PREPARING, READY]);
 

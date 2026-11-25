@@ -61,3 +61,11 @@ export function waitClock(seconds: number): string {
   const s = total % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+/** Compact revenue label for a chart axis: "S$8" / "S$1.2k". The tooltip carries full precision. */
+export function shortMoney(cents: number): string {
+  const dollars = cents / 100;
+  return dollars >= 1000
+    ? `S$${(dollars / 1000).toFixed(1)}k`
+    : `S$${Math.round(dollars)}`;
+}

@@ -1,10 +1,11 @@
 "use client";
 
+import { Money } from "@merqo/ui";
 import { useState, type ReactNode } from "react";
 import QRCode from "react-qr-code";
 import { Button } from "@merqo/ui/primitives";
 
-import { formatPrice, EYEBROW_CLASS } from "@/lib/utils";
+import { EYEBROW_CLASS } from "@/lib/utils";
 import type { CheckoutView } from "@/lib/paykit/client";
 
 interface Props {
@@ -113,7 +114,7 @@ export function WalkupPayStep({
         <div className="flex min-h-full flex-col items-center justify-center gap-3 p-5">
           <p className={EYEBROW_CLASS}>Amount to pay</p>
           <p className="font-mono text-5xl font-bold">
-            {formatPrice(amountCents)}
+            <Money cents={amountCents} />
           </p>
           <PaymentCode checkout={checkout} />
         </div>

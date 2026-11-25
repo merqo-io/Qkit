@@ -27,7 +27,8 @@ free-plan total-booth cap under concurrent writes.
 `BoothForm` composes hours, order-flow, limits, payment, printing and pickup,
 booking and social link editors. Each setting is a `SettingRow`
 (`setting-row.tsx`): a short label with a tap-to-open hint on the left, its
-control in one right-hand column. Order flow holds arrival hold and walk-up
+control in one right-hand column. Name & photo, hours and social links, which
+have no switch row, carry the same `Hint` beside their own label. Order flow holds arrival hold and walk-up
 default; Limits holds the daily item limit and the per-order limit; Printing
 holds printkit printing; Pickup holds the booth's own self-checkout pickup switch
 (`booths.pickup_scan_enabled`, migration 0104, which gates the pickup QR on the
@@ -47,7 +48,7 @@ write paths for menu columns; a booth-metadata save does not overwrite them.
 Item and category writes are separate operations, so callers handle partial
 success and retain retry availability.
 
-`actions.ts` also exposes `saveModifierGroups` (writes `booths.modifier_groups` and the re-expanded `menu_items` in one update; `saveMenuItems` re-expands linked copies from the stored library too), `toggleBoothActive`, `regenerateShortCode`,
+`actions.ts` also exposes `saveModifierGroups` (writes `booths.modifier_groups` and the re-expanded `menu_items` in one update; `saveMenuItems` re-expands linked copies from the stored library too), `seedSampleMenu` (in `seed-sample-menu.ts`, kept out of `actions.ts` for its line cap: the one-tap Kopi/Teh/Milo starter menu: only on an empty menu, within the item cap, guarded on `menu_revision` so a double tap adds nothing twice), `toggleBoothActive`, `regenerateShortCode`,
 `startNewService` (resets the daily item count through the
 `start_new_service` RPC, migration 0106) and `deleteBooth`. Deleting a booth cascades to its orders, and `deleteBooth` then calls `drainProofDeletions()` best-effort to remove their payment screenshots from Storage; the editor requires an
 explicit confirmation. `CloseBoothControl` uses a confirmation and three-second
@@ -58,7 +59,9 @@ Payment details are entered in Paykit only. The Payment section
 one read-only line naming what Paykit has on file (the kind and the vendor's
 own name for it, never a UEN, mobile number or link), and one link to
 Paykit's setup page, opened in a new tab (2026-10-16, so the booth form stays
-open), still carrying this page as `return_to`. The link's base is `NEXT_PUBLIC_PAYKIT_URL`, falling
+open), still carrying this page as `return_to`. On a new booth (`isNewBooth`)
+the link is replaced by a line saying to save first and set payment from the
+Go live card on the booth's QR page, because there is no booth page to return to yet. The link's base is `NEXT_PUBLIC_PAYKIT_URL`, falling
 back to `https://paykit.merqo.io`. With nothing on file the switch is off and locked and
 the link reads "Set up payments in paykit"; when Paykit cannot be reached the
 switch shows the stored setting and is locked. `saveBooth` writes the booth's
@@ -125,11 +128,13 @@ Booth creation, menu item and option-group caps follow the cached tier (free: 1 
 ## Form and menu editor pieces
 
 - `pickup-kiosk-link.tsx` — `PickupKioskLink({ boothId })`: the booth form's kiosk URL (`/order/{boothId}/pickup`) with "Open kiosk" and "Copy link", shown when the self-checkout pickup switch is on for a saved booth.
-- `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard; its menu prompt for an unsaved booth is the shared `EmptyState`.
+- `booth-form.tsx` holds the `BoothForm` state and unsaved-changes guard. Create mode renders only Name & photo and Hours & availability (every other field is still held in state and submitted with its default). Edit mode adds a "More settings" disclosure (collapsed, `aria-expanded`, content kept mounted but `hidden`) holding Order flow, Limits, Menu, Payment, Printing, Pickup and Social links. It opens on a native invalid event from a control inside it, or when `useBoothSave`'s `onInvalid` reports a Zod issue outside name, image, hours and open state. The danger zone stays outside it.
   `use-booth-save.ts` owns `useBoothSave` (Zod parse, image commit,
-  `saveBooth`) and `useBoothDelete`. `booth-limits-section.tsx` renders the
+  `saveBooth`, then `router.replace` with a 12 s hard-navigation fallback so a stalled next page never leaves "Saving..." stuck) and `useBoothDelete`. `use-booth-save.dom.test.tsx` tests the fallback. `booth-limits-section.tsx` renders the
   Limits card (daily item limit, per-order limit, Start new service with a one-line explainer, shown when a daily or per-item Sold-out limit is saved) and
   `booth-danger-zone.tsx` the delete confirmation.
+- `seed-sample-menu.ts` — `seedSampleMenu(boothId)` server action behind the sample-menu button.
+- `sample-menu-prompt.tsx` — `SampleMenuPrompt`: the "Start with a sample menu" button `menu-manager.tsx` shows while the menu is empty; calls `seedSampleMenu` and hands the saved items back. `sample-menu-prompt.dom.test.tsx` tests it.
 - `menu-editor.tsx` holds the section and item layout and drag-and-drop; an empty menu shows the shared `EmptyState`.
   `use-menu-mutations.ts` owns every item and category edit (add, remove with
   undo, duplicate, price, cost, stock, allergens, section rename).

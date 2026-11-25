@@ -124,6 +124,20 @@ describe("PaymentSection", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("for a new booth, says to save first and offers no paykit link", () => {
+    render(
+      <PaymentSection
+        setup={{ state: "none" }}
+        value={false}
+        onChange={vi.fn()}
+        isNewBooth
+      />,
+    );
+
+    expect(screen.getByText(/Save this booth first/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   it.each([
     { state: "none" },
     { state: "paynow", name: "Cart" },

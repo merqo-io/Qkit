@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatMoney } from "@merqo/ui";
 import {
   getOrderPaymentProof,
   type OrderPaymentProof,
@@ -79,7 +80,7 @@ export function PaymentProofViewer({ orderId, expectedAmountCents }: Props) {
       {amountMatch !== null && (
         <p className="text-sm text-muted-foreground">
           {amountMatch
-            ? `Amount matches $${(expectedAmountCents / 100).toFixed(2)}. Verify payment in your payment app.`
+            ? `Amount matches ${formatMoney(expectedAmountCents)}. Verify payment in your payment app.`
             : "Couldn't confirm the amount, check manually"}
         </p>
       )}

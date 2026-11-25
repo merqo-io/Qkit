@@ -9,7 +9,7 @@ import { vendorStallNames } from "@/lib/admin/vendor-names";
 import { activationFunnel } from "@/lib/admin/stats";
 import { resolveEntitlement, storedFromRow } from "@/lib/plan";
 import { pctChange } from "@/lib/stats";
-import { formatPrice, MS_PER_DAY } from "@/lib/utils";
+import { MS_PER_DAY } from "@/lib/utils";
 import { DEFAULT_PLATFORM_SETTINGS } from "@/lib/platform-settings";
 import { BannerForm } from "./banner-form";
 import { ActivationFunnelView } from "./activation-funnel";
@@ -30,7 +30,7 @@ import {
   type OrderStatusEventLite,
 } from "@/lib/stuck-orders";
 import type { MerqoSupportMessagesSchema } from "@/lib/merqo/support";
-import { PageHeader } from "@merqo/ui";
+import { PageHeader, formatMoney } from "@merqo/ui";
 
 const SUPPORT_CATEGORY_LABEL: Record<string, string> = {
   pass: "Event pass",
@@ -314,7 +314,7 @@ export default async function AdminPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           label="GMV · 30d"
-          value={formatPrice(gmv30d)}
+          value={formatMoney(gmv30d)}
           big
           featured
           delay={0}

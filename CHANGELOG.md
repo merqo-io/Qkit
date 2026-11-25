@@ -6,13 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Creating a booth is one short screen: only Name & photo and Hours & availability show. On an existing booth, Order flow, Limits, Menu, Payment, Printing, Pickup and Social links sit behind a collapsed "More settings" control, which opens by itself when a setting inside it fails validation. A new booth is still saved with the same defaults for the settings it no longer shows.
+
+### Added
+
+- The booth form explains Name & photo, Opening hours and Social links with tap-to-open hints, and the Pickup hint now says when to turn the kiosk on.
+
 ### Fixed
 
+- A new vendor can finish PayNow setup from the Go live card without getting lost: the paykit link carries `return_to` for the booth's QR page and opens in the same tab, the payment row loads behind a "Checking payment..." placeholder so the QR page no longer waits on paykit, an unreachable paykit reads "Check payment in paykit", and a PayNow config only counts as set up with a payee name and a UEN or mobile. The new-booth form tells the vendor to save first and set payment from the Go live card.
+- The demo recorder's `setup` scene (Instagram Ep 2) follows the new onboarding: add booth, sample menu, Go live card, QR, test order on the board. Scenes can set their own end card line, and plan chips are hidden on camera.
+- Saving a new booth no longer risks sitting on "Saving..." forever: if the next page has not loaded after 12 seconds, the app opens it with a full page load and shows a short notice.
+- The vendor walk-up order grid follows the same rule as the order page: "Customize" only on items with real choices, so items with empty option groups add straight to the order (follow-up to #436).
+- The demo recorder works against the current UI again: the legal gate cache no longer rejects the demo account, split scenes no longer open on a blank vendor pane, the booth form's Printing card is hidden on camera, `tv-screen` runs on the qkit tier, and `DEMO_BROWSER_CHANNEL` selects an installed browser.
 - The vendor board "Mark paid" buttons are now warm deep amber instead of blue, matching the rest of the kopitiam palette in light and dark themes.
 - The order page shows "Customize" only on items that have something to choose; items with empty option groups get a plain "Add". Items without a photo already render as clean text rows.
 
 ### Added
 
+- The TV queue display's Ready column now says "See your number? Check your phone, then collect.", so vendors do not need to call out numbers.
+- The public TV queue display has a "Hide QR" / "Show QR" control beside the text-size and sound controls. Hiding the ordering QR gives the order columns the full width; the choice is remembered per booth on that device.
+- Onboarding: an empty menu now offers "Start with a sample menu", one tap that adds Kopi, Teh and Milo as normal editable items (never added automatically, never twice, and within the plan's item cap). The booth QR page gets a "Go live" card showing Menu ready and Payment set up, with a button that opens your booth page for a test order.
 - The landing page now shows the after-pilot prices (Event Pass S$14 to S$28 per event at 15c a cup, Pro S$19.90/month) with one short free-pilot line, and the hero promises a 10-minute setup and PayNow. The PILOTING badge is replaced by a Singapore line, order 0042 is Priya in both demos, and pages get their own tab titles (booth name on the order page, Dashboard, Sign in).
 - The public TV queue display is easier to read from across a stall: a large "Orders will appear here" empty state, an "Order here" prompt beside the QR, and the text-size and sound controls fade out when idle and return on any touch, mouse move or key press.
 - The live board now has three columns, Incoming, Preparing and Ready, instead of Incoming and Accepted, so orders waiting for pickup no longer hide among those still being made. Phones and tablets switch between the three with counts; each column has its own empty state.
@@ -24,6 +40,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared `@merqo/ui` is now v0.61.1. Prices everywhere (customer order flow, vendor board, walk-up, stats, admin, Telegram order alert, landing demo) now read "S$12.50" instead of "$12.50", and review and order timestamps now include the year ("7 Jun 2026, 2:30 pm"), both from the shared `Money`, `formatMoney` and `Timestamp`. The local `formatPrice` and `shortDateTime` helpers are removed.
 - Board: a ticket that says it was paid now keeps a plain card with the warm primary border and an amber label, instead of turning the whole card blue.
 - The pickup kiosk and `confirmCollection` now honour the booth's self-checkout pickup switch; a switched-off booth shows a message and refuses scans.
 - Landing: the "Vendors on qkit" section now shows the vendors an admin has switched on, read through the cached showcase loader (refreshed within an hour or when the toggle changes), instead of an empty static list.

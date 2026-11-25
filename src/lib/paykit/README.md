@@ -50,7 +50,13 @@ amountCents, orderRef, expiresAt, returnUrl?, title?})` (idempotent on `orderRef
   vendor's own name for it (payee name or label). No UEN, mobile number, link
   or image address is carried, so none reaches the browser. `setupKind(setup)`
   is the kind a booth's `{kind}` marker takes from it (`paynow`, `pointer` or
-  null). Vendor-wide, not per booth.
+  null). Vendor-wide, not per booth. A config only counts when usable: PayNow
+  needs a payee name and a UEN or mobile, a pointer needs a link or image;
+  otherwise it reads as `none`.
+- `setup-url.ts` — `paykitSetupUrl(returnTo, base?)`: paykit's `/dashboard/config`
+  with `return_to` set through `searchParams` (so it is encoded). Shared by the
+  Go live card's server render and the booth form's Payment section.
+- `setup-url.test.ts` — base, encoding and query-string safety.
 - `payment-setup.test.ts` — each state, the three causes of `none`, that no
   identifier is carried, and `setupKind`.
 - `transaction-for-order.ts` — `transactionIdForOrder({vendorId, amountCents,

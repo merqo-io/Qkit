@@ -9,6 +9,7 @@ import { Download, Upload } from "lucide-react";
 import {
   BackButton,
   commitPendingImages,
+  formatMoney,
   InfoTooltip,
   PendingImageUploadError,
 } from "@merqo/ui";
@@ -17,6 +18,7 @@ import { Button } from "@merqo/ui/primitives";
 import { useAsyncAction, navigatingAway } from "@/hooks/use-async-action";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { MenuEditor } from "./menu-editor";
+import { SampleMenuPrompt } from "./sample-menu-prompt";
 import {
   saveMenuCategories,
   saveMenuItems,
@@ -66,10 +68,9 @@ function formatImportRow(row: CsvMenuRow): string {
   if (row.error) return row.error;
   const parts = [row.name];
   if (row.description) parts.push(`(${row.description})`);
-  if (!isNil(row.price_cents))
-    parts.push(`$${(row.price_cents / 100).toFixed(2)}`);
+  if (!isNil(row.price_cents)) parts.push(formatMoney(row.price_cents));
   if (!isNil(row.cost_cents))
-    parts.push(`(cost $${(row.cost_cents / 100).toFixed(2)})`);
+    parts.push(`(cost ${formatMoney(row.cost_cents)})`);
   return parts.join(" ");
 }
 
@@ -81,7 +82,7 @@ function formatChoiceRow(choice: CsvChoiceRow): string {
     choice.choicePrice_cents !== null &&
     choice.choicePrice_cents !== undefined
   )
-    parts.push(`+$${(choice.choicePrice_cents / 100).toFixed(2)}`);
+    parts.push(`+${formatMoney(choice.choicePrice_cents)}`);
   return parts.join(" ");
 }
 
@@ -415,6 +416,17 @@ export function MenuManager({
             </Button>
           </div>
         </div>
+      )}
+
+      {items.length === 0 && (
+        <SampleMenuPrompt
+          boothId={boothId}
+          disabled={busy}
+          onAdded={(added) => {
+            setItems(added);
+            setMenuBaseline(JSON.stringify([added, categories]));
+          }}
+        />
       )}
 
       <MenuEditor

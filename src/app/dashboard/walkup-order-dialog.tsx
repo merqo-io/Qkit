@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -20,7 +21,7 @@ import { ItemCustomizer } from "@/components/order/item-customizer";
 import { cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";
 import { remainingFor, type Remaining } from "@/lib/stock";
-import { count, formatPrice, orderHasPricing } from "@/lib/utils";
+import { count, itemHasChoices, orderHasPricing } from "@/lib/utils";
 import { placeOrderSchema, type PlaceOrderInput } from "@/lib/schemas";
 import { getWalkupMenu } from "./walkup-menu-actions";
 import { placeWalkupOrder, type WalkupPayment } from "./walkup-actions";
@@ -196,7 +197,7 @@ export function WalkupOrderDialog({
   }
 
   function onAddClick(item: MenuItem) {
-    if (item.option_groups && item.option_groups.length > 0) {
+    if (itemHasChoices(item)) {
       setCustomizing(item);
     } else {
       addConfigured(item, []);
@@ -241,7 +242,7 @@ export function WalkupOrderDialog({
   if (submitting) submitLabel = "Placing order…";
   else if (!hasItems) submitLabel = "Add items to order";
   else if (cartPriced)
-    submitLabel = `Add order · ${count(itemCount, "item")} · ${formatPrice(total)}`;
+    submitLabel = `Add order · ${count(itemCount, "item")} · ${formatMoney(total)}`;
   else submitLabel = `Add order · ${count(itemCount, "item")}`;
 
   async function onSubmit() {

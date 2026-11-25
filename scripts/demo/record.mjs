@@ -61,10 +61,54 @@ const MULTI_BOOTHS = ["Coffee Cart", "Juice Bar", "Waffle Stand"];
 const CUSTOMER = "Priya";
 const WALK_IN = "Marcus";
 const PAYING_CUSTOMER = "Hana";
-const CROWD = ["Aiden", "Bea", "Chen", "Dina", "Eli", "Faye", "Gus", "Hugo"];
+const CROWD = [
+  "Aiden",
+  "Bea",
+  "Chen",
+  "Dina",
+  "Eli",
+  "Faye",
+  "Gus",
+  "Hugo",
+  "Ivy",
+  "Jun",
+  "Kai",
+  "Lena",
+  "Mei",
+  "Noah",
+  "Omar",
+  "Pia",
+  "Quin",
+  "Raj",
+  "Sana",
+  "Tom",
+  "Uma",
+  "Vik",
+  "Wen",
+  "Xia",
+  "Yara",
+  "Zane",
+  "Abby",
+  "Ben",
+  "Cleo",
+  "Dev",
+  "Esme",
+  "Finn",
+  "Gia",
+  "Hana",
+  "Ian",
+  "Jade",
+  "Ken",
+  "Liv",
+  "Max",
+  "Nia",
+];
+const CROWD_PARALLEL = 4;
 
 const PHONE = { width: 390, height: 844 };
-const TV = { width: 1280, height: 720 };
+// The pickup screen is shown portrait so its text stays large once the clip is
+// scaled to a phone; a landscape frame shrinks to a thin strip.
+const TV = { width: 640, height: 880 };
 const CURSOR_SCRIPT = `
   (() => {
     const add = () => {
@@ -106,6 +150,7 @@ const state = {
   videos: [],
   popMs: 0,
   t0: 0,
+  mode: "",
   baseUrl: "",
 };
 const now = () => Date.now() - state.t0;
@@ -183,6 +228,41 @@ function newPageDefaults(page) {
   page.setDefaultTimeout(45000);
 }
 
+// Label printing and plan upsells must never show on camera; the booth form
+// renders them inline, so the recording page hides the Printing card.
+// The in-flight "Saving…" label is swapped for the idle one the moment React
+// writes it, so a save never shows its transient state.
+const HIDE_OFF_CAMERA_SCRIPT = `
+new MutationObserver(() => {
+  const walker = document.createTreeWalker(document.body ?? document, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue === "Saving…") {
+      n.nodeValue = location.pathname.endsWith("/menu") ? "Save menu" : "Save booth";
+    }
+  }
+}).observe(document, { childList: true, subtree: true, characterData: true });
+setInterval(() => {
+  for (const el of document.querySelectorAll("section h2, section h3")) {
+    if (el.textContent.trim() === "Printing") {
+      el.closest("section").style.display = "none";
+    }
+  }
+  for (const el of document.querySelectorAll("button, span, a, div, p")) {
+    if (el.querySelectorAll("*").length <= 3 && /^(Starter|Pro|Plus)$/.test(el.textContent.trim())) {
+      el.style.visibility = "hidden";
+    }
+  }
+}, 150);
+`;
+
+// Transparent rather than display:none so waits on toast text still resolve.
+// An adopted stylesheet, because the app's CSP blocks injected <style> tags.
+const HIDE_TOASTS_SCRIPT = `
+const sheet = new CSSStyleSheet();
+sheet.replaceSync("[data-sonner-toaster], [data-sonner-toast] { opacity: 0 !important; pointer-events: none !important; }");
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+`;
+
 /** A recorded context. startMs is when its video begins on the scene clock. */
 async function openRecorded(browser, sceneDir, role, opts = {}) {
   const viewport = opts.viewport ?? PHONE;
@@ -193,6 +273,8 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
     recordVideo: { dir: sceneDir, size: viewport },
   });
   await context.addInitScript(CURSOR_SCRIPT);
+  await context.addInitScript(HIDE_OFF_CAMERA_SCRIPT);
+  if (opts.hideToasts) await context.addInitScript(HIDE_TOASTS_SCRIPT);
   // The scene clock starts at the first recorded context, so unrecorded setup
   // never shows up as blank lead-in; later contexts get a positive offset.
   if (state.videos.length === 0) state.t0 = Date.now();
@@ -561,31 +643,44 @@ async function openBoard(page) {
   await page
     .getByRole("button", { name: "New order" })
     .waitFor({ timeout: 30000 });
+  await dismissTour(page);
   await pause(page, 900);
+  const entry = state.videos.find((v) => v.page === page);
+  if (entry && state.mode === "split") entry.readyMs = now();
 }
 
 /** On a phone only one of Incoming/Accepted shows; flip to the one with this ticket. */
 async function revealTicket(page, name) {
-  const card = ticket(page, name);
-  await card.waitFor({ state: "attached", timeout: 30000 });
-  // The hidden tab's card stays in the DOM, so the card locator can resolve to
-  // a visible ancestor; the customer's name is the reliable visibility signal.
-  const heading = page.getByText(name, { exact: true }).first();
-  if (await heading.isVisible()) return;
+  const heading = ticket(page, name).getByText(name, { exact: true }).first();
   const tabs = page
     .getByRole("group", { name: "Which orders to show" })
     .getByRole("button");
-  const count = await tabs.count();
-  for (let i = 0; i < count; i++) {
-    await tabs.nth(i).click();
-    const shown = await heading
-      .waitFor({ state: "visible", timeout: 2000 })
-      .then(
-        () => true,
-        () => false,
-      );
-    if (shown) return;
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if (await heading.isVisible()) return;
+    const count = await tabs.count();
+    for (let i = 0; i < count; i++) {
+      await tabs.nth(i).click();
+      const shown = await heading
+        .waitFor({ state: "visible", timeout: 1500 })
+        .then(
+          () => true,
+          () => false,
+        );
+      if (shown) return;
+    }
+    await pause(page, 500);
   }
+  throw new Error(`Ticket for ${name} never appeared on the board`);
+}
+
+/** Flip the phone's Incoming/Preparing/Ready tab; a no-op where the tabs don't exist. */
+async function showTab(page, label) {
+  const tab = page
+    .getByRole("group", { name: "Which orders to show" })
+    .getByRole("button", { name: label });
+  if (await tab.count()) await glideClick(page, tab);
+  await pause(page, 400);
 }
 
 async function tapTicket(page, name, label) {
@@ -759,17 +854,102 @@ async function tourScene({ browser, scene, dir }) {
 
 async function setupScene({ browser, scene, dir }) {
   const C = scene.captions;
-  const page = await openRecorded(browser, dir, "main");
-  await step(C.signup, () => signUp(page));
-  await step(C.stall, async () => {
-    await nameStall(page);
-    await dismissTour(page);
+  // The vendor is already signed in with a named stall: sign-up and onboarding
+  // are not the story of "live in 5 minutes", so they run unrecorded.
+  const seed = await openFast(browser);
+  await signUp(seed.page);
+  await nameStall(seed.page);
+  await dismissTour(seed.page);
+  // First-visit tours are remembered per browser; visiting these pages here
+  // keeps their popovers out of the recorded clip.
+  for (const route of ["/dashboard/booths", "/dashboard/booths/new"]) {
+    await seed.page.goto(`${state.baseUrl}${route}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await dismissTour(seed.page);
+  }
+  const storageState = await seed.context.storageState();
+  await seed.context.close();
+
+  const page = await openRecorded(browser, dir, "main", {
+    storageState,
+    hideToasts: true,
   });
-  await step(C.menu, () => createBooth(page, { viaLink: true }));
+  await page.goto(`${state.baseUrl}/dashboard`, {
+    waitUntil: "domcontentloaded",
+  });
+  await page.getByRole("link", { name: /Add your first booth/ }).waitFor();
+  await beat(500);
+  const first = state.videos.find((v) => v.page === page);
+  if (first) first.readyMs = now();
+  await beat(400);
+
+  let boothId = "";
+  await step(C.booth, async () => {
+    await glideClick(
+      page,
+      page.getByRole("link", { name: /Add your first booth/ }),
+    );
+    await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
+    await pause(page, 700);
+    if (await tourPopover(page).isVisible()) await dismissTour(page);
+    await slowType(page, page.locator("#booth-name"), STALL);
+    const save = page.getByRole("button", { name: /Save booth/ });
+    await center(page, save);
+    await glideClick(page, save);
+    await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
+      timeout: 15000,
+    });
+    boothId =
+      page.url().match(/\/dashboard\/booths\/([0-9a-f-]{36})\/menu/i)?.[1] ??
+      "";
+    if (!boothId)
+      throw new Error("Could not read the new booth id from the URL.");
+    await pause(page, 600);
+    if (await tourPopover(page).isVisible()) await dismissTour(page);
+    await pause(page, 600);
+  });
+  await step(C.sample, async () => {
+    await glideClick(
+      page,
+      page.getByRole("button", { name: "Start with a sample menu" }),
+    );
+    await page
+      .getByRole("button", { name: "Start with a sample menu" })
+      .waitFor({ state: "hidden", timeout: 15000 });
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    await pause(page, 3000);
+  });
+  await step(C.golive, async () => {
+    const saveMenu = page.getByRole("button", { name: "Save menu" });
+    await center(page, saveMenu);
+    await glideClick(page, saveMenu);
+    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+      timeout: 15000,
+    });
+    await page.getByRole("region", { name: "Go live" }).waitFor();
+    await pause(page, 2200);
+  });
   await step(C.qr, async () => {
-    await beat(400);
-    await beat(2200);
+    await scrollPage(page, 420);
+    await pause(page, 2200);
   });
+
+  await backgroundOrder(browser, boothId, CUSTOMER);
+  let popped;
+  await step(C.order, async () => {
+    popped = ticket(page, CUSTOMER);
+    await page.goto(`${state.baseUrl}/dashboard`, {
+      waitUntil: "domcontentloaded",
+    });
+    await popped.waitFor({ state: "attached", timeout: 30000 }).catch(() => {});
+    markPop();
+    await revealTicket(page, CUSTOMER);
+    await pause(page, 2600);
+  });
+  console.log(
+    `Recorded flow, real elapsed (DEMO_SPEED=${SPEED}): ${((state.steps.at(-1).endMs - state.steps[0].startMs) / 1000).toFixed(1)}s`,
+  );
 }
 
 async function livePopScene({ browser, scene, dir }) {
@@ -970,9 +1150,16 @@ async function walkUpScene({ browser, scene, dir }) {
 async function batchScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
-  for (const name of CROWD) await backgroundOrder(browser, seed.boothId, name);
+  for (let i = 0; i < CROWD.length; i += CROWD_PARALLEL) {
+    await Promise.all(
+      CROWD.slice(i, i + CROWD_PARALLEL).map((name) =>
+        backgroundOrder(browser, seed.boothId, name),
+      ),
+    );
+  }
   const page = await openRecorded(browser, dir, "main", {
     storageState: seed.storageState,
+    hideToasts: true,
   });
   await openBoard(page);
 
@@ -982,24 +1169,31 @@ async function batchScene({ browser, scene, dir }) {
   });
   await step(C.start, async () => {
     await glideClick(page, page.getByRole("button", { name: /^Start all/ }));
-    await beat(1600);
+    await page.getByRole("button", { name: /^Incoming \(0\)/ }).waitFor();
+    await beat(1200);
   });
   await step(C.ready, async () => {
+    await showTab(page, /^Preparing/);
     await glideClick(
       page,
       page.getByRole("button", { name: /^Mark all \d+ ready/ }),
     );
-    await beat(1800);
+    await page.getByRole("button", { name: /^Preparing \(0\)/ }).waitFor();
+    await beat(1200);
   });
   await step(C.pickup, async () => {
-    await glideClick(page, page.getByRole("button", { name: "Select" }));
+    await showTab(page, /^Ready/);
+    await glideClick(
+      page,
+      page.getByRole("button", { name: "Select", exact: true }),
+    );
     await beat(500);
     await glideClick(page, page.getByRole("button", { name: "Select all" }));
     await beat(600);
-    await glideClick(
-      page,
-      page.getByRole("button", { name: /^Mark \d+ Picked Up/ }),
-    );
+    const pickedUp = page.getByRole("button", { name: /^Mark \d+ Picked Up/ });
+    await pickedUp.and(page.locator(":enabled")).waitFor();
+    await glideClick(page, pickedUp);
+    await page.getByText("All caught up").waitFor();
     await beat(1800);
   });
 }
@@ -1109,6 +1303,7 @@ async function imHereScene({ browser, scene, dir }) {
     await beat(1200);
   });
   await step(C.start, async () => {
+    await revealTicket(board, CUSTOMER);
     await ticket(board, CUSTOMER)
       .getByRole("button", { name: "Mark Ready" })
       .waitFor({ state: "visible", timeout: 30000 });
@@ -1123,7 +1318,7 @@ async function comeBackScene({ browser, scene, dir }) {
   const C = scene.captions;
   const seed = await seedVendor(browser, scene);
   runDemoSql("seed-socials.sql");
-  const page = await openRecorded(browser, dir, "main");
+  const page = await openRecorded(browser, dir, "main", { hideToasts: true });
 
   await step(C.footer, async () => {
     await customerOrder(page, seed.boothId, { name: CUSTOMER });
@@ -1225,8 +1420,10 @@ async function main() {
   // headless for validation. recordVideo captures either way.
   const browser = await chromium.launch({
     headless: process.env.DEMO_HEADLESS === "1",
+    channel: process.env.DEMO_BROWSER_CHANNEL || undefined,
   });
   try {
+    state.mode = scene.mode;
     await run({ browser, scene, dir });
     const videos = await finishRecording(dir);
     fs.writeFileSync(
@@ -1236,6 +1433,7 @@ async function main() {
           scene: scene.name,
           mode: scene.mode,
           hook: scene.hook,
+          endLine: scene.endLine ?? null,
           popMs: state.popMs,
           videos,
           steps: state.steps,
@@ -1247,6 +1445,15 @@ async function main() {
     console.log(`\n✓ Recorded ${videos.map((v) => v.file).join(", ")}`);
     console.log(`✓ ${state.steps.length} captioned beats, steps.json`);
     console.log(`Next: node scripts/demo/compose.mjs --scene ${scene.name}\n`);
+  } catch (err) {
+    for (const [i, context] of browser.contexts().entries()) {
+      for (const [j, page] of context.pages().entries()) {
+        const shot = path.join(dir, `failure-${i}-${j}.png`);
+        await page.screenshot({ path: shot }).catch(() => {});
+        console.error(`Failure screenshot: ${page.url()} -> ${shot}`);
+      }
+    }
+    throw err;
   } finally {
     await browser.close();
   }

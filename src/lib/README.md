@@ -373,7 +373,7 @@ nowMs)` (effective tier, caps, Event Pass window, stats ranges and floor),
 - `qkit-paykit-auth.test.ts` — tests the unset, empty, missing-header,
   wrong-scheme, mismatched, different-length and matching cases, and that the
   printkit callback secret is not accepted.
-- `request-origin.ts` — `requestOrigin()`: this app's own origin from the request's `host` header (or `x-forwarded-host`, only when it also passes the allowlist of localhost, `.merqo.io` and `.vercel.app`), `null` when neither does. Used for the order status page's QR address and as the `return_url` origin sent to paykit.
+- `request-origin.ts` — `requestOrigin()`: this app's own origin from the request's `host` header (or `x-forwarded-host`, only when it also passes the allowlist of localhost, `.merqo.io` and `.vercel.app`), `null` when neither does. Used for the order status page's QR address, as the `return_url` origin sent to paykit, and for the `return_to` on the Go live card's paykit link. Defaults to `http` for a localhost host with no `x-forwarded-proto`, `https` otherwise.
 - `rate-limit.ts` — `clientIp(headers)` (best-effort, spoofable fairness key —
   not an authz signal) and `rateLimit(supabase, key, limit, windowSeconds)`,
   which calls the `check_rate_limit` RPC and fails OPEN (with a logged error)
@@ -566,7 +566,7 @@ boolean`, migration 0080 — orders, booth_item_sold —
 - `tz.ts` — Singapore-only wall-clock helpers built on cached
   `Intl.DateTimeFormat` instances: `sgtHour`/`sgtMinutes`/`sgtWeekday`,
   `WEEKDAY_ORDER`/`WEEKDAY_LABELS`, display formatters `shortDay`/
-  `sgtClock`/`sgtWeekdayTime`/`shortDateTime`, and `sgtStartOfDayIso` (the UTC
+  `sgtClock`/`sgtWeekdayTime` (full date+time display comes from `@merqo/ui` `formatDateTime`/`<Timestamp>`), and `sgtStartOfDayIso` (the UTC
   instant for SGT midnight of a given moment — the query boundary for
   "today" in SGT, e.g. the daily order-number reset baseline and the
   completed-orders page's default "Today" filter) and `sgtYesterdayStartIso`
@@ -577,9 +577,8 @@ boolean`, migration 0080 — orders, booth_item_sold —
   against fixed ISO instants, `sgtStartOfDayIso`'s day-boundary rollover and `sgtYesterdayStartIso`.
 - `utils.ts` — formatters (`cn` comes from `@merqo/ui/primitives`; the form
   classes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` come from `@merqo/ui`),
-  `MS_PER_HOUR`/`MS_PER_DAY`,
-  `formatPrice`, `centsToDollarString`, `parseDollarsToCents` (keystroke-level
-  validation for money inputs), `orderHasPricing`, `count` (pluralized noun),
+  `MS_PER_HOUR`/`MS_PER_DAY` (money display and `centsToDollarString`
+  come from `@merqo/ui`: "S$12.50"), `orderHasPricing`, `count` (pluralized noun),
   `formatOptions`, `menuItemActionLabel` (a menu item's add/customize button
   label — sold out / customize / add — shared by the customer order form and
   the vendor's walk-up order dialog).

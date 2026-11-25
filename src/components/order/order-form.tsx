@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@merqo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,12 +11,7 @@ import { Ticket } from "@/components/widgets/ticket";
 import { Button } from "@merqo/ui/primitives";
 
 import { placeOrderSchema } from "@/lib/schemas";
-import {
-  count,
-  formatPrice,
-  itemHasChoices,
-  orderHasPricing,
-} from "@/lib/utils";
+import { count, itemHasChoices, orderHasPricing } from "@/lib/utils";
 import { cartKey, cartTotal } from "@/lib/cart";
 import { useCart } from "@/hooks/use-cart";
 import { loadCart, saveCart, clearCart } from "@/lib/cart-storage";
@@ -300,7 +296,7 @@ export function OrderForm({
   if (closed) triggerLabel = "Booth closed";
   else if (!hasItems) triggerLabel = "Add items to order";
   else if (cartPriced)
-    triggerLabel = `Continue · ${count(itemCount, "item")} · ${formatPrice(total)}`;
+    triggerLabel = `Continue · ${count(itemCount, "item")} · ${formatMoney(total)}`;
   else triggerLabel = `Continue · ${count(itemCount, "item")}`;
 
   // Payment-agnostic: whether this booth requires payment isn't known here (decided
