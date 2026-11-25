@@ -42,6 +42,27 @@ async function commitImages(values: (string | null)[]) {
   }
 }
 
+export const NAVIGATION_TIMEOUT_MS = 12_000;
+
+/**
+ * `navigatingAway()` never resolves, so a navigation that stalls (a slow or
+ * failed RSC render of the next page) would leave the button on "Saving..."
+ * forever. Past the deadline the saved booth is reached with a full page load.
+ * The button is not released: a create has no boothId yet, so a retry would
+ * insert a duplicate booth.
+ */
+async function awaitNavigation(href: string) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stalled = new Promise<"stalled">((resolve) => {
+    timer = setTimeout(() => resolve("stalled"), NAVIGATION_TIMEOUT_MS);
+  });
+  await Promise.race([navigatingAway(), stalled]);
+  clearTimeout(timer);
+  toast.error("The next page is slow to load. Opening it again.");
+  window.location.assign(href);
+  await navigatingAway();
+}
+
 export function useBoothSave(
   boothId: string | undefined,
   values: BoothFormValues,
@@ -94,12 +115,11 @@ export function useBoothSave(
       // (same bug as onboarding). The list is revalidate=0 so it refetches on nav.
       // A fresh create goes straight to the menu page — saveMenuItems needs a
       // real boothId, which only exists after this first save.
-      router.replace(
-        isCreate
-          ? `/dashboard/booths/${result.boothId}/menu?new=1`
-          : "/dashboard/booths",
-      );
-      await navigatingAway();
+      const href = isCreate
+        ? `/dashboard/booths/${result.boothId}/menu?new=1`
+        : "/dashboard/booths";
+      router.replace(href);
+      await awaitNavigation(href);
     });
   }
 
