@@ -1,3 +1,4 @@
+import { centsToDollarString } from "@merqo/ui";
 import type { MenuItemFormInput } from "./schemas";
 import type { OptionGroup } from "./types";
 import { spreadsheetText } from "./spreadsheet-text";
@@ -21,10 +22,10 @@ function itemRowToCsv(it: MenuItemFormInput): string {
     csvField(it.description ?? ""),
     it.price_cents === null || it.price_cents === undefined
       ? ""
-      : (it.price_cents / 100).toFixed(2),
+      : centsToDollarString(it.price_cents),
     it.cost_cents === null || it.cost_cents === undefined
       ? ""
-      : (it.cost_cents / 100).toFixed(2),
+      : centsToDollarString(it.cost_cents),
     it.available ? "true" : "false",
     "",
     "",
@@ -49,7 +50,7 @@ function choiceRowToCsv(
     csvField(choice.label),
     choice.price_delta_cents === null || choice.price_delta_cents === undefined
       ? ""
-      : (choice.price_delta_cents / 100).toFixed(2),
+      : centsToDollarString(choice.price_delta_cents),
     csvField(choice.code ?? ""),
   ].join(",");
 }

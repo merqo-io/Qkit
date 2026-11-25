@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { formatDateTime } from "@merqo/ui";
 import {
   sgtHour,
   sgtMinutes,
@@ -54,6 +55,11 @@ describe("tz (Asia/Singapore)", () => {
     expect(shortDay(Date.parse("2026-06-07T05:00:00Z"))).toBe("7 Jun");
     // 17:00Z 11 Jun -> 01:00 SGT 12 Jun (rolls to next day in SGT).
     expect(shortDay(Date.parse("2026-06-11T17:00:00Z"))).toBe("12 Jun");
+  });
+
+  it("renders a UTC instant as Asia/Singapore wall time via the shared formatter", () => {
+    expect(formatDateTime("2026-06-07T05:00:00Z")).toBe("7 Jun 2026, 1:00 pm");
+    expect(formatDateTime("2026-06-11T17:00:00Z")).toBe("12 Jun 2026, 1:00 am");
   });
 
   it("formats a deterministic SGT wall-clock (hydration-safe)", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtWait, hourLabel, waitClock } from "./chart-format";
+import { fmtWait, hourLabel, shortMoney, waitClock } from "./chart-format";
 
 describe("hourLabel", () => {
   it("renders compact am/pm by default (a/p)", () => {
@@ -44,5 +44,13 @@ describe("waitClock", () => {
     expect(waitClock(119)).toBe("1m 59s");
     expect(waitClock(252)).toBe("4m 12s");
     expect(waitClock(119.6)).toBe("2m 0s"); // rounds to 120 -> 2m 0s, no "1m 60s"
+  });
+});
+
+describe("shortMoney", () => {
+  it("prefixes S$ and abbreviates thousands", () => {
+    expect(shortMoney(800)).toBe("S$8");
+    expect(shortMoney(99_900)).toBe("S$999");
+    expect(shortMoney(120_000)).toBe("S$1.2k");
   });
 });

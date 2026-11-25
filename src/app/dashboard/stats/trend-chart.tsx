@@ -11,15 +11,7 @@ import {
 } from "recharts";
 import { shortDay } from "@/lib/tz";
 import type { SeriesPoint } from "@/lib/stats";
-import { RANGE_LABEL } from "./chart-format";
-
-// Abbreviate the Y axis: "$8" / "$1.2k". Full precision lives in the tooltip.
-function shortMoney(cents: number): string {
-  const dollars = cents / 100;
-  return dollars >= 1000
-    ? `$${(dollars / 1000).toFixed(1)}k`
-    : `$${Math.round(dollars)}`;
-}
+import { RANGE_LABEL, shortMoney } from "./chart-format";
 
 function ordersOf(payload: unknown): number {
   return (payload as { orders?: number } | null)?.orders ?? 0;

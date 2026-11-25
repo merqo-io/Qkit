@@ -1,6 +1,6 @@
 import type { ItemTotals, StatsSummary } from "@/lib/stats";
 import { spreadsheetText } from "./spreadsheet-text";
-import { centsToDollarString } from "@/lib/utils";
+import { centsToDollarString } from "@merqo/ui";
 
 // ── Stable external sales contract (v1) ──────────────────────────────────────
 // This is the FROZEN shape that the `/api/v1/sales/summary` route returns and

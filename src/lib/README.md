@@ -577,9 +577,8 @@ boolean`, migration 0080 — orders, booth_item_sold —
   against fixed ISO instants, `sgtStartOfDayIso`'s day-boundary rollover and `sgtYesterdayStartIso`.
 - `utils.ts` — formatters (`cn` comes from `@merqo/ui/primitives`; the form
   classes `FORM_LABEL_CLASS` and `FORM_ERROR_CLASS` come from `@merqo/ui`),
-  `MS_PER_HOUR`/`MS_PER_DAY` (money display comes from `@merqo/ui` `formatMoney`/`<Money>`: "S$12.50"),
-  `centsToDollarString`, `parseDollarsToCents` (keystroke-level
-  validation for money inputs), `orderHasPricing`, `count` (pluralized noun),
+  `MS_PER_HOUR`/`MS_PER_DAY` (money display and `centsToDollarString`
+  come from `@merqo/ui`: "S$12.50"), `orderHasPricing`, `count` (pluralized noun),
   `formatOptions`, `menuItemActionLabel` (a menu item's add/customize button
   label — sold out / customize / add — shared by the customer order form and
   the vendor's walk-up order dialog).
