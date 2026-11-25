@@ -73,6 +73,7 @@ async function awaitNavigation(
 export function useBoothSave(
   boothId: string | undefined,
   values: BoothFormValues,
+  onInvalid?: (field: string) => void,
 ) {
   const router = useRouter();
   const deadlineRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -112,6 +113,8 @@ export function useBoothSave(
       const parsed = boothFormSchema.safeParse(candidate);
       if (!parsed.success) {
         void removeUnsavedImages(committed.uploaded);
+        const field = parsed.error.issues[0]?.path[0];
+        if (field !== undefined) onInvalid?.(String(field));
         toast.error(parsed.error.issues[0]?.message ?? "Check the form");
         return;
       }

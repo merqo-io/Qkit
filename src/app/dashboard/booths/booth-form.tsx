@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,10 +13,11 @@ import {
   ScanLine,
   ClipboardList,
   ArrowRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button, Checkbox, Input, Label, Switch } from "@merqo/ui/primitives";
 
-import { EmptyState, ImageUploader, resizeToWebp } from "@merqo/ui";
+import { ImageUploader, resizeToWebp } from "@merqo/ui";
 import { Section } from "@/components/widgets/ticket-section";
 import { MediaImage } from "@/components/widgets/media-image";
 import { uploadQkitImage } from "@/lib/image-upload-adapter";
@@ -38,6 +39,8 @@ import type { BoothHours } from "@/lib/hours";
 import type { SocialLinks } from "@/lib/types";
 import type { PaymentSetup } from "@/lib/paykit/payment-setup";
 import type { BookingStatus } from "@/lib/paykit/client";
+
+const TOP_BLOCK_FIELDS = new Set(["name", "image_url", "hours", "is_active"]);
 
 interface Props {
   vendorId: string;
@@ -76,6 +79,58 @@ interface Props {
     // mean here.
     bookingStatus?: BookingStatus | null;
   };
+}
+
+function MoreSettings({
+  open,
+  onToggle,
+  panelRef,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  panelRef: RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  const panelId = useId();
+  return (
+    <>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={onToggle}
+        className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-border bg-card px-6 py-3 text-left text-base font-semibold hover:border-primary/40"
+      >
+        More settings
+        <ChevronDown
+          className={`size-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <div id={panelId} ref={panelRef} hidden={!open}>
+        {children}
+      </div>
+    </>
+  );
+}
+
+function MenuLink({ boothId, count }: { boothId: string; count: number }) {
+  return (
+    <Link
+      href={`/dashboard/booths/${boothId}/menu`}
+      className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3.5 text-sm hover:border-primary/40"
+    >
+      <span>
+        <span className="font-medium">
+          {count === 1 ? "1 item" : `${count} items`}
+        </span>
+        <span className="block text-muted-foreground">
+          Add, edit, reorder, or bulk-import via CSV.
+        </span>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
+  );
 }
 
 export function BoothForm({
@@ -148,21 +203,32 @@ export function BoothForm({
   const [openedWith] = useState(snapshot);
   const confirmLeave = useUnsavedChanges(snapshot !== openedWith);
   const { deleting, onDelete } = useBoothDelete(initial?.boothId);
-  const { saving, onSubmit } = useBoothSave(initial?.boothId, {
-    name,
-    imageUrl,
-    isActive,
-    hours,
-    takesPayment,
-    socialLinks,
-    requiresArrivalConfirm,
-    walkupDefault,
-    printEnabled,
-    pickupScanEnabled,
-    paykitBookingId,
-    dailyCupCap,
-    maxItemsPerOrder,
-  });
+  const isEdit = Boolean(initial?.boothId);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const morePanelRef = useRef<HTMLDivElement>(null);
+  const { saving, onSubmit } = useBoothSave(
+    initial?.boothId,
+    {
+      name,
+      imageUrl,
+      isActive,
+      hours,
+      takesPayment,
+      socialLinks,
+      requiresArrivalConfirm,
+      walkupDefault,
+      printEnabled,
+      pickupScanEnabled,
+      paykitBookingId,
+      dailyCupCap,
+      maxItemsPerOrder,
+    },
+    // Validation errors are a toast naming one field; a field tucked inside a
+    // collapsed More settings would leave the vendor nothing to look at.
+    (field) => {
+      if (!TOP_BLOCK_FIELDS.has(field)) setMoreOpen(true);
+    },
+  );
 
   const saveCancelRow = (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-6 py-6">
@@ -189,263 +255,275 @@ export function BoothForm({
   );
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form
+      onSubmit={onSubmit}
+      onInvalidCapture={(e) => {
+        // A hidden control cannot show its native validation bubble, so only
+        // a rejected control inside the collapsed panel has to open it.
+        const t = e.target;
+        if (t instanceof Node && morePanelRef.current?.contains(t))
+          setMoreOpen(true);
+      }}
+      className="space-y-8"
+    >
       {/* Natural-height columns; gap-x only since Section already has mb-5. */}
       <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2 md:items-start">
-        <div>
-          <Section
-            icon={<Store className="size-5" />}
-            eyebrow="Shown to customers"
-            title="Name & photo"
-            description="Your booth's name and banner image."
-          >
-            <div className="space-y-2.5">
-              <div className="flex items-center">
-                <Label
-                  htmlFor="booth-name"
-                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                  Booth name
-                </Label>
-                <Hint label="About name and photo">
-                  Your name and banner photo show at the top of the booth page
-                  customers open from your QR. The name also prints on the QR
-                  poster.
-                </Hint>
-              </div>
-              <Input
-                id="booth-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Mama's Kitchen"
-                className="h-12 rounded-xl text-base"
-              />
-            </div>
-
-            <div
-              role="group"
-              aria-labelledby="booth-banner-label"
-              className="space-y-2.5"
-            >
-              <p
-                id="booth-banner-label"
-                className="text-xs leading-none font-semibold tracking-wider text-muted-foreground uppercase"
+        <Section
+          icon={<Store className="size-5" />}
+          eyebrow="Shown to customers"
+          title="Name & photo"
+          description="Your booth's name and banner image."
+        >
+          <div className="space-y-2.5">
+            <div className="flex items-center">
+              <Label
+                htmlFor="booth-name"
+                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Banner
-              </p>
-              <ImageUploader
-                bucket="booth-images"
-                pathPrefix={vendorId}
-                value={imageUrl}
-                onChange={setImageUrl}
-                onUpload={uploadQkitImage}
-                resizeImage={resizeToWebp}
-                imageComponent={MediaImage}
-                variant="banner"
-                deferUpload
-              />
-            </div>
-          </Section>
-
-          <Section
-            icon={<Clock className="size-5" />}
-            eyebrow="When you're open"
-            title="Hours & availability"
-            description="Open or pause ordering and set your hours."
-          >
-            {initial?.boothId ? (
-              <CloseBoothControl
-                boothId={initial.boothId}
-                boothName={name || initial.name}
-                isActive={isActive}
-                onChanged={setIsActive}
-              />
-            ) : (
-              <label className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
-                <Checkbox
-                  checked={isActive}
-                  onCheckedChange={(checked) => setIsActive(checked === true)}
-                />
-                <span className="text-sm">
-                  <span className="font-medium">Open for orders</span>
-                  <span className="block text-muted-foreground">
-                    Customers can only order while the booth is open.
-                  </span>
-                </span>
-              </label>
-            )}
-
-            <p className="flex items-center text-sm font-medium">
-              Opening hours
-              <Hint label="About hours">
-                Customers can order only while the booth is open and inside
-                these hours. Use one time every day, or set different times for
-                each day.
+                Booth name
+              </Label>
+              <Hint label="About name and photo">
+                Your name and banner photo show at the top of the booth page
+                customers open from your QR. The name also prints on the QR
+                poster.
               </Hint>
+            </div>
+            <Input
+              id="booth-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Mama's Kitchen"
+              className="h-12 rounded-xl text-base"
+            />
+          </div>
+
+          <div
+            role="group"
+            aria-labelledby="booth-banner-label"
+            className="space-y-2.5"
+          >
+            <p
+              id="booth-banner-label"
+              className="text-xs leading-none font-semibold tracking-wider text-muted-foreground uppercase"
+            >
+              Banner
             </p>
-            <WorkingHoursEditor
-              value={hours}
-              onChange={setHours}
-              entitlement={entitlement}
+            <ImageUploader
+              bucket="booth-images"
+              pathPrefix={vendorId}
+              value={imageUrl}
+              onChange={setImageUrl}
+              onUpload={uploadQkitImage}
+              resizeImage={resizeToWebp}
+              imageComponent={MediaImage}
+              variant="banner"
+              deferUpload
             />
-          </Section>
+          </div>
+        </Section>
 
-          <Section
-            icon={<ClipboardList className="size-5" />}
-            eyebrow="How orders come in"
-            title="Order flow"
-            description="Arrival timing and walk-up entry."
-          >
-            <SettingRow
-              label="Hold prep until arrival"
-              hint="For items made fresh per order, like ice cream. The order waits until the customer taps “I'm here” on their status page."
-              hintLabel="About holding prep until arrival"
-            >
-              <Switch
-                checked={requiresArrivalConfirm}
-                onCheckedChange={setRequiresArrivalConfirm}
-                aria-label="Hold prep until arrival"
+        <Section
+          icon={<Clock className="size-5" />}
+          eyebrow="When you're open"
+          title="Hours & availability"
+          description="Open or pause ordering and set your hours."
+        >
+          {initial?.boothId ? (
+            <CloseBoothControl
+              boothId={initial.boothId}
+              boothName={name || initial.name}
+              isActive={isActive}
+              onChanged={setIsActive}
+            />
+          ) : (
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+              <Checkbox
+                checked={isActive}
+                onCheckedChange={(checked) => setIsActive(checked === true)}
               />
-            </SettingRow>
-
-            <SettingRow
-              label="Walk-up entry by default"
-              hint="Staff enter every order directly. For a one-off event where guests don't scan a QR to order themselves."
-              hintLabel="About walk-up entry"
-              badge={
-                eventMode && (
-                  <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
-                    Recommended
-                  </span>
-                )
-              }
-            >
-              <Switch
-                checked={walkupDefault}
-                onCheckedChange={setWalkupDefault}
-                aria-label="Walk-up entry by default"
-              />
-            </SettingRow>
-
-            {walkupDefault && (
-              <BookingStatusSection
-                value={paykitBookingId}
-                onChange={setPaykitBookingId}
-                status={initial?.bookingStatus}
-              />
-            )}
-          </Section>
-
-          <BoothLimitsSection
-            entitlement={entitlement}
-            dailyCupCap={dailyCupCap}
-            onDailyCupCapChange={setDailyCupCap}
-            maxItemsPerOrder={maxItemsPerOrder}
-            onMaxItemsPerOrderChange={setMaxItemsPerOrder}
-            boothId={initial?.boothId}
-            boothName={initial?.name}
-            savedDailyCupCap={initial?.daily_cup_cap}
-            hasItemLimits={initial?.hasItemLimits}
-          />
-        </div>
-
-        <div>
-          <Section
-            icon={<UtensilsCrossed className="size-5" />}
-            eyebrow="What you sell"
-            title="Menu"
-            description="Add items customers can order."
-          >
-            {initial?.boothId ? (
-              <Link
-                href={`/dashboard/booths/${initial.boothId}/menu`}
-                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3.5 text-sm hover:border-primary/40"
-              >
-                <span>
-                  <span className="font-medium">
-                    {initial.menuItemCount === 1
-                      ? "1 item"
-                      : `${initial.menuItemCount} items`}
-                  </span>
-                  <span className="block text-muted-foreground">
-                    Add, edit, reorder, or bulk-import via CSV.
-                  </span>
+              <span className="text-sm">
+                <span className="font-medium">Open for orders</span>
+                <span className="block text-muted-foreground">
+                  Customers can only order while the booth is open.
                 </span>
-                <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-              </Link>
-            ) : (
-              <EmptyState
-                size="compact"
-                title="Save this booth to start building its menu."
-              />
-            )}
-          </Section>
+              </span>
+            </label>
+          )}
 
-          <Section
-            icon={<Wallet className="size-5" />}
-            eyebrow="How you get paid"
-            title="Payment"
-            description="Optional, but skip it and customers have no way to pay through qkit. You'd collect payment in person instead."
-          >
-            <PaymentSection
-              setup={paymentSetup}
-              value={takesPayment}
-              onChange={setTakesPayment}
-              isNewBooth={!initial?.boothId}
-            />
-          </Section>
-
-          <Section
-            icon={<Printer className="size-5" />}
-            eyebrow="At your counter"
-            title="Printing"
-            description="Optional. Auto-printed order labels."
-          >
-            <PrintingSection
-              value={printEnabled}
-              onChange={setPrintEnabled}
-              boothId={initial?.boothId}
-              savedEnabled={initial?.print_enabled ?? false}
-              available={entitlement.counterOps}
-            />
-          </Section>
-
-          <Section
-            icon={<ScanLine className="size-5" />}
-            eyebrow="At your counter"
-            title="Pickup"
-            description="Optional. A kiosk where customers mark their own pickup."
-          >
-            <SettingRow
-              label="Self-checkout pickup"
-              hint="A kiosk tablet at your counter where customers scan their own ready order and it is marked picked up. Turn it on when you have a pickup shelf and no one to hand orders over."
-              hintLabel="About self-checkout pickup"
-            >
-              <Switch
-                checked={pickupScanEnabled}
-                onCheckedChange={setPickupScanEnabled}
-                aria-label="Self-checkout pickup"
-              />
-            </SettingRow>
-            {pickupScanEnabled && initial?.boothId ? (
-              <PickupKioskLink boothId={initial.boothId} />
-            ) : null}
-          </Section>
-
-          <Section
-            icon={<Share2 className="size-5" />}
-            eyebrow="Shown to customers"
-            title="Social links"
-            description="Shown on the order-status page after a customer orders."
-          >
-            <SocialLinksSection
-              value={socialLinks}
-              onChange={setSocialLinks}
-              vendorDefaults={vendorSocialLinks}
-            />
-          </Section>
-        </div>
+          <p className="flex items-center text-sm font-medium">
+            Opening hours
+            <Hint label="About hours">
+              Customers can order only while the booth is open and inside these
+              hours. Use one time every day, or set different times for each
+              day.
+            </Hint>
+          </p>
+          <WorkingHoursEditor
+            value={hours}
+            onChange={setHours}
+            entitlement={entitlement}
+          />
+        </Section>
       </div>
+
+      {!isEdit && walkupDefault && (
+        <p className="text-sm text-muted-foreground">
+          Walk-up entry is on for this event booth. Change it in More settings
+          after you save.
+        </p>
+      )}
+
+      {isEdit ? (
+        <div className="space-y-5">
+          <MoreSettings
+            open={moreOpen}
+            panelRef={morePanelRef}
+            onToggle={() => setMoreOpen((open) => !open)}
+          >
+            <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2 md:items-start">
+              <div>
+                <Section
+                  icon={<ClipboardList className="size-5" />}
+                  eyebrow="How orders come in"
+                  title="Order flow"
+                  description="Arrival timing and walk-up entry."
+                >
+                  <SettingRow
+                    label="Hold prep until arrival"
+                    hint="For items made fresh per order, like ice cream. The order waits until the customer taps “I'm here” on their status page."
+                    hintLabel="About holding prep until arrival"
+                  >
+                    <Switch
+                      checked={requiresArrivalConfirm}
+                      onCheckedChange={setRequiresArrivalConfirm}
+                      aria-label="Hold prep until arrival"
+                    />
+                  </SettingRow>
+
+                  <SettingRow
+                    label="Walk-up entry by default"
+                    hint="Staff enter every order directly. For a one-off event where guests don't scan a QR to order themselves."
+                    hintLabel="About walk-up entry"
+                    badge={
+                      eventMode && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
+                          Recommended
+                        </span>
+                      )
+                    }
+                  >
+                    <Switch
+                      checked={walkupDefault}
+                      onCheckedChange={setWalkupDefault}
+                      aria-label="Walk-up entry by default"
+                    />
+                  </SettingRow>
+
+                  {walkupDefault && (
+                    <BookingStatusSection
+                      value={paykitBookingId}
+                      onChange={setPaykitBookingId}
+                      status={initial?.bookingStatus}
+                    />
+                  )}
+                </Section>
+
+                <BoothLimitsSection
+                  entitlement={entitlement}
+                  dailyCupCap={dailyCupCap}
+                  onDailyCupCapChange={setDailyCupCap}
+                  maxItemsPerOrder={maxItemsPerOrder}
+                  onMaxItemsPerOrderChange={setMaxItemsPerOrder}
+                  boothId={initial?.boothId}
+                  boothName={initial?.name}
+                  savedDailyCupCap={initial?.daily_cup_cap}
+                  hasItemLimits={initial?.hasItemLimits}
+                />
+              </div>
+
+              <div>
+                <Section
+                  icon={<UtensilsCrossed className="size-5" />}
+                  eyebrow="What you sell"
+                  title="Menu"
+                  description="Add items customers can order."
+                >
+                  {initial ? (
+                    <MenuLink
+                      boothId={initial.boothId}
+                      count={initial.menuItemCount}
+                    />
+                  ) : null}
+                </Section>
+
+                <Section
+                  icon={<Wallet className="size-5" />}
+                  eyebrow="How you get paid"
+                  title="Payment"
+                  description="Optional, but skip it and customers have no way to pay through qkit. You'd collect payment in person instead."
+                >
+                  <PaymentSection
+                    setup={paymentSetup}
+                    value={takesPayment}
+                    onChange={setTakesPayment}
+                    isNewBooth={!initial?.boothId}
+                  />
+                </Section>
+
+                <Section
+                  icon={<Printer className="size-5" />}
+                  eyebrow="At your counter"
+                  title="Printing"
+                  description="Optional. Auto-printed order labels."
+                >
+                  <PrintingSection
+                    value={printEnabled}
+                    onChange={setPrintEnabled}
+                    boothId={initial?.boothId}
+                    savedEnabled={initial?.print_enabled ?? false}
+                    available={entitlement.counterOps}
+                  />
+                </Section>
+
+                <Section
+                  icon={<ScanLine className="size-5" />}
+                  eyebrow="At your counter"
+                  title="Pickup"
+                  description="Optional. A kiosk where customers mark their own pickup."
+                >
+                  <SettingRow
+                    label="Self-checkout pickup"
+                    hint="A kiosk tablet at your counter where customers scan their own ready order and it is marked picked up. Turn it on when you have a pickup shelf and no one to hand orders over."
+                    hintLabel="About self-checkout pickup"
+                  >
+                    <Switch
+                      checked={pickupScanEnabled}
+                      onCheckedChange={setPickupScanEnabled}
+                      aria-label="Self-checkout pickup"
+                    />
+                  </SettingRow>
+                  {pickupScanEnabled && initial?.boothId ? (
+                    <PickupKioskLink boothId={initial.boothId} />
+                  ) : null}
+                </Section>
+
+                <Section
+                  icon={<Share2 className="size-5" />}
+                  eyebrow="Shown to customers"
+                  title="Social links"
+                  description="Shown on the order-status page after a customer orders."
+                >
+                  <SocialLinksSection
+                    value={socialLinks}
+                    onChange={setSocialLinks}
+                    vendorDefaults={vendorSocialLinks}
+                  />
+                </Section>
+              </div>
+            </div>
+          </MoreSettings>
+        </div>
+      ) : null}
 
       {initial?.boothId ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
