@@ -18,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Demo clips: `batch` drops from 62s to about 14s by cutting the bulk-action settle waits, `come-back` is about 17s with every second captioned and no loading frames, the tour trailer no longer dips to black or shows the paynow customer reload, and the `paynow` recorder opens More settings to reach the Take payment switch.
 - A new vendor can finish PayNow setup from the Go live card without getting lost: the paykit link carries `return_to` for the booth's QR page and opens in the same tab, the payment row loads behind a "Checking payment..." placeholder so the QR page no longer waits on paykit, an unreachable paykit reads "Check payment in paykit", and a PayNow config only counts as set up with a payee name and a UEN or mobile. The new-booth form tells the vendor to save first and set payment from the Go live card.
 - The demo recorder's `setup` scene (Instagram Ep 2) follows the new onboarding: add booth, sample menu, Go live card, QR, test order on the board. Scenes can set their own end card line, and plan chips are hidden on camera.
 - Saving a new booth no longer risks sitting on "Saving..." forever: if the next page has not loaded after 12 seconds, the app opens it with a full page load and shows a short notice.

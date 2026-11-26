@@ -16,11 +16,20 @@ const OUT = path.join(HERE, "out");
 const OUTRO_S = 2.8;
 const LEAD_S = 2.2;
 const CUT_S = 6.4;
+const FADE_S = 0.6;
 
-// Beat = index into steps.json's steps; the cut starts just before it.
+// Beat = index into steps.json's steps; the cut starts `lead` seconds before it
+// (default LEAD_S). `drop` removes a stretch of the window, given as seconds
+// before another step's start, so a loading frame inside a source clip never
+// reaches the trailer (the paynow customer pane reloads just before step 3).
 const CUTS = [
   { scene: "live-pop", step: 3 },
-  { scene: "paynow", step: 2 },
+  {
+    scene: "paynow",
+    step: 2,
+    lead: 3.4,
+    drop: { step: 2, fromBefore: 1.5, toBefore: 0.3 },
+  },
   { scene: "status", step: 2 },
   { scene: "tv-screen", step: 2 },
 ];
@@ -52,11 +61,28 @@ function main() {
       throw new Error(`Missing ${c.scene}. Record and compose it first.`);
     }
     const steps = JSON.parse(fs.readFileSync(meta, "utf8")).steps;
-    const start = Math.max(0, steps[c.step].startMs / 1000 - LEAD_S);
+    // Each clip ends with its own fade-out and outro card; stop before them so
+    // the cut never dips to black mid-trailer.
+    const mainEnd = probe(file) - OUTRO_S - FADE_S;
+    const wanted = Math.max(
+      0,
+      steps[c.step].startMs / 1000 - (c.lead ?? LEAD_S),
+    );
+    let drop = null;
+    if (c.drop) {
+      const at = steps[c.drop.step].startMs / 1000;
+      drop = { from: at - c.drop.fromBefore, to: at - c.drop.toBefore };
+    }
+    const dropLen = drop ? drop.to - drop.from : 0;
+    const start = Math.max(0, Math.min(wanted, mainEnd - CUT_S - dropLen));
+    const win = CUT_S + dropLen;
+    const cutOut = drop
+      ? `,select='not(between(t,${(drop.from - start).toFixed(2)},${(drop.to - start).toFixed(2)}))'`
+      : "";
     inputs.push("-i", file);
     graph.push(
-      `[${i}:v]trim=start=${start.toFixed(2)}:duration=${CUT_S},setpts=PTS-STARTPTS,fps=30,setsar=1[v${i}]`,
-      `[${i}:a]atrim=start=${start.toFixed(2)}:duration=${CUT_S},asetpts=PTS-STARTPTS,aresample=44100[a${i}]`,
+      `[${i}:v]trim=start=${start.toFixed(2)}:duration=${win.toFixed(2)},setpts=PTS-STARTPTS,fps=30${cutOut},setpts=N/30/TB,setsar=1[v${i}]`,
+      `[${i}:a]atrim=start=${start.toFixed(2)}:duration=${win.toFixed(2)},asetpts=PTS-STARTPTS,aresample=44100${drop ? cutOut.replace("select", "aselect") : ""},asetpts=N/SR/TB[a${i}]`,
     );
   });
   const last = CUTS.length - 1;
