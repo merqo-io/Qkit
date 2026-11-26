@@ -17,7 +17,8 @@ const STEP = { fontsize: 52, maxChars: 28, y: 1540, lineHeight: 74 };
 export const SINGLE = { top: 290, h: 1290, border: 8, stepY: 1620 };
 // Consecutive steps share an exact boundary and between() is inclusive on both
 // ends, so without a gap the boundary frame would draw two captions at once.
-const CAPTION_GAP_S = 0.15;
+// Under one frame at 25fps, so no sampled frame falls in the gap uncaptioned.
+const CAPTION_GAP_S = 0.02;
 
 // Two phones side by side in a portrait frame: 2 x (panel + border) + gap +
 // side margins = 1080.
@@ -82,8 +83,9 @@ export function captionItems(meta, durS) {
       });
     });
   }
-  for (const s of meta.steps) {
-    const start = s.startMs / 1000;
+  meta.steps.forEach((s, n) => {
+    // The first caption covers the held opening frame too.
+    const start = n === 0 ? 0 : s.startMs / 1000;
     const end = Math.max(s.startMs, s.endMs - CAPTION_GAP_S * 1000) / 1000;
     wrapCaption(s.caption, STEP.maxChars).forEach((text, i) => {
       items.push({
@@ -96,7 +98,7 @@ export function captionItems(meta, durS) {
         end,
       });
     });
-  }
+  });
   return items;
 }
 

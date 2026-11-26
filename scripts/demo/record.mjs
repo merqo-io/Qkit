@@ -174,6 +174,11 @@ async function offCamera(fn) {
   state.cuts.push({ startMs, endMs: now() });
 }
 
+// The webm starts about half a second after the scene clock, so a cut's
+// leading edge lands late and leaves the page's first loading frames in the
+// file. A readyMs this far past the cut makes compose drop them.
+const RECORDING_LAG_MS = 500;
+
 /** No route loading skeleton on screen. */
 const settled = (page) =>
   page.getByRole("status", { name: "Loading" }).waitFor({ state: "hidden" });
@@ -582,6 +587,10 @@ async function enablePayment(page, boothId) {
     waitUntil: "domcontentloaded",
   });
   await pause(page, 1000);
+  const more = page.getByRole("button", { name: "More settings" });
+  if ((await more.getAttribute("aria-expanded")) === "false") {
+    await glideClick(page, more);
+  }
   const take = page.getByRole("switch", {
     name: "Take payment for orders at this booth",
   });
@@ -640,9 +649,17 @@ async function customerOrder(page, boothId, opts) {
   await slowType(page, sheet.locator("#customerName"), name);
   await glideClick(page, sheet.getByRole("button", { name: /Place order/ }));
   if (after === "status") {
-    await page.waitForURL(new RegExp(`/order/${boothId}/\\d+`), {
-      timeout: 15000,
-    });
+    const landed = () =>
+      page.waitForURL(new RegExp(`/order/${boothId}/\\d+`), {
+        timeout: 15000,
+      });
+    if (opts.cutLoad) {
+      await offCamera(async () => {
+        await landed();
+        await settled(page);
+        await page.waitForTimeout(600);
+      });
+    } else await landed();
   } else if (after === "pay") {
     await page.waitForURL((u) => !u.href.startsWith(state.baseUrl), {
       timeout: 20000,
@@ -1249,7 +1266,13 @@ async function batchScene({ browser, scene, dir }) {
     storageState: seed.storageState,
     hideToasts: true,
   });
-  await openBoard(page);
+  await offCamera(async () => {
+    await openBoard(page);
+    await page.getByText(CROWD.at(-1), { exact: true }).first().waitFor();
+    await settled(page);
+  });
+  const first = state.videos.find((v) => v.page === page);
+  if (first) first.readyMs = now() + RECORDING_LAG_MS;
 
   await step(C.busy, async () => {
     await page.getByText(CROWD.at(-1), { exact: true }).first().waitFor();
@@ -1257,8 +1280,10 @@ async function batchScene({ browser, scene, dir }) {
   });
   await step(C.start, async () => {
     await glideClick(page, page.getByRole("button", { name: /^Start all/ }));
-    await page.getByRole("button", { name: /^Incoming \(0\)/ }).waitFor();
-    await beat(1200);
+    await offCamera(async () => {
+      await page.getByRole("button", { name: /^Incoming \(0\)/ }).waitFor();
+    });
+    await beat(1400);
   });
   await step(C.ready, async () => {
     await showTab(page, /^Preparing/);
@@ -1266,8 +1291,10 @@ async function batchScene({ browser, scene, dir }) {
       page,
       page.getByRole("button", { name: /^Mark all \d+ ready/ }),
     );
-    await page.getByRole("button", { name: /^Preparing \(0\)/ }).waitFor();
-    await beat(1200);
+    await offCamera(async () => {
+      await page.getByRole("button", { name: /^Preparing \(0\)/ }).waitFor();
+    });
+    await beat(1400);
   });
   await step(C.pickup, async () => {
     await showTab(page, /^Ready/);
@@ -1281,7 +1308,9 @@ async function batchScene({ browser, scene, dir }) {
     const pickedUp = page.getByRole("button", { name: /^Mark \d+ Picked Up/ });
     await pickedUp.and(page.locator(":enabled")).waitFor();
     await glideClick(page, pickedUp);
-    await page.getByText("All caught up").waitFor();
+    await offCamera(async () => {
+      await page.getByText("All caught up").waitFor();
+    });
     await beat(1800);
   });
 }
@@ -1407,9 +1436,26 @@ async function comeBackScene({ browser, scene, dir }) {
   const seed = await seedVendor(browser, scene);
   runDemoSql("seed-socials.sql");
   const page = await openRecorded(browser, dir, "main", { hideToasts: true });
+  await offCamera(async () => {
+    await page.waitForTimeout(400);
+    await page.goto(`${state.baseUrl}/order/${seed.boothId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page
+      .getByRole("button", { name: "Add", exact: true })
+      .first()
+      .waitFor();
+    await settled(page);
+    await page.waitForTimeout(600);
+  });
+  const first = state.videos.find((v) => v.page === page);
+  if (first) first.readyMs = now() + RECORDING_LAG_MS;
 
   await step(C.footer, async () => {
-    await customerOrder(page, seed.boothId, { name: CUSTOMER });
+    await customerOrder(page, seed.boothId, {
+      name: CUSTOMER,
+      cutLoad: true,
+    });
     await beat(800);
     const follow = page.getByText(/^Follow /).first();
     await follow.waitFor({ timeout: 15000 });
@@ -1423,20 +1469,29 @@ async function comeBackScene({ browser, scene, dir }) {
     await beat(2400);
   });
 
-  const vendor = await openFast(browser, seed.storageState);
-  await openBoard(vendor.page);
-  await fulfil(vendor.page, CUSTOMER);
-  await vendor.context.close();
-
   await step(C.reorder, async () => {
-    await page.reload({ waitUntil: "domcontentloaded" });
+    await offCamera(async () => {
+      const vendor = await openFast(browser, seed.storageState);
+      await openBoard(vendor.page);
+      await fulfil(vendor.page, CUSTOMER);
+      await vendor.context.close();
+    });
     const again = page.getByRole("button", {
       name: /Reorder these items|Order this again/,
     });
-    await again.waitFor({ timeout: 15000 });
+    await offCamera(async () => {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await again.waitFor({ timeout: 15000 });
+      await settled(page);
+    });
     await center(page, again);
     await beat(900);
     await glideClick(page, again);
+    await offCamera(async () => {
+      await page.getByRole("button", { name: /Continue/ }).waitFor();
+      await settled(page);
+      await page.waitForTimeout(600);
+    });
     await beat(2200);
   });
 }

@@ -33,7 +33,7 @@ exit non-zero with the list.
 | `tv-screen`   | 5       | single | implemented   | Portrait 640x880 pickup screen (landscape shrinks to unreadable text on a phone). Needs the qkit tier; see `DEMO_DB_URL`.                                                                                                                                                                                                                            |
 | `options`     | 6       | single | implemented   | Milk and Sugar options, then the ticket.                                                                                                                                                                                                                                                                                                             |
 | `walk-up`     | 7       | split  | implemented   | QR order, then New order for a walk-up.                                                                                                                                                                                                                                                                                                              |
-| `batch`       | 8       | single | implemented   | 8 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                                                                                                                                                                                                                                                   |
+| `batch`       | 8       | single | implemented   | 40 seeded orders; Start all, Mark all ready, Select all, Picked Up.                                                                                                                                                                                                                                                                                  |
 | `sold-out`    | 9       | single | implemented   | Needs the qkit tier (stock limits); see `DEMO_DB_URL`.                                                                                                                                                                                                                                                                                               |
 | `stats`       | 10      | single | implemented   | Free plan only: no history, trends or margin.                                                                                                                                                                                                                                                                                                        |
 | `multi-booth` | 11      | single | implemented   | Needs the qkit tier (3 booths); see `DEMO_DB_URL`.                                                                                                                                                                                                                                                                                                   |
@@ -115,10 +115,12 @@ Single scenes sit in their own band (`SINGLE` in `filters.mjs`) between the hook
 and the step captions, so captions never cover app UI. The batch and come-back
 scenes hide toasts (`hideToasts`, an adopted stylesheet because the CSP blocks
 injected `<style>`), and a "Saving…" label is swapped for its idle text so a save
-never shows its transient state. batch seeds 40 orders four at a time and waits
-for each bulk action to settle, so it runs about a minute.
+never shows its transient state. batch seeds 40 orders four at a time and cuts
+each bulk action's settle wait out of the clip (`offCamera`), so it runs about
+15s on camera. come-back cuts the order, vendor and reorder page loads the same way.
 After composing live-pop, paynow, status and tv-screen, `node scripts/demo/trailer.mjs`
-cuts the trailer from them.
+cuts the trailer from them. Each cut stops before its clip's fade-out, and the
+paynow cut drops the customer pane's reload just before the vendor taps Mark paid.
 
 ## Split mode
 
