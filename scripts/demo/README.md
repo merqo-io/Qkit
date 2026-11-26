@@ -59,7 +59,7 @@ A scene's optional `endLine` in `scenes.mjs` replaces the end card's subtitle.
 | `record.mjs`          | Drives the real app, records `out/<scene>/<role>.webm` + `steps.json`                                  |
 | `merqo-mock.mjs`      | Stand-in for merqo's connect-token and notify endpoints (`pnpm demo:merqo`)                            |
 | `seed-socials.sql`    | Gives the demo booth social links for the `come-back` footer; run by `record.mjs`                      |
-| `trailer.mjs`         | Cuts `out/tour-trailer.mp4` (about 28s) from the composed live-pop, paynow, status and tv-screen clips |
+| `trailer.mjs`         | Cuts `out/tour-trailer.mp4` (about 25s) from the composed live-pop, paynow, status and tv-screen clips |
 | `compose.mjs`         | ffmpeg: layout, captions, chime, optional `assets/` music, writes `out/<scene>.mp4`                    |
 | `base-url.mjs`        | Loopback-only guards for the app origin and `DEMO_DB_URL`                                              |
 | `out/`                | Generated artifacts (git-ignored)                                                                      |
@@ -120,7 +120,7 @@ each bulk action's settle wait out of the clip (`offCamera`), so it runs about
 15s on camera. come-back cuts the order, vendor and reorder page loads the same way.
 After composing live-pop, paynow, status and tv-screen, `node scripts/demo/trailer.mjs`
 cuts the trailer from them. Each cut stops before its clip's fade-out, and the
-paynow cut drops the customer pane's reload just before the vendor taps Mark paid.
+paynow cut drops the customer pane's reload skeleton. The opening cut starts just after the ticket lands (settled board), never on the checkout sheet mid-slide. The sources are recorded with prices blurred, so the trailer shows none.
 
 ## Split mode
 
@@ -152,9 +152,14 @@ startMs, viewport}], steps: [{caption, startMs, endMs}]}`.
 - **Captions blank?** ffmpeg can't find the font. Set `DEMO_FONT` to a `.ttf`.
 - **A beat times out?** The app markup moved. Fix that locator in `record.mjs`,
   not the timeout.
-- **QR/share-link shows `localhost`?** Start the dev server with
-  `NEXT_PUBLIC_DEMO_ORIGIN_OVERRIDE` set to the real domain (see
-  `booth-qr-poster.tsx`). Never set it on a real dev/prod server.
+- **`localhost` and prices:** every recorded page blurs any text or input value
+  containing `localhost` or `127.0.0.1` (`maskScript` in `record.mjs`), so the
+  QR page's "Type this link" line never reads as a live URL. Scenes with
+  `maskPrices: true` in `scenes.mjs` (the free-pilot clips and the four trailer
+  sources) also blur `$` amounts and the menu editor's Price and Cost fields.
+- **Holds:** the Go live card in `setup` and the Start all result in `batch`
+  stay on screen at least 3.5s. A bulk board action waits up to 10 minutes
+  (`BULK_WAIT_MS`); the wait is cut from the clip.
 - **Background music:** see `assets/README.md`. No file means chime only.
 
 ## Notes

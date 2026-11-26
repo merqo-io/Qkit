@@ -153,6 +153,7 @@ const state = {
   t0: 0,
   mode: "",
   baseUrl: "",
+  maskPrices: false,
 };
 const now = () => Date.now() - state.t0;
 const beat = (ms) => new Promise((r) => setTimeout(r, ms * SPEED));
@@ -178,6 +179,10 @@ async function offCamera(fn) {
 // leading edge lands late and leaves the page's first loading frames in the
 // file. A readyMs this far past the cut makes compose drop them.
 const RECORDING_LAG_MS = 500;
+
+// A bulk board action advances up to 40 orders one server call at a time, and
+// the wait is cut from the clip, so it may take minutes on a slow machine.
+const BULK_WAIT_MS = 600000;
 
 /** No route loading skeleton on screen. */
 const settled = (page) =>
@@ -319,6 +324,33 @@ setInterval(() => {
 }, 40);
 `;
 
+// Blurs what a free-pilot clip must not show: the dev origin (a booth that is
+// not live anywhere) always, prices when the scene asks for it. Text nodes are
+// blurred through their parent, and the Price and Cost inputs by placeholder.
+// A MutationObserver runs before paint so no unmasked frame is recorded.
+const maskScript = (prices) => `
+(() => {
+  const origin = /localhost|127[.]0[.]0[.]1/;
+  const hit = ${prices ? "/localhost|127[.]0[.]0[.]1|[$] ?[0-9]/" : "origin"};
+  const blur = (el) => {
+    if (el && el.style.filter !== "blur(7px)") el.style.filter = "blur(7px)";
+  };
+  const sweep = () => {
+    if (!document.body) return;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (hit.test(n.nodeValue)) blur(n.parentElement);
+    }
+    for (const el of document.querySelectorAll("input")) {
+      if (origin.test(el.value)) blur(el);
+      if (${prices} && el.placeholder === "Optional") blur(el);
+    }
+  };
+  new MutationObserver(sweep).observe(document, { childList: true, subtree: true, characterData: true });
+  setInterval(sweep, 40);
+})();
+`;
+
 // Transparent rather than display:none so waits on toast text still resolve.
 // An adopted stylesheet, because the app's CSP blocks injected <style> tags.
 const HIDE_TOASTS_SCRIPT = `
@@ -338,6 +370,7 @@ async function openRecorded(browser, sceneDir, role, opts = {}) {
   });
   await context.addInitScript(CURSOR_SCRIPT);
   await context.addInitScript(HIDE_OFF_CAMERA_SCRIPT);
+  await context.addInitScript(maskScript(state.maskPrices));
   if (opts.hideToasts) await context.addInitScript(HIDE_TOASTS_SCRIPT);
   // The scene clock starts at the first recorded context, so unrecorded setup
   // never shows up as blank lead-in; later contexts get a positive offset.
@@ -1010,8 +1043,8 @@ async function setupScene({ browser, scene, dir }) {
     await pause(page, 4200);
     await scrollPage(page, 260);
     await pause(page, 3200);
-  });
-  await step(C.golive, async () => {
+    // The save and its load belong to this caption: "Go live" must only show
+    // once the Go live card itself is on screen.
     const saveMenu = page.getByRole("button", { name: "Save menu" });
     await center(page, saveMenu);
     await glideClick(page, saveMenu);
@@ -1025,8 +1058,8 @@ async function setupScene({ browser, scene, dir }) {
       await card.getByText("Checking payment...").waitFor({ state: "hidden" });
       await settled(page);
     });
-    await pause(page, 2600);
   });
+  await step(C.golive, () => pause(page, 5200));
   // Placed in the background while the QR is on screen, so the clip never waits on it.
   const ordered = backgroundOrder(browser, boothId, CUSTOMER);
   await step(C.qr, async () => {
@@ -1281,9 +1314,11 @@ async function batchScene({ browser, scene, dir }) {
   await step(C.start, async () => {
     await glideClick(page, page.getByRole("button", { name: /^Start all/ }));
     await offCamera(async () => {
-      await page.getByRole("button", { name: /^Incoming \(0\)/ }).waitFor();
+      await page
+        .getByRole("button", { name: /^Incoming \(0\)/ })
+        .waitFor({ timeout: BULK_WAIT_MS });
     });
-    await beat(1400);
+    await beat(5000);
   });
   await step(C.ready, async () => {
     await showTab(page, /^Preparing/);
@@ -1292,9 +1327,14 @@ async function batchScene({ browser, scene, dir }) {
       page.getByRole("button", { name: /^Mark all \d+ ready/ }),
     );
     await offCamera(async () => {
-      await page.getByRole("button", { name: /^Preparing \(0\)/ }).waitFor();
+      await page
+        .getByRole("button", { name: /^Preparing \(0\)/ })
+        .waitFor({ timeout: BULK_WAIT_MS });
     });
-    await beat(1400);
+    // The emptied Preparing list says nothing about "Mark all ready"; the full
+    // Ready list does.
+    await showTab(page, /^Ready/);
+    await beat(2400);
   });
   await step(C.pickup, async () => {
     await showTab(page, /^Ready/);
@@ -1309,7 +1349,7 @@ async function batchScene({ browser, scene, dir }) {
     await pickedUp.and(page.locator(":enabled")).waitFor();
     await glideClick(page, pickedUp);
     await offCamera(async () => {
-      await page.getByText("All caught up").waitFor();
+      await page.getByText("All caught up").waitFor({ timeout: BULK_WAIT_MS });
     });
     await beat(1800);
   });
@@ -1451,11 +1491,13 @@ async function comeBackScene({ browser, scene, dir }) {
   const first = state.videos.find((v) => v.page === page);
   if (first) first.readyMs = now() + RECORDING_LAG_MS;
 
-  await step(C.footer, async () => {
+  await step(C.order, async () => {
     await customerOrder(page, seed.boothId, {
       name: CUSTOMER,
       cutLoad: true,
     });
+  });
+  await step(C.footer, async () => {
     await beat(800);
     const follow = page.getByText(/^Follow /).first();
     await follow.waitFor({ timeout: 15000 });
@@ -1463,9 +1505,15 @@ async function comeBackScene({ browser, scene, dir }) {
     await beat(2200);
   });
   await step(C.telegram, async () => {
+    // A held beat before the jump, so the scroll to the Telegram link reads as
+    // a deliberate move rather than a cut.
+    await beat(900);
     const link = page.getByText(/Get notified on Telegram/).first();
     await link.waitFor({ timeout: 15000 });
-    await center(page, link);
+    await link.evaluate((el) =>
+      el.scrollIntoView({ block: "center", behavior: "smooth" }),
+    );
+    await beat(1100);
     await beat(2400);
   });
 
@@ -1479,6 +1527,10 @@ async function comeBackScene({ browser, scene, dir }) {
     const again = page.getByRole("button", {
       name: /Reorder these items|Order this again/,
     });
+    // The recording lags the scene clock, so a cut leaks its neighbours' loading
+    // frames; showing the ready state first keeps the reload skeleton off screen.
+    await page.getByText("It's ready").first().waitFor({ timeout: 15000 });
+    await beat(2200);
     await offCamera(async () => {
       await page.reload({ waitUntil: "domcontentloaded" });
       await again.waitFor({ timeout: 15000 });
@@ -1572,6 +1624,7 @@ async function main() {
   });
   try {
     state.mode = scene.mode;
+    state.maskPrices = scene.maskPrices === true;
     await run({ browser, scene, dir });
     const videos = await finishRecording(dir);
     fs.writeFileSync(
