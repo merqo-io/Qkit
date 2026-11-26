@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Demo clips: the Go live caption now lands with the Go live card (held 3.9s), "Start all" holds 3.75s, `come-back` captions follow the footage, and the dev origin and prices are blurred so no frame shows `localhost` or a price; the trailer opens on a settled frame.
 - Demo `setup` scene (Instagram Ep 2): holds the sample menu longer, cuts the board loading skeleton and records with the paykit mock up so the Go live payment row is ticked.
 - Creating a booth is one short screen: only Name & photo and Hours & availability show. On an existing booth, Order flow, Limits, Menu, Payment, Printing, Pickup and Social links sit behind a collapsed "More settings" control, which opens by itself when a setting inside it fails validation. A new booth is still saved with the same defaults for the settings it no longer shows.
 
