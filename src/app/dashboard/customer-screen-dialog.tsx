@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { ExternalLink, Tv } from "lucide-react";
 import { toast } from "sonner";
+import { writeTvOpened } from "@/lib/setup-checklist-storage";
 import { CopyButton } from "@merqo/ui";
 import {
   Button,
@@ -115,10 +116,13 @@ export function CustomerScreenButton({
 }) {
   const [open, setOpen] = useState(false);
   const [chosenId, setChosenId] = useState<string | null>(null);
-  if (booths.length === 0) return null;
-
   const booth =
     booths.find((b) => b.id === (chosenId ?? defaultBoothId)) ?? booths[0];
+  const boothId = booth?.id;
+  useEffect(() => {
+    if (open && boothId) writeTvOpened();
+  }, [open, boothId]);
+  if (booths.length === 0) return null;
 
   const trigger = (
     <Button

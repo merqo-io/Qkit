@@ -11,7 +11,7 @@ The "Customer alerts" user-guide article: what customers see at each order stage
 ## Conventions
 
 - Keep `uiLabels` and `covers` in step with the text; the drift test in `../help-content.test.ts` checks them.
-- Bump `reviewed` whenever the article is re-checked.
+- Bump `reviewed` whenever the article is re-checked, including when only the TV display copy it describes changes (the article names the screen but does not quote its lines).
 
 ## Parent
 
