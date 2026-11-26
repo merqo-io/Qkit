@@ -149,6 +149,7 @@ const state = {
   steps: [],
   videos: [],
   popMs: 0,
+  cuts: [],
   t0: 0,
   mode: "",
   baseUrl: "",
@@ -160,6 +161,64 @@ const pause = (page, ms) => (FAST.has(page) ? Promise.resolve() : beat(ms));
 /** The moment the order lands: compose drops the chime here. */
 function markPop() {
   state.popMs = now();
+}
+
+/**
+ * Run `fn` off camera: finishRecording trims the frames it spans out of the
+ * webm and shifts every later timestamp, so a route's loading skeleton never
+ * reaches the clip. Single-video scenes only.
+ */
+async function offCamera(fn) {
+  const startMs = now() + 60;
+  await fn();
+  state.cuts.push({ startMs, endMs: now() });
+}
+
+/** No route loading skeleton on screen. */
+const settled = (page) =>
+  page.getByRole("status", { name: "Loading" }).waitFor({ state: "hidden" });
+
+const shiftMs = (ms) =>
+  state.cuts.reduce(
+    (t, c) => t - Math.max(0, Math.min(ms, c.endMs) - c.startMs),
+    ms,
+  );
+
+/** Drops the cut ranges and returns the trimmed file's path. mp4, because libvpx stalls on this filter. */
+function trimCuts(file, startMs) {
+  const drop = state.cuts
+    .map(
+      (c) =>
+        `between(t,${((c.startMs - startMs) / 1000).toFixed(3)},${((c.endMs - startMs) / 1000).toFixed(3)})`,
+    )
+    .join("+");
+  const out = file.replace(/\.webm$/, ".mp4");
+  const res = spawnSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-i",
+      file,
+      "-vf",
+      `select='not(${drop})',setpts=N/25/TB`,
+      "-r",
+      "25",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-crf",
+      "12",
+      "-pix_fmt",
+      "yuv420p",
+      "-an",
+      out,
+    ],
+    { stdio: "ignore", timeout: 180000 },
+  );
+  if (res.status !== 0) throw new Error("ffmpeg could not trim the cuts.");
+  fs.rmSync(file);
+  return out;
 }
 
 /** Wrap a narrative beat: records {caption, startMs, endMs} for compose.mjs. */
@@ -252,7 +311,7 @@ setInterval(() => {
       el.style.visibility = "hidden";
     }
   }
-}, 150);
+}, 40);
 `;
 
 // Transparent rather than display:none so waits on toast text still resolve.
@@ -879,7 +938,10 @@ async function setupScene({ browser, scene, dir }) {
     waitUntil: "domcontentloaded",
   });
   await page.getByRole("link", { name: /Add your first booth/ }).waitFor();
-  await beat(500);
+  // The dashboard tour can mount a moment after the page settles; it would
+  // swallow the first click.
+  await beat(900);
+  if (await tourPopover(page).isVisible()) await dismissTour(page);
   const first = state.videos.find((v) => v.page === page);
   if (first) first.readyMs = now();
   await beat(400);
@@ -890,15 +952,25 @@ async function setupScene({ browser, scene, dir }) {
       page,
       page.getByRole("link", { name: /Add your first booth/ }),
     );
-    await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
+    await offCamera(async () => {
+      await page.waitForURL(/\/dashboard\/booths\/new/, { timeout: 15000 });
+      await page.locator("#booth-name").waitFor();
+      await settled(page);
+    });
     await pause(page, 700);
     if (await tourPopover(page).isVisible()) await dismissTour(page);
     await slowType(page, page.locator("#booth-name"), STALL);
     const save = page.getByRole("button", { name: /Save booth/ });
     await center(page, save);
     await glideClick(page, save);
-    await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
-      timeout: 15000,
+    await offCamera(async () => {
+      await page.waitForURL(/\/dashboard\/booths\/[0-9a-f-]{36}\/menu/i, {
+        timeout: 15000,
+      });
+      await page
+        .getByRole("button", { name: "Start with a sample menu" })
+        .waitFor();
+      await settled(page);
     });
     boothId =
       page.url().match(/\/dashboard\/booths\/([0-9a-f-]{36})\/menu/i)?.[1] ??
@@ -918,33 +990,49 @@ async function setupScene({ browser, scene, dir }) {
       .getByRole("button", { name: "Start with a sample menu" })
       .waitFor({ state: "hidden", timeout: 15000 });
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-    await pause(page, 3000);
+    await pause(page, 4200);
+    await scrollPage(page, 260);
+    await pause(page, 3200);
   });
   await step(C.golive, async () => {
     const saveMenu = page.getByRole("button", { name: "Save menu" });
     await center(page, saveMenu);
     await glideClick(page, saveMenu);
-    await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
-      timeout: 15000,
+    await offCamera(async () => {
+      await page.waitForURL(new RegExp(`/dashboard/booths/${boothId}/qr`), {
+        timeout: 15000,
+      });
+      const card = page.getByRole("region", { name: "Go live" });
+      await card.waitFor();
+      // The payment row streams in after a "Checking payment..." placeholder.
+      await card.getByText("Checking payment...").waitFor({ state: "hidden" });
+      await settled(page);
     });
-    await page.getByRole("region", { name: "Go live" }).waitFor();
-    await pause(page, 2200);
+    await pause(page, 2600);
   });
+  // Placed in the background while the QR is on screen, so the clip never waits on it.
+  const ordered = backgroundOrder(browser, boothId, CUSTOMER);
   await step(C.qr, async () => {
     await scrollPage(page, 420);
     await pause(page, 2200);
   });
 
-  await backgroundOrder(browser, boothId, CUSTOMER);
   let popped;
   await step(C.order, async () => {
     popped = ticket(page, CUSTOMER);
-    await page.goto(`${state.baseUrl}/dashboard`, {
-      waitUntil: "domcontentloaded",
+    // The board route shows a loading skeleton while it renders; that beat is
+    // cut so the clip goes from the QR straight to the live board.
+    await offCamera(async () => {
+      await ordered;
+      await page.goto(`${state.baseUrl}/dashboard`, {
+        waitUntil: "domcontentloaded",
+      });
+      await popped.waitFor({ state: "attached", timeout: 30000 });
+      await revealTicket(page, CUSTOMER);
+      await settled(page);
+      await beat(400);
     });
-    await popped.waitFor({ state: "attached", timeout: 30000 }).catch(() => {});
     markPop();
-    await revealTicket(page, CUSTOMER);
     await pause(page, 2600);
   });
   console.log(
@@ -1375,16 +1463,21 @@ const RUNNERS = {
 /** Close the recorded contexts and name each webm after its role. */
 async function finishRecording(dir) {
   const out = [];
+  if (state.cuts.length && state.videos.length !== 1)
+    throw new Error("Off-camera cuts need a single-video scene.");
   for (const v of state.videos) {
     await v.context.close();
     const tmp = await v.page.video().path();
-    const file = `${v.role}.webm`;
+    let file = `${v.role}.webm`;
     fs.renameSync(tmp, path.join(dir, file));
+    if (state.cuts.length) {
+      file = path.basename(trimCuts(path.join(dir, file), v.startMs));
+    }
     out.push({
       role: v.role,
       file,
       startMs: v.startMs,
-      readyMs: v.readyMs,
+      readyMs: state.cuts.length ? shiftMs(v.readyMs) : v.readyMs,
       viewport: v.viewport,
     });
   }
@@ -1434,9 +1527,13 @@ async function main() {
           mode: scene.mode,
           hook: scene.hook,
           endLine: scene.endLine ?? null,
-          popMs: state.popMs,
+          popMs: shiftMs(state.popMs),
           videos,
-          steps: state.steps,
+          steps: state.steps.map((st) => ({
+            ...st,
+            startMs: shiftMs(st.startMs),
+            endMs: shiftMs(st.endMs),
+          })),
         },
         null,
         2,
