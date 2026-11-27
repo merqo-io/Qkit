@@ -26,6 +26,8 @@ const FADE_S = 0.6;
 // `drop` removes a stretch of the window, given as seconds
 // before another step's start, so a loading frame inside a source clip never
 // reaches the trailer (the paynow customer pane reloads just before step 3).
+// The tv-screen cut must end after the board flips a ticket to Ready for pickup
+// (about 1s into its last step), so check the cut when re-recording that scene.
 const CUTS = [
   { scene: "live-pop", step: 3, lead: -0.5, len: 2.6 },
   {
