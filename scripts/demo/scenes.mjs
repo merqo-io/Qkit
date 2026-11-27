@@ -10,6 +10,8 @@ const EM_DASH = "—";
  * (customer phone and vendor board) composed side by side.
  * status "skeleton": the scene records, but part of what it shows needs data
  * or services this repo cannot drive on its own (see `note`).
+ * `maskPrices`: the recorder blurs prices and price fields (free-pilot clips
+ * never show a price). The localhost origin is blurred in every scene.
  * `pro`: the demo vendor needs a paid plan for the feature on camera.
  * `hook` is the on-screen headline shown for the whole clip; `captions` are
  * the short step captions record.mjs burns in per beat.
@@ -38,6 +40,7 @@ export const SCENES = [
   },
   {
     name: "live-pop",
+    maskPrices: true,
     episode: 1,
     mode: "split",
     status: "implemented",
@@ -51,6 +54,7 @@ export const SCENES = [
   },
   {
     name: "setup",
+    maskPrices: true,
     episode: 2,
     mode: "single",
     status: "implemented",
@@ -66,6 +70,7 @@ export const SCENES = [
   },
   {
     name: "paynow",
+    maskPrices: true,
     episode: 3,
     mode: "split",
     status: "implemented",
@@ -79,6 +84,7 @@ export const SCENES = [
   },
   {
     name: "status",
+    maskPrices: true,
     episode: 4,
     mode: "split",
     status: "implemented",
@@ -91,6 +97,7 @@ export const SCENES = [
   },
   {
     name: "tv-screen",
+    maskPrices: true,
     episode: 5,
     mode: "single",
     status: "implemented",
@@ -127,6 +134,7 @@ export const SCENES = [
   },
   {
     name: "batch",
+    maskPrices: true,
     episode: 8,
     mode: "single",
     status: "implemented",
@@ -190,11 +198,13 @@ export const SCENES = [
   },
   {
     name: "come-back",
+    maskPrices: true,
     episode: 13,
     mode: "single",
     status: "skeleton",
     hook: "Turn the queue into followers",
     captions: {
+      order: "A customer places an order",
       footer: "Your socials, on every order page",
       telegram: "Updates on Telegram, no app",
       reorder: "One tap to order again",

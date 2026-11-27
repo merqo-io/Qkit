@@ -19,16 +19,22 @@ const CUT_S = 6.4;
 const FADE_S = 0.6;
 
 // Beat = index into steps.json's steps; the cut starts `lead` seconds before it
-// (default LEAD_S). `drop` removes a stretch of the window, given as seconds
+// (default LEAD_S). The opening cut starts just after its step (negative lead;
+// the composed clip runs about 0.5s behind steps.json) with a short `len`
+// (default CUT_S), so the trailer starts on a settled board, not the checkout
+// sheet mid-slide.
+// `drop` removes a stretch of the window, given as seconds
 // before another step's start, so a loading frame inside a source clip never
 // reaches the trailer (the paynow customer pane reloads just before step 3).
+// The tv-screen cut must end after the board flips a ticket to Ready for pickup
+// (about 1s into its last step), so check the cut when re-recording that scene.
 const CUTS = [
-  { scene: "live-pop", step: 3 },
+  { scene: "live-pop", step: 3, lead: -0.5, len: 2.6 },
   {
     scene: "paynow",
     step: 2,
     lead: 3.4,
-    drop: { step: 2, fromBefore: 1.5, toBefore: 0.3 },
+    drop: { step: 2, fromBefore: 2.7, toBefore: 0.8 },
   },
   { scene: "status", step: 2 },
   { scene: "tv-screen", step: 2 },
@@ -74,8 +80,9 @@ function main() {
       drop = { from: at - c.drop.fromBefore, to: at - c.drop.toBefore };
     }
     const dropLen = drop ? drop.to - drop.from : 0;
-    const start = Math.max(0, Math.min(wanted, mainEnd - CUT_S - dropLen));
-    const win = CUT_S + dropLen;
+    const cutS = c.len ?? CUT_S;
+    const start = Math.max(0, Math.min(wanted, mainEnd - cutS - dropLen));
+    const win = cutS + dropLen;
     const cutOut = drop
       ? `,select='not(between(t,${(drop.from - start).toFixed(2)},${(drop.to - start).toFixed(2)}))'`
       : "";
