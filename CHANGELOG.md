@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Landing try-it mockup: below 960px the device grid is capped to its column and clipped, so the un-hydrated render can no longer push the page 10px past a 390px viewport.
+
 ### Changed
 
 - Shared `@merqo/ui` is now v0.62.1. The About Merqo copy says qkit is running in a pilot, marks the other kits "In build", lists printkit and drops the one-sign-in sentence, and the shared footer and landing nav tap targets are at least 44px.
