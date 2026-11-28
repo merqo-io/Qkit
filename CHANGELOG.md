@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared `@merqo/ui` is now v0.62.1. The About Merqo copy says qkit is running in a pilot, marks the other kits "In build", lists printkit and drops the one-sign-in sentence, and the shared footer and landing nav tap targets are at least 44px.
 - Demo clips: the trailer's tv-screen cut shows the ticket flipping to Ready for pickup under its caption, and the batch clip drops the idle stretch so "Mark all ready" opens on the populated Preparing list.
 - Demo clips: the Go live caption now lands with the Go live card (held 3.9s), "Start all" holds 3.75s, `come-back` captions follow the footage, and the dev origin and prices are blurred so no frame shows `localhost` or a price; the trailer opens on a settled frame.
 - Demo `setup` scene (Instagram Ep 2): holds the sample menu longer, cuts the board loading skeleton and records with the paykit mock up so the Go live payment row is ticked.
