@@ -15,7 +15,7 @@ database.
 - `story-board.tsx` - the vendor's tablet: tickets from the real `Ticket`, `TicketItems` and `TicketFooter`. Landscape with two columns from 960px, portrait with one column below. "Mark Picked Up" shows a draining 10 second countdown labelled as a sample, since the vendor sets the real delay.
 - `story-cue.tsx` - `Cue`, a pulsing ring around the next button to tap.
 - `story-steps.ts` - the three step texts.
-- `use-story-layout.ts` - `useWide` (960px media query, false on the server) and `useFitScale`, which shrinks the fixed-size devices with CSS `zoom` to fit the column and the viewport height.
+- `use-story-layout.ts` - `useWide` (960px media query, false on the server) and `useFitScale`, which shrinks the fixed-size devices with CSS `zoom` to fit the column and the viewport height. Below 960px the device grid in `try-it.tsx` is also capped to its column and clipped, because the server render has no zoom yet and its 380px card would otherwise widen the page.
 - `*.test.ts(x)` - reducer tests and a DOM test for the tabs, the "Tap to continue" cue, the single live region and the reduced-motion finished state.
 
 The story's bottom padding is the closing section's `clamp(56px,8vw,96px)` minus the 58px "Play it again" row (which always reserves its height), so the gap under the devices equals the rule's gap on the other side. Below 960px both devices share one grid cell and are bottom-aligned, so the visible frame sits flush above that row on either tab and switching tabs does not change the page height.
