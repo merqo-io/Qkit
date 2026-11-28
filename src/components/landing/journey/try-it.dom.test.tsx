@@ -99,6 +99,17 @@ describe("TryIt with reduced motion", () => {
   });
 });
 
+describe("TryIt narrow containment", () => {
+  it("caps and clips the device grid below 960px", () => {
+    mockMatchMedia({ reduced: false });
+    const { container } = render(<TryIt />);
+    const grid = container.querySelector("#story-phone")?.parentElement;
+    expect(grid?.className).toContain("max-[959px]:max-w-full");
+    expect(grid?.className).toContain("max-[959px]:overflow-x-clip");
+    expect(grid?.className).toContain("min-[960px]:flex");
+  });
+});
+
 describe("TryIt bottom spacing", () => {
   it("pads the story to the closing section's clamp minus the replay row", () => {
     mockMatchMedia({ reduced: false });

@@ -291,7 +291,7 @@ export function TryIt() {
 
             <div
               ref={zoomRef}
-              className="mx-auto grid w-max items-end justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
+              className="mx-auto grid w-max max-[959px]:max-w-full max-[959px]:overflow-x-clip items-end justify-items-center min-[960px]:flex min-[960px]:items-end min-[960px]:gap-6"
             >
               <Device
                 id="story-phone"
